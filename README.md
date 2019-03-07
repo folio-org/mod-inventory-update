@@ -24,6 +24,8 @@ the title -- and compare it verbatim with titles already in Inventory Storage.
 If it does not find a matching title, a new Instance will be created. If it finds one, the existing Instance will be 
 replaced by the incoming Instance, except, the HRID (human readable ID) of the original Instance will be retained.
 
+Inventory Match will return the resulting Instance to the caller as a JSON string. 
+
 ## Prerequisites
 
 - Java 8 JDK

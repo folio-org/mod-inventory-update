@@ -5,7 +5,7 @@
 Mod-inventory-match (Inventory Match) is an Okapi service that can be put in front of mod-inventory-storage 
 (Inventory Storage) when posting Instances (bibliographic records) to Inventory Storage. 
 
-A client uploading Instances directly to Inventory Storage must decide on it's own whether to create (POST) a new 
+A client uploading Instances directly to Inventory Storage must decide on its own whether to create (POST) a new 
 Instance or update (PUT) an existing Instance in Inventory Storage. By uploading to Inventory Match instead, the client
 can delegate that responsibility to Inventory Match.
 
@@ -45,7 +45,7 @@ More information is available on the [FOLIO developer site](https://dev.folio.or
 
 run `mvn install` from the root directory.
 
-## Development to-dos (certain, likely, and potential)
+## Some development to-dos (certain, likely, and potential)
 
 * Include more fields in the matching mechanism
 * Make selection of match fields configurable

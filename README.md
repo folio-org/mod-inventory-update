@@ -14,7 +14,7 @@ Inventory Match exposes one end-point, which accepts PUT requests with an [Insta
 
 * /instance-storage-match/instances
 
-## Details of the matching mechanism
+### Details of the matching mechanism
 Based on select properties of the incoming Instance, Inventory Match will query Inventory Storage and determine 
 whether to create or update an Instance in Inventory Storage. 
 

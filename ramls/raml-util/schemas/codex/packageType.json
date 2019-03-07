@@ -1,0 +1,16 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "title": "Package Type Schema",
+  "description": "Package Type Schema",
+  "type": "string",
+  "additionalProperties": false,
+  "enum": [
+    "aggregatedfulltext",
+    "abstractandindex",
+    "ebook",
+    "ejournal",
+    "print",
+    "unknown",
+    "onlinereference"
+  ]
+}

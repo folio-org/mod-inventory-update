@@ -1,0 +1,19 @@
+{
+  "type": "object",
+  "properties": {
+    "id": {
+      "type": "string"
+    },
+    "userId": {
+      "type": "string"
+    },
+    "permissions": {
+      "type": "array"
+    },
+    "metadata" : {
+      "type" : "object",
+      "$ref" : "../metadata.schema"
+    }
+  },
+  "additionalProperties": false
+}

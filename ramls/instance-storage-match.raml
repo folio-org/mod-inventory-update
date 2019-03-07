@@ -1,0 +1,31 @@
+#%RAML 1.0
+title: Instance Storage Matcher
+version: v6.0
+protocols: [ HTTP, HTTPS ]
+baseUri: http://localhost
+
+documentation:
+  - title: Instance Storage Match API
+    content: <b>Matching instances in the inventory</b>
+
+types:
+  instance: !include instance.json
+  instances: !include instances.json
+
+resourceTypes:
+  collection: !include raml-util/rtypes/collection.raml
+  collection-item: !include raml-util/rtypes/item-collection.raml
+
+traits:
+  language: !include raml-util/traits/language.raml
+
+/instance-storage-match:
+  /instances:
+    displayName: Instances
+    type:
+      collection:
+        exampleCollection: !include  examples/instances.json
+        schemaCollection: instances
+        schemaItem: instance
+        exampleItem: !include examples/instance.json
+    put:

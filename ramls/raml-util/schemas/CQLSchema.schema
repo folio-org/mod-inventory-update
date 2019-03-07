@@ -1,0 +1,165 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "title": "CQLSchema",
+  "description": "JSON schema for capturing CQL search schemas",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Name of the property"
+    },
+    "description": {
+      "type": "string",
+      "description": "Description of the property"
+    },
+    "prefix": {
+      "type": "string",
+      "description": "Prefix of the property"
+    },
+    "uri": {
+      "description": "Uri of the property",
+      "type": "string",
+      "uri": "Uri of the property"
+    },
+    "default": {
+      "type": "boolean",
+      "description": "If context set is default, the server will determine it automatically"
+    },
+    "indexes": {
+      "type": "array",
+      "description": "Array of CQL Indexes",
+      "items": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Name of the index"
+          },
+          "description": {
+            "type": "string",
+            "description": "Description of the Index"
+          },
+          "type": {
+            "type": "string",
+            "description": "Type of the index",
+            "enum": [
+              "string",
+              "number"
+            ],
+            "default": "string"
+          },
+          "values": {
+            "type": "array",
+            "description": "Index values array",
+            "items": {
+              "type": "string"
+            },
+            "uniqueItems": true
+          },
+          "capability": {
+            "type": "array",
+            "description": "Array of index capabilities",
+            "items": {
+              "type": "string",
+              "enum": [
+                "search",
+                "sort",
+                "filter"
+              ]
+            },
+            "default": [
+              "search"
+            ],
+            "uniqueItems": true
+          },
+          "modifiers": {
+            "type": "array",
+              "description": "Array of Index modifiers",
+              "items": {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "type": "string",
+                   "description": "Name of Index modifier"
+                },
+                "values": {
+                  "type": "array",
+                  "description": "Modifier values array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "uniqueItems": true
+                }
+              },
+              "additionalProperties": false,
+              "required": [
+                "name"
+              ]
+            },
+            "uniqueItems": true
+          }
+        },
+        "additionalProperties": false,
+        "required": [
+          "name"
+        ]
+      },
+      "uniqueItems": true
+    },
+    "operators": {
+      "type": "array",
+      "description": "Array of supported operators",
+      "items": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "description": "Type of operator",
+            "enum": [
+              "AND",
+              "OR",
+              "NOT",
+              "PROX"
+            ]
+          },
+          "supported": {
+            "type": "boolean",
+            "description": "Boolean indicator if operator is supported"
+          }
+        },
+        "additionalProperties": false,
+        "required": [
+          "type",
+          "supported"
+        ]
+      },
+      "default": [
+        {
+          "type": "AND",
+          "supported": true
+        },
+        {
+          "type": "OR",
+          "supported": true
+        },
+        {
+          "type": "NOT",
+          "supported": true
+        },
+        {
+          "type": "PROX",
+          "supported": false
+        }
+      ],
+      "uniqueItems": true
+    }
+  },
+  "additionalProperties": false,
+  "required": [
+    "name",
+    "prefix",
+    "uri",
+    "default",
+    "indexes"
+  ]
+}

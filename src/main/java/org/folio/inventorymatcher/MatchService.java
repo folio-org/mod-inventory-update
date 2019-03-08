@@ -27,7 +27,7 @@ import io.vertx.ext.web.RoutingContext;
  */
 public class MatchService {
   private final Logger logger = LoggerFactory.getLogger("inventory-matcher");
-
+  private OkapiClient okapiClient;
   /**
    * Main flow of Instance matching and creating/updating.
    * @param routingCtx
@@ -37,7 +37,7 @@ public class MatchService {
     if (contentType != null && contentType.compareTo("application/json") != 0) {
       responseError(routingCtx, 400, "Only accepts Content-Type application/json");
     } else {
-      OkapiClient okapiClient = new OkapiClient(routingCtx);
+      okapiClient = getOkapiClient(routingCtx);
 
       JsonObject candidateInstance = routingCtx.getBodyAsJson();
       logger.info("Received a POST of " + candidateInstance.toString());
@@ -90,7 +90,7 @@ public class MatchService {
 
   /**
    * Merges properties of candidate instance with select properties of existing instance
-   * (without mutating the original objects)
+   * (without mutating the original JSON objects)
    * @param matchingInstance Existing instance
    * @param candidateInstance Instance coming in on the request
    * @return merged Instance
@@ -110,7 +110,6 @@ public class MatchService {
    * @param instanceId
    */
   private void putInstance (RoutingContext routingCtx, JsonObject newInstance, String instanceId) {
-    OkapiClient okapiClient = getInventoryClient(routingCtx);
     okapiClient.request(HttpMethod.PUT, "/instance-storage/instances/"+instanceId, newInstance.toString(), putResult-> {
       if (putResult.succeeded()) {
         okapiClient.get("/instance-storage/instances/"+instanceId, res-> {
@@ -136,7 +135,6 @@ public class MatchService {
    * @param newInstance
    */
   private void postInstance (RoutingContext ctx, JsonObject newInstance) {
-    OkapiClient okapiClient = getInventoryClient(ctx);
     okapiClient.post("/instance-storage/instances", newInstance.toString(), postResult->{
       if (postResult.succeeded()) {
         String instanceResult = postResult.result();
@@ -145,20 +143,20 @@ public class MatchService {
         responseJson(ctx, 200).end(instancePrettyString);
       } else {
         String msg = postResult.cause().getMessage();
-        responseError(ctx, 500, "mod-inventory-storage failed with " + msg);
+        responseError(ctx, 500, "mod-inventory-storage POST failed with " + msg);
       }
     });
   }
 
-  private OkapiClient getInventoryClient (RoutingContext ctx) {
-    OkapiClient inventoryClient = new OkapiClient(ctx);
+  private OkapiClient getOkapiClient (RoutingContext ctx) {
+    OkapiClient client = new OkapiClient(ctx);
     Map<String, String> headers = new HashMap<>();
     headers.put("Content-type", "application/json");
     headers.put("X-Okapi-Tenant", ctx.request().getHeader("X-Okapi-Tenant"));
     headers.put("X-Okapi-Token", ctx.request().getHeader("X-Okapi-Token"));
     headers.put("Accept", "application/json, text/plain");
-    inventoryClient.setHeaders(headers);
-    return inventoryClient;
+    client.setHeaders(headers);
+    return client;
   }
 
 

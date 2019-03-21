@@ -50,7 +50,7 @@ public class InstanceMatchingTestSuite {
 
   @Test
   public void testFakeInventoryStorage(TestContext testContext) {
-    inventoryStorage.test(testContext);
+    FakeInventoryStorageValidator.validateStorage(inventoryStorage, testContext);
   }
 
   @After

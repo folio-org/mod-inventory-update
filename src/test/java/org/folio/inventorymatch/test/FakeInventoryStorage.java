@@ -3,13 +3,9 @@ package org.folio.inventorymatch.test;
 
 import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
-import java.net.URLEncoder;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.UUID;
-
-import com.jayway.restassured.RestAssured;
-import com.jayway.restassured.response.Response;
 
 import io.vertx.core.Vertx;
 import io.vertx.core.http.HttpServerOptions;
@@ -22,16 +18,18 @@ import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.handler.BodyHandler;
 
 public class FakeInventoryStorage {
-  private final int PORT_INVENTORY_STORAGE = 9030;
-  private final String URL_INSTANCES = "/instance-storage/instances";
-  private final List<Instance> storedInstances = new ArrayList<>();
+  public final int PORT_INVENTORY_STORAGE = 9030;
+  public final String URL_INSTANCES = "/instance-storage/instances";
+  private final Map<String,Instance> storedInstances = new HashMap<>();
 
   public FakeInventoryStorage (Vertx vertx, TestContext testContext, Async async) {
     Router router = Router.router(vertx);
     router.get(URL_INSTANCES).handler(this::handlerGetInstancesByQuery);
+    router.get(URL_INSTANCES+"/:id").handler(this::handlerGetInstanceById);
     router.post("/*").handler(BodyHandler.create());
     router.post(URL_INSTANCES).handler(this::handlerCreateInstance);
-    router.put(URL_INSTANCES).handler(this::handlerUpdateInstance);
+    router.put("/*").handler(BodyHandler.create());
+    router.put(URL_INSTANCES+"/:id").handler(this::handlerUpdateInstance);
 
     initializeStoredInstances();
 
@@ -54,12 +52,13 @@ public class FakeInventoryStorage {
   }
 
   private void addStoredInstance(Instance instance) {
-    storedInstances.add(instance);
+    instance.setId(UUID.randomUUID().toString());
+    storedInstances.put(instance.getId(), instance);
   }
 
   private JsonObject getInstancesAsJsonResultSet (String query) {
     JsonArray instancesJson = new JsonArray();
-    for  (Instance instance: storedInstances ) {
+    for  (Instance instance: storedInstances.values()) {
       if (instance.match(query)) {
         instancesJson.add(instance.getJson());
       }
@@ -87,69 +86,46 @@ public class FakeInventoryStorage {
     });
   }
 
+  private void handlerGetInstanceById(RoutingContext routingContext) {
+    final String id = routingContext.pathParam("id");
+    Instance instance = storedInstances.get(id);
+
+    routingContext.request().endHandler(res -> {
+      routingContext.response().headers().add("Content-Type", "application/json");
+      routingContext.response().setStatusCode(200);
+      routingContext.response().end(instance.getJson().encodePrettily());
+    });
+    routingContext.request().exceptionHandler(res -> {
+      routingContext.response().setStatusCode(500);
+      routingContext.response().end(res.getMessage());
+    });
+
+  }
+
   private void handlerCreateInstance(RoutingContext routingContext) {
 
     JsonObject instanceJson = new JsonObject(routingContext.getBodyAsString());
     if (!instanceJson.containsKey("id")) {
       instanceJson.put("id", UUID.randomUUID().toString());
     }
-    storedInstances.add(new Instance(instanceJson));
+    String id = instanceJson.getString("id");
+    storedInstances.put(id, new Instance(instanceJson));
 
     routingContext.response().headers().add("Content-Type", "application/json");
     routingContext.response().setStatusCode(201);
     routingContext.response().end(instanceJson.encodePrettily());
   }
 
-  private void handlerUpdateInstance(RoutingContext routingContext) {}
+  private void handlerUpdateInstance(RoutingContext routingContext) {
 
-  /**
-   * Tests fake storage method handlers
-   * @param testContext
-   */
-  public void test (TestContext testContext) {
+    JsonObject instanceJson = new JsonObject(routingContext.getBodyAsString());
+    String id = routingContext.pathParam("id");
+    storedInstances.put(id, new Instance(instanceJson));
 
-    // GET by query
-    String bodyAsString;
+    routingContext.response().headers().add("Content-Type", "application/json");
+    routingContext.response().setStatusCode(204);
+    routingContext.response().end();
 
-    Response response1;
-
-    RestAssured.port = PORT_INVENTORY_STORAGE;
-    response1 = RestAssured.given()
-      .get(URL_INSTANCES+"?query="+ encode("title=\"Initial Instance\""))
-      .then()
-      .log().ifValidationFails()
-      .statusCode(200).extract().response();
-
-    bodyAsString = response1.getBody().asString();
-    JsonObject responseJson1 = new JsonObject(bodyAsString);
-
-    testContext.assertEquals(responseJson1.getInteger("totalRecords"), 1,
-                             "Number of instance records expected: 1" );
-
-    // POST instance
-    Response response2;
-    JsonObject newInstance = new Instance().setTitle("New Instance").setInstanceTypeId("123").getJson();
-
-    response2 = RestAssured.given()
-      .body(newInstance.toString())
-      .post(URL_INSTANCES)
-      .then()
-      .log().ifValidationFails()
-      .statusCode(201).extract().response();
-
-    bodyAsString = response2.getBody().asString();
-    JsonObject responseJson2 = new JsonObject(bodyAsString);
-
-    testContext.assertEquals(responseJson2.getString("title"), "New Instance");
-
-  }
-
-  private String encode (String string) {
-    try {
-      return URLEncoder.encode(string, "UTF-8");
-    } catch (UnsupportedEncodingException uee) {
-      return "";
-    }
   }
 
   private String decode (String string) {

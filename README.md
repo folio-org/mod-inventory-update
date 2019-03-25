@@ -50,5 +50,4 @@ run `mvn install` from the root directory.
 * Include more fields in the matching mechanism
 * Make selection of match fields configurable
 * Implement a GET end-point for clients that need to find a matching Instance
-* Add tests
 * Determine how to update Instances (leave the original? overwrite the original? it depends? merge them? configurable?)

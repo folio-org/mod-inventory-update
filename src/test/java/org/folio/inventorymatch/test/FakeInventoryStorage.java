@@ -3,6 +3,7 @@ package org.folio.inventorymatch.test;
 
 import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
+import java.net.URLEncoder;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
@@ -18,8 +19,8 @@ import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.handler.BodyHandler;
 
 public class FakeInventoryStorage {
-  public final int PORT_INVENTORY_STORAGE = 9030;
-  public final String URL_INSTANCES = "/instance-storage/instances";
+  public final static int PORT_INVENTORY_STORAGE = 9030;
+  public final static String URL_INSTANCES = "/instance-storage/instances";
   private final Map<String,Instance> storedInstances = new HashMap<>();
 
   public FakeInventoryStorage (Vertx vertx, TestContext testContext, Async async) {
@@ -125,12 +126,20 @@ public class FakeInventoryStorage {
     routingContext.response().headers().add("Content-Type", "application/json");
     routingContext.response().setStatusCode(204);
     routingContext.response().end();
+  }
+
+  public static String decode (String string) {
+    try {
+      return URLDecoder.decode(string, "UTF-8");
+    } catch (UnsupportedEncodingException uee) {
+      return "";
+    }
 
   }
 
-  private String decode (String string) {
+  public static String encode (String string) {
     try {
-      return URLDecoder.decode(string, "UTF-8");
+      return URLEncoder.encode(string, "UTF-8");
     } catch (UnsupportedEncodingException uee) {
       return "";
     }

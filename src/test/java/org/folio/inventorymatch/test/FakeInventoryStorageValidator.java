@@ -1,8 +1,5 @@
 package org.folio.inventorymatch.test;
 
-import java.io.UnsupportedEncodingException;
-import java.net.URLEncoder;
-
 import com.jayway.restassured.RestAssured;
 import com.jayway.restassured.response.Response;
 
@@ -32,9 +29,9 @@ public class FakeInventoryStorageValidator {
     String bodyAsString;
     Response response1;
 
-    RestAssured.port = storage.PORT_INVENTORY_STORAGE;
+    RestAssured.port = FakeInventoryStorage.PORT_INVENTORY_STORAGE;
     response1 = RestAssured.given()
-      .get(storage.URL_INSTANCES+"?query="+ encode("title=\"Initial Instance\""))
+      .get(FakeInventoryStorage.URL_INSTANCES+"?query="+ FakeInventoryStorage.encode("title=\"Initial Instance\""))
       .then()
       .log().ifValidationFails()
       .statusCode(200).extract().response();
@@ -55,11 +52,11 @@ public class FakeInventoryStorageValidator {
 
     String bodyAsString1;
     Response response1;
-    JsonObject newInstance = new Instance().setTitle("New Instance").setInstanceTypeId("123").getJson();
+    JsonObject newInstance = new Instance().setTitle("New Instance").setInstanceTypeId("12345").getJson();
 
     response1 = RestAssured.given()
       .body(newInstance.toString())
-      .post(storage.URL_INSTANCES)
+      .post(FakeInventoryStorage.URL_INSTANCES)
       .then()
       .log().ifValidationFails()
       .statusCode(201).extract().response();
@@ -72,9 +69,9 @@ public class FakeInventoryStorageValidator {
     // Fetch new instance by ID to validate POST
     String bodyAsString2;
     Response response2;
-    RestAssured.port = storage.PORT_INVENTORY_STORAGE;
+    RestAssured.port = FakeInventoryStorage.PORT_INVENTORY_STORAGE;
     response2 = RestAssured.given()
-      .get(storage.URL_INSTANCES+"/"+instanceResponse.getString("id"))
+      .get(FakeInventoryStorage.URL_INSTANCES+"/"+instanceResponse.getString("id"))
       .then()
       .log().ifValidationFails()
       .statusCode(200).extract().response();
@@ -96,9 +93,9 @@ public class FakeInventoryStorageValidator {
     // Find existing instance
     String bodyAsString1;
     Response response1;
-    RestAssured.port = storage.PORT_INVENTORY_STORAGE;
+    RestAssured.port = FakeInventoryStorage.PORT_INVENTORY_STORAGE;
     response1 = RestAssured.given()
-      .get(storage.URL_INSTANCES+"?query="+ encode("title=\"Initial Instance\""))
+      .get(FakeInventoryStorage.URL_INSTANCES+"?query="+ FakeInventoryStorage.encode("title=\"Initial Instance\""))
       .then()
       .log().ifValidationFails()
       .statusCode(200).extract().response();
@@ -113,7 +110,7 @@ public class FakeInventoryStorageValidator {
     // Update existing instance with PUT
     RestAssured.given()
       .body(existingInstance.toString())
-      .put(storage.URL_INSTANCES+"/"+existingInstance.getString("id"))
+      .put(FakeInventoryStorage.URL_INSTANCES+"/"+existingInstance.getString("id"))
       .then()
       .log().ifValidationFails()
       .statusCode(204).extract().response();
@@ -121,9 +118,9 @@ public class FakeInventoryStorageValidator {
     // Fetch instance by ID to validate PUT with updated property
     String bodyAsString2;
     Response response2;
-    RestAssured.port = storage.PORT_INVENTORY_STORAGE;
+    RestAssured.port = FakeInventoryStorage.PORT_INVENTORY_STORAGE;
     response2 = RestAssured.given()
-      .get(storage.URL_INSTANCES+"/"+existingInstance.getString("id"))
+      .get(FakeInventoryStorage.URL_INSTANCES+"/"+existingInstance.getString("id"))
       .then()
       .log().ifValidationFails()
       .statusCode(200).extract().response();
@@ -133,14 +130,6 @@ public class FakeInventoryStorageValidator {
 
     testContext.assertEquals(instance.getString("instanceTypeId"), "456");
 
-  }
-
-  private static String encode (String string) {
-    try {
-      return URLEncoder.encode(string, "UTF-8");
-    } catch (UnsupportedEncodingException uee) {
-      return "";
-    }
   }
 
 }

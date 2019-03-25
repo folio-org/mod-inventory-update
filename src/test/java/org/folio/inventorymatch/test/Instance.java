@@ -50,12 +50,13 @@ public class Instance {
   }
 
   public boolean match(String query) {
-    String[] queryParts = query.split("=");
+    String trimmed = query.replace("(","").replace(")", "");
+    String[] queryParts = trimmed.split("=");
     String key = queryParts[0];
     String value = queryParts[1].replace("\"", "");
     System.out.println("key: "+key);
     System.out.println("value: "+value);
     System.out.println("instance.getString(key): " + instanceJson.getString(key));
-    return (instanceJson.getString(key).equals(value));
+    return (instanceJson.getString(key) != null && instanceJson.getString(key).equals(value));
   }
 }

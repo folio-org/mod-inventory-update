@@ -28,7 +28,7 @@ public class MainVerticle extends AbstractVerticle {
 
     Router router = Router.router(vertx);
     router.put("/*").handler(BodyHandler.create()); // Tell vertx we want the whole PUT body in the handler
-    router.put("/instance-storage-match/instances").handler(matchService::handleInstanceMatching);
+    router.put(MatchService.INSTANCE_MATCH_PATH).handler(matchService::handleInstanceMatching);
 
     vertx.createHttpServer()
       .requestHandler(router::accept)

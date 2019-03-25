@@ -28,14 +28,17 @@ import io.vertx.ext.web.RoutingContext;
 public class MatchService {
   private final Logger logger = LoggerFactory.getLogger("inventory-matcher");
   private OkapiClient okapiClient;
+  private static final String INSTANCE_STORAGE_PATH = "/instance-storage/instances";
+  public final static String INSTANCE_MATCH_PATH = "/instance-storage-match/instances";
+
   /**
    * Main flow of Instance matching and creating/updating.
    * @param routingCtx
    */
   public void handleInstanceMatching(RoutingContext routingCtx) {
     String contentType = routingCtx.request().getHeader("Content-Type");
-    if (contentType != null && contentType.compareTo("application/json") != 0) {
-      responseError(routingCtx, 400, "Only accepts Content-Type application/json");
+    if (contentType != null && !contentType.startsWith("application/json")) {
+      responseError(routingCtx, 400, "Only accepts Content-Type application/json, was: "+ contentType);
     } else {
       okapiClient = getOkapiClient(routingCtx);
 
@@ -45,7 +48,7 @@ public class MatchService {
       MatchQuery matchQuery = new MatchQuery(candidateInstance);
       logger.info("Constructed match query: [" + matchQuery.getQueryString() + "]");
 
-      okapiClient.get("/instance-storage/instances?query="+matchQuery.getURLEncodedQueryString(), res-> {
+      okapiClient.get(INSTANCE_STORAGE_PATH+"?query="+matchQuery.getURLEncodedQueryString(), res-> {
         if ( res.succeeded()) {
           JsonObject matchingInstances = new JsonObject(res.result());
           updateInventory(candidateInstance, matchingInstances, matchQuery, routingCtx);
@@ -98,6 +101,12 @@ public class MatchService {
   private JsonObject mergeInstances (JsonObject matchingInstance, JsonObject candidateInstance) {
     JsonObject mergedInstance = candidateInstance.copy();
     JsonArray notes = matchingInstance.getJsonArray("notes");
+    if (notes == null) {
+      notes = new JsonArray();
+    }
+    if (mergedInstance.getJsonArray("notes") == null) {
+      mergedInstance.put("notes", new JsonArray());
+    }
     mergedInstance.getJsonArray("notes").addAll(notes);
     mergedInstance.put("hrid", matchingInstance.getString("hrid"));
     return mergedInstance;
@@ -110,9 +119,9 @@ public class MatchService {
    * @param instanceId
    */
   private void putInstance (RoutingContext routingCtx, JsonObject newInstance, String instanceId) {
-    okapiClient.request(HttpMethod.PUT, "/instance-storage/instances/"+instanceId, newInstance.toString(), putResult-> {
+    okapiClient.request(HttpMethod.PUT, INSTANCE_STORAGE_PATH+"/"+instanceId, newInstance.toString(), putResult-> {
       if (putResult.succeeded()) {
-        okapiClient.get("/instance-storage/instances/"+instanceId, res-> {
+        okapiClient.get(INSTANCE_STORAGE_PATH+"/"+instanceId, res-> {
           if ( res.succeeded()) {
           JsonObject instanceResponseJson = new JsonObject(res.result());
           String instancePrettyString = instanceResponseJson.encodePrettily();
@@ -135,7 +144,7 @@ public class MatchService {
    * @param newInstance
    */
   private void postInstance (RoutingContext ctx, JsonObject newInstance) {
-    okapiClient.post("/instance-storage/instances", newInstance.toString(), postResult->{
+    okapiClient.post(INSTANCE_STORAGE_PATH, newInstance.toString(), postResult->{
       if (postResult.succeeded()) {
         String instanceResult = postResult.result();
         JsonObject instanceResponseJson = new JsonObject(instanceResult);
@@ -152,8 +161,8 @@ public class MatchService {
     OkapiClient client = new OkapiClient(ctx);
     Map<String, String> headers = new HashMap<>();
     headers.put("Content-type", "application/json");
-    headers.put("X-Okapi-Tenant", ctx.request().getHeader("X-Okapi-Tenant"));
-    headers.put("X-Okapi-Token", ctx.request().getHeader("X-Okapi-Token"));
+    if (ctx.request().getHeader("X-Okapi-Tenant") != null) headers.put("X-Okapi-Tenant", ctx.request().getHeader("X-Okapi-Tenant"));
+    if (ctx.request().getHeader("X-Okapi-Token") != null) headers.put("X-Okapi-Token", ctx.request().getHeader("X-Okapi-Token"));
     headers.put("Accept", "application/json, text/plain");
     client.setHeaders(headers);
     return client;

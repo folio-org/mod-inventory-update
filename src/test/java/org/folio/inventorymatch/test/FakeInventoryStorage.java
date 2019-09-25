@@ -49,7 +49,7 @@ public class FakeInventoryStorage {
   }
 
   private void initializeStoredInstances() {
-    addStoredInstance(new Instance().setInstanceTypeId("123").setTitle("Initial Instance"));
+    addStoredInstance(new Instance().setInstanceTypeId("123").setTitle("Initial Instance").setIndexTitle("initial instance"));
   }
 
   private void addStoredInstance(Instance instance) {

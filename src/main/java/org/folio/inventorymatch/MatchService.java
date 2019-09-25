@@ -43,9 +43,10 @@ public class MatchService {
       okapiClient = getOkapiClient(routingCtx);
 
       JsonObject candidateInstance = routingCtx.getBodyAsJson();
-      logger.info("Received a POST of " + candidateInstance.toString());
+      logger.info("Received a PUT of " + candidateInstance.toString());
 
       MatchQuery matchQuery = new MatchQuery(candidateInstance);
+      candidateInstance.put("indexTitle", matchQuery.getMatchKey());
       logger.info("Constructed match query: [" + matchQuery.getQueryString() + "]");
 
       okapiClient.get(INSTANCE_STORAGE_PATH+"?query="+matchQuery.getURLEncodedQueryString(), res-> {

@@ -6,6 +6,7 @@ public class Instance {
   private String id;
   private String title;
   private String instanceTypeId;
+  private String indexTitle;
   private JsonObject instanceJson = new JsonObject();
 
   public Instance () {
@@ -43,6 +44,16 @@ public class Instance {
 
   public String getInstanceTypeId() {
     return instanceTypeId;
+  }
+
+  public Instance setIndexTitle (String matchKey) {
+    this.indexTitle = matchKey;
+    instanceJson.put("indexTitle", this.indexTitle);
+    return this;
+  }
+
+  public String getIndexTitle() {
+    return indexTitle;
   }
 
   public JsonObject getJson() {

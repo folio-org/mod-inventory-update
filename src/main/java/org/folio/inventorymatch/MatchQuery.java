@@ -8,6 +8,7 @@ package org.folio.inventorymatch;
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
 
+import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
@@ -21,11 +22,22 @@ public class MatchQuery {
 
   private final Logger logger = LoggerFactory.getLogger("inventory-matcher-match-query");
   private final JsonObject candidateInstance;
+  private final String matchKey;
   private final String queryString;
 
   public MatchQuery(JsonObject candidateInstance) {
     this.candidateInstance = candidateInstance;
+    matchKey = buildMatchKey();
     queryString = buildMatchQuery();
+  }
+
+  private String buildMatchKey() {
+    StringBuilder key = new StringBuilder();
+    key.append(candidateInstance.getString("title").toLowerCase())
+       .append(getDateOfPublication())
+       .append(getPhysicalDescription());
+    logger.info("Match key is:" + key.toString());
+    return key.toString();
   }
 
   /**
@@ -35,11 +47,26 @@ public class MatchQuery {
   private String buildMatchQuery() {
     StringBuilder query = new StringBuilder();
     // Get match properties from request
-    String title = candidateInstance.getString("title");
-    logger.info("Title to match by is:" + title);
-    query.append("(title=\"").append(title).append("\")");
-
+    query.append("(indexTitle=\"").append(matchKey).append("\")");
     return query.toString();
+  }
+
+  private String getDateOfPublication() {
+    String dateOfPublication = null;
+    JsonArray publication = candidateInstance.getJsonArray("publication");
+    if (publication != null && publication.getList().size()>0 ) {
+      dateOfPublication = publication.getJsonObject(0).getString("dateOfPublication");
+    }
+    return dateOfPublication != null ? dateOfPublication : "";
+  }
+
+  public String getPhysicalDescription() {
+    String physicalDescription = null;
+    JsonArray physicalDescriptions = candidateInstance.getJsonArray("physicalDescriptions");
+    if (physicalDescriptions != null && physicalDescriptions.getList().size() >0) {
+      physicalDescription = physicalDescriptions.getList().get(0).toString();
+    }
+    return physicalDescription != null ? physicalDescription : "";
   }
 
   /**
@@ -63,5 +90,9 @@ public class MatchQuery {
       encodedQuery =  "encoding-error-while-building-query-string";
     }
     return encodedQuery;
+  }
+
+  public String getMatchKey () {
+    return this.matchKey;
   }
 }

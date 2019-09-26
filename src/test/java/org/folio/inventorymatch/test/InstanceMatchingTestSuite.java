@@ -64,7 +64,7 @@ public class InstanceMatchingTestSuite {
     RestAssured.port = FakeInventoryStorage.PORT_INVENTORY_STORAGE;
     Response instancesBeforePut =
       RestAssured.given()
-        .get(FakeInventoryStorage.URL_INSTANCES+"?query="+ FakeInventoryStorage.encode("indexTitle==\"new title\""))
+        .get(FakeInventoryStorage.URL_INSTANCES+"?query="+ FakeInventoryStorage.encode("indexTitle==\"new_title\""))
         .then()
         .log().ifValidationFails()
         .statusCode(200).extract().response();
@@ -89,7 +89,7 @@ public class InstanceMatchingTestSuite {
     RestAssured.port = FakeInventoryStorage.PORT_INVENTORY_STORAGE;
     Response instancesAfterPut =
       RestAssured.given()
-        .get(FakeInventoryStorage.URL_INSTANCES+"?query="+ FakeInventoryStorage.encode("indexTitle==\"new title\""))
+        .get(FakeInventoryStorage.URL_INSTANCES+"?query="+ FakeInventoryStorage.encode("indexTitle==\"new_title\""))
         .then()
         .log().ifValidationFails()
         .statusCode(200).extract().response();
@@ -97,7 +97,7 @@ public class InstanceMatchingTestSuite {
     JsonObject instancesAfterPutJson = new JsonObject(bodyAsStringAfterPut);
 
     testContext.assertEquals(instancesAfterPutJson.getInteger("totalRecords"), 1,
-                             "Number of instance records for query by indexTitle 'new title' after PUT expected: 1" );
+                             "Number of instance records for query by indexTitle 'new_title' after PUT expected: 1" );
 
   }
 
@@ -106,7 +106,7 @@ public class InstanceMatchingTestSuite {
     RestAssured.port = FakeInventoryStorage.PORT_INVENTORY_STORAGE;
     Response instancesBeforePut =
       RestAssured.given()
-        .get(FakeInventoryStorage.URL_INSTANCES+"?query="+ FakeInventoryStorage.encode("indexTitle==\"initial instance\""))
+        .get(FakeInventoryStorage.URL_INSTANCES+"?query="+ FakeInventoryStorage.encode("indexTitle==\"initial_instance\""))
         .then()
         .log().ifValidationFails()
         .statusCode(200).extract().response();
@@ -135,7 +135,7 @@ public class InstanceMatchingTestSuite {
     RestAssured.port = FakeInventoryStorage.PORT_INVENTORY_STORAGE;
     Response instancesAfterPut =
       RestAssured.given()
-        .get(FakeInventoryStorage.URL_INSTANCES+"?query="+ FakeInventoryStorage.encode("indexTitle==\"initial instance\""))
+        .get(FakeInventoryStorage.URL_INSTANCES+"?query="+ FakeInventoryStorage.encode("indexTitle==\"initial_instance\""))
         .then()
         .log().ifValidationFails()
         .statusCode(200).extract().response();

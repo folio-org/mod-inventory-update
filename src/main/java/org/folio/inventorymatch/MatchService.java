@@ -75,6 +75,8 @@ public class MatchService {
                                MatchQuery matchQuery,
                                RoutingContext routingCtx) {
 
+    // FOLIO Inventory does not know or accept 'matchKey' property at time of writing, clean up if present.
+    candidateInstance.remove("matchKey");
     int recordCount = matchingInstances.getInteger("totalRecords");
     if (recordCount == 0) {
       logger.info("Match query [" + matchQuery.getQueryString() + "] did not find a matching instance. Will POST a new instance");

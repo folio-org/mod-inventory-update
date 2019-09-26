@@ -31,12 +31,26 @@ public class MatchQuery {
     queryString = buildMatchQuery();
   }
 
+  /**
+   * Creates a match key from instance properties title, date of publication,
+   * and physical description -- unless a matchKey is already provided in the
+   * Instance object
+   * @return a matchKey for the Instance
+   */
   private String buildMatchKey() {
     StringBuilder key = new StringBuilder();
-    key.append(candidateInstance.getString("title").toLowerCase())
-       .append(getDateOfPublication())
-       .append(getPhysicalDescription());
-    logger.info("Match key is:" + key.toString());
+    if (candidateInstance.containsKey("matchKey") &&
+        candidateInstance.getValue("matchKey") instanceof String &&
+        candidateInstance.getString("matchKey") != null) {
+      // use provided match key if any
+      key.append(candidateInstance.getString("matchKey"));
+    } else {
+      // build match key from plain Instance properties
+      key.append(candidateInstance.getString("title").toLowerCase())
+         .append(getDateOfPublication())
+         .append(getPhysicalDescription());
+    }
+    logger.debug("Match key is:" + key.toString());
     return key.toString();
   }
 
@@ -51,6 +65,10 @@ public class MatchQuery {
     return query.toString();
   }
 
+  /**
+   * Gets first occurring date of publication
+   * @return one date of publication (empty string if none found)
+   */
   private String getDateOfPublication() {
     String dateOfPublication = null;
     JsonArray publication = candidateInstance.getJsonArray("publication");
@@ -60,6 +78,10 @@ public class MatchQuery {
     return dateOfPublication != null ? dateOfPublication : "";
   }
 
+  /**
+   * Gets first occurring physical description
+   * @return one physical description (empty string if none found)
+   */
   public String getPhysicalDescription() {
     String physicalDescription = null;
     JsonArray physicalDescriptions = candidateInstance.getJsonArray("physicalDescriptions");

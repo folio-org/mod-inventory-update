@@ -42,10 +42,14 @@ public class MatchService {
     } else {
       okapiClient = getOkapiClient(routingCtx);
 
-      JsonObject candidateInstance = routingCtx.getBodyAsJson();
-      logger.info("Received a POST of " + candidateInstance.toString());
+      String candidateInstanceAsString = routingCtx.getBodyAsString("UTF-8");
+      JsonObject candidateInstance = new JsonObject(candidateInstanceAsString);
 
-      MatchQuery matchQuery = new MatchQuery(candidateInstance);
+      logger.info("Received a PUT of " + candidateInstance.toString());
+
+      MatchKey matchKey = new MatchKey(candidateInstance);
+      MatchQuery matchQuery = new MatchQuery(matchKey.getKey());
+      candidateInstance.put("indexTitle", matchKey.getKey());
       logger.info("Constructed match query: [" + matchQuery.getQueryString() + "]");
 
       okapiClient.get(INSTANCE_STORAGE_PATH+"?query="+matchQuery.getURLEncodedQueryString(), res-> {
@@ -74,6 +78,8 @@ public class MatchService {
                                MatchQuery matchQuery,
                                RoutingContext routingCtx) {
 
+    // FOLIO Inventory does not know or accept 'matchKey' property at time of writing, clean up if present.
+    candidateInstance.remove("matchKey");
     int recordCount = matchingInstances.getInteger("totalRecords");
     if (recordCount == 0) {
       logger.info("Match query [" + matchQuery.getQueryString() + "] did not find a matching instance. Will POST a new instance");

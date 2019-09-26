@@ -8,7 +8,6 @@ package org.folio.inventorymatch;
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
 
-import io.vertx.core.json.JsonObject;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 
@@ -20,11 +19,11 @@ import io.vertx.core.logging.LoggerFactory;
 public class MatchQuery {
 
   private final Logger logger = LoggerFactory.getLogger("inventory-matcher-match-query");
-  private final JsonObject candidateInstance;
+  private final String matchKey;
   private final String queryString;
 
-  public MatchQuery(JsonObject candidateInstance) {
-    this.candidateInstance = candidateInstance;
+  public MatchQuery(String matchKey) {
+    this.matchKey = matchKey;
     queryString = buildMatchQuery();
   }
 
@@ -35,10 +34,7 @@ public class MatchQuery {
   private String buildMatchQuery() {
     StringBuilder query = new StringBuilder();
     // Get match properties from request
-    String title = candidateInstance.getString("title");
-    logger.info("Title to match by is:" + title);
-    query.append("(title=\"").append(title).append("\")");
-
+    query.append("(indexTitle==\"").append(matchKey).append("\")");
     return query.toString();
   }
 
@@ -63,5 +59,9 @@ public class MatchQuery {
       encodedQuery =  "encoding-error-while-building-query-string";
     }
     return encodedQuery;
+  }
+
+  public String getMatchKey () {
+    return this.matchKey;
   }
 }

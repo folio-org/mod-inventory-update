@@ -64,7 +64,7 @@ public class InstanceMatchingTestSuite {
     RestAssured.port = FakeInventoryStorage.PORT_INVENTORY_STORAGE;
     Response instancesBeforePut =
       RestAssured.given()
-        .get(FakeInventoryStorage.URL_INSTANCES+"?query="+ FakeInventoryStorage.encode("title=\"New title\""))
+        .get(FakeInventoryStorage.URL_INSTANCES+"?query="+ FakeInventoryStorage.encode("indexTitle==\"new title\""))
         .then()
         .log().ifValidationFails()
         .statusCode(200).extract().response();
@@ -72,7 +72,7 @@ public class InstanceMatchingTestSuite {
     JsonObject instancesBeforePutJson = new JsonObject(bodyAsStringBeforePut);
 
     testContext.assertEquals(instancesBeforePutJson.getInteger("totalRecords"), 0,
-                             "Number of instance records for query by title 'New title' before PUT expected: 0" );
+                             "Number of instance records for query by indexTitle 'new_title' before PUT expected: 0" );
 
     Response response;
     RestAssured.port = PORT_INVENTORY_MATCH;
@@ -89,7 +89,7 @@ public class InstanceMatchingTestSuite {
     RestAssured.port = FakeInventoryStorage.PORT_INVENTORY_STORAGE;
     Response instancesAfterPut =
       RestAssured.given()
-        .get(FakeInventoryStorage.URL_INSTANCES+"?query="+ FakeInventoryStorage.encode("title=\"New title\""))
+        .get(FakeInventoryStorage.URL_INSTANCES+"?query="+ FakeInventoryStorage.encode("indexTitle==\"new title\""))
         .then()
         .log().ifValidationFails()
         .statusCode(200).extract().response();
@@ -97,7 +97,7 @@ public class InstanceMatchingTestSuite {
     JsonObject instancesAfterPutJson = new JsonObject(bodyAsStringAfterPut);
 
     testContext.assertEquals(instancesAfterPutJson.getInteger("totalRecords"), 1,
-                             "Number of instance records for query by title 'New title' after PUT expected: 1" );
+                             "Number of instance records for query by indexTitle 'new title' after PUT expected: 1" );
 
   }
 
@@ -106,7 +106,7 @@ public class InstanceMatchingTestSuite {
     RestAssured.port = FakeInventoryStorage.PORT_INVENTORY_STORAGE;
     Response instancesBeforePut =
       RestAssured.given()
-        .get(FakeInventoryStorage.URL_INSTANCES+"?query="+ FakeInventoryStorage.encode("title=\"Initial Instance\""))
+        .get(FakeInventoryStorage.URL_INSTANCES+"?query="+ FakeInventoryStorage.encode("indexTitle==\"initial instance\""))
         .then()
         .log().ifValidationFails()
         .statusCode(200).extract().response();
@@ -114,7 +114,7 @@ public class InstanceMatchingTestSuite {
     JsonObject instancesBeforePutJson = new JsonObject(bodyAsStringBeforePut);
 
     testContext.assertEquals(instancesBeforePutJson.getInteger("totalRecords"), 1,
-                             "Number of instance records for query by title 'Initial Instance' before PUT expected: 1" );
+                             "Number of instance records for query by indexTitle 'initial instance' before PUT expected: 1" );
 
     String instanceTypeIdBefore = instancesBeforePutJson.getJsonArray("instances").getJsonObject(0).getString("instanceTypeId");
     testContext.assertEquals(instanceTypeIdBefore,"123",
@@ -135,7 +135,7 @@ public class InstanceMatchingTestSuite {
     RestAssured.port = FakeInventoryStorage.PORT_INVENTORY_STORAGE;
     Response instancesAfterPut =
       RestAssured.given()
-        .get(FakeInventoryStorage.URL_INSTANCES+"?query="+ FakeInventoryStorage.encode("title=\"Initial Instance\""))
+        .get(FakeInventoryStorage.URL_INSTANCES+"?query="+ FakeInventoryStorage.encode("indexTitle==\"initial instance\""))
         .then()
         .log().ifValidationFails()
         .statusCode(200).extract().response();
@@ -143,7 +143,7 @@ public class InstanceMatchingTestSuite {
     JsonObject instancesAfterPutJson = new JsonObject(bodyAsStringAfterPut);
 
     testContext.assertEquals(instancesAfterPutJson.getInteger("totalRecords"), 1,
-                             "Number of instance records for query by title 'Initial Instance' after PUT expected: 1" );
+                             "Number of instance records for query by indexTitle 'initial instance' after PUT expected: 1" );
     String instanceTypeIdAfter = instancesAfterPutJson.getJsonArray("instances").getJsonObject(0).getString("instanceTypeId");
     testContext.assertEquals(instanceTypeIdAfter,"12345",
                     "Expected instanceTypeId to be '12345' after PUT");

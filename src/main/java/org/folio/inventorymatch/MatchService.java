@@ -42,11 +42,14 @@ public class MatchService {
     } else {
       okapiClient = getOkapiClient(routingCtx);
 
-      JsonObject candidateInstance = routingCtx.getBodyAsJson();
+      String candidateInstanceAsString = routingCtx.getBodyAsString("UTF-8");
+      JsonObject candidateInstance = new JsonObject(candidateInstanceAsString);
+
       logger.info("Received a PUT of " + candidateInstance.toString());
 
-      MatchQuery matchQuery = new MatchQuery(candidateInstance);
-      candidateInstance.put("indexTitle", matchQuery.getMatchKey());
+      MatchKey matchKey = new MatchKey(candidateInstance);
+      MatchQuery matchQuery = new MatchQuery(matchKey.getKey());
+      candidateInstance.put("indexTitle", matchKey.getKey());
       logger.info("Constructed match query: [" + matchQuery.getQueryString() + "]");
 
       okapiClient.get(INSTANCE_STORAGE_PATH+"?query="+matchQuery.getURLEncodedQueryString(), res-> {

@@ -62,9 +62,11 @@ public class Instance {
 
   public boolean match(String query) {
     String trimmed = query.replace("(","").replace(")", "");
-    String[] queryParts = trimmed.split("=");
+    String[] queryParts = trimmed.split("==");
+    System.out.println("query: " +query);
+    System.out.println("queryParts[0]: " + queryParts[0]);
     String key = queryParts[0];
-    String value = queryParts[1].replace("\"", "");
+    String value = queryParts.length > 1 ?  queryParts[1].replace("\"", "") : "";
     System.out.println("key: "+key);
     System.out.println("value: "+value);
     System.out.println("instance.getString(key): " + instanceJson.getString(key));

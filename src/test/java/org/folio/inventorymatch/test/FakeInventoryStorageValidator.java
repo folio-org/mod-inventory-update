@@ -31,7 +31,7 @@ public class FakeInventoryStorageValidator {
 
     RestAssured.port = FakeInventoryStorage.PORT_INVENTORY_STORAGE;
     response1 = RestAssured.given()
-      .get(FakeInventoryStorage.URL_INSTANCES+"?query="+ FakeInventoryStorage.encode("title=\"Initial Instance\""))
+      .get(FakeInventoryStorage.URL_INSTANCES+"?query="+ FakeInventoryStorage.encode("title==\"Initial Instance\""))
       .then()
       .log().ifValidationFails()
       .statusCode(200).extract().response();
@@ -95,7 +95,7 @@ public class FakeInventoryStorageValidator {
     Response response1;
     RestAssured.port = FakeInventoryStorage.PORT_INVENTORY_STORAGE;
     response1 = RestAssured.given()
-      .get(FakeInventoryStorage.URL_INSTANCES+"?query="+ FakeInventoryStorage.encode("title=\"Initial Instance\""))
+      .get(FakeInventoryStorage.URL_INSTANCES+"?query="+ FakeInventoryStorage.encode("title==\"Initial Instance\""))
       .then()
       .log().ifValidationFails()
       .statusCode(200).extract().response();

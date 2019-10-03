@@ -26,11 +26,20 @@ public class MatchKey {
   private String buildMatchKey() {
     String keyStr = "";
     StringBuilder key = new StringBuilder();
-    if (candidateInstance.containsKey("matchKey") &&
-        candidateInstance.getValue("matchKey") instanceof String &&
-        candidateInstance.getString("matchKey") != null) {
+    if (hasMatchKeyAsString(candidateInstance)) {
       // use provided match key if any
       key.append(candidateInstance.getString("matchKey"));
+    } if (hasMatchKeyObject(candidateInstance)) {
+      // build match key from match key object's properties
+      key.append(getInstanceMatchKeyValue("title"))
+              .append(getInstanceMatchKeyValue("remainder-of-title"))
+              .append(getInstanceMatchKeyValue("medium"))
+              .append(getInstanceMatchKeyValue("name-of-part-section-of-work"))
+              .append(getInstanceMatchKeyValue("number-of-part-section-of-work"))
+              .append(getInstanceMatchKeyValue("inclusive-dates"))
+              .append(getDateOfPublication())
+              .append(getPhysicalDescription())
+              .append(getPublisher());
     } else {
       // build match key from plain Instance properties
       key.append(getTitle())
@@ -58,6 +67,26 @@ public class MatchKey {
       output = input.replaceAll("[<>\\[\\]'\",.?:()-]", " ").trim().toLowerCase();
     }
     return output;
+  }
+
+  private String getInstanceMatchKeyValue(String name) {
+    String value = null;
+    if (hasMatchKeyObject(candidateInstance)) {
+      value = candidateInstance.getJsonObject("matchKey").getString(name);
+      value = stripTrimLowercase(value);
+    }
+    return value != null ? value : "";
+  }
+
+  private boolean hasMatchKeyObject (JsonObject instance) {
+    return (instance.containsKey("matchKey")
+            && candidateInstance.getValue("matchKey") instanceof JsonObject);
+  }
+
+  private boolean hasMatchKeyAsString (JsonObject instance) {
+    return (instance.containsKey("matchKey")
+            && candidateInstance.getValue("matchKey") instanceof String
+            && candidateInstance.getString("matchKey") != null);
   }
 
   /**

@@ -24,8 +24,17 @@
       "description": "Title normalized for browsing and searching; based on the title with articles removed"
     },
     "matchKey": {
-      "type": "string",
-      "description": "Optional field for supplying the desire match key for identifying matching Instances. Must be removed before passing the Instance object on to FOLIO Inventory."
+      "anyOf": [
+        {
+          "type": "string",
+          "description": "A finished match key string"
+        },
+        {
+          "type": "object",
+          "description": "A number of properties from which to construct a match key"
+        }
+      ],
+      "description": "Optional field for supplying the desire match key for identifying matching Instances. Is removed before passing the Instance object on to FOLIO Inventory."
     },
     "alternativeTitles": {
       "type": "array",

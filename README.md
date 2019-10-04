@@ -2,10 +2,10 @@
 
 
 ## Purpose
-Mod-inventory-match (Inventory Match) is an Okapi service that can be put in front of mod-inventory-storage 
-(Inventory Storage) when posting Instances (bibliographic records) to Inventory Storage. 
+Mod-inventory-match (Inventory Match) is an Okapi service that can be put in front of mod-inventory-storage
+(Inventory Storage) when posting Instances (bibliographic records) to Inventory Storage.
 
-A client uploading Instances directly to Inventory Storage must decide on its own whether to create (POST) a new 
+A client uploading Instances directly to Inventory Storage must decide on its own whether to create (POST) a new
 Instance or update (PUT) an existing Instance in Inventory Storage. By uploading to Inventory Match instead, the client
 can delegate that responsibility to Inventory Match.
 
@@ -15,16 +15,15 @@ Inventory Match exposes one end-point, which accepts PUT requests with an [Insta
 * /instance-storage-match/instances
 
 ### Details of the matching mechanism
-Based on select properties of the incoming Instance, Inventory Match will query Inventory Storage and determine 
-whether to create or update an Instance in Inventory Storage. 
+Based on select properties of the incoming Instance, Inventory Match will construct a match key and query Inventory
+Storage for it to determine if an instance with that key already exists.
 
-This prototype for an Instance matching mechanism is currently hard-coded to look at just one field of the Instance -- 
-the title -- and compare it verbatim with titles already in Inventory Storage. 
+The match logic currently considers title, year, publisher, pagination, edition and SUDOC classification.
 
-If it does not find a matching title, a new Instance will be created. If it finds one, the existing Instance will be 
+If it does not find a matching title, a new Instance will be created. If it finds one, the existing Instance will be
 replaced by the incoming Instance, except, the HRID (human readable ID) of the original Instance will be retained.
 
-Inventory Match will return the resulting Instance to the caller as a JSON string. 
+Inventory Match will return the resulting Instance to the caller as a JSON string.
 
 ## Prerequisites
 
@@ -47,7 +46,6 @@ run `mvn install` from the root directory.
 
 ## Some development to-dos (certain, likely, and potential)
 
-* Include more fields in the matching mechanism
-* Make selection of match fields configurable
+* Refine match key
 * Implement a GET end-point for clients that need to find a matching Instance
 * Determine how to update Instances (leave the original? overwrite the original? it depends? merge them? configurable?)

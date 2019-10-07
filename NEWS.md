@@ -1,3 +1,7 @@
+## 2.2.0
+
+* Match key: fixed length title, strip more spec chars, only rightmost 4 digits of date
+
 ## 2.1.0
 
 * Provides `instance-storage-match` interface 2.1

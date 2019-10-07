@@ -31,21 +31,22 @@ public class MatchKey {
       key.append(candidateInstance.getString("matchKey"));
     } if (hasMatchKeyObject(candidateInstance)) {
       // build match key from match key object's properties
-      key.append(getInstanceMatchKeyValue("title"))
-              .append(getInstanceMatchKeyValue("remainder-of-title"))
-              .append(getInstanceMatchKeyValue("medium"))
-              .append(getInstanceMatchKeyValue("name-of-part-section-of-work"))
-              .append(getInstanceMatchKeyValue("number-of-part-section-of-work"))
-              .append(getInstanceMatchKeyValue("inclusive-dates"))
-              .append(getDateOfPublication())
-              .append(getPhysicalDescription())
-              .append(getPublisher());
+      String title = getInstanceMatchKeyValue("title") + " " + getInstanceMatchKeyValue("remainder-of-title");
+
+      key.append(get70chars(title))
+         .append(getInstanceMatchKeyValue("medium"))
+         .append(getInstanceMatchKeyValue("name-of-part-section-of-work"))
+         .append(getInstanceMatchKeyValue("number-of-part-section-of-work"))
+         .append(getInstanceMatchKeyValue("inclusive-dates"))
+         .append(getDateOfPublication())
+         .append(getPhysicalDescription())
+         .append(getPublisher());
     } else {
       // build match key from plain Instance properties
-      key.append(getTitle())
-              .append(getDateOfPublication())
-              .append(getPhysicalDescription())
-              .append(getPublisher());
+      key.append(get70chars(getTitle()))
+         .append(getDateOfPublication())
+         .append(getPhysicalDescription())
+         .append(getPublisher());
     }
     keyStr = key.toString().trim().replace(" ", "_");
     logger.debug("Match key is:" + keyStr);
@@ -61,10 +62,37 @@ public class MatchKey {
     return title;
   }
 
-  private String stripTrimLowercase(String input) {
+  private static String get70chars (String input) {
+    String output = "";
+    if (input.length()<70) {
+      output = String.format("%-70s", input).replace(" ", "_");
+    } else {
+      output = input.substring(0,45);
+      String[] rest = input.substring(44).split("[ ]+");
+      for (int i=0; i<rest.length; i++) {
+        if (output.length()<70 && rest[i].length()>0) {
+          output = output + rest[i].substring(0,1);
+        } else {
+          break;
+        }
+      }
+      if (output.length()<70) {
+        output = String.format("%-70s", output).replace(" ", "_");
+      }
+    }
+    return output;
+  }
+
+
+  private static String stripTrimLowercase(String input) {
     String output = null;
     if (input != null) {
-      output = input.replaceAll("[<>\\[\\]'\",.?:()-]", " ").trim().toLowerCase();
+      input = input.replaceFirst("^[aA][ ]+", "");
+      input = input.replaceFirst("^[aA]n[ ]+", "");
+      input = input.replaceFirst("^[tT]he[ ]+", "");
+      input = input.replaceAll("['{}]", "");
+      input = input.replace("&", "and");
+      output = input.replaceAll("[#\\*\\$@<>\\[\\]\"\\\\,.?:()=^~|-]", " ").trim().toLowerCase();
     }
     return output;
   }
@@ -98,9 +126,9 @@ public class MatchKey {
     JsonArray publication = candidateInstance.getJsonArray("publication");
     if (publication != null && publication.getList().size()>0 ) {
       dateOfPublication = publication.getJsonObject(0).getString("dateOfPublication");
+      dateOfPublication = dateOfPublication.replaceAll("\\D+","");
     }
-    dateOfPublication = stripTrimLowercase(dateOfPublication);
-    return dateOfPublication != null ? " "+dateOfPublication : "";
+    return dateOfPublication != null && dateOfPublication.length()>=4 ? " "+dateOfPublication.substring(dateOfPublication.length()-4) : "";
   }
 
   /**

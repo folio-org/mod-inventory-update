@@ -100,22 +100,44 @@ public class MatchService {
   /**
    * Merges properties of candidate instance with select properties of existing instance
    * (without mutating the original JSON objects)
-   * @param matchingInstance Existing instance
-   * @param candidateInstance Instance coming in on the request
+   * @param existingInstance Existing instance
+   * @param newInstance Instance coming in on the request
    * @return merged Instance
    */
-  private JsonObject mergeInstances (JsonObject matchingInstance, JsonObject candidateInstance) {
-    JsonObject mergedInstance = candidateInstance.copy();
-    JsonArray notes = matchingInstance.getJsonArray("notes");
-    if (notes == null) {
-      notes = new JsonArray();
-    }
-    if (mergedInstance.getJsonArray("notes") == null) {
-      mergedInstance.put("notes", new JsonArray());
-    }
-    mergedInstance.getJsonArray("notes").addAll(notes);
-    mergedInstance.put("hrid", matchingInstance.getString("hrid"));
+  private JsonObject mergeInstances (JsonObject existingInstance, JsonObject newInstance) {
+    JsonObject mergedInstance = newInstance.copy();
+
+    // Merge both identifier lists into list of distinct identifiers
+    JsonArray uniqueIdentifiers = mergeUniquelyTwoArraysOfObjects(
+            existingInstance.getJsonArray("identifiers"),
+            newInstance.getJsonArray("identifiers"));
+    mergedInstance.put("identifiers", uniqueIdentifiers);
+    mergedInstance.put("hrid", existingInstance.getString("hrid"));
     return mergedInstance;
+  }
+
+  private JsonArray mergeUniquelyTwoArraysOfObjects (JsonArray array1, JsonArray array2) {
+    JsonArray merged = new JsonArray();
+    if (array1 != null) {
+      merged = array1.copy();
+    }
+    if (array2 != null) {
+      for (int i=0; i<array2.size(); i++) {
+        if (arrayContainsValue(merged,array2.getJsonObject(i))) {
+          continue;
+        } else {
+          merged.add(array2.getJsonObject(i).copy());
+        }
+      }
+    }
+    return merged;
+  }
+
+  private boolean arrayContainsValue(JsonArray array, JsonObject value) {
+    for (int i=0; i<array.size(); i++) {
+      if (array.getJsonObject(i).equals(value)) return true;
+    }
+    return false;
   }
 
   /**

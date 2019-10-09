@@ -1,3 +1,7 @@
+## 2.3.0
+
+* Merges lists of resource identifiers from the existing and the new instance.
+
 ## 2.2.0
 
 * Match key: fixed length title, strip more spec chars, only rightmost 4 digits of date

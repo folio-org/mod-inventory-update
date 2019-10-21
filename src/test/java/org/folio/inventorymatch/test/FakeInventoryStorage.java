@@ -53,7 +53,8 @@ public class FakeInventoryStorage {
   }
 
   public static String normalizeIndexTitle(String title) {
-    return String.format("%-70s", title).replace(" ", "_");
+    // fixed length title + fixed length edition + fixed length pagination (physical description)
+    return String.format("%-70s", title).replace(" ", "_")+"___"+"____";
   }
 
   private void addStoredInstance(Instance instance) {

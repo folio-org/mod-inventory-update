@@ -39,7 +39,7 @@ public class MatchKey {
       String title = getInstanceMatchKeyValue("title") + " " + getInstanceMatchKeyValue("remainder-of-title");
 
       key.append(get70chars(title))
-         .append(getInstanceMatchKeyValue("medium"))
+         .append(get5chars(getInstanceMatchKeyValue("medium")))
          .append(getInstanceMatchKeyValue("name-of-part-section-of-work"))
          .append(getInstanceMatchKeyValue("number-of-part-section-of-work"))
          .append(getInstanceMatchKeyValue("inclusive-dates"))
@@ -104,6 +104,27 @@ public class MatchKey {
     return output;
   }
 
+  private static final List<Pattern> CONTIGUOUS_CHARS_REGEXS =
+      Arrays.asList(
+        Pattern.compile(".*?(\\p{Alnum}{5}).*"),
+        Pattern.compile(".*?(\\p{Alnum}{4}).*"),
+        Pattern.compile(".*?(\\p{Alnum}{3}).*"),
+        Pattern.compile(".*?(\\p{Alnum}{2}).*"),
+        Pattern.compile(".*?(\\p{Alnum}{1}).*")
+      );
+
+  private String get5chars(String input) {
+    String output = "";
+    for (Pattern p : CONTIGUOUS_CHARS_REGEXS) {
+      Matcher m = p.matcher(input);
+      if (m.matches()) {
+        output = m.group(1);
+        break;
+      }
+    }
+    return String.format("%5s", output).replace(" ", "_");
+  }
+
   private String getInstanceMatchKeyValue(String name) {
     String value = null;
     if (hasMatchKeyObject(candidateInstance)) {
@@ -157,9 +178,9 @@ public class MatchKey {
     return String.format("%4s", physicalDescription).replace(" ", "_");
   }
 
-  
-  // In order of priority, 
-  // pick first occuring 3, else 2, else 1 contiguous digits, 
+
+  // In order of priority,
+  // pick first occuring 3, else 2, else 1 contiguous digits,
   // else first 3, else 2, else 1 contiguous characters
   private static final List<Pattern> EDITION_REGEXS =
       Arrays.asList(

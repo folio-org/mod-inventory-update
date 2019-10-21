@@ -1,5 +1,10 @@
 package org.folio.inventorymatch;
 
+import java.util.Arrays;
+import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.core.logging.Logger;
@@ -40,12 +45,14 @@ public class MatchKey {
          .append(getInstanceMatchKeyValue("inclusive-dates"))
          .append(getDateOfPublication())
          .append(getPhysicalDescription())
+         .append(getEdition())
          .append(getPublisher());
     } else {
       // build match key from plain Instance properties
       key.append(get70chars(getTitle()))
          .append(getDateOfPublication())
          .append(getPhysicalDescription())
+         .append(getEdition())
          .append(getPublisher());
     }
     keyStr = key.toString().trim().replace(" ", "_");
@@ -131,18 +138,55 @@ public class MatchKey {
     return dateOfPublication != null && dateOfPublication.length()>=4 ? " "+dateOfPublication.substring(dateOfPublication.length()-4) : "";
   }
 
+  private static final Pattern PAGINATION_REGEX = Pattern.compile(".*?(\\d{1,4}).*");
+
   /**
    * Gets first occurring physical description
    * @return one physical description (empty string if none found)
    */
   public String getPhysicalDescription() {
-    String physicalDescription = null;
+    String physicalDescription = "";
     JsonArray physicalDescriptions = candidateInstance.getJsonArray("physicalDescriptions");
     if (physicalDescriptions != null && physicalDescriptions.getList().size() >0) {
-      physicalDescription = physicalDescriptions.getList().get(0).toString();
+      String physicalDescriptionSource = physicalDescriptions.getList().get(0).toString();
+      Matcher m = PAGINATION_REGEX.matcher(physicalDescriptionSource);
+      if (m.matches()) {
+        physicalDescription = m.group(1);
+      }
     }
-    physicalDescription = stripTrimLowercase(physicalDescription);
-    return physicalDescription != null ? " " + physicalDescription : "";
+    return String.format("%4s", physicalDescription).replace(" ", "_");
+  }
+
+  
+  // In order of priority, 
+  // pick first occuring 3, else 2, else 1 contiguous digits, 
+  // else first 3, else 2, else 1 contiguous characters
+  private static final List<Pattern> EDITION_REGEXS =
+      Arrays.asList(
+        Pattern.compile(".*?(\\d{3}).*"),
+        Pattern.compile(".*?(\\d{2}).*"),
+        Pattern.compile(".*?(\\d{1}).*"),
+        Pattern.compile(".*?(\\p{Alpha}{3}).*"),
+        Pattern.compile(".*?(\\p{Alpha}{2}).*"),
+        Pattern.compile(".*?(\\p{Alpha}{1}).*")
+      );
+
+  public String getEdition() {
+    String edition = "";
+    JsonArray editions = candidateInstance.getJsonArray("editions");
+    if (editions != null && editions.getList().size() > 0) {
+      String editionSource = editions.getList().get(0).toString();
+
+      Matcher m;
+      for (Pattern p : EDITION_REGEXS) {
+        m = p.matcher(editionSource);
+        if (m.matches()) {
+          edition = m.group(1);
+          break;
+        }
+      }
+    }
+    return String.format("%3s", edition).replace(" ", "_");
   }
 
   public String getPublisher() {

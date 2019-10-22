@@ -75,12 +75,10 @@ public class MatchKey {
       output = String.format("%-70s", input).replace(" ", "_");
     } else {
       output = input.substring(0,45);
-      String[] rest = input.substring(44).split("[ ]+");
+      String[] rest = input.substring(45).split("[ ]+");
       for (int i=0; i<rest.length; i++) {
-        if (output.length()<70 && rest[i].length()>0) {
-          output = output + rest[i].substring(0,1);
-        } else {
-          break;
+        if (output.length()<70) {
+          output = output + (rest[i].length()>0 ? rest[i].substring(0,1) : "");
         }
       }
       if (output.length()<70) {

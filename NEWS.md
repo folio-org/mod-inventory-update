@@ -1,3 +1,10 @@
+## 2.4.0
+
+* Add `edition` to match key
+* Make medium (GMD) fixed length in match key
+* Fix bug in the 70 character section of the match key containing the title
+* Apply Unicode normalization to the match key
+
 ## 2.3.0
 
 * Merges lists of resource identifiers from the existing and the new instance.

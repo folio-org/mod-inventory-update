@@ -151,17 +151,21 @@ public class MatchService {
       if (putResult.succeeded()) {
         okapiClient.get(INSTANCE_STORAGE_PATH+"/"+instanceId, res-> {
           if ( res.succeeded()) {
-          JsonObject instanceResponseJson = new JsonObject(res.result());
-          String instancePrettyString = instanceResponseJson.encodePrettily();
-          responseJson(routingCtx, 200).end(instancePrettyString);
+            logger.info("PUT of Instance succeeded");
+            JsonObject instanceResponseJson = new JsonObject(res.result());
+            String instancePrettyString = instanceResponseJson.encodePrettily();
+            responseJson(routingCtx, 200).end(instancePrettyString);
+            okapiClient.close();
           } else {
             String message = res.cause().getMessage();
             responseError(routingCtx, 500, "mod-inventory-storage GET failed with " + message);
+            okapiClient.close();
           }
         });
       } else {
         String msg = putResult.cause().getMessage();
         responseError(routingCtx, 500, "mod-inventory-storage PUT failed with " + msg);
+        okapiClient.close();
       }
     });
   }
@@ -174,13 +178,16 @@ public class MatchService {
   private void postInstance (RoutingContext ctx, JsonObject newInstance) {
     okapiClient.post(INSTANCE_STORAGE_PATH, newInstance.toString(), postResult->{
       if (postResult.succeeded()) {
+        logger.info("POST of Instance succeeded");
         String instanceResult = postResult.result();
         JsonObject instanceResponseJson = new JsonObject(instanceResult);
         String instancePrettyString = instanceResponseJson.encodePrettily();
         responseJson(ctx, 200).end(instancePrettyString);
+        okapiClient.close();
       } else {
         String msg = postResult.cause().getMessage();
         responseError(ctx, 500, "mod-inventory-storage POST failed with " + msg);
+        okapiClient.close();
       }
     });
   }

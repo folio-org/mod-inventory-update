@@ -1,3 +1,7 @@
+## 2.4.1
+
+ * Fix suspected memory leak: close Okapi clients after use
+
 ## 2.4.0
 
 * Add `edition` to match key

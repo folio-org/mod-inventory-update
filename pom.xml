@@ -7,7 +7,7 @@
 
   <groupId>org.folio</groupId>
   <artifactId>mod-inventory-match</artifactId>
-  <version>2.4.1-SNAPSHOT</version>
+  <version>2.4.2-SNAPSHOT</version>
   <name>mod-inventory-match</name>
 
   <licenses>

@@ -119,15 +119,19 @@ public class MatchKey {
       );
 
   private String get5chars(String input) {
-    String output = "";
-    for (Pattern p : CONTIGUOUS_CHARS_REGEXS) {
-      Matcher m = p.matcher(input);
-      if (m.matches()) {
-        output = m.group(1);
-        break;
+    if (input == null) {
+      return "";
+    } else {
+      String output = "";
+      for (Pattern p : CONTIGUOUS_CHARS_REGEXS) {
+        Matcher m = p.matcher(input);
+        if (m.matches()) {
+          output = m.group(1);
+          break;
+        }
       }
+      return String.format("%5s", output).replace(" ", "_");
     }
-    return String.format("%5s", output).replace(" ", "_");
   }
 
   private String getInstanceMatchKeyValue(String name) {
@@ -160,7 +164,9 @@ public class MatchKey {
     JsonArray publication = candidateInstance.getJsonArray("publication");
     if (publication != null && publication.getList().size()>0 ) {
       dateOfPublication = publication.getJsonObject(0).getString("dateOfPublication");
-      dateOfPublication = dateOfPublication.replaceAll("\\D+","");
+      if (dateOfPublication != null) {
+        dateOfPublication = dateOfPublication.replaceAll("\\D+","");
+      }
     }
     return dateOfPublication != null && dateOfPublication.length()>=4 ? " "+dateOfPublication.substring(dateOfPublication.length()-4) : "";
   }

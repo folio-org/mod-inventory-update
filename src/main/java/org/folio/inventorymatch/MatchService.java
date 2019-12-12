@@ -27,7 +27,6 @@ import io.vertx.ext.web.RoutingContext;
  */
 public class MatchService {
   private final Logger logger = LoggerFactory.getLogger("inventory-matcher");
-  private OkapiClient okapiClient;
   private static final String INSTANCE_STORAGE_PATH = "/instance-storage/instances";
   public final static String INSTANCE_MATCH_PATH = "/instance-storage-match/instances";
 
@@ -40,7 +39,7 @@ public class MatchService {
     if (contentType != null && !contentType.startsWith("application/json")) {
       responseError(routingCtx, 400, "Only accepts Content-Type application/json, was: "+ contentType);
     } else {
-      okapiClient = getOkapiClient(routingCtx);
+      OkapiClient okapiClient = getOkapiClient(routingCtx);
 
       String candidateInstanceAsString = routingCtx.getBodyAsString("UTF-8");
       JsonObject candidateInstance = new JsonObject(candidateInstanceAsString);
@@ -55,7 +54,7 @@ public class MatchService {
       okapiClient.get(INSTANCE_STORAGE_PATH+"?query="+matchQuery.getURLEncodedQueryString(), res-> {
         if ( res.succeeded()) {
           JsonObject matchingInstances = new JsonObject(res.result());
-          updateInventory(candidateInstance, matchingInstances, matchQuery, routingCtx);
+          updateInventory(okapiClient, candidateInstance, matchingInstances, matchQuery, routingCtx);
         } else {
           String message = res.cause().getMessage();
           responseError(routingCtx, 500, "mod-inventory-storage failed with " + message);
@@ -73,7 +72,8 @@ public class MatchService {
    * @param matchQuery The match query (for log statements)
    * @param routingCtx
    */
-  private void updateInventory(JsonObject candidateInstance,
+  private void updateInventory(OkapiClient okapiClient,
+                               JsonObject candidateInstance,
                                JsonObject matchingInstances,
                                MatchQuery matchQuery,
                                RoutingContext routingCtx) {
@@ -83,13 +83,13 @@ public class MatchService {
     int recordCount = matchingInstances.getInteger("totalRecords");
     if (recordCount == 0) {
       logger.info("Match query [" + matchQuery.getQueryString() + "] did not find a matching instance. Will POST a new instance");
-      postInstance(routingCtx, candidateInstance);
+      postInstance(okapiClient, routingCtx, candidateInstance);
     }  else if (recordCount == 1) {
       logger.info("Match query [" + matchQuery.getQueryString() + "] found a matching instance. Will PUT an instance update");
       JsonObject matchingInstance = matchingInstances.getJsonArray("instances").getJsonObject(0);
       JsonObject mergedInstance = mergeInstances(matchingInstance, candidateInstance);
       // Update existing instance
-      putInstance(routingCtx, mergedInstance, matchingInstance.getString("id"));
+      putInstance(okapiClient, routingCtx, mergedInstance, matchingInstance.getString("id"));
     } else if (recordCount > 1) {
       logger.info("Multiple matches (" + recordCount + ") found by match query [" + matchQuery.getQueryString() + "], cannot determine which instance to update");
     } else {
@@ -146,7 +146,7 @@ public class MatchService {
    * @param newInstance
    * @param instanceId
    */
-  private void putInstance (RoutingContext routingCtx, JsonObject newInstance, String instanceId) {
+  private void putInstance (OkapiClient okapiClient, RoutingContext routingCtx, JsonObject newInstance, String instanceId) {
     okapiClient.request(HttpMethod.PUT, INSTANCE_STORAGE_PATH+"/"+instanceId, newInstance.toString(), putResult-> {
       if (putResult.succeeded()) {
         okapiClient.get(INSTANCE_STORAGE_PATH+"/"+instanceId, res-> {
@@ -175,7 +175,7 @@ public class MatchService {
    * @param ctx
    * @param newInstance
    */
-  private void postInstance (RoutingContext ctx, JsonObject newInstance) {
+  private void postInstance (OkapiClient okapiClient, RoutingContext ctx, JsonObject newInstance) {
     okapiClient.post(INSTANCE_STORAGE_PATH, newInstance.toString(), postResult->{
       if (postResult.succeeded()) {
         logger.info("POST of Instance succeeded");

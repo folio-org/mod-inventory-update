@@ -1,3 +1,7 @@
+## 2.4.3
+
+ * Fix concurrency issue introduced with 2.4.1
+
 ## 2.4.2
 
  * Fix NPEs in match key generation

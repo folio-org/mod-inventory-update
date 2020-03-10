@@ -2,7 +2,9 @@ package org.folio.inventorymatch;
 
 import java.text.Normalizer;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -17,6 +19,26 @@ public class MatchKey {
 
   private final JsonObject candidateInstance;
   private final String matchKey;
+  private final static Map<String, String> typeOfMap;
+
+
+  static {
+    typeOfMap = new HashMap<>();
+    typeOfMap.put("6312d172-f0cf-40f6-b27d-9fa8feaf332f", "a");
+    typeOfMap.put("497b5090-3da2-486c-b57f-de5bb3c2e26d", "c");
+    typeOfMap.put("497b5090-3da2-486c-b57f-de5bb3c2e26d", "d");
+    typeOfMap.put("526aa04d-9289-4511-8866-349299592c18", "e");
+    typeOfMap.put("a2c91e87-6bab-44d6-8adb-1fd02481fc4f", "f");
+    typeOfMap.put("535e3160-763a-42f9-b0c0-d8ed7df6e2a2", "g");
+    typeOfMap.put("9bce18bd-45bf-4949-8fa8-63163e4b7d7f", "i");
+    typeOfMap.put("3be24c14-3551-4180-9292-26a786649c8b", "j");
+    typeOfMap.put("a2c91e87-6bab-44d6-8adb-1fd02481fc4f", "k");
+    typeOfMap.put("df5dddff-9c30-4507-8b82-119ff972d4d7", "m");
+    typeOfMap.put("a2c91e87-6bab-44d6-8adb-1fd02481fc4f", "o");
+    typeOfMap.put("a2c91e87-6bab-44d6-8adb-1fd02481fc4f", "p");
+    typeOfMap.put("c1e95c2b-4efc-48cf-9e71-edb622cf0c22", "r");
+    typeOfMap.put("6312d172-f0cf-40f6-b27d-9fa8feaf332f", "t");
+  }
 
   public MatchKey(JsonObject candidateInstance) {
     this.candidateInstance = candidateInstance;
@@ -35,25 +57,30 @@ public class MatchKey {
     if (hasMatchKeyAsString(candidateInstance)) {
       // use provided match key if any
       key.append(candidateInstance.getString("matchKey"));
-    } if (hasMatchKeyObject(candidateInstance)) {
-      // build match key from match key object's properties
-      String title = getInstanceMatchKeyValue("title") + " " + getInstanceMatchKeyValue("remainder-of-title");
-      key.append(get70chars(title))
-         .append(get5chars(getInstanceMatchKeyValue("medium")))
-         .append(getInstanceMatchKeyValue("name-of-part-section-of-work"))
-         .append(getInstanceMatchKeyValue("number-of-part-section-of-work"))
-         .append(getInstanceMatchKeyValue("inclusive-dates"))
-         .append(getDateOfPublication())
-         .append(getPhysicalDescription())
-         .append(getEdition())
-         .append(getPublisher());
     } else {
-      // build match key from plain Instance properties
-      key.append(get70chars(getTitle()))
-         .append(getDateOfPublication())
-         .append(getPhysicalDescription())
-         .append(getEdition())
-         .append(getPublisher());
+      if (hasMatchKeyObject(candidateInstance)) {
+        // build match key from match key object's properties
+        String title = getInstanceMatchKeyValue("title") + " "
+            + getInstanceMatchKeyValue("remainder-of-title");
+        key.append(get70chars(title))
+           .append(get5chars(getInstanceMatchKeyValue("medium")));
+
+      } else {
+        // build match key from plain Instance properties
+        key.append(get70chars(getTitle()));
+
+      }
+      key.append(getDateOfPublication())
+          .append(getPhysicalDescription())
+          .append(getEdition())
+          .append(getPublisher())
+          .append(getTypeOf())
+          .append(getTitlePart())
+          .append(getTitleNumber())
+          .append(getAuthor())
+          .append(getTitleDates())
+          .append(getGovDocNumber())
+          .append(getFormatChar());
     }
     keyStr = key.toString().trim().replace(" ", "_");
     logger.debug("Match key is:" + keyStr);
@@ -98,7 +125,7 @@ public class MatchKey {
       input = input.replaceFirst("^[tT]he[ ]+", "");
       input = input.replaceAll("['{}]", "");
       input = input.replace("&", "and");
-      output = input.replaceAll("[#\\*\\$@<>\\[\\]\"\\\\,.?:()=^~|-]", " ").trim().toLowerCase();
+      output = input.replaceAll("[#\\*\\$@<>\\[\\]\"\\\\,.?:()=^~|-©;`-]", " ").trim().toLowerCase();
     }
     return output;
   }
@@ -118,9 +145,9 @@ public class MatchKey {
         Pattern.compile(".*?(\\p{Alnum}{1}).*")
       );
 
-  private String get5chars(String input) {
+  protected static String get5chars(String input) {
     if (input == null) {
-      return "";
+      return String.format("%-5s", "").replace(" ", "_");
     } else {
       String output = "";
       for (Pattern p : CONTIGUOUS_CHARS_REGEXS) {
@@ -130,7 +157,7 @@ public class MatchKey {
           break;
         }
       }
-      return String.format("%5s", output).replace(" ", "_");
+      return String.format("%-5s", output).replace(" ", "_");
     }
   }
 
@@ -159,16 +186,157 @@ public class MatchKey {
    * Gets first occurring date of publication
    * @return one date of publication (empty string if none found)
    */
-  private String getDateOfPublication() {
+
+  protected String getDateOfPublication() {
     String dateOfPublication = null;
+    String dateDigits = null;
     JsonArray publication = candidateInstance.getJsonArray("publication");
     if (publication != null && publication.getList().size()>0 ) {
       dateOfPublication = publication.getJsonObject(0).getString("dateOfPublication");
-      if (dateOfPublication != null) {
-        dateOfPublication = dateOfPublication.replaceAll("\\D+","");
+    }
+    if(dateOfPublication != null) {
+      dateDigits = makeDateDigits(dateOfPublication);
+    }
+    if(dateDigits != null) {
+      return dateDigits;
+    }
+    return "0000";
+  }
+
+  protected String getTypeOf() {
+    return lookupTypeOf(candidateInstance.getString("instanceTypeId"));
+  }
+
+  protected String getTitlePart() {
+    return makeTitlePart(getInstanceMatchKeyValue("name-of-part-section-of-work"));
+  }
+
+  protected String getTitleNumber() {
+    return makeTitleNumber(getInstanceMatchKeyValue("number-part-section-of-work"));
+  }
+
+  protected String getGovDocNumber() {
+    String number = null;
+    if(candidateInstance.containsKey("classifications")) {
+      JsonArray classificationList = candidateInstance.getJsonArray("classifications");
+      for(Object o : classificationList) {
+        JsonObject classification = (JsonObject)o;
+        if(classification.containsKey("classificationTypeId") &&
+            classification.getString("classificationTypeId").equals("9075b5f8-7d97-49e1-a431-73fdd468d476")) {
+          number = classification.getString("classificationNumber");
+          break;
+        }
       }
     }
-    return dateOfPublication != null && dateOfPublication.length()>=4 ? " "+dateOfPublication.substring(dateOfPublication.length()-4) : "";
+    return makeGovDocNumber(number);
+  }
+
+  protected String getAuthor() {
+    String author = null;
+    if(candidateInstance.containsKey("contributors")) {
+      JsonArray contributorList = candidateInstance.getJsonArray("contributors");
+      StringBuilder authorBuilder = new StringBuilder();
+      authorBuilder.append(findContributorType(contributorList, "2b94c631-fca9-4892-a730-03ee529ffe2a"));
+      authorBuilder.append(findContributorType(contributorList, "2e48e713-17f3-4c13-a9f8-23845bb210aa"));
+      authorBuilder.append(findContributorType(contributorList, "e8b311a6-3b21-43f2-a269-dd9310cb2d0a"));
+
+      author = authorBuilder.toString();
+    }
+    return makeAuthor(author);
+  }
+
+  protected String getTitleDates() {
+    return makeTitleDates(getInstanceMatchKeyValue("inclusive-dates"));
+  }
+
+  protected String getFormatChar() {
+    String medium = getInstanceMatchKeyValue("medium");
+    if(medium != null && medium.contains("electronic")) {
+      return "e";
+    }
+    return "p";
+  }
+
+
+
+  protected String makeDateDigits(String date) {
+    Pattern pattern = Pattern.compile("(\\d\\d\\d\\d)");
+    Matcher matcher = pattern.matcher(date);
+    String latestMatch = null;
+    while(matcher.find()) {
+      latestMatch = matcher.group(1);
+    }
+    if(latestMatch == null) {
+      return "0000";
+    }
+    return latestMatch;
+  }
+
+  protected String lookupTypeOf(String instanceTypeId) {
+    if(typeOfMap.containsKey(instanceTypeId)) {
+      return typeOfMap.get(instanceTypeId);
+    }
+    return "_";
+  }
+
+  protected String makeTitlePart(String titlePart) {
+    if(titlePart == null) {
+      titlePart = " ";
+    } else {
+      titlePart = stripTrimLowercase(titlePart);
+      titlePart = unaccent(titlePart);
+    }
+    return String.format("%-30s", titlePart).replace(" ", "_");
+  }
+
+  protected String makeGovDocNumber(String number) {
+    if(number == null) {
+      number = "";
+    }
+    //arbitrary cap at 64 chars
+    if(number.length() > 64) {
+      number = number.substring(0,64);
+    }
+    return stripTrimLowercase(number);
+  }
+
+  private String findContributorType(JsonArray list, String id) {
+    for(Object o : list) {
+      JsonObject contributor = (JsonObject)o;
+      if(contributor.containsKey("contributorNameTypeId") &&
+          contributor.getString("contributorNameTypeId").equals(id)) {
+        return contributor.getString("name");
+      }
+    }
+    return "";
+  }
+
+  protected String makeTitleNumber(String titleNumber) {
+    if(titleNumber == null) {
+      titleNumber = " ";
+    } else {
+      titleNumber = unaccent(titleNumber);
+    }
+    return String.format("%-10s", titleNumber).replace(" ", "_");
+  }
+
+  protected String makeAuthor(String author) {
+    if(author == null) {
+      author = " ";
+    } else {
+      author = stripTrimLowercase(author);
+      unaccent(author);
+    }
+    return String.format("%-20s", author).replace(" ", "_");
+  }
+
+  protected String makeTitleDates(String dates) {
+    if(dates == null) {
+      dates = " ";
+    } else {
+      dates = stripTrimLowercase(dates);
+    }
+    return String.format("%-15s", dates).replace(" ", "_");
   }
 
   private static final Pattern PAGINATION_REGEX = Pattern.compile(".*?(\\d{1,4}).*");
@@ -188,7 +356,7 @@ public class MatchKey {
         physicalDescription = m.group(1);
       }
     }
-    return String.format("%4s", physicalDescription).replace(" ", "_");
+    return String.format("%-4s", physicalDescription).replace(" ", "_");
   }
 
 
@@ -220,7 +388,7 @@ public class MatchKey {
         }
       }
     }
-    return String.format("%3s", edition).replace(" ", "_");
+    return String.format("%-3s", edition).replace(" ", "_");
   }
 
   public String getPublisher() {
@@ -231,7 +399,15 @@ public class MatchKey {
     }
     publisher = unaccent(publisher);
     publisher = stripTrimLowercase(publisher);
-    return publisher != null ? " " + publisher : "";
+    if(publisher != null && publisher.length() > 10) {
+      publisher = publisher.substring(0, 10);
+    }
+    if(publisher == null) {
+      publisher = "";
+    }
+    publisher = String.format("%-10s", publisher).replace(" ", "_");
+    //return publisher != null ? " " + publisher : "";
+    return publisher;
   }
 
   public String getKey () {

@@ -19,6 +19,7 @@ import io.vertx.core.json.JsonObject;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.web.RoutingContext;
+import static org.folio.okapi.common.HttpResponse.responseError;
 
 /**
  * MatchService looks for an Instance in Inventory that matches an incoming

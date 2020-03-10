@@ -12,16 +12,22 @@ import io.vertx.core.Vertx;
 import io.vertx.core.http.HttpServerOptions;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
+import io.vertx.core.logging.Logger;
+import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.unit.Async;
 import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.handler.BodyHandler;
 
+import org.folio.inventorymatch.MatchKey;
+
 public class FakeInventoryStorage {
   public final static int PORT_INVENTORY_STORAGE = 9030;
   public final static String URL_INSTANCES = "/instance-storage/instances";
   private final Map<String,Instance> storedInstances = new HashMap<>();
+
+  private final Logger logger = LoggerFactory.getLogger("fake-inventory-storage");
 
   public FakeInventoryStorage (Vertx vertx, TestContext testContext, Async async) {
     Router router = Router.router(vertx);
@@ -49,7 +55,12 @@ public class FakeInventoryStorage {
   }
 
   private void initializeStoredInstances() {
-    addStoredInstance(new Instance().setInstanceTypeId("123").setTitle("Initial Instance").setIndexTitle(normalizeIndexTitle("initial instance")));
+    Instance instance = new Instance().setInstanceTypeId("123").setTitle("Initial Instance");
+    MatchKey matchKey = new MatchKey(instance.getJson());
+    instance.setIndexTitle(matchKey.getKey());
+    logger.info("Initializing fake storage with matchkey of " + matchKey.getKey());
+    //addStoredInstance(new Instance().setInstanceTypeId("123").setTitle("Initial Instance").setIndexTitle(normalizeIndexTitle("initial instance")));
+    addStoredInstance(instance);
   }
 
   public static String normalizeIndexTitle(String title) {

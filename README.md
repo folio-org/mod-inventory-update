@@ -44,8 +44,3 @@ More information is available on the [FOLIO developer site](https://dev.folio.or
 
 run `mvn install` from the root directory.
 
-## Some development to-dos (certain, likely, and potential)
-
-* Refine match key
-* Implement a GET end-point for clients that need to find a matching Instance
-* Determine how to update Instances (leave the original? overwrite the original? it depends? merge them? configurable?)

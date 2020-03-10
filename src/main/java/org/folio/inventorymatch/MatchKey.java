@@ -125,7 +125,7 @@ public class MatchKey {
       input = input.replaceFirst("^[tT]he[ ]+", "");
       input = input.replaceAll("['{}]", "");
       input = input.replace("&", "and");
-      output = input.replaceAll("[#\\*\\$@<>\\[\\]\"\\\\,.?:()=^~|-©;`]", " ").trim().toLowerCase();
+      output = input.replaceAll("[#\\*\\$@<>\\[\\]\"\\\\,.?:()=^~|-©;`-]", " ").trim().toLowerCase();
     }
     return output;
   }

@@ -2,7 +2,9 @@ package org.folio.inventorymatch;
 
 import java.text.Normalizer;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -10,8 +12,6 @@ import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
-import java.util.HashMap;
-import java.util.Map;
 
 public class MatchKey {
 
@@ -125,7 +125,7 @@ public class MatchKey {
       input = input.replaceFirst("^[tT]he[ ]+", "");
       input = input.replaceAll("['{}]", "");
       input = input.replace("&", "and");
-      output = input.replaceAll("[#\\*\\$@<>\\[\\]\"\\\\,.?:()=^~|-]", " ").trim().toLowerCase();
+      output = input.replaceAll("[#\\*\\$@<>\\[\\]\"\\\\,.?:()=^~|-©;`]", " ").trim().toLowerCase();
     }
     return output;
   }

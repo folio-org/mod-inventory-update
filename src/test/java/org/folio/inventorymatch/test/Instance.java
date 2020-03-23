@@ -6,7 +6,7 @@ public class Instance {
   private String id;
   private String title;
   private String instanceTypeId;
-  private String indexTitle;
+  private String matchKey;
   private JsonObject instanceJson = new JsonObject();
 
   public Instance () {
@@ -46,14 +46,15 @@ public class Instance {
     return instanceTypeId;
   }
 
-  public Instance setIndexTitle (String matchKey) {
-    this.indexTitle = matchKey;
-    instanceJson.put("indexTitle", this.indexTitle);
+  public Instance setMatchKey (String matchKey) {
+    this.matchKey = matchKey;
+    instanceJson.put("matchKey", this.matchKey);
+    System.out.println(instanceJson.encodePrettily());
     return this;
   }
 
-  public String getIndexTitle() {
-    return indexTitle;
+  public String getMatchKey() {
+    return matchKey;
   }
 
   public JsonObject getJson() {

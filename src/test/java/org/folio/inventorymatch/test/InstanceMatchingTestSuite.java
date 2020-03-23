@@ -1,6 +1,7 @@
 package org.folio.inventorymatch.test;
 
 import org.folio.inventorymatch.MainVerticle;
+import org.folio.inventorymatch.MatchKey;
 import org.folio.inventorymatch.MatchService;
 import org.junit.After;
 import org.junit.Before;
@@ -18,7 +19,6 @@ import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.unit.Async;
 import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
-import org.folio.inventorymatch.MatchKey;
 
 @RunWith(VertxUnitRunner.class)
 public class InstanceMatchingTestSuite {
@@ -69,12 +69,11 @@ public class InstanceMatchingTestSuite {
         .setTitle("New title")
         .setInstanceTypeId("12345");
     MatchKey matchKey = new MatchKey(instance.getJson());
-    instance.setIndexTitle(matchKey.getKey());
-    //String indexTitle = FakeInventoryStorage.normalizeIndexTitle("new title");
+    instance.setMatchKey(matchKey.getKey());
     Response instancesBeforePut =
       RestAssured.given()
         .get(FakeInventoryStorage.URL_INSTANCES+"?query="+ FakeInventoryStorage
-            .encode("indexTitle==\"" + matchKey.getKey() + "\""))
+            .encode("matchKey==\"" + matchKey.getKey() + "\""))
         .then()
         .log().ifValidationFails()
         .statusCode(200).extract().response();
@@ -82,11 +81,10 @@ public class InstanceMatchingTestSuite {
     JsonObject instancesBeforePutJson = new JsonObject(bodyAsStringBeforePut);
 
     testContext.assertEquals(instancesBeforePutJson.getInteger("totalRecords"), 0,
-        "Number of instance records for query by indexTitle 'new_title___(etc)' before PUT expected: 0" );
+        "Number of instance records for query by matchKey 'new_title___(etc)' before PUT expected: 0" );
 
     Response response;
     RestAssured.port = PORT_INVENTORY_MATCH;
-    //Instance instance = new Instance().setTitle("New title").setInstanceTypeId("12345");
     response = RestAssured.given()
             .body(instance.getJson().toString())
             .header("Content-type","application/json")
@@ -100,7 +98,7 @@ public class InstanceMatchingTestSuite {
     Response instancesAfterPut =
       RestAssured.given()
         .get(FakeInventoryStorage.URL_INSTANCES+"?query=" 
-            + FakeInventoryStorage.encode("indexTitle==\"" + matchKey.getKey() + "\""))
+            + FakeInventoryStorage.encode("matchKey==\"" + matchKey.getKey() + "\""))
         .then()
         .log().ifValidationFails()
         .statusCode(200).extract().response();
@@ -108,14 +106,13 @@ public class InstanceMatchingTestSuite {
     JsonObject instancesAfterPutJson = new JsonObject(bodyAsStringAfterPut);
 
     testContext.assertEquals(instancesAfterPutJson.getInteger("totalRecords"), 1,
-                             "Number of instance records for query by indexTitle 'new_title' after PUT expected: 1" );
+                             "Number of instance records for query by matchKey 'new_title' after PUT expected: 1" );
 
   }
 
   @Test
   public void testPushOfExistingInstanceWillUpdateExistingInstance (TestContext testContext) {
     RestAssured.port = FakeInventoryStorage.PORT_INVENTORY_STORAGE;
-    //String indexTitle =  FakeInventoryStorage.normalizeIndexTitle("initial instance");
     Instance instance = new Instance()
         .setTitle("Initial Instance")
         .setInstanceTypeId("12345");
@@ -123,7 +120,7 @@ public class InstanceMatchingTestSuite {
     Response instancesBeforePut =
       RestAssured.given()
         .get(FakeInventoryStorage.URL_INSTANCES+"?query="+ FakeInventoryStorage
-            .encode("indexTitle==\"" + matchKey.getKey() + "\""))
+            .encode("matchKey==\"" + matchKey.getKey() + "\""))
         .then()
         .log().ifValidationFails()
         .statusCode(200).extract().response();
@@ -131,7 +128,7 @@ public class InstanceMatchingTestSuite {
     JsonObject instancesBeforePutJson = new JsonObject(bodyAsStringBeforePut);
 
     testContext.assertEquals(instancesBeforePutJson.getInteger("totalRecords"), 1,
-        "Number of instance records for query by indexTitle 'initial instance' before PUT expected: 1" );
+        "Number of instance records for query by matchKey 'initial instance' before PUT expected: 1" );
 
     String instanceTypeIdBefore = instancesBeforePutJson.getJsonArray("instances")
         .getJsonObject(0).getString("instanceTypeId");
@@ -154,7 +151,7 @@ public class InstanceMatchingTestSuite {
     Response instancesAfterPut =
       RestAssured.given()
         .get(FakeInventoryStorage.URL_INSTANCES+"?query="
-            + FakeInventoryStorage.encode("indexTitle==\"" + matchKey.getKey() + "\""))
+            + FakeInventoryStorage.encode("matchKey==\"" + matchKey.getKey() + "\""))
         .then()
         .log().ifValidationFails()
         .statusCode(200).extract().response();
@@ -162,7 +159,7 @@ public class InstanceMatchingTestSuite {
     JsonObject instancesAfterPutJson = new JsonObject(bodyAsStringAfterPut);
 
     testContext.assertEquals(instancesAfterPutJson.getInteger("totalRecords"), 1,
-        "Number of instance records for query by indexTitle 'initial instance' after PUT expected: 1" );
+        "Number of instance records for query by matchKey 'initial instance' after PUT expected: 1" );
     String instanceTypeIdAfter = instancesAfterPutJson.getJsonArray("instances")
         .getJsonObject(0).getString("instanceTypeId");
     testContext.assertEquals(instanceTypeIdAfter,"12345",

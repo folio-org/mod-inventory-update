@@ -34,7 +34,7 @@ public class MatchQuery {
   private String buildMatchQuery() {
     StringBuilder query = new StringBuilder();
     // Get match properties from request
-    query.append("(indexTitle==\"").append(matchKey).append("\")");
+    query.append("(matchKey==\"").append(matchKey).append("\")");
     return query.toString();
   }
 

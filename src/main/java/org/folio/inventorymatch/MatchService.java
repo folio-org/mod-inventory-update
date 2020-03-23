@@ -19,7 +19,6 @@ import io.vertx.core.json.JsonObject;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.web.RoutingContext;
-import static org.folio.okapi.common.HttpResponse.responseError;
 
 /**
  * MatchService looks for an Instance in Inventory that matches an incoming
@@ -49,6 +48,7 @@ public class MatchService {
 
       MatchKey matchKey = new MatchKey(candidateInstance);
       MatchQuery matchQuery = new MatchQuery(matchKey.getKey());
+      candidateInstance.put("matchKey", matchKey.getKey());
       candidateInstance.put("indexTitle", matchKey.getKey());
       logger.info("Constructed match query: [" + matchQuery.getQueryString() + "]");
 
@@ -79,8 +79,6 @@ public class MatchService {
                                MatchQuery matchQuery,
                                RoutingContext routingCtx) {
 
-    // FOLIO Inventory does not know or accept 'matchKey' property at time of writing, clean up if present.
-    candidateInstance.remove("matchKey");
     int recordCount = matchingInstances.getInteger("totalRecords");
     if (recordCount == 0) {
       logger.info("Match query [" + matchQuery.getQueryString() + "] did not find a matching instance. Will POST a new instance");

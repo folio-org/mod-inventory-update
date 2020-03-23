@@ -1,12 +1,13 @@
 package org.folio.inventorymatch.test;
 
-
 import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
 import java.net.URLEncoder;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
+
+import org.folio.inventorymatch.MatchKey;
 
 import io.vertx.core.Vertx;
 import io.vertx.core.http.HttpServerOptions;
@@ -19,8 +20,6 @@ import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.handler.BodyHandler;
-
-import org.folio.inventorymatch.MatchKey;
 
 public class FakeInventoryStorage {
   public final static int PORT_INVENTORY_STORAGE = 9030;
@@ -57,16 +56,9 @@ public class FakeInventoryStorage {
   private void initializeStoredInstances() {
     Instance instance = new Instance().setInstanceTypeId("123").setTitle("Initial Instance");
     MatchKey matchKey = new MatchKey(instance.getJson());
-    instance.setIndexTitle(matchKey.getKey());
+    instance.setMatchKey(matchKey.getKey());
     logger.info("Initializing fake storage with matchkey of " + matchKey.getKey());
-    //addStoredInstance(new Instance().setInstanceTypeId("123").setTitle("Initial Instance").setIndexTitle(normalizeIndexTitle("initial instance")));
     addStoredInstance(instance);
-  }
-
-  public static String normalizeIndexTitle(String title) {
-    // fixed length title + fixed length edition +
-    // fixed length pagination (physical description)
-    return String.format("%-70s", title).replace(" ", "_")+"___"+"____";
   }
 
   private void addStoredInstance(Instance instance) {

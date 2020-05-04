@@ -1,6 +1,6 @@
 #%RAML 1.0
 title: Instance Storage Matcher
-version: v3.1
+version: v3.2
 protocols: [ HTTP, HTTPS ]
 baseUri: http://localhost
 
@@ -22,6 +22,28 @@ traits:
 /instance-storage-match:
   /instances:
     displayName: Instances
+    type:
+      collection:
+        exampleCollection: !include  examples/instances.json
+        schemaCollection: instances
+        schemaItem: instance
+        exampleItem: !include examples/instance.json
+    put:
+
+/instance-storage-upsert-matchkey:
+  /instances:
+    displayName: Instance create or update by matchKey
+    type:
+      collection:
+        exampleCollection: !include  examples/instances.json
+        schemaCollection: instances
+        schemaItem: instance
+        exampleItem: !include examples/instance.json
+    put:
+
+/instance-storage-upsert-hrid:
+  /instances:
+    displayName: Instance create or update by HRID
     type:
       collection:
         exampleCollection: !include  examples/instances.json

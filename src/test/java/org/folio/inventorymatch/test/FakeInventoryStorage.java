@@ -54,7 +54,7 @@ public class FakeInventoryStorage {
   }
 
   private void initializeStoredInstances() {
-    Instance instance = new Instance().setInstanceTypeId("123").setTitle("Initial Instance");
+    Instance instance = new Instance().setInstanceTypeId("123").setTitle("Initial Instance").setHrid("1");
     MatchKey matchKey = new MatchKey(instance.getJson());
     instance.setMatchKey(matchKey.getKey());
     logger.info("Initializing fake storage with matchkey of " + matchKey.getKey());

@@ -29,10 +29,8 @@ public class InstanceMatchingTestSuite {
   }
   Vertx vertx;
   private final int PORT_INVENTORY_MATCH = 9031;
-  private final Header TENANT_HEADER = new Header("X-Okapi-Tenant", "testlib");
   private final Header OKAPI_URL_HEADER = new Header("X-Okapi-Url", "http://localhost:"
       + FakeInventoryStorage.PORT_INVENTORY_STORAGE);
-  private final Header CONTENT_TYPE = new Header("Content-type", "application/json");
 
   private FakeInventoryStorage inventoryStorage;
 
@@ -63,7 +61,7 @@ public class InstanceMatchingTestSuite {
   }
 
   @Test
-  public void testPushOfNewInstanceWillCreateNewInstance (TestContext testContext) {
+  public void testPushOfNewInstanceWillCreateNewInstanceForMatchKey (TestContext testContext) {
     RestAssured.port = FakeInventoryStorage.PORT_INVENTORY_STORAGE;
     Instance instance = new Instance()
         .setTitle("New title")
@@ -83,13 +81,12 @@ public class InstanceMatchingTestSuite {
     testContext.assertEquals(instancesBeforePutJson.getInteger("totalRecords"), 0,
         "Number of instance records for query by matchKey 'new_title___(etc)' before PUT expected: 0" );
 
-    Response response;
     RestAssured.port = PORT_INVENTORY_MATCH;
-    response = RestAssured.given()
+    RestAssured.given()
             .body(instance.getJson().toString())
             .header("Content-type","application/json")
             .header(OKAPI_URL_HEADER)
-            .put(MatchService.INSTANCE_MATCH_PATH)
+            .put(MatchService.INSTANCE_UPSERT_MATCHKEY_PATH)
             .then()
             .log().ifValidationFails()
             .statusCode(200).extract().response();
@@ -97,7 +94,7 @@ public class InstanceMatchingTestSuite {
     RestAssured.port = FakeInventoryStorage.PORT_INVENTORY_STORAGE;
     Response instancesAfterPut =
       RestAssured.given()
-        .get(FakeInventoryStorage.URL_INSTANCES+"?query=" 
+        .get(FakeInventoryStorage.URL_INSTANCES+"?query="
             + FakeInventoryStorage.encode("matchKey==\"" + matchKey.getKey() + "\""))
         .then()
         .log().ifValidationFails()
@@ -111,7 +108,7 @@ public class InstanceMatchingTestSuite {
   }
 
   @Test
-  public void testPushOfExistingInstanceWillUpdateExistingInstance (TestContext testContext) {
+  public void testPushOfExistingInstanceWillUpdateExistingInstanceForMatchKey (TestContext testContext) {
     RestAssured.port = FakeInventoryStorage.PORT_INVENTORY_STORAGE;
     Instance instance = new Instance()
         .setTitle("Initial Instance")
@@ -135,14 +132,12 @@ public class InstanceMatchingTestSuite {
     testContext.assertEquals(instanceTypeIdBefore,"123",
                     "Expected instanceTypeId to be '123' before PUT");
 
-    Response response;
     RestAssured.port = PORT_INVENTORY_MATCH;
-    //Instance instance = new Instance().setTitle("Initial Instance").setInstanceTypeId("12345");
-    response = RestAssured.given()
+    RestAssured.given()
             .body(instance.getJson().toString())
             .header("Content-type","application/json")
             .header(OKAPI_URL_HEADER)
-            .put(MatchService.INSTANCE_MATCH_PATH)
+            .put(MatchService.INSTANCE_UPSERT_MATCHKEY_PATH)
             .then()
             .log().ifValidationFails()
             .statusCode(200).extract().response();
@@ -160,6 +155,108 @@ public class InstanceMatchingTestSuite {
 
     testContext.assertEquals(instancesAfterPutJson.getInteger("totalRecords"), 1,
         "Number of instance records for query by matchKey 'initial instance' after PUT expected: 1" );
+    String instanceTypeIdAfter = instancesAfterPutJson.getJsonArray("instances")
+        .getJsonObject(0).getString("instanceTypeId");
+    testContext.assertEquals(instanceTypeIdAfter,"12345",
+        "Expected instanceTypeId to be '12345' after PUT");
+
+  }
+
+  @Test
+  public void testPushOfNewInstanceWillCreateNewInstanceForHrid (TestContext testContext) {
+    RestAssured.port = FakeInventoryStorage.PORT_INVENTORY_STORAGE;
+    Instance instance = new Instance()
+        .setTitle("New title")
+        .setInstanceTypeId("12345")
+        .setHrid("2");
+    Response instancesBeforePut =
+      RestAssured.given()
+        .get(FakeInventoryStorage.URL_INSTANCES+"?query="+ FakeInventoryStorage
+            .encode("hrid==\"" + instance.getHrid() + "\""))
+        .then()
+        .log().ifValidationFails()
+        .statusCode(200).extract().response();
+    String bodyAsStringBeforePut = instancesBeforePut.getBody().asString();
+    JsonObject instancesBeforePutJson = new JsonObject(bodyAsStringBeforePut);
+
+    testContext.assertEquals(instancesBeforePutJson.getInteger("totalRecords"), 0,
+        "Number of instance records for query by hrid '2' before PUT expected: 0" );
+
+    RestAssured.port = PORT_INVENTORY_MATCH;
+    RestAssured.given()
+            .body(instance.getJson().toString())
+            .header("Content-type","application/json")
+            .header(OKAPI_URL_HEADER)
+            .put(MatchService.INSTANCE_UPSERT_MATCHKEY_PATH)
+            .then()
+            .log().ifValidationFails()
+            .statusCode(200).extract().response();
+
+    RestAssured.port = FakeInventoryStorage.PORT_INVENTORY_STORAGE;
+    Response instancesAfterPut =
+      RestAssured.given()
+        .get(FakeInventoryStorage.URL_INSTANCES+"?query="
+            + FakeInventoryStorage.encode("hrid==\"" + instance.getHrid() + "\""))
+        .then()
+        .log().ifValidationFails()
+        .statusCode(200).extract().response();
+    String bodyAsStringAfterPut = instancesAfterPut.getBody().asString();
+    JsonObject instancesAfterPutJson = new JsonObject(bodyAsStringAfterPut);
+
+    testContext.assertEquals(instancesAfterPutJson.getInteger("totalRecords"), 1,
+                             "Number of instance records for query by hrid '2' after PUT expected: 1" );
+
+  }
+
+
+  @Test
+  public void testPushOfExistingInstanceWillUpdateExistingInstanceForHrid (TestContext testContext) {
+    RestAssured.port = FakeInventoryStorage.PORT_INVENTORY_STORAGE;
+    Instance instance = new Instance()
+        .setTitle("Initial Instance")
+        .setInstanceTypeId("12345")
+        .setHrid("1");
+    Response instancesBeforePut =
+      RestAssured.given()
+        .get(FakeInventoryStorage.URL_INSTANCES+"?query="+ FakeInventoryStorage
+            .encode("hrid==\"" + instance.getHrid() + "\""))
+        .then()
+        .log().ifValidationFails()
+        .statusCode(200).extract().response();
+    String bodyAsStringBeforePut = instancesBeforePut.getBody().asString();
+    JsonObject instancesBeforePutJson = new JsonObject(bodyAsStringBeforePut);
+
+    testContext.assertEquals(instancesBeforePutJson.getInteger("totalRecords"), 1,
+        "Number of instance records for query by hrid '1' before PUT expected: 1" );
+
+    String instanceTypeIdBefore = instancesBeforePutJson.getJsonArray("instances")
+        .getJsonObject(0).getString("instanceTypeId");
+    testContext.assertEquals(instanceTypeIdBefore,"123",
+                    "Expected instanceTypeId to be '123' before PUT");
+
+    RestAssured.port = PORT_INVENTORY_MATCH;
+    RestAssured.given()
+            .body(instance.getJson().toString())
+            .header("Content-type","application/json")
+            .header(OKAPI_URL_HEADER)
+            .put(MatchService.INSTANCE_UPSERT_HRID_PATH)
+            .then()
+            .log().ifValidationFails()
+            .statusCode(200).extract().response();
+
+    RestAssured.port = FakeInventoryStorage.PORT_INVENTORY_STORAGE;
+    Response instancesAfterPut =
+      RestAssured.given()
+        .get(FakeInventoryStorage.URL_INSTANCES+"?query="
+            + FakeInventoryStorage.encode("hrid==\"" + instance.getHrid() + "\""))
+        .then()
+        .log().ifValidationFails()
+        .statusCode(200).extract().response();
+    String bodyAsStringAfterPut = instancesAfterPut.getBody().asString();
+    JsonObject instancesAfterPutJson = new JsonObject(bodyAsStringAfterPut);
+
+    testContext.assertEquals(instancesAfterPutJson.getInteger("totalRecords"), 1,
+        "Number of instance records for query by hrid '1' after PUT expected: 1" );
     String instanceTypeIdAfter = instancesAfterPutJson.getJsonArray("instances")
         .getJsonObject(0).getString("instanceTypeId");
     testContext.assertEquals(instanceTypeIdAfter,"12345",

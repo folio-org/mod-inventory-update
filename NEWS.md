@@ -1,3 +1,9 @@
+## 3.2.0
+
+* Provides interface `instance-storage-upsert-hrid` 1.0
+* Provides interface `instance-storage-upsert-matchkey` 1.0
+* Prepares for deprecation of interface `instance-storage-match`
+
 ## 3.1.0
 
  * Uses newly introduced Inventory (forks) Instance field `matchKey` (PR-466)

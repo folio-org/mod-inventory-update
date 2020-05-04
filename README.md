@@ -5,16 +5,19 @@
 Mod-inventory-match (Inventory Match) is an Okapi service that can be put in front of mod-inventory-storage
 (Inventory Storage) when posting Instances (bibliographic records) to Inventory Storage.
 
-A client uploading Instances directly to Inventory Storage must decide on its own whether to create (POST) a new
+A client uploading Instances directly to Inventory Storage must decide whether to create (POST) a new
 Instance or update (PUT) an existing Instance in Inventory Storage. By uploading to Inventory Match instead, the client
 can delegate that responsibility to Inventory Match.
 
 ## API
-Inventory Match exposes one end-point, which accepts PUT requests with an [Instance JSON body](ramls/instance.json):
+Inventory Match exposes two end-points, which accept PUT requests with an [Instance JSON body](ramls/instance.json):
 
-* /instance-storage-match/instances
+* /instance-storage-upsert-matchkey/instances  -- matches based on combination of meta data in instance
+* /instance-storage-upsert-hrid/instances -- matches based on the HRID property of the instance
 
-### Details of the matching mechanism
+(/instance-storage-match/instances is equivalent to /instance-storage-upsert-matchkey/instances and will be deprecated)
+
+### Details of the matching mechanism using a match key
 Based on select properties of the incoming Instance, Inventory Match will construct a match key and query Inventory
 Storage for it to determine if an instance with that key already exists.
 

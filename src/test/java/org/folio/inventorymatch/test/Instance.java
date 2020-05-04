@@ -5,6 +5,7 @@ import io.vertx.core.json.JsonObject;
 public class Instance {
   private String id;
   private String title;
+  private String hrid;
   private String instanceTypeId;
   private String matchKey;
   private JsonObject instanceJson = new JsonObject();
@@ -55,6 +56,16 @@ public class Instance {
 
   public String getMatchKey() {
     return matchKey;
+  }
+
+  public Instance setHrid (String hrid) {
+    this.hrid = hrid;
+    instanceJson.put("hrid", hrid);
+    return this;
+  }
+
+  public String getHrid () {
+    return hrid;
   }
 
   public JsonObject getJson() {

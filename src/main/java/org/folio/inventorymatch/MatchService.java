@@ -28,7 +28,8 @@ import io.vertx.ext.web.RoutingContext;
 public class MatchService {
   private final Logger logger = LoggerFactory.getLogger("inventory-matcher");
   private static final String INSTANCE_STORAGE_PATH = "/instance-storage/instances";
-  public final static String INSTANCE_MATCH_PATH = "/instance-storage-match/instances";
+  public final static String INSTANCE_MATCH_PATH = "/instance-storage-match/instances"; // being deprecated
+  public final static String INSTANCE_UPSERT_MATCHKEY_PATH = "/instance-storage-upsert-matchkey/instances";
   public final static String INSTANCE_UPSERT_HRID_PATH = "/instance-storage-upsert-hrid/instances";
 
   /**
@@ -78,18 +79,22 @@ public class MatchService {
       logger.info("Received a PUT of " + candidateInstance.toString());
 
       String hrid = candidateInstance.getString("hrid");
-      HridQuery hridQuery = new HridQuery(hrid);
-      logger.info("Constructed HRID query: [" + hridQuery.getQueryString() + "]");
+      if (hrid != null) {
+        HridQuery hridQuery = new HridQuery(hrid);
+        logger.info("Constructed HRID query: [" + hridQuery.getQueryString() + "]");
 
-      okapiClient.get(INSTANCE_STORAGE_PATH+"?query="+hridQuery.getURLEncodedQueryString(), res-> {
-        if ( res.succeeded()) {
-          JsonObject matchingInstances = new JsonObject(res.result());
-          updateInventory(okapiClient, candidateInstance, matchingInstances, hridQuery.getQueryString(), routingCtx);
-        } else {
-          String message = res.cause().getMessage();
-          responseError(routingCtx, 500, "mod-inventory-storage failed with " + message);
-        }
-      });
+        okapiClient.get(INSTANCE_STORAGE_PATH+"?query="+hridQuery.getURLEncodedQueryString(), res-> {
+          if ( res.succeeded()) {
+            JsonObject matchingInstances = new JsonObject(res.result());
+            updateInventory(okapiClient, candidateInstance, matchingInstances, hridQuery.getQueryString(), routingCtx);
+          } else {
+            String message = res.cause().getMessage();
+            responseError(routingCtx, 500, "mod-inventory-storage failed with " + message);
+          }
+        });
+      } else {
+        responseError(routingCtx, 400, "Cannot upsert by HRID, HRID missing in Instance");
+      }
     }
   }
 

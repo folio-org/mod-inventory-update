@@ -29,6 +29,7 @@ public class MatchService {
   private final Logger logger = LoggerFactory.getLogger("inventory-matcher");
   private static final String INSTANCE_STORAGE_PATH = "/instance-storage/instances";
   public final static String INSTANCE_MATCH_PATH = "/instance-storage-match/instances";
+  public final static String INSTANCE_UPSERT_HRID_PATH = "/instance-storage-upsert-hrid/instances";
 
   /**
    * Main flow of Instance matching and creating/updating.
@@ -55,12 +56,61 @@ public class MatchService {
       okapiClient.get(INSTANCE_STORAGE_PATH+"?query="+matchQuery.getURLEncodedQueryString(), res-> {
         if ( res.succeeded()) {
           JsonObject matchingInstances = new JsonObject(res.result());
-          updateInventory(okapiClient, candidateInstance, matchingInstances, matchQuery, routingCtx);
+          updateSharedInventory(okapiClient, candidateInstance, matchingInstances, matchQuery, routingCtx);
         } else {
           String message = res.cause().getMessage();
           responseError(routingCtx, 500, "mod-inventory-storage failed with " + message);
         }
       });
+    }
+  }
+
+  public void handleInstanceUpsertByHrid (RoutingContext routingCtx) {
+    String contentType = routingCtx.request().getHeader("Content-Type");
+    if (contentType != null && !contentType.startsWith("application/json")) {
+      responseError(routingCtx, 400, "Only accepts Content-Type application/json, was: "+ contentType);
+    } else {
+      OkapiClient okapiClient = getOkapiClient(routingCtx);
+
+      String candidateInstanceAsString = routingCtx.getBodyAsString("UTF-8");
+      JsonObject candidateInstance = new JsonObject(candidateInstanceAsString);
+
+      logger.info("Received a PUT of " + candidateInstance.toString());
+
+      String hrid = candidateInstance.getString("hrid");
+      HridQuery hridQuery = new HridQuery(hrid);
+      logger.info("Constructed HRID query: [" + hridQuery.getQueryString() + "]");
+
+      okapiClient.get(INSTANCE_STORAGE_PATH+"?query="+hridQuery.getURLEncodedQueryString(), res-> {
+        if ( res.succeeded()) {
+          JsonObject matchingInstances = new JsonObject(res.result());
+          updateInventory(okapiClient, candidateInstance, matchingInstances, hridQuery.getQueryString(), routingCtx);
+        } else {
+          String message = res.cause().getMessage();
+          responseError(routingCtx, 500, "mod-inventory-storage failed with " + message);
+        }
+      });
+    }
+  }
+
+  private void updateInventory (OkapiClient okapiClient,
+                                JsonObject candidateInstance,
+                                JsonObject matchingInstances,
+                                String queryString,
+                                RoutingContext routingCtx) {
+    int recordCount = matchingInstances.getInteger("totalRecords");
+    if (recordCount == 0) {
+      logger.info("Match query [" + queryString + "] did not find a matching instance. Will POST a new instance");
+      postInstance(okapiClient, routingCtx, candidateInstance);
+    }  else if (recordCount == 1) {
+      logger.info("Match query [" + queryString + "] found a matching instance. Will PUT an instance update");
+      JsonObject matchingInstance = matchingInstances.getJsonArray("instances").getJsonObject(0);
+      // Update existing instance
+      putInstance(okapiClient, routingCtx, candidateInstance, matchingInstance.getString("id"));
+    } else if (recordCount > 1) {
+      logger.info("Multiple matches (" + recordCount + ") found by match query [" + queryString + "], cannot determine which instance to update");
+    } else {
+      logger.info("Unexpected recordCount: ["+recordCount+"] cannot determine match");
     }
   }
 
@@ -73,7 +123,7 @@ public class MatchService {
    * @param matchQuery The match query (for log statements)
    * @param routingCtx
    */
-  private void updateInventory(OkapiClient okapiClient,
+  private void updateSharedInventory(OkapiClient okapiClient,
                                JsonObject candidateInstance,
                                JsonObject matchingInstances,
                                MatchQuery matchQuery,

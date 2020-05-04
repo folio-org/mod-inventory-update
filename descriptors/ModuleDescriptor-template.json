@@ -12,6 +12,17 @@
           "permissionsRequired": ["instance-storage-match.instances.item.put"]
         }
       ]
+    },
+    {
+      "id": "instance-storage-upsert-hrid",
+      "version": "1.0",
+      "handlers": [
+        {
+          "methods": ["PUT"],
+          "pathPattern": "/instance-storage-upsert-hrid/instances",
+          "permissionsRequired": ["instance-storage-upsert-hrid.instances.item.put"]
+        }
+      ]
     }
   ],
   "requires": [
@@ -27,11 +38,16 @@
       "description": "create or update instance in storage depending on match or not"
     },
     {
+      "permissionName": "instance-storage-upsert-hrid.instances.item.put",
+      "displayName": "instance storage match on HRID - create or update instance by HRID",
+      "description": "create or update instance in storage depending on HRID existing or not"
+    },
+    {
       "permissionName": "inventory-match.all",
       "displayName": "inventory match module - all permissions",
       "description": "Entire set of permissions needed to use the inventory match module",
       "subPermissions": [
-        "instance-storage-match.instances.item.put"
+        "instance-storage-match.instances.item.put", "instance-storage-upsert-hrid.instances.item.put"
       ]
     }
   ],

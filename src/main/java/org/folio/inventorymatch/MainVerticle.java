@@ -29,15 +29,16 @@ public class MainVerticle extends AbstractVerticle {
     Router router = Router.router(vertx);
     router.put("/*").handler(BodyHandler.create()); // Tell vertx we want the whole PUT body in the handler
     router.put(MatchService.INSTANCE_MATCH_PATH).handler(matchService::handleInstanceMatching);
+    router.put(MatchService.INSTANCE_UPSERT_HRID_PATH).handler(matchService::handleInstanceUpsertByHrid);
 
     vertx.createHttpServer()
       .requestHandler(router::accept)
       .listen(port, result -> {
         if (result.succeeded()) {
-          logger.debug("Succeeded in starting the listener for Inventory match service");
+          logger.debug("Succeeded in starting the listener for Inventory match/upsert service");
           fut.complete();
         } else {
-          logger.error("Inventory match service failed: " + result.cause().getMessage());
+          logger.error("Inventory match/upsert service failed: " + result.cause().getMessage());
           fut.fail(result.cause());
         }
       });

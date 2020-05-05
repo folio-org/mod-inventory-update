@@ -29,8 +29,8 @@ public class MatchService {
   private final Logger logger = LoggerFactory.getLogger("inventory-matcher");
   private static final String INSTANCE_STORAGE_PATH = "/instance-storage/instances";
   public final static String INSTANCE_MATCH_PATH = "/instance-storage-match/instances"; // being deprecated
-  public final static String INSTANCE_UPSERT_MATCHKEY_PATH = "/instance-storage-upsert-matchkey/instances";
-  public final static String INSTANCE_UPSERT_HRID_PATH = "/instance-storage-upsert-hrid/instances";
+  public final static String INSTANCE_UPSERT_MATCHKEY_PATH = "/instance-storage-upsert-matchkey";
+  public final static String INSTANCE_UPSERT_HRID_PATH = "/instance-storage-upsert-hrid";
 
   /**
    * Main flow of Instance matching and creating/updating.

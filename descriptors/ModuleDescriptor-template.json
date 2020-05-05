@@ -19,7 +19,7 @@
       "handlers": [
         {
           "methods": ["PUT"],
-          "pathPattern": "/instance-storage-upsert-matchkey/instances",
+          "pathPattern": "/instance-storage-upsert-matchkey",
           "permissionsRequired": ["instance-storage-upsert-matchkey.instances.item.put"]
         }
       ]
@@ -31,7 +31,7 @@
       "handlers": [
         {
           "methods": ["PUT"],
-          "pathPattern": "/instance-storage-upsert-hrid/instances",
+          "pathPattern": "/instance-storage-upsert-hrid",
           "permissionsRequired": ["instance-storage-upsert-hrid.instances.item.put"]
         }
       ]

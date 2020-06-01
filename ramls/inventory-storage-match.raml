@@ -11,6 +11,8 @@ documentation:
 types:
   instance: !include instance.json
   instances: !include instances.json
+  inventory-record-set: !include inventoryRecordSet.json
+  inventory-record-sets: !include inventoryRecordSets.json
 
 resourceTypes:
   collection: !include raml-util/rtypes/collection.raml
@@ -48,4 +50,14 @@ traits:
       schemaCollection: instances
       schemaItem: instance
       exampleItem: !include examples/instance.json
+  put:
+
+/inventory-upsert-hrid:
+  displayName: Create or update instance records
+  type:
+    collection:
+      exampleCollection: !include examples/inventory-record-sets.json
+      schemaCollection: inventory-record-sets
+      schemaItem: inventory-record-set
+      exampleItem: !include examples/inventory-record-set.json
   put:

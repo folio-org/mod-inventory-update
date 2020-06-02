@@ -59,7 +59,7 @@ public class MatchService {
       logger.info("Received a PUT of " + candidateInstance.toString());
 
       MatchKey matchKey = new MatchKey(candidateInstance);
-      MatchQuery matchQuery = new MatchQuery(matchKey.getKey());
+      InstanceQuery matchQuery = new MatchQuery(matchKey.getKey());
       candidateInstance.put("matchKey", matchKey.getKey());
       candidateInstance.put("indexTitle", matchKey.getKey());
       logger.info("Constructed match query: [" + matchQuery.getQueryString() + "]");
@@ -116,70 +116,41 @@ public class MatchService {
     if (contentType != null && !contentType.startsWith("application/json")) {
       responseError(routingCtx, 400, "Only accepts Content-Type application/json, was: "+ contentType);
     } else {
-      OkapiClient okapiClient = getOkapiClient(routingCtx);
+      OkapiClient okapiClient = getOkapiClient(routingCtx); // TODO: close it? when/where?
       String inventoryRecordSetAsString = routingCtx.getBodyAsString("UTF-8");
       JsonObject inventoryRecordSet = new JsonObject(inventoryRecordSetAsString);
+      logger.info("Incoming record set " + inventoryRecordSet.encodePrettily());
 
-      logger.info("Received a PUT of " + inventoryRecordSet.encodePrettily());
-      JsonObject newInstance = inventoryRecordSet.getJsonObject("instance");
-      HridQuery hridQuery = new HridQuery(newInstance.getString("hrid"));
-      Future<JsonObject> promisedInstance = lookupExistingInstance(okapiClient, routingCtx, hridQuery);
-      promisedInstance.onComplete( ar -> {
+      JsonObject incomingInstance         = inventoryRecordSet.getJsonObject("instance");
+      JsonArray  incomingHoldingsAndItems = inventoryRecordSet.getJsonArray("holdingsRecords") == null ?
+                                                         new JsonArray()
+                                                         :
+                                                         inventoryRecordSet.getJsonArray("holdingsRecords");
+
+      InstanceQuery instanceQuery = new HridQuery(incomingInstance.getString("hrid"));
+
+      Future<JsonObject> promisedExistingInstance = lookupExistingInstance(okapiClient, routingCtx, instanceQuery);
+      promisedExistingInstance.onComplete( ar -> {
         if (ar.result()==null) {
-          Future<JsonObject> promisedCreatedInstance = postInstance2(okapiClient, routingCtx, newInstance);
+          Future<JsonObject> promisedCreatedInstance = InventoryStorage.postInstance(okapiClient, incomingInstance);
           promisedCreatedInstance.onComplete( hndl -> {
-            /* Insert holdings and items */
             JsonObject persistedInstance = hndl.result();
             String instanceId = persistedInstance.getString("id");
-            JsonArray holdingsRecords = inventoryRecordSet.getJsonArray("holdingsRecords");
-            insertHoldingsRecords(okapiClient, holdingsRecords, instanceId);
+            insertHoldingsAndItems(okapiClient, incomingHoldingsAndItems, instanceId);
             responseJson(routingCtx, 200).end(persistedInstance.encodePrettily());
           });
         } else {
           String instanceId = ar.result().getString("id");
-          Future<JsonObject> promisedUpdatedInstance = putInstance2(okapiClient, routingCtx, newInstance, instanceId);
+          incomingInstance.put("id", instanceId);
+          Future<JsonObject> promisedUpdatedInstance = InventoryStorage.putInstance(okapiClient, incomingInstance, instanceId);
           promisedUpdatedInstance.onComplete( hndl -> {
-            Future<JsonArray> promisedExistingHoldingsAndItems = lookupExistingHoldingsRecords(okapiClient, instanceId);
-            promisedExistingHoldingsAndItems.onComplete( holdingsResult -> {
-              if (holdingsResult != null) {
-                JsonArray existingHoldingsItems = holdingsResult.result();
-                JsonArray incomingHoldingsItems = inventoryRecordSet.getJsonArray("holdingsRecords");
-                logger.info("Incoming holdings/items: " + incomingHoldingsItems.encodePrettily());
-                boolean existingHoldingsAndItemsHaveIds = checkIdsForHoldingsAndItems(existingHoldingsItems);
-                boolean incomingHoldingsAndItemsHaveIds = checkIdsForHoldingsAndItems(incomingHoldingsItems);
-                if (existingHoldingsAndItemsHaveIds && incomingHoldingsAndItemsHaveIds) {
-                  Map<String, JsonObject> existingHoldingsMap = new HashMap<String, JsonObject>();
-                  Map<String, JsonObject> existingItemsMap = new HashMap<String, JsonObject>();
-                  mapHoldingsAndItemsByIdentifiers (existingHoldingsItems, existingHoldingsMap, existingItemsMap);
-                  for (Object holdingsObject : incomingHoldingsItems) {
-                    JsonObject incomingHoldingsRecord = (JsonObject) holdingsObject;
-                    JsonObject existingHoldingsRecord = existingHoldingsMap.get(incomingHoldingsRecord.getJsonArray("formerIds").getString(0));
-                    if (existingHoldingsRecord != null) {
-                      incomingHoldingsRecord.put("id", existingHoldingsRecord.getString("id"));
-                      incomingHoldingsRecord.put("hrid", existingHoldingsRecord.getString("hrid"));
-                      incomingHoldingsRecord.put("instanceId", existingHoldingsRecord.getString("instanceId"));
-                      JsonArray incomingItems = extractJsonArrayFromObject(incomingHoldingsRecord, "items");
-                      putHoldingsRecord(okapiClient, incomingHoldingsRecord, existingHoldingsRecord.getString("id")); // TODO: capture response
-                      for (Object itemObject : incomingItems) {
-                        JsonObject incomingItem = (JsonObject) itemObject;
-                        JsonObject existingItem = existingItemsMap.get(incomingItem.getString("itemIdentifier"));
-                        if (existingItem != null) {
-                          incomingItem.put("id", existingItem.getString("id"));
-                          incomingItem.put("hrid", existingItem.getString("hrid"));
-                          incomingItem.put("holdingsRecordId", existingItem.getString("holdingsRecordId"));
-                          putItem(okapiClient, incomingItem, existingItem.getString("id")); // TODO: capture response
-                        } else {
-                          insertItem(okapiClient, incomingItem, existingHoldingsRecord.getString("id"));
-                        }
-                      }
-                    } else {
-                      // Create new holdings record and items
-                      insertHoldingsRecord(okapiClient, incomingHoldingsRecord, instanceId);
-                    }
-                  }
-                }
+            Future<JsonArray> promisedExistingHoldingsAndItems = lookupExistingHoldingsRecordsAndItems(okapiClient, instanceId);
+            promisedExistingHoldingsAndItems.onComplete( existingHoldingsResult -> {
+              if (existingHoldingsResult != null) {
+                upsertHoldingsAndItems(okapiClient, existingHoldingsResult.result(), incomingHoldingsAndItems, instanceId);
               } else {
-                // post holdings and items
+                // No existing holdings and items - persist incoming records
+                insertHoldingsAndItems(okapiClient, incomingHoldingsAndItems, instanceId);
               }
             });
             responseJson(routingCtx, 200).end(hndl.result().encodePrettily());
@@ -189,46 +160,63 @@ public class MatchService {
     }
   }
 
-  private Future<JsonObject> postInstance2 (OkapiClient okapiClient, RoutingContext routingCtx, JsonObject newInstance) {
-    Promise<JsonObject> promise = Promise.promise();
-    okapiClient.post(INSTANCE_STORAGE_PATH, newInstance.toString(), postResult->{
-      if (postResult.succeeded()) {
-        logger.info("POST of Instance succeeded");
-        String instanceResult = postResult.result();
-        JsonObject instanceResponseJson = new JsonObject(instanceResult);
-        promise.complete(instanceResponseJson);
-      } else {
-        promise.complete(null);
-      }
-    });
-    return promise.future();
-  }
+  private void upsertHoldingsAndItems(OkapiClient okapiClient,
+                                      JsonArray existingHoldingsAndItems,
+                                      JsonArray incomingHoldingsAndItems,
+                                      String instanceId) {
 
-  private Future<JsonObject> putInstance2 (OkapiClient okapiClient, RoutingContext routingCtx, JsonObject newInstance, String instanceId) {
-    Promise<JsonObject> promise = Promise.promise();
-    okapiClient.request(HttpMethod.PUT, INSTANCE_STORAGE_PATH+"/"+instanceId, newInstance.toString(), putResult-> {
-      if (putResult.succeeded()) {
-        JsonObject done = new JsonObject("{ \"message\": \"done\" }");
-        promise.complete(done);
-      } else {
-        JsonObject fail = new JsonObject("{ \"message\": \"failed\" }");
-        promise.complete(fail);
-      }
-    });
-    return promise.future();
-  }
+    boolean existingHoldingsAndItemsHaveIds = checkForIdsInHoldingsAndItems(existingHoldingsAndItems);
+    boolean incomingHoldingsAndItemsHaveIds = checkForIdsInHoldingsAndItems(incomingHoldingsAndItems);
 
-  private void insertHoldingsRecords (OkapiClient okapiClient, JsonArray holdingsRecords, String instanceId) {
-    for (Object element : holdingsRecords) {
-      JsonObject holdingsRecord = (JsonObject) element;
-      insertHoldingsRecord(okapiClient, holdingsRecord, instanceId);
+    if (existingHoldingsAndItemsHaveIds && incomingHoldingsAndItemsHaveIds) {
+      Map<String, JsonObject> existingHoldingsMap = new HashMap<String, JsonObject>();
+      Map<String, JsonObject> existingItemsMap = new HashMap<String, JsonObject>();
+      mapHoldingsAndItemsByIdentifiers (existingHoldingsAndItems, existingHoldingsMap, existingItemsMap);
+
+      for (Object holdingsObject : incomingHoldingsAndItems) {
+        JsonObject incomingHoldingsRecordWithItems = (JsonObject) holdingsObject;
+        String incomingLocalIdentifier = incomingHoldingsRecordWithItems.getJsonArray("formerIds").getString(0);
+        JsonObject existingHoldingsRecord = existingHoldingsMap.get(incomingLocalIdentifier);
+        if (existingHoldingsRecord != null) {
+          incomingHoldingsRecordWithItems.put("id", existingHoldingsRecord.getString("id"));
+          incomingHoldingsRecordWithItems.put("hrid", existingHoldingsRecord.getString("hrid"));
+          incomingHoldingsRecordWithItems.put("instanceId", existingHoldingsRecord.getString("instanceId"));
+          JsonArray incomingItems = extractJsonArrayFromObject(incomingHoldingsRecordWithItems, "items");
+          InventoryStorage.putHoldingsRecord(okapiClient, incomingHoldingsRecordWithItems, existingHoldingsRecord.getString("id")); // TODO: capture response
+          for (Object itemObject : incomingItems) {
+            JsonObject incomingItem = (JsonObject) itemObject;
+            String incomingItemIdentifier = incomingItem.getString("itemIdentifier");
+            JsonObject existingItem = existingItemsMap.get(incomingItemIdentifier);
+            if (existingItem != null) {
+              incomingItem.put("id", existingItem.getString("id"));
+              incomingItem.put("hrid", existingItem.getString("hrid"));
+              incomingItem.put("holdingsRecordId", existingItem.getString("holdingsRecordId"));
+              InventoryStorage.putItem(okapiClient, incomingItem, existingItem.getString("id")); // TODO: capture response
+            } else {
+              insertItem(okapiClient, incomingItem, existingHoldingsRecord.getString("id"));
+            }
+          }
+        } else {
+          // Current holdings record with that identifier not found, create holdings and items
+          insertHoldingsRecordWithItems(okapiClient, incomingHoldingsRecordWithItems, instanceId);
+        }
+      }
+    } else {
+      // One or more existings or incoming holdings or items did not have identifier(s) - fall back to delete and create
     }
   }
 
-  private void insertHoldingsRecord (OkapiClient okapiClient, JsonObject holdingsRecord, String instanceId) {
+  private void insertHoldingsAndItems (OkapiClient okapiClient, JsonArray holdingsRecords, String instanceId) {
+    for (Object element : holdingsRecords) {
+      JsonObject holdingsRecord = (JsonObject) element;
+      insertHoldingsRecordWithItems(okapiClient, holdingsRecord, instanceId);
+    }
+  }
+
+  private void insertHoldingsRecordWithItems (OkapiClient okapiClient, JsonObject holdingsRecord, String instanceId) {
     holdingsRecord.put("instanceId", instanceId);
     JsonArray items = extractJsonArrayFromObject(holdingsRecord, "items");
-    Future<JsonObject> promisedCreatedHoldings = postHoldingsRecord(okapiClient, holdingsRecord);
+    Future<JsonObject> promisedCreatedHoldings = InventoryStorage.postHoldingsRecord(okapiClient, holdingsRecord);
     promisedCreatedHoldings.onComplete( hndl -> {
       JsonObject createdHoldings = hndl.result();
       if (createdHoldings == null) {
@@ -251,7 +239,7 @@ public class MatchService {
 
   private void insertItem (OkapiClient okapiClient, JsonObject item, String holdingsRecordId) {
     item.put("holdingsRecordId", holdingsRecordId);
-    Future<JsonObject> promisedCreatedItem = postItem(okapiClient, item);
+    Future<JsonObject> promisedCreatedItem = InventoryStorage.postItem(okapiClient, item);
     promisedCreatedItem.onComplete( hndl -> {
       JsonObject createdItem = hndl.result();
       if (createdItem == null) {
@@ -263,85 +251,9 @@ public class MatchService {
     });
   }
 
-  private Future<JsonObject> postHoldingsRecord(OkapiClient okapiClient, JsonObject holdingsRecord) {
+  private Future<JsonObject> lookupExistingInstance (OkapiClient okapiClient, RoutingContext routingCtx, InstanceQuery instanceQuery) {
     Promise<JsonObject> promise = Promise.promise();
-    okapiClient.post(HOLDINGS_STORAGE_PATH, holdingsRecord.toString(), postResult->{
-      if (postResult.succeeded()) {
-        logger.info("POST of holdings record succeeded");
-        String holdingsResult = postResult.result();
-        JsonObject holdingsResponseJson = new JsonObject(holdingsResult);
-        promise.complete(holdingsResponseJson);
-      } else {
-        logger.info("POST of holdings record did not succeed");
-        promise.complete(null);
-      }
-    });
-    return promise.future();
-  }
-
-  private Future<JsonObject> putHoldingsRecord(OkapiClient okapiClient, JsonObject holdingsRecord, String uuid) {
-    Promise<JsonObject> promise = Promise.promise();
-    okapiClient.request(HttpMethod.PUT, HOLDINGS_STORAGE_PATH + "/" + uuid, holdingsRecord.toString(), putResult->{
-      if (putResult.succeeded()) {
-        logger.info("PUT of holdings record succeeded");
-        String putResultString = putResult.result();
-        logger.info("Holdings PUT result string: " + putResultString);
-        JsonObject putResponseJson;
-        if (putResultString == null || putResultString.length()==0) {
-          putResponseJson = new JsonObject("{ \"message\": \"no content\"}");
-        } else {
-          putResponseJson = new JsonObject(putResultString);
-        }
-        promise.complete(putResponseJson);
-      } else {
-        logger.info("PUT of holdings record did not succeed");
-        promise.complete(null);
-      }
-    });
-    return promise.future();
-  }
-
-  private Future<JsonObject> postItem(OkapiClient okapiClient, JsonObject item) {
-    Promise<JsonObject> promise = Promise.promise();
-    okapiClient.post(ITEM_STORAGE_PATH, item.toString(), postResult->{
-      if (postResult.succeeded()) {
-        logger.info("POST of item succeeded");
-        String itemResult = postResult.result();
-        JsonObject itemResponseJson = new JsonObject(itemResult);
-        promise.complete(itemResponseJson);
-      } else {
-        logger.info("POST of item did not succeed");
-        promise.complete(null);
-      }
-    });
-    return promise.future();
-  }
-
-  private Future<JsonObject> putItem(OkapiClient okapiClient, JsonObject item, String uuid) {
-    Promise<JsonObject> promise = Promise.promise();
-    okapiClient.request(HttpMethod.PUT, ITEM_STORAGE_PATH + "/" + uuid, item.toString(), putResult->{
-      if (putResult.succeeded()) {
-        logger.info("PUT of item succeeded");
-        String putResultString = putResult.result();
-        JsonObject putResponseJson;
-        if (putResultString == null || putResultString.length()==0) {
-          putResponseJson = new JsonObject("{ \"message\": \"no content\"}");
-        } else {
-          putResponseJson = new JsonObject(putResultString);
-        }
-        promise.complete(putResponseJson);
-      } else {
-        logger.info("PUT of item did not succeed");
-        promise.complete(null);
-      }
-    });
-    return promise.future();
-  }
-
-
-  private Future<JsonObject> lookupExistingInstance (OkapiClient okapiClient, RoutingContext routingCtx, HridQuery hridQuery) {
-    Promise<JsonObject> promise = Promise.promise();
-    okapiClient.get(INSTANCE_STORAGE_PATH+"?query="+hridQuery.getURLEncodedQueryString(), res-> {
+    okapiClient.get(INSTANCE_STORAGE_PATH+"?query="+instanceQuery.getURLEncodedQueryString(), res-> {
       if ( res.succeeded()) {
         JsonObject matchingInstances = new JsonObject(res.result());
         int recordCount = matchingInstances.getInteger("totalRecords");
@@ -358,7 +270,8 @@ public class MatchService {
     return promise.future();
   }
 
-  private Future<JsonArray> lookupExistingHoldingsRecords (OkapiClient okapiClient, String instanceId) {
+  @SuppressWarnings("rawtypes")
+  private Future<JsonArray> lookupExistingHoldingsRecordsAndItems (OkapiClient okapiClient, String instanceId) {
     Promise<JsonArray> promise = Promise.promise();
     okapiClient.get(HOLDINGS_STORAGE_PATH+"?limit=1000&query=instanceId%3D%3D"+instanceId, res-> {
       if (res.succeeded()) {
@@ -401,7 +314,7 @@ public class MatchService {
     return promise.future();
   }
 
-  private boolean checkIdsForHoldingsAndItems (JsonArray holdingsRecords) {
+  private boolean checkForIdsInHoldingsAndItems (JsonArray holdingsRecords) {
     for (Object holdingsObject : holdingsRecords) {
       JsonObject holdingsRecord = (JsonObject) holdingsObject;
       if (holdingsRecord.containsKey("formerIds") && holdingsRecord.getJsonArray("formerIds").size()==1) {
@@ -443,7 +356,7 @@ public class MatchService {
    * Creates a deep clone of a JSONArray from a JSONObject, removes the array from the source object and returns the clone
    * @param jsonObject Source object containing the array to extract
    * @param arrayName Property name of the array to extract
-   * @return
+   * @return  The extracted JsonArray or an empty JsonArray if none found to extract.
    */
   private static JsonArray extractJsonArrayFromObject(JsonObject jsonObject, String arrayName)  {
     JsonArray array = new JsonArray();
@@ -490,7 +403,7 @@ public class MatchService {
   private void updateSharedInventory(OkapiClient okapiClient,
                                JsonObject candidateInstance,
                                JsonObject matchingInstances,
-                               MatchQuery matchQuery,
+                               InstanceQuery matchQuery,
                                RoutingContext routingCtx) {
 
     int recordCount = matchingInstances.getInteger("totalRecords");

@@ -23,7 +23,7 @@ traits:
 
 /instance-storage-match:
   /instances:
-    displayName: Instances
+    displayName: Instance create or update by matchkey (being deprecated)
     type:
       collection:
         exampleCollection: !include  examples/instances.json
@@ -53,7 +53,17 @@ traits:
   put:
 
 /inventory-upsert-hrid:
-  displayName: Create or update instance records
+  displayName: Create or update instance with holdings and items, based on instance HRID
+  type:
+    collection:
+      exampleCollection: !include examples/inventory-record-sets.json
+      schemaCollection: inventory-record-sets
+      schemaItem: inventory-record-set
+      exampleItem: !include examples/inventory-record-set.json
+  put:
+
+/inventory-upsert-matchkey:
+  displayName: Create or update instance with holdings and items, based on instance match key
   type:
     collection:
       exampleCollection: !include examples/inventory-record-sets.json

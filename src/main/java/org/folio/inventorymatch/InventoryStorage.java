@@ -22,12 +22,14 @@ public class InventoryStorage {
         Promise<JsonObject> promise = Promise.promise();
         okapiClient.post(INSTANCE_STORAGE_PATH, newInstance.toString(), postResult->{
           if (postResult.succeeded()) {
-            logger.info("POST of Instance succeeded");
             String instanceResult = postResult.result();
             JsonObject instanceResponseJson = new JsonObject(instanceResult);
             promise.complete(instanceResponseJson);
           } else {
-            promise.complete(null);
+            JsonObject errorMessage = new JsonObject(postResult.cause().getMessage());
+            errorMessage.put("entity-type","instance");
+            errorMessage.put("operation", "create");
+            promise.fail(errorMessage.encodePrettily());
           }
         });
         return promise.future();
@@ -41,8 +43,10 @@ public class InventoryStorage {
             JsonObject done = new JsonObject("{ \"message\": \"done\" }");
             promise.complete(done);
           } else {
-            JsonObject fail = new JsonObject("{ \"message\": \"failed\" }");
-            promise.complete(fail);
+            JsonObject errorMessage = new JsonObject(putResult.cause().getMessage());
+            errorMessage.put("entity-type","instance");
+            errorMessage.put("operation", "update");
+            promise.fail(errorMessage.encodePrettily());
           }
         });
         return promise.future();
@@ -57,8 +61,10 @@ public class InventoryStorage {
             JsonObject holdingsResponseJson = new JsonObject(holdingsResult);
             promise.complete(holdingsResponseJson);
           } else {
-            logger.info("POST of holdings record did not succeed");
-            promise.complete(null);
+            JsonObject errorMessage = new JsonObject(postResult.cause().getMessage());
+            errorMessage.put("entity-type","holdingsRecord");
+            errorMessage.put("operation", "create");
+            promise.fail(errorMessage.encodePrettily());
           }
         });
         return promise.future();
@@ -68,19 +74,13 @@ public class InventoryStorage {
         Promise<JsonObject> promise = Promise.promise();
         okapiClient.request(HttpMethod.PUT, HOLDINGS_STORAGE_PATH + "/" + uuid, holdingsRecord.toString(), putResult->{
           if (putResult.succeeded()) {
-            logger.info("PUT of holdings record succeeded");
-            String putResultString = putResult.result();
-            logger.info("Holdings PUT result string: " + putResultString);
-            JsonObject putResponseJson;
-            if (putResultString == null || putResultString.length()==0) {
-              putResponseJson = new JsonObject("{ \"message\": \"no content\"}");
-            } else {
-              putResponseJson = new JsonObject(putResultString);
-            }
-            promise.complete(putResponseJson);
+            JsonObject done = new JsonObject("{ \"message\": \"done\" }");
+            promise.complete(done);
           } else {
-            logger.info("PUT of holdings record did not succeed");
-            promise.complete(null);
+            JsonObject errorMessage = new JsonObject(putResult.cause().getMessage());
+            errorMessage.put("entity-type","holdingsRecord");
+            errorMessage.put("operation", "update");
+            promise.fail(errorMessage.encodePrettily());
           }
         });
         return promise.future();
@@ -90,13 +90,14 @@ public class InventoryStorage {
         Promise<JsonObject> promise = Promise.promise();
         okapiClient.post(ITEM_STORAGE_PATH, item.toString(), postResult->{
           if (postResult.succeeded()) {
-            logger.info("POST of item succeeded");
             String itemResult = postResult.result();
             JsonObject itemResponseJson = new JsonObject(itemResult);
             promise.complete(itemResponseJson);
           } else {
-            logger.info("POST of item did not succeed");
-            promise.complete(null);
+            JsonObject errorMessage = new JsonObject(postResult.cause().getMessage());
+            errorMessage.put("entity-type","item");
+            errorMessage.put("operation", "create");
+            promise.fail(errorMessage.encodePrettily());
           }
         });
         return promise.future();
@@ -106,18 +107,13 @@ public class InventoryStorage {
         Promise<JsonObject> promise = Promise.promise();
         okapiClient.request(HttpMethod.PUT, ITEM_STORAGE_PATH + "/" + uuid, item.toString(), putResult->{
           if (putResult.succeeded()) {
-            logger.info("PUT of item succeeded");
-            String putResultString = putResult.result();
-            JsonObject putResponseJson;
-            if (putResultString == null || putResultString.length()==0) {
-              putResponseJson = new JsonObject("{ \"message\": \"no content\"}");
-            } else {
-              putResponseJson = new JsonObject(putResultString);
-            }
-            promise.complete(putResponseJson);
+            JsonObject done = new JsonObject("{ \"message\": \"done\" }");
+            promise.complete(done);
           } else {
-            logger.info("PUT of item did not succeed");
-            promise.complete(null);
+            JsonObject errorMessage = new JsonObject(putResult.cause().getMessage());
+            errorMessage.put("entity-type","item");
+            errorMessage.put("operation", "update");
+            promise.fail(errorMessage.encodePrettily());
           }
         });
         return promise.future();

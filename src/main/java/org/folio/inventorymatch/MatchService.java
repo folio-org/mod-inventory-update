@@ -40,7 +40,7 @@ public class MatchService {
   public final static String INSTANCE_UPSERT_MATCHKEY_PATH = "/instance-storage-upsert-matchkey";
   public final static String INSTANCE_UPSERT_HRID_PATH = "/instance-storage-upsert-hrid";
   public final static String INVENTORY_UPSERT_HRID_PATH = "/inventory-upsert-hrid";
-
+  public final static String INVENTORY_UPSERT_MATCHKEY_PATH = "/inventory-upsert-matchkey";
 
   /**
    * Main flow of Instance matching and creating/updating.
@@ -108,18 +108,41 @@ public class MatchService {
     }
   }
 
-  // ===========================================
-  // New inventory upsert by HRID
+  public void handleInventoryUpsertByMatchkey (RoutingContext routingCtx) { // TODO: Pass in okapi client?
+    if (contentTypeIsJson(routingCtx)) {
+      OkapiClient okapiClient = getOkapiClient(routingCtx); // TODO: close it? when/where?
+      JsonObject inventoryRecordSet = getIncomingInventoryRecordSet(routingCtx);
+
+      JsonObject incomingInstance         = inventoryRecordSet.getJsonObject("instance");
+      JsonArray  incomingHoldingsAndItems = inventoryRecordSet.getJsonArray("holdingsRecords") == null ?
+                                                         new JsonArray()
+                                                         :
+                                                         inventoryRecordSet.getJsonArray("holdingsRecords");
+
+      MatchKey matchKey = new MatchKey(incomingInstance);
+      InstanceQuery instanceQuery = new MatchQuery(matchKey.getKey());
+      incomingInstance.put("matchKey", matchKey.getKey());
+      incomingInstance.put("indexTitle", matchKey.getKey());
+
+      Future<JsonObject> promisedExistingInstance = lookupExistingInstance(okapiClient, routingCtx, instanceQuery);
+      promisedExistingInstance.onComplete( ar -> {
+        if (ar.result()==null) {
+          createInventoryRecords(routingCtx, okapiClient, incomingInstance, incomingHoldingsAndItems);
+        } else {
+          JsonObject existingInstance = ar.result();
+          String instanceId = existingInstance.getString("id");
+          incomingInstance.put("id", instanceId);
+          JsonObject mergedInstance = mergeInstances(existingInstance, incomingInstance);
+          updateInventoryRecords(routingCtx, okapiClient, mergedInstance, incomingHoldingsAndItems, instanceId);
+        }
+      });
+    }
+  }
 
   public void handleInventoryUpsertByHrid (RoutingContext routingCtx) {
-    String contentType = routingCtx.request().getHeader("Content-Type");
-    if (contentType != null && !contentType.startsWith("application/json")) {
-      responseError(routingCtx, 400, "Only accepts Content-Type application/json, was: "+ contentType);
-    } else {
+    if (contentTypeIsJson(routingCtx)) {
       OkapiClient okapiClient = getOkapiClient(routingCtx); // TODO: close it? when/where?
-      String inventoryRecordSetAsString = routingCtx.getBodyAsString("UTF-8");
-      JsonObject inventoryRecordSet = new JsonObject(inventoryRecordSetAsString);
-      logger.info("Incoming record set " + inventoryRecordSet.encodePrettily());
+      JsonObject inventoryRecordSet = getIncomingInventoryRecordSet(routingCtx);
 
       JsonObject incomingInstance         = inventoryRecordSet.getJsonObject("instance");
       JsonArray  incomingHoldingsAndItems = inventoryRecordSet.getJsonArray("holdingsRecords") == null ?
@@ -132,33 +155,85 @@ public class MatchService {
       Future<JsonObject> promisedExistingInstance = lookupExistingInstance(okapiClient, routingCtx, instanceQuery);
       promisedExistingInstance.onComplete( ar -> {
         if (ar.result()==null) {
-          Future<JsonObject> promisedCreatedInstance = InventoryStorage.postInstance(okapiClient, incomingInstance);
-          promisedCreatedInstance.onComplete( hndl -> {
-            JsonObject persistedInstance = hndl.result();
-            String instanceId = persistedInstance.getString("id");
-            insertHoldingsAndItems(okapiClient, incomingHoldingsAndItems, instanceId);
-            responseJson(routingCtx, 200).end(persistedInstance.encodePrettily());
-          });
+
+          createInventoryRecords(routingCtx, okapiClient, incomingInstance, incomingHoldingsAndItems);
+
         } else {
+
           String instanceId = ar.result().getString("id");
           incomingInstance.put("id", instanceId);
-          Future<JsonObject> promisedUpdatedInstance = InventoryStorage.putInstance(okapiClient, incomingInstance, instanceId);
-          promisedUpdatedInstance.onComplete( hndl -> {
-            Future<JsonArray> promisedExistingHoldingsAndItems = lookupExistingHoldingsRecordsAndItems(okapiClient, instanceId);
-            promisedExistingHoldingsAndItems.onComplete( existingHoldingsResult -> {
-              if (existingHoldingsResult != null) {
-                upsertHoldingsAndItems(okapiClient, existingHoldingsResult.result(), incomingHoldingsAndItems, instanceId);
-              } else {
-                // No existing holdings and items - persist incoming records
-                insertHoldingsAndItems(okapiClient, incomingHoldingsAndItems, instanceId);
-              }
-            });
-            responseJson(routingCtx, 200).end(hndl.result().encodePrettily());
-          });
+
+          updateInventoryRecords(routingCtx, okapiClient, incomingInstance, incomingHoldingsAndItems, instanceId);
         }
       });
     }
   }
+
+  private boolean contentTypeIsJson (RoutingContext routingCtx) {
+    String contentType = routingCtx.request().getHeader("Content-Type");
+    if (contentType != null && !contentType.startsWith("application/json")) {
+      responseError(routingCtx, 400, "Only accepts Content-Type application/json, content type was: "+ contentType);
+      return false;
+    } else {
+      return true;
+    }
+  }
+
+  private JsonObject getIncomingInventoryRecordSet(RoutingContext routingCtx) {
+    String inventoryRecordSetAsString = routingCtx.getBodyAsString("UTF-8");
+    JsonObject inventoryRecordSet = new JsonObject(inventoryRecordSetAsString);
+    logger.info("Incoming record set " + inventoryRecordSet.encodePrettily());
+    return inventoryRecordSet;
+  }
+
+  private void createInventoryRecords(RoutingContext routingCtx,
+                                      OkapiClient okapiClient,
+                                      JsonObject incomingInstance,
+                                      JsonArray incomingHoldingsAndItems) {
+    Future<JsonObject> promisedCreatedInstance = InventoryStorage.postInstance(okapiClient, incomingInstance);
+
+    promisedCreatedInstance.onComplete( hndl -> {
+      if (hndl.succeeded()) {
+        JsonObject persistedInstance = hndl.result();
+        String instanceId = persistedInstance.getString("id");
+        insertHoldingsAndItems(okapiClient, incomingHoldingsAndItems, instanceId);
+        responseJson(routingCtx, 200).end(persistedInstance.encodePrettily());
+        // TODO: okapiClient.close();
+      } else {
+        responseError(routingCtx, 422, hndl.cause().getMessage());
+        // TODO: okapiClient.close();
+      }
+    });
+  }
+
+  private void updateInventoryRecords(RoutingContext routingCtx,
+                                      OkapiClient okapiClient,
+                                      JsonObject instance,
+                                      JsonArray incomingHoldingsAndItems,
+                                      String instanceId) {
+
+    Future<JsonObject> promisedUpdatedInstance = InventoryStorage.putInstance(okapiClient, instance, instanceId);
+
+    promisedUpdatedInstance.onComplete( hndl -> {
+      if (hndl.succeeded()) {
+        Future<JsonArray> promisedExistingHoldingsAndItems = lookupExistingHoldingsRecordsAndItems(okapiClient, instanceId);
+        promisedExistingHoldingsAndItems.onComplete( existingHoldingsResult -> {
+          if (existingHoldingsResult != null) {
+            upsertHoldingsAndItems(okapiClient, existingHoldingsResult.result(), incomingHoldingsAndItems, instanceId);
+          } else {
+            // No existing holdings and items - persist incoming records
+            insertHoldingsAndItems(okapiClient, incomingHoldingsAndItems, instanceId);
+          }
+        });
+        responseJson(routingCtx, 200).end(hndl.result().encodePrettily());
+        // TODO: okapiClient.close()
+      } else {
+        responseError(routingCtx,422, hndl.cause().getMessage());
+        // TODO: okapiClient.close()
+      }
+    });
+  }
+
 
   private void upsertHoldingsAndItems(OkapiClient okapiClient,
                                       JsonArray existingHoldingsAndItems,
@@ -241,12 +316,10 @@ public class MatchService {
     item.put("holdingsRecordId", holdingsRecordId);
     Future<JsonObject> promisedCreatedItem = InventoryStorage.postItem(okapiClient, item);
     promisedCreatedItem.onComplete( hndl -> {
-      JsonObject createdItem = hndl.result();
-      if (createdItem == null) {
-        logger.info("Something went wrong with inserting the item");
+      if (hndl.succeeded()) {
+        // count created item
       } else {
-        String barcode = createdItem.getString("barcode");
-        logger.info("Item created, barcode " + barcode);
+        // add to list of errors
       }
     });
   }
@@ -270,7 +343,6 @@ public class MatchService {
     return promise.future();
   }
 
-  @SuppressWarnings("rawtypes")
   private Future<JsonArray> lookupExistingHoldingsRecordsAndItems (OkapiClient okapiClient, String instanceId) {
     Promise<JsonArray> promise = Promise.promise();
     okapiClient.get(HOLDINGS_STORAGE_PATH+"?limit=1000&query=instanceId%3D%3D"+instanceId, res-> {
@@ -278,6 +350,7 @@ public class MatchService {
         JsonObject holdingsRecordsResult = new JsonObject(res.result());
         JsonArray holdingsRecords = holdingsRecordsResult.getJsonArray("holdingsRecords");
         logger.info("Successfully looked up existing holdings records, found  " + holdingsRecords.size());
+        @SuppressWarnings("rawtypes")
         List<Future> itemFutures = new ArrayList<Future>();
         for (Object holdingsObject : holdingsRecords) {
           JsonObject holdingsRecord = (JsonObject) holdingsObject;
@@ -290,6 +363,7 @@ public class MatchService {
           }
         });
       } else {
+        // TODO: fail it instead
         promise.complete(null);
         logger.info("Oops - holdings records lookup failed");
       }
@@ -367,9 +441,8 @@ public class MatchService {
     return array;
   }
 
-  // New Inventory upsert by HRID ends
-  // ======================================================
 
+  // Old method, only creates/updates instances
   private void updateInventory (OkapiClient okapiClient,
                                 JsonObject candidateInstance,
                                 JsonObject matchingInstances,
@@ -392,6 +465,7 @@ public class MatchService {
   }
 
   /**
+   * Old method
    * Creates new Instance or updates existing Instance in Inventory, using the
    * incoming Instance candidate and depending on the result of the match query
    *
@@ -467,6 +541,7 @@ public class MatchService {
   }
 
   /**
+   * Old method (http methods generally moved to InventoryStorage class)
    * Replaces an existing instance in Inventory with a new instance
    * @param routingCtx
    * @param newInstance
@@ -497,6 +572,7 @@ public class MatchService {
   }
 
   /**
+   * Old method (http methods generally moved to InventoryStorage class)
    * Creates a new instance in Inventory
    * @param ctx
    * @param newInstance

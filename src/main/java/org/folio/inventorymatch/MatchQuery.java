@@ -16,7 +16,7 @@ import io.vertx.core.logging.LoggerFactory;
  * determining if a similar Instance already exists in Inventory
  *
  */
-public class MatchQuery implements InstanceQuery {
+public class MatchQuery implements InventoryQuery {
 
   private final Logger logger = LoggerFactory.getLogger("inventory-matcher-match-query");
   private final String matchKey;

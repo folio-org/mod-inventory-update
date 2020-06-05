@@ -8,16 +8,14 @@ package org.folio.inventorymatch;
 import static org.folio.okapi.common.HttpResponse.responseError;
 import static org.folio.okapi.common.HttpResponse.responseJson;
 
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
+import org.folio.inventorymatch.InventoryRecordSet.HoldingsRecord;
+import org.folio.inventorymatch.InventoryRecordSet.Item;
 import org.folio.okapi.common.OkapiClient;
 
-import io.vertx.core.CompositeFuture;
 import io.vertx.core.Future;
-import io.vertx.core.Promise;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
@@ -33,8 +31,6 @@ import io.vertx.ext.web.RoutingContext;
 public class MatchService {
   private final Logger logger = LoggerFactory.getLogger("inventory-matcher");
   private static final String INSTANCE_STORAGE_PATH = "/instance-storage/instances";
-  private static final String HOLDINGS_STORAGE_PATH = "/holdings-storage/holdings";
-  private static final String ITEM_STORAGE_PATH = "/item-storage/items";
 
   public final static String INSTANCE_MATCH_PATH = "/instance-storage-match/instances"; // being deprecated
   public final static String INSTANCE_UPSERT_MATCHKEY_PATH = "/instance-storage-upsert-matchkey";
@@ -59,7 +55,7 @@ public class MatchService {
       logger.info("Received a PUT of " + candidateInstance.toString());
 
       MatchKey matchKey = new MatchKey(candidateInstance);
-      InstanceQuery matchQuery = new MatchQuery(matchKey.getKey());
+      InventoryQuery matchQuery = new MatchQuery(matchKey.getKey());
       candidateInstance.put("matchKey", matchKey.getKey());
       candidateInstance.put("indexTitle", matchKey.getKey());
       logger.info("Constructed match query: [" + matchQuery.getQueryString() + "]");
@@ -120,11 +116,11 @@ public class MatchService {
                                                          inventoryRecordSet.getJsonArray("holdingsRecords");
 
       MatchKey matchKey = new MatchKey(incomingInstance);
-      InstanceQuery instanceQuery = new MatchQuery(matchKey.getKey());
+      InventoryQuery instanceQuery = new MatchQuery(matchKey.getKey());
       incomingInstance.put("matchKey", matchKey.getKey());
       incomingInstance.put("indexTitle", matchKey.getKey());
 
-      Future<JsonObject> promisedExistingInstance = lookupExistingInstance(okapiClient, routingCtx, instanceQuery);
+      Future<JsonObject> promisedExistingInstance = InventoryStorage.lookupInstance(okapiClient, instanceQuery);
       promisedExistingInstance.onComplete( ar -> {
         if (ar.result()==null) {
           createInventoryRecords(routingCtx, okapiClient, incomingInstance, incomingHoldingsAndItems);
@@ -139,6 +135,84 @@ public class MatchService {
     }
   }
 
+  public void test (RoutingContext routingCtx) {
+    if (contentTypeIsJson(routingCtx)) {
+      OkapiClient okapiClient = getOkapiClient(routingCtx); // TODO: close it? when/where?
+      JsonObject incomingInventoryRecordSetJson = getIncomingInventoryRecordSet(routingCtx);
+      String instanceHrid = incomingInventoryRecordSetJson.getJsonObject("instance").getString("hrid");
+
+      Future<JsonObject> promisedExistingInventoryRecordSet = InventoryStorage.lookupInventoryRecordSetByInstanceHRID(okapiClient, instanceHrid);
+      promisedExistingInventoryRecordSet.onComplete( recordSet -> {
+        if (recordSet.succeeded()) {
+          JsonObject existingInventoryRecordSetJson = recordSet.result();
+          UpdatePlan updatePlan = new UpdatePlainInventoryByHRIDs(incomingInventoryRecordSetJson, existingInventoryRecordSetJson);
+          logger.info("Instantiated update plan");
+
+          logger.info("Instance transition: " + updatePlan.getIncomingRecordSet().getInstance().getTransition());
+
+          logger.info("Holdings to create: ");
+          for (HoldingsRecord record : updatePlan.holdingsToCreate()) {
+            logger.info(record.getJson().encodePrettily());
+          }
+          logger.info("Holdings to update: ");
+          for (HoldingsRecord record : updatePlan.holdingsToUpdate()) {
+            logger.info(record.getJson().encodePrettily());
+          }
+          logger.info("Items to create: ");
+          for (Item record : updatePlan.itemsToCreate()) {
+            logger.info(record.getJson().encodePrettily());
+          }
+          logger.info("Items to update: ");
+          for (Item record : updatePlan.itemsToUpdate()) {
+            logger.info(record.getJson().encodePrettily());
+          }
+          logger.info("Items to delete: ");
+          for (Item record : updatePlan.itemsToDelete()) {
+            logger.info(record.getJson().encodePrettily());
+          }
+          logger.info("Holdings to delete: ");
+          for (HoldingsRecord record : updatePlan.holdingsToDelete()) {
+            logger.info(record.getJson().encodePrettily());
+          }
+
+          responseJson(routingCtx, 200).end(
+                      "Updating these records: " + updatePlan.getExistingRecordSet().getSourceJson().encodePrettily()
+                      +  " with these records: " + updatePlan.getIncomingRecordSet().getSourceJson().encodePrettily());
+        } else {
+          responseError(routingCtx, 422, "some error");
+        }
+      });
+      /*
+      if (updatePlan.updateInstance()) {
+        InventoryStorage.putInstance(okapiClient, updatePlan.incomingInstance().getJson(), updatePlan.incomingInstance().getUUID());
+      } else if (updatePlan.createInstance()) {
+        InventoryStorage.postInstance(okapiClient, updatePlan.incomingInstance().getJson());
+      }
+      for (HoldingsRecord record : updatePlan.holdingsToCreate()) {
+        InventoryStorage.postHoldingsRecord(okapiClient, record.getJson());
+      }
+      for (HoldingsRecord record : updatePlan.holdingsToUpdate()) {
+        InventoryStorage.putHoldingsRecord(okapiClient, record.getJson(), record.getUUID());
+      }
+      for (Item record : updatePlan.itemsToCreate()) {
+        InventoryStorage.postItem(okapiClient, record.getJson());
+      }
+      for (Item record : updatePlan.itemsToUpdate()) {
+        InventoryStorage.putItem(okapiClient, record.getJson(), record.getUUID());
+      }
+      for (Item record : updatePlan.itemsToDelete()) {
+        // InventoryStorage delete item
+      }
+      for (HoldingsRecord record : updatePlan.holdingsToDelete()) {
+        // InventoryStorage delete holdings
+      }
+      if (updatePlan.deleteInstance()) {
+        // InventoryStorage delete instance
+      }
+      */
+    }
+  }
+
   public void handleInventoryUpsertByHrid (RoutingContext routingCtx) {
     if (contentTypeIsJson(routingCtx)) {
       OkapiClient okapiClient = getOkapiClient(routingCtx); // TODO: close it? when/where?
@@ -150,12 +224,12 @@ public class MatchService {
                                                          :
                                                          inventoryRecordSet.getJsonArray("holdingsRecords");
 
-      InstanceQuery instanceQuery = new HridQuery(incomingInstance.getString("hrid"));
+      InventoryQuery instanceQuery = new HridQuery(incomingInstance.getString("hrid"));
 
-      Future<JsonObject> promisedExistingInstance = lookupExistingInstance(okapiClient, routingCtx, instanceQuery);
+      Future<JsonObject> promisedExistingInstance = InventoryStorage.lookupInstance(okapiClient, instanceQuery);
       promisedExistingInstance.onComplete( ar -> {
         if (ar.result()==null) {
-
+          // check if any holdings / items already exists on another instance
           createInventoryRecords(routingCtx, okapiClient, incomingInstance, incomingHoldingsAndItems);
 
         } else {
@@ -216,7 +290,8 @@ public class MatchService {
 
     promisedUpdatedInstance.onComplete( hndl -> {
       if (hndl.succeeded()) {
-        Future<JsonArray> promisedExistingHoldingsAndItems = lookupExistingHoldingsRecordsAndItems(okapiClient, instanceId);
+        Future<JsonArray> promisedExistingHoldingsAndItems =
+              InventoryStorage.lookupExistingHoldingsRecordsAndItemsByInstanceUUID(okapiClient, instanceId);
         promisedExistingHoldingsAndItems.onComplete( existingHoldingsResult -> {
           if (existingHoldingsResult != null) {
             upsertHoldingsAndItems(okapiClient, existingHoldingsResult.result(), incomingHoldingsAndItems, instanceId);
@@ -273,6 +348,7 @@ public class MatchService {
           }
         } else {
           // Current holdings record with that identifier not found, create holdings and items
+          // TODO: but check that items don't already exist on another holdings record
           insertHoldingsRecordWithItems(okapiClient, incomingHoldingsRecordWithItems, instanceId);
         }
       }
@@ -284,6 +360,7 @@ public class MatchService {
   private void insertHoldingsAndItems (OkapiClient okapiClient, JsonArray holdingsRecords, String instanceId) {
     for (Object element : holdingsRecords) {
       JsonObject holdingsRecord = (JsonObject) element;
+      // TODO: holdings record already exists? (same holdings record identifier, different instance ID - update that instead of insert)
       insertHoldingsRecordWithItems(okapiClient, holdingsRecord, instanceId);
     }
   }
@@ -291,6 +368,7 @@ public class MatchService {
   private void insertHoldingsRecordWithItems (OkapiClient okapiClient, JsonObject holdingsRecord, String instanceId) {
     holdingsRecord.put("instanceId", instanceId);
     JsonArray items = extractJsonArrayFromObject(holdingsRecord, "items");
+      // TODO: if holdings record already exists (same holdings identifier, different instanceId: update that instead of insert)
     Future<JsonObject> promisedCreatedHoldings = InventoryStorage.postHoldingsRecord(okapiClient, holdingsRecord);
     promisedCreatedHoldings.onComplete( hndl -> {
       JsonObject createdHoldings = hndl.result();
@@ -308,6 +386,7 @@ public class MatchService {
   private void insertItems(OkapiClient okapiClient, JsonArray items, String holdingsRecordId) {
     for (Object element : items) {
       JsonObject item = (JsonObject) element;
+      // TODO: if item already exists (same item id, different holdingsRecordId: update that instead of insert)
       insertItem(okapiClient, item, holdingsRecordId);
     }
   }
@@ -324,69 +403,7 @@ public class MatchService {
     });
   }
 
-  private Future<JsonObject> lookupExistingInstance (OkapiClient okapiClient, RoutingContext routingCtx, InstanceQuery instanceQuery) {
-    Promise<JsonObject> promise = Promise.promise();
-    okapiClient.get(INSTANCE_STORAGE_PATH+"?query="+instanceQuery.getURLEncodedQueryString(), res-> {
-      if ( res.succeeded()) {
-        JsonObject matchingInstances = new JsonObject(res.result());
-        int recordCount = matchingInstances.getInteger("totalRecords");
-        if (recordCount > 0) {
-          promise.complete(matchingInstances.getJsonArray("instances").getJsonObject(0));
-        } else {
-          promise.complete(null);
-        }
-      } else {
-        String message = res.cause().getMessage();
-        responseError(routingCtx, 500, "mod-inventory-storage failed with " + message);  // TODO: Create failed-record response
-      }
-    });
-    return promise.future();
-  }
 
-  private Future<JsonArray> lookupExistingHoldingsRecordsAndItems (OkapiClient okapiClient, String instanceId) {
-    Promise<JsonArray> promise = Promise.promise();
-    okapiClient.get(HOLDINGS_STORAGE_PATH+"?limit=1000&query=instanceId%3D%3D"+instanceId, res-> {
-      if (res.succeeded()) {
-        JsonObject holdingsRecordsResult = new JsonObject(res.result());
-        JsonArray holdingsRecords = holdingsRecordsResult.getJsonArray("holdingsRecords");
-        logger.info("Successfully looked up existing holdings records, found  " + holdingsRecords.size());
-        @SuppressWarnings("rawtypes")
-        List<Future> itemFutures = new ArrayList<Future>();
-        for (Object holdingsObject : holdingsRecords) {
-          JsonObject holdingsRecord = (JsonObject) holdingsObject;
-          itemFutures.add(lookupAndEmbedExistingItems(okapiClient, holdingsRecord));
-        }
-        CompositeFuture.all(itemFutures).onComplete( result -> {
-          if (result.succeeded()) {
-            logger.info("Composite succeeded with " + result.result().size() + " result(s). First item: " + result.result().resultAt(0));
-            promise.complete(holdingsRecords);
-          }
-        });
-      } else {
-        // TODO: fail it instead
-        promise.complete(null);
-        logger.info("Oops - holdings records lookup failed");
-      }
-    });
-    return promise.future();
-  }
-
-  private Future<JsonArray> lookupAndEmbedExistingItems (OkapiClient okapiClient, JsonObject holdingsRecord) {
-    Promise<JsonArray> promise = Promise.promise();
-    okapiClient.get(ITEM_STORAGE_PATH+"?limit=1000&query=holdingsRecordId%3D%3D"+holdingsRecord.getString("id"), res-> {
-      if (res.succeeded()) {
-        JsonObject itemsResult = new JsonObject(res.result());
-        JsonArray items = itemsResult.getJsonArray("items");
-        logger.info("Successfully looked up existing items, found  " + items.size());
-        holdingsRecord.put("items",items);
-        promise.complete(items);
-      } else {
-        promise.complete(null);
-        logger.info("Oops - items lookup failed");
-      }
-    });
-    return promise.future();
-  }
 
   private boolean checkForIdsInHoldingsAndItems (JsonArray holdingsRecords) {
     for (Object holdingsObject : holdingsRecords) {
@@ -477,7 +494,7 @@ public class MatchService {
   private void updateSharedInventory(OkapiClient okapiClient,
                                JsonObject candidateInstance,
                                JsonObject matchingInstances,
-                               InstanceQuery matchQuery,
+                               InventoryQuery matchQuery,
                                RoutingContext routingCtx) {
 
     int recordCount = matchingInstances.getInteger("totalRecords");

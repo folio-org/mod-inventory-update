@@ -6,7 +6,7 @@ import java.net.URLEncoder;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 
-public class HridQuery implements InstanceQuery {
+public class HridQuery implements InventoryQuery {
     private String hrid;
     private final Logger logger = LoggerFactory.getLogger("inventory-upsert-hrid-query");
     private String queryString;

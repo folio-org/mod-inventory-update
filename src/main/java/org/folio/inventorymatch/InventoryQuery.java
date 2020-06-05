@@ -1,6 +1,6 @@
 package org.folio.inventorymatch;
 
-public interface InstanceQuery {
+public interface InventoryQuery {
     public String getQueryString();
     public String getURLEncodedQueryString();
 }

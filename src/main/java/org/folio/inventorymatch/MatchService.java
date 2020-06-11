@@ -135,85 +135,78 @@ public class MatchService {
     }
   }
 
-  public void test (RoutingContext routingCtx) {
+  public void handleInventoryUpsertByHrid (RoutingContext routingCtx) {
     if (contentTypeIsJson(routingCtx)) {
-      OkapiClient okapiClient = getOkapiClient(routingCtx); // TODO: close it? when/where?
+      OkapiClient okapiClient = getOkapiClient(routingCtx);
       JsonObject incomingInventoryRecordSetJson = getIncomingInventoryRecordSet(routingCtx);
-      String instanceHrid = incomingInventoryRecordSetJson.getJsonObject("instance").getString("hrid");
-
+      InventoryRecordSet incomingSet = new InventoryRecordSet(incomingInventoryRecordSetJson);
+      String instanceHrid = incomingSet.getInstanceHRID();
       Future<JsonObject> promisedExistingInventoryRecordSet = InventoryStorage.lookupInventoryRecordSetByInstanceHRID(okapiClient, instanceHrid);
       promisedExistingInventoryRecordSet.onComplete( recordSet -> {
         if (recordSet.succeeded()) {
           JsonObject existingInventoryRecordSetJson = recordSet.result();
-          UpdatePlan updatePlan = new UpdatePlainInventoryByHRIDs(incomingInventoryRecordSetJson, existingInventoryRecordSetJson);
-          logger.info("Instantiated update plan");
+          if (existingInventoryRecordSetJson != null) {
+            logger.info("Found existing instance");
+          }
+          InventoryRecordSet existingSet = new InventoryRecordSet(existingInventoryRecordSetJson);
+          logger.info("Instantiating an update plan");
+          UpdatePlan updatePlan = new UpdatePlainInventoryByHRIDs(incomingSet, existingSet, okapiClient);
+          logger.info("Planning updates");
+          Future<Void> planDone = updatePlan.planInventoryUpdates(okapiClient);
+          planDone.onComplete( handler -> {
+            logger.info("Planning done: ");
+            logger.info("Instance transition: " + updatePlan.getIncomingRecordSet().getInstance().getTransition());
 
-          logger.info("Instance transition: " + updatePlan.getIncomingRecordSet().getInstance().getTransition());
+            logger.info("Holdings to create: ");
+            for (HoldingsRecord record : updatePlan.holdingsToCreate()) {
+              logger.info(record.getJson().encodePrettily());
+            }
+            logger.info("Holdings to update: ");
+            for (HoldingsRecord record : updatePlan.holdingsToUpdate()) {
+              logger.info(record.getJson().encodePrettily());
+            }
+            logger.info("Items to create: ");
+            for (Item record : updatePlan.itemsToCreate()) {
+              logger.info(record.getJson().encodePrettily());
+            }
+            logger.info("Items to update: ");
+            for (Item record : updatePlan.itemsToUpdate()) {
+              logger.info(record.getJson().encodePrettily());
+            }
+            logger.info("Items to delete: ");
+            for (Item record : updatePlan.itemsToDelete()) {
+              logger.info(record.getJson().encodePrettily());
+            }
+            logger.info("Holdings to delete: ");
+            for (HoldingsRecord record : updatePlan.holdingsToDelete()) {
+              logger.info(record.getJson().encodePrettily());
+            }
 
-          logger.info("Holdings to create: ");
-          for (HoldingsRecord record : updatePlan.holdingsToCreate()) {
-            logger.info(record.getJson().encodePrettily());
-          }
-          logger.info("Holdings to update: ");
-          for (HoldingsRecord record : updatePlan.holdingsToUpdate()) {
-            logger.info(record.getJson().encodePrettily());
-          }
-          logger.info("Items to create: ");
-          for (Item record : updatePlan.itemsToCreate()) {
-            logger.info(record.getJson().encodePrettily());
-          }
-          logger.info("Items to update: ");
-          for (Item record : updatePlan.itemsToUpdate()) {
-            logger.info(record.getJson().encodePrettily());
-          }
-          logger.info("Items to delete: ");
-          for (Item record : updatePlan.itemsToDelete()) {
-            logger.info(record.getJson().encodePrettily());
-          }
-          logger.info("Holdings to delete: ");
-          for (HoldingsRecord record : updatePlan.holdingsToDelete()) {
-            logger.info(record.getJson().encodePrettily());
-          }
+            Future<Void> promisedPlanDone = updatePlan.updateInventory(okapiClient);
+            promisedPlanDone.onComplete( planExecuted -> {
+              if (planExecuted.succeeded()) {
+                responseJson(routingCtx, 200).end(
+                  updatePlan.isInstanceUpdating() ?
+                           "Updated this record set: " + updatePlan.getExistingRecordSet().getSourceJson().encodePrettily()
+                            +  " with this record set: " + updatePlan.getIncomingRecordSet().getSourceJson().encodePrettily()
+                            :
+                            "Created this record set: " + updatePlan.getIncomingRecordSet().getSourceJson().encodePrettily());
+                okapiClient.close();
 
-          responseJson(routingCtx, 200).end(
-                      "Updating these records: " + updatePlan.getExistingRecordSet().getSourceJson().encodePrettily()
-                      +  " with these records: " + updatePlan.getIncomingRecordSet().getSourceJson().encodePrettily());
+              } else {
+                responseJson(routingCtx, 500).end("Error executing inventory update plan");
+                okapiClient.close();
+              }
+            });
+          });
         } else {
-          responseError(routingCtx, 422, "some error");
+          responseError(routingCtx, 422, "There was an retrieving existing record set: " + recordSet.cause().getMessage());
         }
       });
-      /*
-      if (updatePlan.updateInstance()) {
-        InventoryStorage.putInstance(okapiClient, updatePlan.incomingInstance().getJson(), updatePlan.incomingInstance().getUUID());
-      } else if (updatePlan.createInstance()) {
-        InventoryStorage.postInstance(okapiClient, updatePlan.incomingInstance().getJson());
-      }
-      for (HoldingsRecord record : updatePlan.holdingsToCreate()) {
-        InventoryStorage.postHoldingsRecord(okapiClient, record.getJson());
-      }
-      for (HoldingsRecord record : updatePlan.holdingsToUpdate()) {
-        InventoryStorage.putHoldingsRecord(okapiClient, record.getJson(), record.getUUID());
-      }
-      for (Item record : updatePlan.itemsToCreate()) {
-        InventoryStorage.postItem(okapiClient, record.getJson());
-      }
-      for (Item record : updatePlan.itemsToUpdate()) {
-        InventoryStorage.putItem(okapiClient, record.getJson(), record.getUUID());
-      }
-      for (Item record : updatePlan.itemsToDelete()) {
-        // InventoryStorage delete item
-      }
-      for (HoldingsRecord record : updatePlan.holdingsToDelete()) {
-        // InventoryStorage delete holdings
-      }
-      if (updatePlan.deleteInstance()) {
-        // InventoryStorage delete instance
-      }
-      */
     }
   }
 
-  public void handleInventoryUpsertByHrid (RoutingContext routingCtx) {
+  public void handleInventoryUpsertByHridPreviousVersion (RoutingContext routingCtx) {
     if (contentTypeIsJson(routingCtx)) {
       OkapiClient okapiClient = getOkapiClient(routingCtx); // TODO: close it? when/where?
       JsonObject inventoryRecordSet = getIncomingInventoryRecordSet(routingCtx);

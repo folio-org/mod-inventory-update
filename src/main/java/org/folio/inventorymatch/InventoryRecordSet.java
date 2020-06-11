@@ -15,7 +15,7 @@ import io.vertx.core.logging.LoggerFactory;
 
 public class InventoryRecordSet {
 
-    private JsonObject sourceJson;
+    private JsonObject sourceJson = null;
     private JsonObject instanceJson = null;
     private Instance instance = null;
     private Map<String,HoldingsRecord> holdingsRecordsByHRID     = new HashMap<String,HoldingsRecord>();
@@ -23,10 +23,12 @@ public class InventoryRecordSet {
     private final Logger logger = LoggerFactory.getLogger("inventory-matcher");
 
     public InventoryRecordSet (JsonObject inventoryRecordSet) {
-        sourceJson = new JsonObject(inventoryRecordSet.toBuffer());
-        instanceJson = inventoryRecordSet.getJsonObject("instance");
-        instance = new Instance(instanceJson);
-        registerHoldingsRecordsAndItems (inventoryRecordSet.getJsonArray("holdingsRecords"));
+        if (inventoryRecordSet != null) {
+            sourceJson = new JsonObject(inventoryRecordSet.toString());
+            instanceJson = inventoryRecordSet.getJsonObject("instance");
+            instance = new Instance(instanceJson);
+            registerHoldingsRecordsAndItems (inventoryRecordSet.getJsonArray("holdingsRecords"));
+        }
     }
 
     private void registerHoldingsRecordsAndItems (JsonArray holdingsRecordsWithEmbeddedItems) {
@@ -83,6 +85,14 @@ public class InventoryRecordSet {
         return instance;
     }
 
+    public Map<String, HoldingsRecord> getMapOfHoldingsRecordsByHRID () {
+        return holdingsRecordsByHRID;
+    }
+
+    public Map<String, Item> getMapOfItemsByHRID() {
+        return itemsByHRID;
+    }
+
     public List<Item> getItemsByTransitionType (Transition transition) {
         List<Item> records = new ArrayList<Item>();
         Collection<Item> allRecords = itemsByHRID.values();
@@ -96,13 +106,13 @@ public class InventoryRecordSet {
         return records;
     }
 
-    public List<HoldingsRecord> getHoldingsRecordsByTransitionType (Transition state) {
+    public List<HoldingsRecord> getHoldingsRecordsByTransitionType (Transition transition) {
         List<HoldingsRecord> records = new ArrayList<HoldingsRecord>();
         Collection<HoldingsRecord> allRecords = holdingsRecordsByHRID.values();
         Iterator<HoldingsRecord> recordsIterator = allRecords.iterator();
         while (recordsIterator.hasNext()) {
             HoldingsRecord record = recordsIterator.next();
-            if (record.getTransition() == state) {
+            if (record.getTransition() == transition) {
                 records.add(record);
             }
         }
@@ -133,29 +143,29 @@ public class InventoryRecordSet {
 
     public abstract class InventoryRecord {
         protected JsonObject jsonRecord;
-        protected Transition state = Transition.UNKNOWN;
-        public void setTransition (Transition state) {
-            this.state = state;
+        protected Transition transition = Transition.UNKNOWN;
+        public void setTransition (Transition transition) {
+            this.transition = transition;
         }
 
         public Transition getTransition () {
-            return state;
+            return transition;
         }
 
         public boolean isDeleting () {
-            return (state == Transition.DELETING);
+            return (transition == Transition.DELETING);
         }
 
         public boolean isUpdating () {
-            return (state == Transition.UPDATING);
+            return (transition == Transition.UPDATING);
         }
 
         public boolean isCreating () {
-            return (state == Transition.CREATING);
+            return (transition == Transition.CREATING);
         }
 
         public boolean stateUnknown () {
-            return (state == Transition.UNKNOWN);
+            return (transition == Transition.UNKNOWN);
         }
 
         public String generateUUID () {
@@ -193,7 +203,27 @@ public class InventoryRecordSet {
             jsonRecord = instance;
         }
 
+        public void setUUID(String uuid) {
+            super.setUUID(uuid);
+            setHoldingsRecordsInstanceId(uuid);
+        }
+
+        public String generateUUID () {
+            String uuid = super.generateUUID();
+            setHoldingsRecordsInstanceId(uuid);
+            return uuid;
+        }
+
+        public void setHoldingsRecordsInstanceId (String uuid) {
+            for (HoldingsRecord record : holdingsRecords) {
+                record.setInstanceId(uuid);
+            }
+        }
+
         public void addHoldingsRecord(HoldingsRecord holdingsRecord) {
+            if (hasUUID() && ! holdingsRecord.hasInstanceId()) {
+                holdingsRecord.setInstanceId(getUUID());
+            }
             holdingsRecords.add(holdingsRecord);
         }
 
@@ -219,6 +249,23 @@ public class InventoryRecordSet {
             this.jsonRecord = holdingsRecord;
         }
 
+        public void setUUID (String uuid) {
+            super.setUUID(uuid);
+            setItemsHoldingsRecordId(uuid);
+        }
+
+        public String generateUUID () {
+            String uuid = super.generateUUID();
+            setItemsHoldingsRecordId(uuid);
+            return uuid;
+        }
+
+        public void setItemsHoldingsRecordId (String uuid) {
+            for (Item record : items) {
+                record.setHoldingsRecordId(uuid);
+            }
+        }
+
         public String getInstanceId () {
             return jsonRecord.getString("instanceId");
         }
@@ -233,6 +280,9 @@ public class InventoryRecordSet {
 
         public void addItem(Item item) {
             items.add(item);
+            if (hasUUID() && ! item.hasHoldingsRecordId()) {
+                item.setHoldingsRecordId(getUUID());
+            }
         }
 
         public List<Item> getItems() {
@@ -251,8 +301,6 @@ public class InventoryRecordSet {
 
     public class Item extends InventoryRecord {
 
-        String holdingsHrid;
-
         public Item (JsonObject item) {
             this.jsonRecord = item;
         }
@@ -269,15 +317,6 @@ public class InventoryRecordSet {
             jsonRecord.put("holdingsRecordId", uuid);
         }
 
-        /*
-        public void setHoldingsHRID (String hrid) {
-            holdingsHrid = hrid;
-        }
-
-        public String getHoldingsHrid () {
-            return holdingsHrid;
-        }
-        */
     }
 
 }

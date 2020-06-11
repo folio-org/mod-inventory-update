@@ -33,7 +33,7 @@ public class MainVerticle extends AbstractVerticle {
     router.put(MatchService.INSTANCE_UPSERT_MATCHKEY_PATH).handler(matchService::handleInstanceMatching);  // deprecate
     router.put(MatchService.INSTANCE_UPSERT_HRID_PATH).handler(matchService::handleInstanceUpsertByHrid); // deprecate
 
-    router.put(MatchService.INVENTORY_UPSERT_HRID_PATH).handler(matchService::test);
+    router.put(MatchService.INVENTORY_UPSERT_HRID_PATH).handler(matchService::handleInventoryUpsertByHrid);
     router.put(MatchService.INVENTORY_UPSERT_MATCHKEY_PATH).handler(matchService::handleInventoryUpsertByMatchkey);
 
     vertx.createHttpServer()

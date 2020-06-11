@@ -57,6 +57,21 @@ public class InventoryStorage {
         return promise.future();
     }
 
+    public static Future<Void> deleteInstance (OkapiClient okapiClient, String instanceId) {
+      Promise<Void> promise = Promise.promise();
+      okapiClient.delete(INSTANCE_STORAGE_PATH+"/"+instanceId, deleteResult-> {
+        if (deleteResult.succeeded()) {
+          promise.complete();
+        } else {
+          JsonObject errorMessage = new JsonObject(deleteResult.cause().getMessage());
+          errorMessage.put("entity-type","instance");
+          errorMessage.put("operation", "delete");
+          promise.fail(errorMessage.encodePrettily());
+        }
+      });
+      return promise.future();
+    }
+
     public static Future<JsonObject> postHoldingsRecord(OkapiClient okapiClient, JsonObject holdingsRecord) {
         Promise<JsonObject> promise = Promise.promise();
         okapiClient.post(HOLDINGS_STORAGE_PATH, holdingsRecord.toString(), postResult->{
@@ -80,11 +95,27 @@ public class InventoryStorage {
         okapiClient.request(HttpMethod.PUT, HOLDINGS_STORAGE_PATH + "/" + uuid, holdingsRecord.toString(), putResult->{
           if (putResult.succeeded()) {
             JsonObject done = new JsonObject("{ \"message\": \"done\" }");
+            logger.debug("Done putting holdings record " + holdingsRecord.encodePrettily());
             promise.complete(done);
           } else {
             JsonObject errorMessage = new JsonObject(putResult.cause().getMessage());
             errorMessage.put("entity-type","holdingsRecord");
             errorMessage.put("operation", "update");
+            promise.fail(errorMessage.encodePrettily());
+          }
+        });
+        return promise.future();
+      }
+
+      public static Future<Void> deleteHoldingsRecord(OkapiClient okapiClient, String holdingsRecordId) {
+        Promise<Void> promise = Promise.promise();
+        okapiClient.delete(HOLDINGS_STORAGE_PATH + "/" + holdingsRecordId, deleteResult->{
+          if (deleteResult.succeeded()) {
+            promise.complete();
+          } else {
+            JsonObject errorMessage = new JsonObject(deleteResult.cause().getMessage());
+            errorMessage.put("entity-type","holdingsRecord");
+            errorMessage.put("operation", "delete");
             promise.fail(errorMessage.encodePrettily());
           }
         });
@@ -110,10 +141,18 @@ public class InventoryStorage {
 
       public static Future<JsonObject> putItem(OkapiClient okapiClient, JsonObject item, String uuid) {
         Promise<JsonObject> promise = Promise.promise();
+        logger.debug("Putting item " + uuid+ ": " + item.encodePrettily());
         okapiClient.request(HttpMethod.PUT, ITEM_STORAGE_PATH + "/" + uuid, item.toString(), putResult->{
           if (putResult.succeeded()) {
-            JsonObject done = new JsonObject("{ \"message\": \"done\" }");
-            promise.complete(done);
+            okapiClient.get(ITEM_STORAGE_PATH + "/" + uuid, getResult -> {
+              if (getResult.succeeded()) {
+                JsonObject done = new JsonObject(getResult.result());
+                logger.debug("Done putting item " + done.encodePrettily());
+                promise.complete(done);
+              } else {
+                promise.fail("Error attempting to get confirmation for PUT of item: " + getResult.cause().getMessage());
+              }
+            });
           } else {
             JsonObject errorMessage = new JsonObject(putResult.cause().getMessage());
             errorMessage.put("entity-type","item");
@@ -122,6 +161,21 @@ public class InventoryStorage {
           }
         });
         return promise.future();
+    }
+
+    public static Future<Void> deleteItem(OkapiClient okapiClient, String itemId) {
+      Promise<Void> promise = Promise.promise();
+      okapiClient.delete(ITEM_STORAGE_PATH + "/" + itemId, deleteResult->{
+        if (deleteResult.succeeded()) {
+          promise.complete();
+        } else {
+          JsonObject errorMessage = new JsonObject(deleteResult.cause().getMessage());
+          errorMessage.put("entity-type","item");
+          errorMessage.put("operation", "delete");
+          promise.fail(errorMessage.encodePrettily());
+        }
+      });
+      return promise.future();
     }
 
     public static Future<JsonObject> lookupInstance (OkapiClient okapiClient, InventoryQuery inventoryQuery) {

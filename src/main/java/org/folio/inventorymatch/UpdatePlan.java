@@ -41,18 +41,43 @@ public abstract class UpdatePlan {
       Future<Void> promisedPrerequisites = createRecordsWithDependants(okapiClient);
       promisedPrerequisites.onComplete(prerequisites -> {
         if (prerequisites.succeeded()) {
-            logger.info("Successfully created records referenced by other records if any");
+            logger.debug("Successfully created records referenced by other records if any");
+
+            // this has issues for updating holdings and items concurrently
+            /*
+            @SuppressWarnings("rawtypes")
+            List<Future> testFutures = new ArrayList<Future>();
+            testFutures.add(handleInstanceAndHoldingsUpdatesIfAny(okapiClient));
+            testFutures.add(handleItemUpdatesAndCreatesIfAny(okapiClient));
+            CompositeFuture.all(testFutures).onComplete(composite -> {
+                if (composite.succeeded()) {
+                    Future<Void> promisedDeletes = handleDeletionsIfAny(okapiClient);
+                    promisedDeletes.onComplete(deletes -> {
+                        if (deletes.succeeded()) {
+                            logger.debug("Successfully processed deletions if any.");
+                            promise.complete();
+                        } else {
+                            promise.fail("There was a problem processing deletes " + deletes.cause().getMessage());
+                        }
+                    });
+                } else {
+                    promise.fail("Failed to successfully process instance, holdings, item updates: " + composite.cause().getMessage());
+                }
+            });
+            */
+
+            /* This works by updating holdings and items non-concurrently */
             Future<Void> promisedInstanceAndHoldingsUpdates = handleInstanceAndHoldingsUpdatesIfAny(okapiClient);
             promisedInstanceAndHoldingsUpdates.onComplete( instanceAndHoldingsUpdates -> {
                 if (instanceAndHoldingsUpdates.succeeded()) {
-                    logger.info("Successfully processed updates if any and created non-referenced records if any");
+                    logger.debug("Successfully processed updates if any and created non-referenced records if any");
                     Future<Void> promisedItemUpdates = handleItemUpdatesAndCreatesIfAny (okapiClient);
                     promisedItemUpdates.onComplete(itemUpdatesAndCreates -> {
                         if (itemUpdatesAndCreates.succeeded()) {
                             Future<Void> promisedDeletes = handleDeletionsIfAny(okapiClient);
                             promisedDeletes.onComplete(deletes -> {
                                 if (deletes.succeeded()) {
-                                    logger.info("Successfully processed deletions if any.");
+                                    logger.debug("Successfully processed deletions if any.");
                                     promise.complete();
                                 } else {
                                     promise.fail("There was a problem processing deletes " + deletes.cause().getMessage());
@@ -66,6 +91,7 @@ public abstract class UpdatePlan {
                     promise.fail("Failed to process reference record(s) (instances,holdings): " + prerequisites.cause().getMessage());
                 }
             });
+            /* end */
         } else {
             promise.fail("Failed to create prerequisites");
         }
@@ -85,7 +111,7 @@ public abstract class UpdatePlan {
                 Future<Void> promisedNewHoldingsIfAny = createNewHoldingsIfAny(okapiClient);
                 promisedNewHoldingsIfAny.onComplete(handler2 -> {
                     if (promisedNewHoldingsIfAny.succeeded()) {
-                        logger.info("Created new holdings");
+                        logger.debug("Created new holdings");
                         promise.complete();
                     } else {
                         promise.fail("Failed to create new holdings records");
@@ -97,22 +123,21 @@ public abstract class UpdatePlan {
     }
 
     /**
-     * Perform storage updates, creates that no other updates/creates depend on
-     * (can be asynchronous, but must happen before deletes)
+     * Perform instance and holdings updates
      * @param okapiClient
      * @return
      */
     public Future<Void> handleInstanceAndHoldingsUpdatesIfAny(OkapiClient okapiClient) {
         Promise<Void> promise = Promise.promise();
         @SuppressWarnings("rawtypes")
-        List<Future> nonPrerequisites = new ArrayList<Future>();
+        List<Future> instanceAndHoldingsFutures = new ArrayList<Future>();
         if (isInstanceUpdating()) {
-            nonPrerequisites.add(InventoryStorage.putInstance(okapiClient, getIncomingInstance().getJson(), getIncomingInstance().getUUID()));
+            instanceAndHoldingsFutures.add(InventoryStorage.putInstance(okapiClient, getIncomingInstance().getJson(), getIncomingInstance().getUUID()));
         }
         for (HoldingsRecord record : holdingsToUpdate()) {
-            nonPrerequisites.add(InventoryStorage.putHoldingsRecord(okapiClient, record.getJson(), record.getUUID()));
+            instanceAndHoldingsFutures.add(InventoryStorage.putHoldingsRecord(okapiClient, record.getJson(), record.getUUID()));
         }
-        CompositeFuture.all(nonPrerequisites).onComplete ( allDone -> {
+        CompositeFuture.all(instanceAndHoldingsFutures).onComplete ( allDone -> {
             if (allDone.succeeded()) {
                 promise.complete();
             } else {

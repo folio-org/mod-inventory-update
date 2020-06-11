@@ -70,7 +70,7 @@ public abstract class UpdatePlan {
             Future<Void> promisedInstanceAndHoldingsUpdates = handleInstanceAndHoldingsUpdatesIfAny(okapiClient);
             promisedInstanceAndHoldingsUpdates.onComplete( instanceAndHoldingsUpdates -> {
                 if (instanceAndHoldingsUpdates.succeeded()) {
-                    logger.debug("Successfully processed updates if any and created non-referenced records if any");
+                    logger.debug("Successfully processed instance and holdings updates if any");
                     Future<Void> promisedItemUpdates = handleItemUpdatesAndCreatesIfAny (okapiClient);
                     promisedItemUpdates.onComplete(itemUpdatesAndCreates -> {
                         if (itemUpdatesAndCreates.succeeded()) {

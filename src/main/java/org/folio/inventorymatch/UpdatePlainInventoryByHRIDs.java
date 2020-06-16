@@ -45,7 +45,7 @@ public class UpdatePlainInventoryByHRIDs extends UpdatePlan {
             tagUpdatesDeletesAndLocalMoves(existingInstance, incomingInstance);
         }
 
-        // Handle creates for an entirely new record set and/or imports of holdings/items from other instances
+        // Mark records to be created for an entirely new record set and/or holdings/items to be imported from other instance(s)
         return tagCreatesAndImports(okapiClient);
     }
 

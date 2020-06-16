@@ -206,6 +206,7 @@ public class MatchService {
     }
   }
 
+  /*
   public void handleInventoryUpsertByHridPreviousVersion (RoutingContext routingCtx) {
     if (contentTypeIsJson(routingCtx)) {
       OkapiClient okapiClient = getOkapiClient(routingCtx); // TODO: close it? when/where?
@@ -235,6 +236,7 @@ public class MatchService {
       });
     }
   }
+  */
 
   private boolean contentTypeIsJson (RoutingContext routingCtx) {
     String contentType = routingCtx.request().getHeader("Content-Type");

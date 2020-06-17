@@ -60,6 +60,7 @@ public class InstanceMatchingTestSuite {
     FakeInventoryStorageValidator.validateStorage(inventoryStorage, testContext);
   }
 
+  /*
   @Test
   public void testPushOfNewInstanceWillCreateNewInstanceForMatchKey (TestContext testContext) {
     RestAssured.port = FakeInventoryStorage.PORT_INVENTORY_STORAGE;
@@ -209,7 +210,6 @@ public class InstanceMatchingTestSuite {
   }
 
 
-  @Test
   public void testPushOfExistingInstanceWillUpdateExistingInstanceForHrid (TestContext testContext) {
     RestAssured.port = FakeInventoryStorage.PORT_INVENTORY_STORAGE;
     Instance instance = new Instance()
@@ -263,7 +263,7 @@ public class InstanceMatchingTestSuite {
         "Expected instanceTypeId to be '12345' after PUT");
 
   }
-
+*/
   @After
   public void tearDown(TestContext context) {
     Async async = context.async();

@@ -241,10 +241,9 @@ public class InventoryStorage {
       return promise.future();
     }
 
-    public static Future<JsonObject> lookupInventoryRecordSetByInstanceHRID (OkapiClient okapiClient, String instanceHrid) {
+    public static Future<JsonObject> lookupSingleInventoryRecordSet (OkapiClient okapiClient, InventoryQuery uniqueQuery) {
       Promise<JsonObject> promise = Promise.promise();
-      InventoryQuery hridQuery = new HridQuery(instanceHrid);
-      Future<JsonObject> promisedExistingInstance = lookupInstance(okapiClient, hridQuery);
+      Future<JsonObject> promisedExistingInstance = lookupInstance(okapiClient, uniqueQuery);
       promisedExistingInstance.onComplete( ar -> {
         if (ar.result()==null) {
           promise.complete(null);
@@ -279,22 +278,24 @@ public class InventoryStorage {
           JsonObject holdingsRecordsResult = new JsonObject(res.result());
           JsonArray holdingsRecords = holdingsRecordsResult.getJsonArray("holdingsRecords");
           logger.info("Successfully looked up existing holdings records, found  " + holdingsRecords.size());
-          @SuppressWarnings("rawtypes")
-          List<Future> itemFutures = new ArrayList<Future>();
-          for (Object holdingsObject : holdingsRecords) {
-            JsonObject holdingsRecord = (JsonObject) holdingsObject;
-            itemFutures.add(lookupAndEmbedExistingItems(okapiClient, holdingsRecord));
-          }
-          CompositeFuture.all(itemFutures).onComplete( result -> {
-            if (result.succeeded()) {
-              logger.info("Composite succeeded with " + result.result().size() + " result(s). First item: " + ((JsonObject) result.result().resultAt(0)).encodePrettily());
-              promise.complete(holdingsRecords);
+          if (holdingsRecords.size()>0) {
+            @SuppressWarnings("rawtypes")
+            List<Future> itemFutures = new ArrayList<Future>();
+            for (Object holdingsObject : holdingsRecords) {
+              JsonObject holdingsRecord = (JsonObject) holdingsObject;
+              itemFutures.add(lookupAndEmbedExistingItems(okapiClient, holdingsRecord));
             }
-          });
+            CompositeFuture.all(itemFutures).onComplete( result -> {
+              if (result.succeeded()) {
+                logger.info("Composite succeeded with " + result.result().size() + " result(s). First item: " + ((JsonObject) result.result().resultAt(0)).encodePrettily());
+                promise.complete(holdingsRecords);
+              }
+            });
+          } else {
+            promise.complete(null);
+          }
         } else {
-          // TODO: fail it instead
-          promise.complete(null);
-          logger.info("Oops - holdings records lookup failed");
+          promise.fail("There was an error looking up existing holdings and items");
         }
       });
       return promise.future();

@@ -1,7 +1,6 @@
 package org.folio.inventorymatch;
 
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -16,19 +15,25 @@ import io.vertx.core.logging.LoggerFactory;
 public class InventoryRecordSet {
 
     private JsonObject sourceJson = null;
-    private JsonObject instanceJson = null;
     private Instance instance = null;
     private Map<String,HoldingsRecord> holdingsRecordsByHRID     = new HashMap<String,HoldingsRecord>();
     private Map<String,Item> itemsByHRID = new HashMap<String,Item>();
+    private List<HoldingsRecord> allHoldingsRecords = new ArrayList<HoldingsRecord>();
+    private List<Item> allItems = new ArrayList<Item>();
     private final Logger logger = LoggerFactory.getLogger("inventory-matcher");
 
     public InventoryRecordSet (JsonObject inventoryRecordSet) {
         if (inventoryRecordSet != null) {
             sourceJson = new JsonObject(inventoryRecordSet.toString());
-            instanceJson = inventoryRecordSet.getJsonObject("instance");
+            JsonObject instanceJson = inventoryRecordSet.getJsonObject("instance");
+            JsonArray holdings = inventoryRecordSet.getJsonArray("holdingsRecords");
             instance = new Instance(instanceJson);
-            registerHoldingsRecordsAndItems (inventoryRecordSet.getJsonArray("holdingsRecords"));
+            registerHoldingsRecordsAndItems (holdings);
         }
+    }
+
+    public void updateInstance (JsonObject updatedInstance) {
+        instance.updateJson(updatedInstance);
     }
 
     private void registerHoldingsRecordsAndItems (JsonArray holdingsRecordsWithEmbeddedItems) {
@@ -43,10 +48,18 @@ public class InventoryRecordSet {
                 for (Object object : items) {
                     JsonObject itemJson = (JsonObject) object;
                     Item item = new Item(itemJson);
-                    itemsByHRID.put(itemJson.getString("hrid"), item);
+                    String itemHrid = itemJson.getString("hrid");
+                    if (itemHrid != null && !itemHrid.isEmpty()) {
+                        itemsByHRID.put(itemHrid, item);
+                    }
                     holdingsRecord.addItem(item);
+                    allItems.add(item);
                 }
-                holdingsRecordsByHRID.put(holdingsRecordJson.getString("hrid"), holdingsRecord);
+                String holdingsRecordHrid = holdingsRecordJson.getString("hrid");
+                if (holdingsRecordHrid != null && !holdingsRecordHrid.isEmpty()) {
+                    holdingsRecordsByHRID.put(holdingsRecordHrid, holdingsRecord);
+                }
+                allHoldingsRecords.add(holdingsRecord);
                 instance.addHoldingsRecord(holdingsRecord);
             }
         }
@@ -58,18 +71,18 @@ public class InventoryRecordSet {
     }
 
     public String getInstanceHRID () {
-        if (instanceJson == null) {
+        if (getInstance() == null) {
             return "no instance - no hrid";
         } else {
-            return instanceJson.getString("hrid");
+            return getInstance().getHRID();
         }
     }
 
     public String getInstanceUUID () {
-        if (instanceJson == null) {
+        if (getInstance() == null) {
             return "no instance - no UUID";
         } else {
-            return instanceJson.getString("id");
+            return getInstance().getUUID();
         }
     }
 
@@ -95,10 +108,7 @@ public class InventoryRecordSet {
 
     public List<Item> getItemsByTransitionType (Transition transition) {
         List<Item> records = new ArrayList<Item>();
-        Collection<Item> allRecords = itemsByHRID.values();
-        Iterator<Item> recordsIterator = allRecords.iterator();
-        while (recordsIterator.hasNext()) {
-            Item record = recordsIterator.next();
+        for (Item record : getItems()) {
             if (record.getTransition() == transition) {
                 records.add(record);
             }
@@ -108,15 +118,20 @@ public class InventoryRecordSet {
 
     public List<HoldingsRecord> getHoldingsRecordsByTransitionType (Transition transition) {
         List<HoldingsRecord> records = new ArrayList<HoldingsRecord>();
-        Collection<HoldingsRecord> allRecords = holdingsRecordsByHRID.values();
-        Iterator<HoldingsRecord> recordsIterator = allRecords.iterator();
-        while (recordsIterator.hasNext()) {
-            HoldingsRecord record = recordsIterator.next();
+        for (HoldingsRecord record : getHoldingsRecords()) {
             if (record.getTransition() == transition) {
                 records.add(record);
             }
         }
         return records;
+    }
+
+    public List<HoldingsRecord> getHoldingsRecords () {
+        return allHoldingsRecords;
+    }
+
+    public List<Item> getItems () {
+        return allItems;
     }
 
     /**
@@ -203,6 +218,13 @@ public class InventoryRecordSet {
             jsonRecord = instance;
         }
 
+        public void updateJson(JsonObject instance) {
+            jsonRecord = instance;
+            for (HoldingsRecord record : holdingsRecords) {
+                record.setInstanceId(getUUID());
+            }
+        }
+
         public void setUUID(String uuid) {
             super.setUUID(uuid);
             setHoldingsRecordsInstanceId(uuid);
@@ -271,7 +293,7 @@ public class InventoryRecordSet {
         }
 
         public boolean hasInstanceId () {
-            return (getInstanceId() != null);
+            return (getInstanceId() != null && !getInstanceId().isEmpty());
         }
 
         public void setInstanceId (String uuid) {
@@ -310,7 +332,7 @@ public class InventoryRecordSet {
         }
 
         public boolean hasHoldingsRecordId () {
-            return (getHoldingsRecordId() != null);
+            return (getHoldingsRecordId() != null && !getHoldingsRecordId().isEmpty());
         }
 
         public void setHoldingsRecordId (String uuid) {

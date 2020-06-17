@@ -9,95 +9,166 @@ import org.folio.inventorymatch.InventoryRecordSet.Item;
 import org.folio.inventorymatch.InventoryRecordSet.Transition;
 import org.folio.okapi.common.OkapiClient;
 
+import io.vertx.core.CompositeFuture;
 import io.vertx.core.Future;
 import io.vertx.core.Promise;
-import io.vertx.core.CompositeFuture;
 import io.vertx.core.json.JsonObject;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 
 /**
- * Base class for implementing update plans (by creating an in-memory representation of the records to update)
+ * Base class for implementing update plans
  *
- * Implementing classes would perform their specific Inventory update scenario in the method planInventoryUpdates
- * based on the incoming record set held up against an existing record set (if any)
+ * Method 'planInventoryUpdates' is meant to create an in-memory representation of the records
+ * to update with all mandatory fields and required identifiers (UUIDs) set. Once the planning
+ * is run, the 'incomingSet' should contain records flagged as CREATING or UPDATING and
+ * 'existingSet' should contain records flagged as DELETING if any.
+ *
+ * Method 'updateInventory' is meant to run through 'incomingSet' and 'existingSet' and perform
+ * updates as per the CREATING, UPDATING, and DELETING flags set in the planning phase -- in the
+ * appropriate order to observe integrity constraints.
+ *
  */
 public abstract class UpdatePlan {
 
     protected InventoryRecordSet incomingSet;
-    protected InventoryRecordSet existingSet = null;
+    protected InventoryQuery instanceQuery;
+    protected InventoryRecordSet existingSet = new InventoryRecordSet(null);
     protected final Logger logger = LoggerFactory.getLogger("inventory-matcher");
 
 
-    public UpdatePlan (InventoryRecordSet incomingSet, InventoryRecordSet existingSet, OkapiClient okapiClient) {
+
+    public UpdatePlan (InventoryRecordSet incomingSet, InventoryQuery existingInstanceQuery) {
         this.incomingSet = incomingSet;
-        this.existingSet = existingSet;
+        this.instanceQuery = existingInstanceQuery;
     }
 
     public abstract Future<Void> planInventoryUpdates (OkapiClient client);
 
-    public Future<Void> updateInventory (OkapiClient okapiClient) {
-      Promise<Void> promise = Promise.promise();
-      Future<Void> promisedPrerequisites = createRecordsWithDependants(okapiClient);
-      promisedPrerequisites.onComplete(prerequisites -> {
-        if (prerequisites.succeeded()) {
-            logger.debug("Successfully created records referenced by other records if any");
+    public abstract Future<Void> doInventoryUpdates (OkapiClient client);
 
-            // this has issues for updating holdings and items concurrently
-            /*
-            @SuppressWarnings("rawtypes")
-            List<Future> testFutures = new ArrayList<Future>();
-            testFutures.add(handleInstanceAndHoldingsUpdatesIfAny(okapiClient));
-            testFutures.add(handleItemUpdatesAndCreatesIfAny(okapiClient));
-            CompositeFuture.all(testFutures).onComplete(composite -> {
-                if (composite.succeeded()) {
-                    Future<Void> promisedDeletes = handleDeletionsIfAny(okapiClient);
-                    promisedDeletes.onComplete(deletes -> {
-                        if (deletes.succeeded()) {
-                            logger.debug("Successfully processed deletions if any.");
-                            promise.complete();
-                        } else {
-                            promise.fail("There was a problem processing deletes " + deletes.cause().getMessage());
-                        }
-                    });
-                } else {
-                    promise.fail("Failed to successfully process instance, holdings, item updates: " + composite.cause().getMessage());
-                }
-            });
-            */
+    protected Future<Void> lookupExistingRecordSet (OkapiClient okapiClient, InventoryQuery instanceQuery) {
+        Promise<Void> promise = Promise.promise();
+        Future<JsonObject> promisedExistingInventoryRecordSet = InventoryStorage.lookupSingleInventoryRecordSet(okapiClient, instanceQuery);
+        promisedExistingInventoryRecordSet.onComplete( recordSet -> {
+            if (recordSet.succeeded()) {
+                JsonObject existingInventoryRecordSetJson = recordSet.result();
+                this.existingSet = new InventoryRecordSet(existingInventoryRecordSetJson);
 
-            /* This works by updating holdings and items non-concurrently */
-            Future<Void> promisedInstanceAndHoldingsUpdates = handleInstanceAndHoldingsUpdatesIfAny(okapiClient);
-            promisedInstanceAndHoldingsUpdates.onComplete( instanceAndHoldingsUpdates -> {
-                if (instanceAndHoldingsUpdates.succeeded()) {
-                    logger.debug("Successfully processed instance and holdings updates if any");
-                    Future<Void> promisedItemUpdates = handleItemUpdatesAndCreatesIfAny (okapiClient);
-                    promisedItemUpdates.onComplete(itemUpdatesAndCreates -> {
-                        if (itemUpdatesAndCreates.succeeded()) {
-                            Future<Void> promisedDeletes = handleDeletionsIfAny(okapiClient);
-                            promisedDeletes.onComplete(deletes -> {
-                                if (deletes.succeeded()) {
-                                    logger.debug("Successfully processed deletions if any.");
-                                    promise.complete();
-                                } else {
-                                    promise.fail("There was a problem processing deletes " + deletes.cause().getMessage());
-                                }
-                            });
-                        } else {
-                            promise.fail("Error updating items: " + itemUpdatesAndCreates.cause().getMessage());
-                        }
-                    });
-                } else {
-                    promise.fail("Failed to process reference record(s) (instances,holdings): " + prerequisites.cause().getMessage());
-                }
-            });
-            /* end */
-        } else {
-            promise.fail("Failed to create prerequisites");
-        }
-      });
-      return promise.future();
+                promise.complete();
+            } else {
+                promise.fail("Error looking up existing record set");
+            }
+        });
+        return promise.future();
     }
+
+    /**
+     * Flag transaction type and set ID for the instance
+     * @param existingInstance
+     * @param incomingInstance
+     */
+    protected void flagAndIdTheInstance () {
+        if (getExistingInstance() == null) {
+            getIncomingInstance().generateUUID();
+            getIncomingInstance().setTransition(Transition.CREATING);
+        } else {
+            getIncomingInstance().setUUID(getExistingInstance().getUUID());
+            getIncomingInstance().setTransition(Transition.UPDATING);
+        }
+    }
+
+
+    public Instance getIncomingInstance() {
+        return incomingSet.getInstance();
+    }
+
+    public Instance getExistingInstance() {
+        return existingSet.getInstance();
+    }
+
+    public InventoryRecordSet getIncomingRecordSet () {
+        return incomingSet;
+    }
+
+    public InventoryRecordSet getExistingRecordSet () {
+        return existingSet;
+    }
+
+    public List<Item> itemsToDelete () {
+        return existingSet.getItemsByTransitionType(Transition.DELETING);
+    }
+
+    public List<HoldingsRecord> holdingsToDelete () {
+        return existingSet.getHoldingsRecordsByTransitionType(Transition.DELETING);
+    }
+
+    public boolean hasHoldingsToCreate () {
+        return holdingsToCreate().size()>0;
+    }
+    public List<HoldingsRecord> holdingsToCreate () {
+        return incomingSet.getHoldingsRecordsByTransitionType(Transition.CREATING);
+    }
+
+    public boolean hasItemsToCreate () {
+        return itemsToCreate().size()>0;
+    }
+
+    public List<Item> itemsToCreate () {
+        return incomingSet.getItemsByTransitionType(Transition.CREATING);
+    }
+
+    public List<HoldingsRecord> holdingsToUpdate () {
+        return incomingSet.getHoldingsRecordsByTransitionType(Transition.UPDATING);
+    }
+
+    public List<Item> itemsToUpdate () {
+        return incomingSet.getItemsByTransitionType(Transition.UPDATING);
+    }
+
+    public boolean isInstanceUpdating () {
+        return incomingSet.getInstance().getTransition() == Transition.UPDATING;
+    }
+
+    public boolean isInstanceCreating () {
+        return incomingSet.getInstance().getTransition() == Transition.CREATING;
+    }
+
+    public boolean isInstanceDeleting () {
+        return incomingSet.getInstance().getTransition() == Transition.DELETING;
+    }
+
+    public void writePlanToLog () {
+        logger.info("Planning done: ");
+        logger.info("Instance transition: " + getIncomingInstance().getTransition());
+
+        logger.info("Holdings to create: ");
+        for (HoldingsRecord record : holdingsToCreate()) {
+          logger.info(record.getJson().encodePrettily());
+        }
+        logger.info("Holdings to update: ");
+        for (HoldingsRecord record : holdingsToUpdate()) {
+          logger.info(record.getJson().encodePrettily());
+        }
+        logger.info("Items to create: ");
+        for (Item record : itemsToCreate()) {
+          logger.info(record.getJson().encodePrettily());
+        }
+        logger.info("Items to update: ");
+        for (Item record : itemsToUpdate()) {
+          logger.info(record.getJson().encodePrettily());
+        }
+        logger.info("Items to delete: ");
+        for (Item record : itemsToDelete()) {
+          logger.info(record.getJson().encodePrettily());
+        }
+        logger.info("Holdings to delete: ");
+        for (HoldingsRecord record : holdingsToDelete()) {
+          logger.info(record.getJson().encodePrettily());
+        }
+    }
+
+    /* UPDATE METHODS */
 
     /**
      * Perform storage creates that other updates will depend on for succesful completion
@@ -245,60 +316,7 @@ public abstract class UpdatePlan {
         return promise.future();
     }
 
+    /* END OF UPDATE METHODS */
 
-    public Instance getIncomingInstance() {
-        return incomingSet.getInstance();
-    }
-
-    public InventoryRecordSet getIncomingRecordSet () {
-        return incomingSet;
-    }
-
-    public InventoryRecordSet getExistingRecordSet () {
-        return existingSet;
-    }
-
-    public List<Item> itemsToDelete () {
-        return existingSet.getItemsByTransitionType(Transition.DELETING);
-    }
-
-    public List<HoldingsRecord> holdingsToDelete () {
-        return existingSet.getHoldingsRecordsByTransitionType(Transition.DELETING);
-    }
-
-    public boolean hasHoldingsToCreate () {
-        return holdingsToCreate().size()>0;
-    }
-    public List<HoldingsRecord> holdingsToCreate () {
-        return incomingSet.getHoldingsRecordsByTransitionType(Transition.CREATING);
-    }
-
-    public boolean hasItemsToCreate () {
-        return itemsToCreate().size()>0;
-    }
-
-    public List<Item> itemsToCreate () {
-        return incomingSet.getItemsByTransitionType(Transition.CREATING);
-    }
-
-    public List<HoldingsRecord> holdingsToUpdate () {
-        return incomingSet.getHoldingsRecordsByTransitionType(Transition.UPDATING);
-    }
-
-    public List<Item> itemsToUpdate () {
-        return incomingSet.getItemsByTransitionType(Transition.UPDATING);
-    }
-
-    public boolean isInstanceUpdating () {
-        return incomingSet.getInstance().getTransition() == Transition.UPDATING;
-    }
-
-    public boolean isInstanceCreating () {
-        return incomingSet.getInstance().getTransition() == Transition.CREATING;
-    }
-
-    public boolean isInstanceDeleting () {
-        return incomingSet.getInstance().getTransition() == Transition.DELETING;
-    }
 
 }

@@ -4,7 +4,6 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.folio.inventorymatch.InventoryRecordSet.HoldingsRecord;
-import org.folio.inventorymatch.InventoryRecordSet.Instance;
 import org.folio.inventorymatch.InventoryRecordSet.InventoryRecord;
 import org.folio.inventorymatch.InventoryRecordSet.Item;
 import org.folio.inventorymatch.InventoryRecordSet.Transition;
@@ -15,14 +14,12 @@ import io.vertx.core.Future;
 import io.vertx.core.Promise;
 import io.vertx.core.json.JsonObject;
 
-public class UpdatePlainInventoryByHRIDs extends UpdatePlan {
+public class UpdatePlanAllHRIDs extends UpdatePlan {
 
 
-    public UpdatePlainInventoryByHRIDs(InventoryRecordSet incomingInventoryRecordSet,
-                                       InventoryRecordSet existingInventoryRecordSet,
-                                       OkapiClient okapiClient) {
 
-        super(incomingInventoryRecordSet, existingInventoryRecordSet, okapiClient);
+    public UpdatePlanAllHRIDs(InventoryRecordSet incomingInventoryRecordSet, InventoryQuery existingInstanceQuery) {
+        super(incomingInventoryRecordSet, existingInstanceQuery);
     }
 
     /**
@@ -30,24 +27,93 @@ public class UpdatePlainInventoryByHRIDs extends UpdatePlan {
      * that need to be created, updated, or deleted in Inventory storage.
      */
     public Future<Void> planInventoryUpdates (OkapiClient okapiClient) {
-        Instance existingInstance = existingSet.getInstance();
-        Instance incomingInstance = incomingSet.getInstance();
+        Promise<Void> promisedPlan = Promise.promise();
+        Future<Void> promisedInstanceLookup = lookupExistingRecordSet(okapiClient, instanceQuery);
+        promisedInstanceLookup.onComplete( lookup -> {
+            if (lookup.succeeded()) {
+                // Plan instance update
+                flagAndIdTheInstance();
 
-        if (existingInstance == null) {
-            incomingInstance.generateUUID();
-            incomingInstance.setTransition(Transition.CREATING);
-        } else {
-            incomingInstance.setUUID(existingInstance.getUUID());
-            incomingInstance.setTransition(Transition.UPDATING);
-        }
+                // Plan holdings/items updates
+                if (existingSet.getInstance() != null) {
+                    flagAndIdUpdatesDeletesAndLocalMoves();
+                }
+                flagAndIdCreatesAndImports(okapiClient).onComplete( done -> {
+                    if (done.succeeded()) {
+                        promisedPlan.complete();
+                    }
+                });
 
-        if (existingInstance != null) {
-            tagUpdatesDeletesAndLocalMoves(existingInstance, incomingInstance);
-        }
-
-        // Mark records to be created for an entirely new record set and/or holdings/items to be imported from other instance(s)
-        return tagCreatesAndImports(okapiClient);
+            }
+        });     
+        return promisedPlan.future();
     }
+
+    public Future<Void> doInventoryUpdates (OkapiClient okapiClient) {
+        Promise<Void> promise = Promise.promise();
+        Future<Void> promisedPrerequisites = createRecordsWithDependants(okapiClient);
+        promisedPrerequisites.onComplete(prerequisites -> {
+          if (prerequisites.succeeded()) {
+              logger.debug("Successfully created records referenced by other records if any");
+  
+              // this has issues for updating holdings and items concurrently
+              /*
+              @SuppressWarnings("rawtypes")
+              List<Future> testFutures = new ArrayList<Future>();
+              testFutures.add(handleInstanceAndHoldingsUpdatesIfAny(okapiClient));
+              testFutures.add(handleItemUpdatesAndCreatesIfAny(okapiClient));
+              CompositeFuture.all(testFutures).onComplete(composite -> {
+                  if (composite.succeeded()) {
+                      Future<Void> promisedDeletes = handleDeletionsIfAny(okapiClient);
+                      promisedDeletes.onComplete(deletes -> {
+                          if (deletes.succeeded()) {
+                              logger.debug("Successfully processed deletions if any.");
+                              promise.complete();
+                          } else {
+                              promise.fail("There was a problem processing deletes " + deletes.cause().getMessage());
+                          }
+                      });
+                  } else {
+                      promise.fail("Failed to successfully process instance, holdings, item updates: " + composite.cause().getMessage());
+                  }
+              });
+              */
+  
+              /* This works by updating holdings and items non-concurrently */
+              Future<Void> promisedInstanceAndHoldingsUpdates = handleInstanceAndHoldingsUpdatesIfAny(okapiClient);
+              promisedInstanceAndHoldingsUpdates.onComplete( instanceAndHoldingsUpdates -> {
+                  if (instanceAndHoldingsUpdates.succeeded()) {
+                      logger.debug("Successfully processed instance and holdings updates if any");
+                      Future<Void> promisedItemUpdates = handleItemUpdatesAndCreatesIfAny (okapiClient);
+                      promisedItemUpdates.onComplete(itemUpdatesAndCreates -> {
+                          if (itemUpdatesAndCreates.succeeded()) {
+                              Future<Void> promisedDeletes = handleDeletionsIfAny(okapiClient);
+                              promisedDeletes.onComplete(deletes -> {
+                                  if (deletes.succeeded()) {
+                                      logger.debug("Successfully processed deletions if any.");
+                                      promise.complete();
+                                  } else {
+                                      promise.fail("There was a problem processing deletes " + deletes.cause().getMessage());
+                                  }
+                              });
+                          } else {
+                              promise.fail("Error updating items: " + itemUpdatesAndCreates.cause().getMessage());
+                          }
+                      });
+                  } else {
+                      promise.fail("Failed to process reference record(s) (instances,holdings): " + prerequisites.cause().getMessage());
+                  }
+              });
+              /* end */
+          } else {
+              promise.fail("Failed to create prerequisites");
+          }
+        });
+        return promise.future();
+      }
+
+    /* PLANNING METHODS */
+
 
     /**
      * For when there is an existing instance with the same ID already.
@@ -55,9 +121,9 @@ public class UpdatePlainInventoryByHRIDs extends UpdatePlan {
      * Find items that have moved between holdings locally and mark them for update.
      * Find records that have disappeared and mark them for deletion.
      */
-    private void tagUpdatesDeletesAndLocalMoves(Instance existingInstance, Instance incomingInstance) {
-        for (HoldingsRecord existingHoldingsRecord : existingInstance.getHoldingsRecords()) {
-            HoldingsRecord incomingHoldingsRecord = incomingInstance.getHoldingsRecordByHRID(existingHoldingsRecord.getHRID());
+    private void flagAndIdUpdatesDeletesAndLocalMoves() {
+        for (HoldingsRecord existingHoldingsRecord : getExistingInstance().getHoldingsRecords()) {
+            HoldingsRecord incomingHoldingsRecord = getIncomingInstance().getHoldingsRecordByHRID(existingHoldingsRecord.getHRID());
             // HoldingsRecord gone, mark for deletion and check for existing items to delete with it
             if (incomingHoldingsRecord == null) {
                 existingHoldingsRecord.setTransition(Transition.DELETING);
@@ -92,12 +158,12 @@ public class UpdatePlainInventoryByHRIDs extends UpdatePlan {
 
     /**
        Mark non-previously-existing records for creation.
-       Lookup holdings/items that are migrating from other existing instances and
-       mark them for update if any.
+       Lookup holdings/items that could be migrating here from other existing instance(s)
+       and mark them for update, if any.
     */
-    private Future<Void> tagCreatesAndImports(OkapiClient okapiClient) {
+    private Future<Void> flagAndIdCreatesAndImports(OkapiClient okapiClient) {
         Promise<Void> promise = Promise.promise();
-        CompositeFuture future = mapHRIDtoUUIDonNewRecordsAndImports(okapiClient);
+        CompositeFuture future = flagAndIdNewRecordsAndImports(okapiClient);
         future.onComplete(handler -> {
             if (handler.succeeded()) {
                 promise.complete();
@@ -114,16 +180,16 @@ public class UpdatePlainInventoryByHRIDs extends UpdatePlan {
      * @param okapiClient client for looking up existing records
      * @return a future with all holdingsRecord and item lookups.
      */
-    public CompositeFuture mapHRIDtoUUIDonNewRecordsAndImports(OkapiClient okapiClient) {
+    public CompositeFuture flagAndIdNewRecordsAndImports(OkapiClient okapiClient) {
         @SuppressWarnings("rawtypes")
         List<Future> recordFutures = new ArrayList<Future>();
         List<HoldingsRecord> holdingsRecords = incomingSet.getHoldingsRecordsByTransitionType(Transition.UNKNOWN);
         for (HoldingsRecord record : holdingsRecords) {
-            recordFutures.add(setHoldingsUUIDandTransition(okapiClient, record));
+            recordFutures.add(flagAndIdHoldingsByStorageLookup(okapiClient, record));
         }
         List<Item> items = incomingSet.getItemsByTransitionType(Transition.UNKNOWN);
         for (Item item : items) {
-            recordFutures.add(setItemUUIDandTransition(okapiClient, item));
+            recordFutures.add(flagAndIdItemsByStorageLookup(okapiClient, item));
         }
         return CompositeFuture.all(recordFutures);
     }
@@ -135,7 +201,7 @@ public class UpdatePlainInventoryByHRIDs extends UpdatePlan {
      * @param record The incoming record to match with an existing record if any
      * @return empty future for determining when loook-up is complete
      */
-    private Future<Void> setHoldingsUUIDandTransition (OkapiClient okapiClient, InventoryRecord record) {
+    private Future<Void> flagAndIdHoldingsByStorageLookup (OkapiClient okapiClient, InventoryRecord record) {
         Promise<Void> promise = Promise.promise();
         InventoryQuery hridQuery = new HridQuery(record.getHRID());
         Future<JsonObject> promisedHoldingsRecord = InventoryStorage.lookupHoldingsRecordByHRID(okapiClient, hridQuery);
@@ -145,7 +211,8 @@ public class UpdatePlainInventoryByHRIDs extends UpdatePlan {
                     record.generateUUID();
                     record.setTransition(Transition.CREATING);
                 } else {
-                    record.setUUID(result.result().getString("id"));
+                    String existingHoldingsRecordId = result.result().getString("id");
+                    record.setUUID(existingHoldingsRecordId);
                     record.setTransition(Transition.UPDATING);
                 }
                 promise.complete();
@@ -163,7 +230,7 @@ public class UpdatePlainInventoryByHRIDs extends UpdatePlan {
      * @param record The incoming record to match with an existing record if any
      * @return empty future for determining when loook-up is complete
      */
-    private Future<Void> setItemUUIDandTransition (OkapiClient okapiClient, InventoryRecord record) {
+    private Future<Void> flagAndIdItemsByStorageLookup (OkapiClient okapiClient, InventoryRecord record) {
         Promise<Void> promise = Promise.promise();
         InventoryQuery hridQuery = new HridQuery(record.getHRID());
         Future<JsonObject> promisedItem = InventoryStorage.lookupItemByHRID(okapiClient, hridQuery);
@@ -173,7 +240,8 @@ public class UpdatePlainInventoryByHRIDs extends UpdatePlan {
                     record.generateUUID();
                     record.setTransition(Transition.CREATING);
                 } else {
-                    record.setUUID(result.result().getString("id"));
+                    String existingItemId = result.result().getString("id");
+                    record.setUUID(existingItemId);
                     record.setTransition(Transition.UPDATING);
                 }
                 promise.complete();
@@ -183,5 +251,9 @@ public class UpdatePlainInventoryByHRIDs extends UpdatePlan {
         });
         return promise.future();
     }
+
+    /* END OF PLANNING METHODS */
+
+ 
 
 }

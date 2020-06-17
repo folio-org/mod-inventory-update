@@ -11,13 +11,9 @@ import static org.folio.okapi.common.HttpResponse.responseJson;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.folio.inventorymatch.InventoryRecordSet.HoldingsRecord;
-import org.folio.inventorymatch.InventoryRecordSet.Item;
 import org.folio.okapi.common.OkapiClient;
 
 import io.vertx.core.Future;
-import io.vertx.core.http.HttpMethod;
-import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
@@ -30,18 +26,19 @@ import io.vertx.ext.web.RoutingContext;
  */
 public class MatchService {
   private final Logger logger = LoggerFactory.getLogger("inventory-matcher");
-  private static final String INSTANCE_STORAGE_PATH = "/instance-storage/instances";
+  // private static final String INSTANCE_STORAGE_PATH = "/instance-storage/instances";
 
-  public final static String INSTANCE_MATCH_PATH = "/instance-storage-match/instances"; // being deprecated
-  public final static String INSTANCE_UPSERT_MATCHKEY_PATH = "/instance-storage-upsert-matchkey";
-  public final static String INSTANCE_UPSERT_HRID_PATH = "/instance-storage-upsert-hrid";
+  // public final static String INSTANCE_MATCH_PATH = "/instance-storage-match/instances"; // being deprecated
+  // public final static String INSTANCE_UPSERT_MATCHKEY_PATH = "/instance-storage-upsert-matchkey";
+  // public final static String INSTANCE_UPSERT_HRID_PATH = "/instance-storage-upsert-hrid";
   public final static String INVENTORY_UPSERT_HRID_PATH = "/inventory-upsert-hrid";
-  public final static String INVENTORY_UPSERT_MATCHKEY_PATH = "/inventory-upsert-matchkey";
+  public final static String SHARED_INVENTORY_UPSERT_MATCHKEY_PATH = "/shared-inventory-upsert-matchkey";
 
   /**
    * Main flow of Instance matching and creating/updating.
    * @param routingCtx
    */
+  /*
   public void handleInstanceMatching(RoutingContext routingCtx) {
     String contentType = routingCtx.request().getHeader("Content-Type");
     if (contentType != null && !contentType.startsWith("application/json")) {
@@ -71,7 +68,9 @@ public class MatchService {
       });
     }
   }
-
+  */
+  /* deprecate?  */
+  /*
   public void handleInstanceUpsertByHrid (RoutingContext routingCtx) {
     String contentType = routingCtx.request().getHeader("Content-Type");
     if (contentType != null && !contentType.startsWith("application/json")) {
@@ -103,8 +102,9 @@ public class MatchService {
       }
     }
   }
-
-  public void handleInventoryUpsertByMatchkey (RoutingContext routingCtx) { // TODO: Pass in okapi client?
+  */
+  /*
+  public void handleSharedInventoryUpsertByMatchkey (RoutingContext routingCtx) { // TODO: Pass in okapi client?
     if (contentTypeIsJson(routingCtx)) {
       OkapiClient okapiClient = getOkapiClient(routingCtx); // TODO: close it? when/where?
       JsonObject inventoryRecordSet = getIncomingInventoryRecordSet(routingCtx);
@@ -134,76 +134,62 @@ public class MatchService {
       });
     }
   }
+  */
+
+  public void handleSharedInventoryUpsertByMatchkey (RoutingContext routingCtx) { 
+    if (contentTypeIsJson(routingCtx)) {
+      JsonObject inventoryRecordSet = getIncomingInventoryRecordSet(routingCtx);
+      InventoryRecordSet incomingSet = new InventoryRecordSet(inventoryRecordSet);
+      MatchKey matchKey = new MatchKey(incomingSet.getInstance().getJson());
+      InventoryQuery instanceByMatchKeyQuery = new MatchQuery(matchKey.getKey());
+      incomingSet.getInstance().getJson().put("matchKey", matchKey.getKey());
+      incomingSet.getInstance().getJson().put("indexTitle", matchKey.getKey());
+
+      UpdatePlan updatePlan = new UpdatePlanSharedInventory(incomingSet, instanceByMatchKeyQuery);
+      runPlan(updatePlan, routingCtx);
+    }
+  }
+
 
   public void handleInventoryUpsertByHrid (RoutingContext routingCtx) {
     if (contentTypeIsJson(routingCtx)) {
-      OkapiClient okapiClient = getOkapiClient(routingCtx);
       JsonObject incomingInventoryRecordSetJson = getIncomingInventoryRecordSet(routingCtx);
       InventoryRecordSet incomingSet = new InventoryRecordSet(incomingInventoryRecordSetJson);
-      String instanceHrid = incomingSet.getInstanceHRID();
-      Future<JsonObject> promisedExistingInventoryRecordSet = InventoryStorage.lookupInventoryRecordSetByInstanceHRID(okapiClient, instanceHrid);
-      promisedExistingInventoryRecordSet.onComplete( recordSet -> {
-        if (recordSet.succeeded()) {
-          JsonObject existingInventoryRecordSetJson = recordSet.result();
-          if (existingInventoryRecordSetJson != null) {
-            logger.info("Found existing instance");
-          }
-          InventoryRecordSet existingSet = new InventoryRecordSet(existingInventoryRecordSetJson);
-          logger.info("Instantiating an update plan");
-          UpdatePlan updatePlan = new UpdatePlainInventoryByHRIDs(incomingSet, existingSet, okapiClient);
-          logger.info("Planning updates");
-          Future<Void> planDone = updatePlan.planInventoryUpdates(okapiClient);
-          planDone.onComplete( handler -> {
-            logger.info("Planning done: ");
-            logger.info("Instance transition: " + updatePlan.getIncomingRecordSet().getInstance().getTransition());
+      InventoryQuery queryByInstanceHrid = new HridQuery(incomingSet.getInstanceHRID());
 
-            logger.info("Holdings to create: ");
-            for (HoldingsRecord record : updatePlan.holdingsToCreate()) {
-              logger.info(record.getJson().encodePrettily());
-            }
-            logger.info("Holdings to update: ");
-            for (HoldingsRecord record : updatePlan.holdingsToUpdate()) {
-              logger.info(record.getJson().encodePrettily());
-            }
-            logger.info("Items to create: ");
-            for (Item record : updatePlan.itemsToCreate()) {
-              logger.info(record.getJson().encodePrettily());
-            }
-            logger.info("Items to update: ");
-            for (Item record : updatePlan.itemsToUpdate()) {
-              logger.info(record.getJson().encodePrettily());
-            }
-            logger.info("Items to delete: ");
-            for (Item record : updatePlan.itemsToDelete()) {
-              logger.info(record.getJson().encodePrettily());
-            }
-            logger.info("Holdings to delete: ");
-            for (HoldingsRecord record : updatePlan.holdingsToDelete()) {
-              logger.info(record.getJson().encodePrettily());
-            }
+      UpdatePlan updatePlan = new UpdatePlanAllHRIDs(incomingSet, queryByInstanceHrid);
 
-            Future<Void> promisedPlanDone = updatePlan.updateInventory(okapiClient);
-            promisedPlanDone.onComplete( planExecuted -> {
-              if (planExecuted.succeeded()) {
-                responseJson(routingCtx, 200).end(
-                  updatePlan.isInstanceUpdating() ?
-                           "Updated this record set: " + updatePlan.getExistingRecordSet().getSourceJson().encodePrettily()
-                            +  " with this record set: " + updatePlan.getIncomingRecordSet().getSourceJson().encodePrettily()
-                            :
-                            "Created this record set: " + updatePlan.getIncomingRecordSet().getSourceJson().encodePrettily());
-                okapiClient.close();
-
-              } else {
-                responseJson(routingCtx, 500).end("Error executing inventory update plan");
-                okapiClient.close();
-              }
-            });
-          });
-        } else {
-          responseError(routingCtx, 422, "There was an retrieving existing record set: " + recordSet.cause().getMessage());
-        }
-      });
+      runPlan(updatePlan, routingCtx);
     }
+  }
+
+  private void runPlan(UpdatePlan updatePlan, RoutingContext routingCtx) {
+
+    OkapiClient okapiClient = getOkapiClient(routingCtx); 
+
+    Future<Void> planCreated = updatePlan.planInventoryUpdates(okapiClient);
+    planCreated.onComplete( planDone -> {
+      if (planDone.succeeded()) {
+        updatePlan.writePlanToLog();
+        Future<Void> planExecuted = updatePlan.doInventoryUpdates(okapiClient);
+        planExecuted.onComplete( updatesDone -> {
+          if (updatesDone.succeeded()) {
+            responseJson(routingCtx, 200).end(
+              updatePlan.isInstanceUpdating() ?
+                        "Updated this record set: " + updatePlan.getExistingRecordSet().getSourceJson().encodePrettily()
+                        +  " with this record set: " + updatePlan.getIncomingRecordSet().getSourceJson().encodePrettily()
+                        :
+                        "Created this record set: " + updatePlan.getIncomingRecordSet().getSourceJson().encodePrettily());
+            okapiClient.close();
+          } else {
+            responseJson(routingCtx, 500).end("Error executing inventory update plan");
+          }
+        });  
+      }  else {
+        responseJson(routingCtx, 500).end("Error creating inventory update plan");
+      }
+
+    });
   }
 
   /*
@@ -255,6 +241,7 @@ public class MatchService {
     return inventoryRecordSet;
   }
 
+  /*
   private void createInventoryRecords(RoutingContext routingCtx,
                                       OkapiClient okapiClient,
                                       JsonObject incomingInstance,
@@ -274,7 +261,8 @@ public class MatchService {
       }
     });
   }
-
+  */
+  /*
   private void updateInventoryRecords(RoutingContext routingCtx,
                                       OkapiClient okapiClient,
                                       JsonObject instance,
@@ -303,8 +291,9 @@ public class MatchService {
       }
     });
   }
+  */
 
-
+  /*
   private void upsertHoldingsAndItems(OkapiClient okapiClient,
                                       JsonArray existingHoldingsAndItems,
                                       JsonArray incomingHoldingsAndItems,
@@ -351,7 +340,8 @@ public class MatchService {
       // One or more existings or incoming holdings or items did not have identifier(s) - fall back to delete and create
     }
   }
-
+  */
+  /*
   private void insertHoldingsAndItems (OkapiClient okapiClient, JsonArray holdingsRecords, String instanceId) {
     for (Object element : holdingsRecords) {
       JsonObject holdingsRecord = (JsonObject) element;
@@ -359,7 +349,9 @@ public class MatchService {
       insertHoldingsRecordWithItems(okapiClient, holdingsRecord, instanceId);
     }
   }
+  */
 
+  /*
   private void insertHoldingsRecordWithItems (OkapiClient okapiClient, JsonObject holdingsRecord, String instanceId) {
     holdingsRecord.put("instanceId", instanceId);
     JsonArray items = extractJsonArrayFromObject(holdingsRecord, "items");
@@ -377,7 +369,8 @@ public class MatchService {
       }
     });
   }
-
+  */
+  /*
   private void insertItems(OkapiClient okapiClient, JsonArray items, String holdingsRecordId) {
     for (Object element : items) {
       JsonObject item = (JsonObject) element;
@@ -385,7 +378,8 @@ public class MatchService {
       insertItem(okapiClient, item, holdingsRecordId);
     }
   }
-
+  */
+  /*
   private void insertItem (OkapiClient okapiClient, JsonObject item, String holdingsRecordId) {
     item.put("holdingsRecordId", holdingsRecordId);
     Future<JsonObject> promisedCreatedItem = InventoryStorage.postItem(okapiClient, item);
@@ -397,9 +391,9 @@ public class MatchService {
       }
     });
   }
+  */
 
-
-
+  /*
   private boolean checkForIdsInHoldingsAndItems (JsonArray holdingsRecords) {
     for (Object holdingsObject : holdingsRecords) {
       JsonObject holdingsRecord = (JsonObject) holdingsObject;
@@ -423,7 +417,8 @@ public class MatchService {
     }
     return true;
   }
-
+  */
+  /*
   private void mapHoldingsAndItemsByIdentifiers(JsonArray holdingsRecords, Map<String,JsonObject> holdingsMap, Map<String,JsonObject> itemsMap) {
     for (Object holdingsObject : holdingsRecords) {
       JsonObject holdingsRecord = (JsonObject) holdingsObject;
@@ -437,13 +432,14 @@ public class MatchService {
       }
     }
   }
-
+  */
   /**
    * Creates a deep clone of a JSONArray from a JSONObject, removes the array from the source object and returns the clone
    * @param jsonObject Source object containing the array to extract
    * @param arrayName Property name of the array to extract
    * @return  The extracted JsonArray or an empty JsonArray if none found to extract.
    */
+  /*
   private static JsonArray extractJsonArrayFromObject(JsonObject jsonObject, String arrayName)  {
     JsonArray array = new JsonArray();
     if (jsonObject.containsKey(arrayName)) {
@@ -452,9 +448,10 @@ public class MatchService {
     }
     return array;
   }
-
+  */
 
   // Old method, only creates/updates instances
+  /*
   private void updateInventory (OkapiClient okapiClient,
                                 JsonObject candidateInstance,
                                 JsonObject matchingInstances,
@@ -475,7 +472,7 @@ public class MatchService {
       logger.info("Unexpected recordCount: ["+recordCount+"] cannot determine match");
     }
   }
-
+  */
   /**
    * Old method
    * Creates new Instance or updates existing Instance in Inventory, using the
@@ -486,6 +483,7 @@ public class MatchService {
    * @param matchQuery The match query (for log statements)
    * @param routingCtx
    */
+  /*
   private void updateSharedInventory(OkapiClient okapiClient,
                                JsonObject candidateInstance,
                                JsonObject matchingInstances,
@@ -508,7 +506,7 @@ public class MatchService {
       logger.info("Unexpected recordCount: ["+recordCount+"] cannot determine match");
     }
   }
-
+  */
   /**
    * Merges properties of candidate instance with select properties of existing instance
    * (without mutating the original JSON objects)
@@ -516,6 +514,7 @@ public class MatchService {
    * @param newInstance Instance coming in on the request
    * @return merged Instance
    */
+  /*
   private JsonObject mergeInstances (JsonObject existingInstance, JsonObject newInstance) {
     JsonObject mergedInstance = newInstance.copy();
 
@@ -527,7 +526,9 @@ public class MatchService {
     mergedInstance.put("hrid", existingInstance.getString("hrid"));
     return mergedInstance;
   }
+  */
 
+  /*
   private JsonArray mergeUniquelyTwoArraysOfObjects (JsonArray array1, JsonArray array2) {
     JsonArray merged = new JsonArray();
     if (array1 != null) {
@@ -544,13 +545,16 @@ public class MatchService {
     }
     return merged;
   }
+  */
 
+  /*
   private boolean arrayContainsValue(JsonArray array, JsonObject value) {
     for (int i=0; i<array.size(); i++) {
       if (array.getJsonObject(i).equals(value)) return true;
     }
     return false;
   }
+  */
 
   /**
    * Old method (http methods generally moved to InventoryStorage class)
@@ -559,6 +563,7 @@ public class MatchService {
    * @param newInstance
    * @param instanceId
    */
+  /*
   private void putInstance (OkapiClient okapiClient, RoutingContext routingCtx, JsonObject newInstance, String instanceId) {
     okapiClient.request(HttpMethod.PUT, INSTANCE_STORAGE_PATH+"/"+instanceId, newInstance.toString(), putResult-> {
       if (putResult.succeeded()) {
@@ -582,13 +587,14 @@ public class MatchService {
       }
     });
   }
-
+  */
   /**
    * Old method (http methods generally moved to InventoryStorage class)
    * Creates a new instance in Inventory
    * @param ctx
    * @param newInstance
    */
+  /*
   private void postInstance (OkapiClient okapiClient, RoutingContext ctx, JsonObject newInstance) {
     okapiClient.post(INSTANCE_STORAGE_PATH, newInstance.toString(), postResult->{
       if (postResult.succeeded()) {
@@ -605,7 +611,7 @@ public class MatchService {
       }
     });
   }
-
+  */
   private OkapiClient getOkapiClient (RoutingContext ctx) {
     OkapiClient client = new OkapiClient(ctx);
     Map<String, String> headers = new HashMap<>();

@@ -47,6 +47,17 @@
         }
 
       ]
+    },
+    {
+      "id": "shared-inventory-upsert-matchkey",
+      "version": "1.0",
+      "handlers": [
+        {
+          "methods": ["PUT"],
+          "pathPattern": "/shared-inventory-upsert-matchkey",
+          "permissionsRequired": ["shared-inventory-upsert-matchkey.item.put"]
+        }
+      ]
     }
   ],
   "requires": [
@@ -77,6 +88,11 @@
       "description": "Create or update instances, holdings and items based on the Instance HRID"
     },
     {
+      "permissionName": "shared-inventory-upsert-matchkey.item.put",
+      "displayName": "Updating a shared Inventory by match key - create or update existing records",
+      "description": "Create or update instances, create or replace holdings and items, based on the Instance matchkey"
+    },
+    {
       "permissionName": "inventory-match.all",
       "displayName": "inventory match module - all permissions",
       "description": "Entire set of permissions needed to use the inventory match module",
@@ -84,7 +100,8 @@
         "instance-storage-match.instances.item.put",
         "instance-storage-upsert-matchkey.instances.item.put", 
         "instance-storage-upsert-hrid.instances.item.put",
-        "inventory-upsert-hrid.item.put"
+        "inventory-upsert-hrid.item.put",
+        "shared-inventory-upsert-matchkey.item.put"
       ]
     }
   ],

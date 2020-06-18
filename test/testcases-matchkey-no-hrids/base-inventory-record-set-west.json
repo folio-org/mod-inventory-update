@@ -1,0 +1,70 @@
+{
+    "instance": {
+      "title": "Instance 1",
+      "source": "Local",
+      "matchKey": "instance_1",
+      "instanceTypeId": "6312d172-f0cf-40f6-b27d-9fa8feaf332f",
+      "identifiers": [
+        {
+          "identifierTypeId": "8261054f-be78-422d-bd51-4ed9f33c3422",
+          "value": "9781466636897"
+        },
+        {
+          "identifierTypeId": "9db07825-8035-4d9a-8a41-d59a5f1c337b",
+          "value": "9781466636897"
+        }
+      ]
+    },
+    "holdingsRecords": [
+      {
+        "callNumber": "West Holdings 1",
+        "permanentLocationId": "d05b8941-a7b3-4519-b450-06d72ca13a0c",
+        "items": [
+          {
+            "itemIdentifier": "wit001",
+            "barcode": "Item 1",
+            "materialTypeId": "1a54b431-2e4f-452d-9cae-9cee66c9a892",
+            "permanentLoanTypeId": "2b94c631-fca9-4892-a730-03ee529ffe27",
+            "status": {
+              "name": "Available"
+            }
+          },
+          {
+            "itemIdentifier": "wit002",
+            "barcode": "Item 2",
+            "materialTypeId": "1a54b431-2e4f-452d-9cae-9cee66c9a892",
+            "permanentLoanTypeId": "2b94c631-fca9-4892-a730-03ee529ffe27",
+            "status": {
+              "name": "Available"
+            }
+          }
+        ]
+      },
+      {
+        "callNumber": "West Holdings 2",
+        "permanentLocationId": "d05b8941-a7b3-4519-b450-06d72ca13a0c",
+        "items": [
+          {
+            "itemIdentifier": "wit003",
+            "barcode": "Item 3",
+            "materialTypeId": "1a54b431-2e4f-452d-9cae-9cee66c9a892",
+            "permanentLoanTypeId": "2b94c631-fca9-4892-a730-03ee529ffe27",
+            "status": {
+              "name": "Available"
+            }
+          },
+          {
+            "itemIdentifier": "wit004",
+            "barcode": "Item 4",
+            "materialTypeId": "1a54b431-2e4f-452d-9cae-9cee66c9a892",
+            "permanentLoanTypeId": "2b94c631-fca9-4892-a730-03ee529ffe27",
+            "status": {
+              "name": "Available"
+            }
+          }
+
+        ]
+      }
+    ]
+}
+  

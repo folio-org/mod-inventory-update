@@ -22,7 +22,7 @@ import io.vertx.core.logging.LoggerFactory;
  * Method 'planInventoryUpdates' is meant to create an in-memory representation of the records
  * to update with all mandatory fields and required identifiers (UUIDs) set. Once the planning
  * is run, the 'incomingSet' should contain records flagged as CREATING or UPDATING and
- * 'existingSet' should contain records flagged as DELETING if any.
+ * 'existingSet' should contain records flagged as DELETING, if any.
  *
  * Method 'updateInventory' is meant to run through 'incomingSet' and 'existingSet' and perform
  * updates as per the CREATING, UPDATING, and DELETING flags set in the planning phase -- in the

@@ -2,7 +2,6 @@ package org.folio.inventorymatch;
 
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -20,6 +19,7 @@ public class InventoryRecordSet {
     private Map<String,Item> itemsByHRID = new HashMap<String,Item>();
     private List<HoldingsRecord> allHoldingsRecords = new ArrayList<HoldingsRecord>();
     private List<Item> allItems = new ArrayList<Item>();
+    @SuppressWarnings("unused")
     private final Logger logger = LoggerFactory.getLogger("inventory-matcher");
 
     public InventoryRecordSet (JsonObject inventoryRecordSet) {
@@ -83,6 +83,14 @@ public class InventoryRecordSet {
             return "no instance - no UUID";
         } else {
             return getInstance().getUUID();
+        }
+    }
+
+    public String getInstitutionIdFromArbitraryHoldingsRecord (Map<String,String> institutionsMap) {
+        if (institutionsMap != null && !getHoldingsRecords().isEmpty()) {
+            return getHoldingsRecords().get(0).getInstitutionId(institutionsMap);
+        } else {
+            return "";
         }
     }
 
@@ -153,7 +161,8 @@ public class InventoryRecordSet {
         UNKNOWN,
         CREATING,
         UPDATING,
-        DELETING
+        DELETING,
+        NONE
     }
 
     public abstract class InventoryRecord {
@@ -318,6 +327,14 @@ public class InventoryRecordSet {
                 }
             }
             return null;
+        }
+
+        public String getPermanentLocationId () {
+            return jsonRecord.getString("permanentLocationId");
+        }
+
+        public String getInstitutionId (Map<String,String> institutionsMap) {
+            return institutionsMap.get(getPermanentLocationId());
         }
     }
 

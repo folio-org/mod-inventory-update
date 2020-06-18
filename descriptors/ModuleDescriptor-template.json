@@ -14,29 +14,6 @@
       ]
     },
     {
-      "id": "instance-storage-upsert-matchkey",
-      "version": "1.0",
-      "handlers": [
-        {
-          "methods": ["PUT"],
-          "pathPattern": "/instance-storage-upsert-matchkey",
-          "permissionsRequired": ["instance-storage-upsert-matchkey.instances.item.put"]
-        }
-      ]
-
-    },
-    {
-      "id": "instance-storage-upsert-hrid",
-      "version": "1.0",
-      "handlers": [
-        {
-          "methods": ["PUT"],
-          "pathPattern": "/instance-storage-upsert-hrid",
-          "permissionsRequired": ["instance-storage-upsert-hrid.instances.item.put"]
-        }
-      ]
-    },
-    {
       "id": "inventory-upsert-hrid",
       "version": "1.0",
       "handlers": [
@@ -73,16 +50,6 @@
       "description": "create or update instance in storage depending on matchkey already existing or not"
     },
     {
-      "permissionName": "instance-storage-upsert-matchkey.instances.item.put",
-      "displayName": "instance storage match on matchkey - create or update instance by matchkey",
-      "description": "create or update instance in storage depending on matchkey already existing or not"
-    },
-    {
-      "permissionName": "instance-storage-upsert-hrid.instances.item.put",
-      "displayName": "instance storage match on HRID - create or update instance by HRID",
-      "description": "create or update instance in storage depending on HRID existing or not"
-    },
-    {
       "permissionName": "inventory-upsert-hrid.item.put",
       "displayName": "Inventory upsert based on HRID - create or update existing records",
       "description": "Create or update instances, holdings and items based on the Instance HRID"
@@ -98,8 +65,6 @@
       "description": "Entire set of permissions needed to use the inventory match module",
       "subPermissions": [
         "instance-storage-match.instances.item.put",
-        "instance-storage-upsert-matchkey.instances.item.put", 
-        "instance-storage-upsert-hrid.instances.item.put",
         "inventory-upsert-hrid.item.put",
         "shared-inventory-upsert-matchkey.item.put"
       ]

@@ -33,7 +33,6 @@ public class UpdatePlanAllHRIDs extends UpdatePlan {
             if (lookup.succeeded()) {
                 // Plan instance update
                 flagAndIdTheInstance();
-
                 // Plan holdings/items updates
                 if (existingSet.getInstance() != null) {
                     flagAndIdUpdatesDeletesAndLocalMoves();

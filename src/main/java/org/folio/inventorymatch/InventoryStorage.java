@@ -22,6 +22,7 @@ public class InventoryStorage {
     private static final String INSTANCE_STORAGE_PATH = "/instance-storage/instances";
     private static final String HOLDINGS_STORAGE_PATH = "/holdings-storage/holdings";
     private static final String ITEM_STORAGE_PATH = "/item-storage/items";
+    private static final String LOCATIONS_STORAGE_PATH = "/locations";
 
     public static Future<JsonObject> postInstance (OkapiClient okapiClient, JsonObject newInstance) {
         Promise<JsonObject> promise = Promise.promise();
@@ -311,9 +312,21 @@ public class InventoryStorage {
           holdingsRecord.put("items",items);
           promise.complete(holdingsRecord);
         } else {
-          // TODO: fail
-          promise.complete(null);
-          logger.info("Oops - items lookup failed");
+          promise.fail("Error occurred when attempting to look up existing items");
+        }
+      });
+      return promise.future();
+    }
+
+    public static Future<JsonArray> getLocations(OkapiClient okapiClient)  {
+      Promise<JsonArray> promise = Promise.promise();
+      okapiClient.get(LOCATIONS_STORAGE_PATH + "?limit=9999", locs -> {
+        if (locs.succeeded()) {
+          JsonObject response = new JsonObject(locs.result());
+          JsonArray locationsJson = response.getJsonArray("locations");
+          promise.complete(locationsJson);
+        }  else {
+          promise.fail("An error occurred when attempting to retrieve locations from Inventory storage");
         }
       });
       return promise.future();

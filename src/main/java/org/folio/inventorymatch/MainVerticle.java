@@ -28,10 +28,7 @@ public class MainVerticle extends AbstractVerticle {
 
     Router router = Router.router(vertx);
     router.put("/*").handler(BodyHandler.create()); // Tell vertx we want the whole PUT body in the handler
-    // router.put(MatchService.INSTANCE_MATCH_PATH).handler(matchService::handleInstanceMatching); // deprecate
-
-    // router.put(MatchService.INSTANCE_UPSERT_MATCHKEY_PATH).handler(matchService::handleInstanceMatching);  // deprecate ?
-    // router.put(MatchService.INSTANCE_UPSERT_HRID_PATH).handler(matchService::handleInstanceUpsertByHrid); // deprecate ?
+    router.put(MatchService.INSTANCE_MATCH_PATH).handler(matchService::handleInstanceMatching); // old API
 
     router.put(MatchService.INVENTORY_UPSERT_HRID_PATH).handler(matchService::handleInventoryUpsertByHrid);
     router.put(MatchService.SHARED_INVENTORY_UPSERT_MATCHKEY_PATH).handler(matchService::handleSharedInventoryUpsertByMatchkey);

@@ -10,12 +10,9 @@ Instance or update (PUT) an existing Instance in Inventory Storage. By uploading
 can delegate that responsibility to Inventory Match.
 
 ## API
-Inventory Match exposes two end-points, which accept PUT requests with an [Instance JSON body](ramls/instance.json):
+Inventory Match exposes and end-point, which accept PUT requests with an [Instance JSON body](ramls/instance.json):
 
-* /instance-storage-upsert-matchkey/instances  -- matches based on combination of meta data in instance
-* /instance-storage-upsert-hrid/instances -- matches based on the HRID property of the instance
-
-(/instance-storage-match/instances is equivalent to /instance-storage-upsert-matchkey/instances and will be deprecated)
+* /instance-storage-match/instances  -- matches based on combination of meta data in instance
 
 ### Details of the matching mechanism using a match key
 Based on select properties of the incoming Instance, Inventory Match will construct a match key and query Inventory

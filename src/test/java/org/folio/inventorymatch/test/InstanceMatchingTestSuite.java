@@ -60,7 +60,6 @@ public class InstanceMatchingTestSuite {
     FakeInventoryStorageValidator.validateStorage(inventoryStorage, testContext);
   }
 
-  /*
   @Test
   public void testPushOfNewInstanceWillCreateNewInstanceForMatchKey (TestContext testContext) {
     RestAssured.port = FakeInventoryStorage.PORT_INVENTORY_STORAGE;
@@ -87,7 +86,7 @@ public class InstanceMatchingTestSuite {
             .body(instance.getJson().toString())
             .header("Content-type","application/json")
             .header(OKAPI_URL_HEADER)
-            .put(MatchService.INSTANCE_UPSERT_MATCHKEY_PATH)
+            .put(MatchService.INSTANCE_MATCH_PATH)
             .then()
             .log().ifValidationFails()
             .statusCode(200).extract().response();
@@ -138,7 +137,7 @@ public class InstanceMatchingTestSuite {
             .body(instance.getJson().toString())
             .header("Content-type","application/json")
             .header(OKAPI_URL_HEADER)
-            .put(MatchService.INSTANCE_UPSERT_MATCHKEY_PATH)
+            .put(MatchService.INSTANCE_MATCH_PATH)
             .then()
             .log().ifValidationFails()
             .statusCode(200).extract().response();
@@ -163,7 +162,7 @@ public class InstanceMatchingTestSuite {
 
   }
 
-  @Test
+  //@Test
   public void testPushOfNewInstanceWillCreateNewInstanceForHrid (TestContext testContext) {
     RestAssured.port = FakeInventoryStorage.PORT_INVENTORY_STORAGE;
     Instance instance = new Instance()
@@ -188,7 +187,7 @@ public class InstanceMatchingTestSuite {
             .body(instance.getJson().toString())
             .header("Content-type","application/json")
             .header(OKAPI_URL_HEADER)
-            .put(MatchService.INSTANCE_UPSERT_MATCHKEY_PATH)
+            .put(MatchService.INSTANCE_MATCH_PATH)
             .then()
             .log().ifValidationFails()
             .statusCode(200).extract().response();
@@ -239,7 +238,7 @@ public class InstanceMatchingTestSuite {
             .body(instance.getJson().toString())
             .header("Content-type","application/json")
             .header(OKAPI_URL_HEADER)
-            .put(MatchService.INSTANCE_UPSERT_HRID_PATH)
+            .put(MatchService.INSTANCE_MATCH_PATH)
             .then()
             .log().ifValidationFails()
             .statusCode(200).extract().response();
@@ -263,7 +262,7 @@ public class InstanceMatchingTestSuite {
         "Expected instanceTypeId to be '12345' after PUT");
 
   }
-*/
+
   @After
   public void tearDown(TestContext context) {
     Async async = context.async();

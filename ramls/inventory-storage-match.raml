@@ -32,26 +32,6 @@ traits:
         exampleItem: !include examples/instance.json
     put:
 
-/instance-storage-upsert-matchkey:
-  displayName: Instance create or update by matchKey
-  type:
-    collection:
-      exampleCollection: !include  examples/instances.json
-      schemaCollection: instances
-      schemaItem: instance
-      exampleItem: !include examples/instance.json
-  put:
-
-/instance-storage-upsert-hrid:
-  displayName: Instance create or update by HRID
-  type:
-    collection:
-      exampleCollection: !include  examples/instances.json
-      schemaCollection: instances
-      schemaItem: instance
-      exampleItem: !include examples/instance.json
-  put:
-
 /inventory-upsert-hrid:
   displayName: Create or update instance with holdings and items, based on instance HRID
   type:

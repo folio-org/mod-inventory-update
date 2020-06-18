@@ -1,4 +1,4 @@
-package org.folio.inventorymatch;
+package org.folio.inventoryupdate;
 
 import java.text.Normalizer;
 import java.util.Arrays;

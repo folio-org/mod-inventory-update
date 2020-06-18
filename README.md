@@ -10,7 +10,7 @@ Instance or update (PUT) an existing Instance in Inventory Storage. By uploading
 can delegate that responsibility to Inventory Match.
 
 ## API
-Inventory Match exposes and end-point, which accept PUT requests with an [Instance JSON body](ramls/instance.json):
+Inventory Match exposes an end-point, which accepts PUT requests with an [Instance JSON body](ramls/instance.json):
 
 * /instance-storage-match/instances  -- matches based on combination of meta data in instance
 

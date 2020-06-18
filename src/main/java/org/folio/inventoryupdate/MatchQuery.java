@@ -3,7 +3,7 @@
  * To change this template file, choose Tools | Templates
  * and open the template in the editor.
  */
-package org.folio.inventorymatch;
+package org.folio.inventoryupdate;
 
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;

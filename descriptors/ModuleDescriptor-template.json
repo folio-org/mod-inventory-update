@@ -1,6 +1,6 @@
 {
   "id": "${artifactId}-${version}",
-  "name": "Inventory Match Module",
+  "name": "Inventory Update",
   "provides": [
     {
       "id": "instance-storage-match",

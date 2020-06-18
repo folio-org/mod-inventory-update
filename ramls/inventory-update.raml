@@ -1,12 +1,12 @@
 #%RAML 1.0
-title: Inventory Storage Matcher
-version: v3.2
+title: Inventory Update
+version: v1.0
 protocols: [ HTTP, HTTPS ]
 baseUri: http://localhost
 
 documentation:
-  - title: Instance Storage Match API
-    content: <b>Matching instances in the inventory</b>
+  - title: Inventory update APIs
+    content: <b>Provides various schemes for creating, updating and deleting instances, holdings records and items in Inventory storage</b>
 
 types:
   instance: !include instance.json

@@ -1,4 +1,4 @@
-package org.folio.inventorymatch;
+package org.folio.inventoryupdate;
 
 import java.util.ArrayList;
 import java.util.List;

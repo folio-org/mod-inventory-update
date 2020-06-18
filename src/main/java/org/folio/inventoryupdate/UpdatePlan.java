@@ -1,12 +1,12 @@
-package org.folio.inventorymatch;
+package org.folio.inventoryupdate;
 
 import java.util.ArrayList;
 import java.util.List;
 
-import org.folio.inventorymatch.InventoryRecordSet.HoldingsRecord;
-import org.folio.inventorymatch.InventoryRecordSet.Instance;
-import org.folio.inventorymatch.InventoryRecordSet.Item;
-import org.folio.inventorymatch.InventoryRecordSet.Transition;
+import org.folio.inventoryupdate.InventoryRecordSet.HoldingsRecord;
+import org.folio.inventoryupdate.InventoryRecordSet.Instance;
+import org.folio.inventoryupdate.InventoryRecordSet.Item;
+import org.folio.inventoryupdate.InventoryRecordSet.Transition;
 import org.folio.okapi.common.OkapiClient;
 
 import io.vertx.core.CompositeFuture;

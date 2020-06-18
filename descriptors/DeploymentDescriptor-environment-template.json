@@ -1,9 +1,9 @@
 {
   "srvcId" : "${artifactId}-${version}",
   "descriptor" : {
-    "exec" : "java -jar ../mod-inventory-match/target/mod-inventory-match-fat.jar -Dhttp.port=%p",
+    "exec" : "java -jar ../mod-inventory-match/target/mod-inventory-update-fat.jar -Dhttp.port=%p",
     "env": [
-      { "name" : "db.username", "value" : "demo_mod_inventory_match_admin" },
+      { "name" : "db.username", "value" : "demo_mod_inventory_update_admin" },
       { "name" : "db.password", "value" : "admin" },
       { "name" : "db.database", "value" : "demo" }
     ]

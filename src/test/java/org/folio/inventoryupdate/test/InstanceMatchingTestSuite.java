@@ -1,8 +1,8 @@
-package org.folio.inventorymatch.test;
+package org.folio.inventoryupdate.test;
 
-import org.folio.inventorymatch.MainVerticle;
-import org.folio.inventorymatch.MatchKey;
-import org.folio.inventorymatch.MatchService;
+import org.folio.inventoryupdate.MainVerticle;
+import org.folio.inventoryupdate.MatchKey;
+import org.folio.inventoryupdate.MatchService;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;

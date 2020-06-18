@@ -1,4 +1,4 @@
-package org.folio.inventorymatch.test;
+package org.folio.inventoryupdate.test;
 
 import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
@@ -7,7 +7,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 
-import org.folio.inventorymatch.MatchKey;
+import org.folio.inventoryupdate.MatchKey;
 
 import io.vertx.core.Vertx;
 import io.vertx.core.http.HttpServerOptions;

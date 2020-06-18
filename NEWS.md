@@ -1,8 +1,7 @@
 ## 3.2.0
 
-* Provides interface `instance-storage-upsert-hrid` 1.0
-* Provides interface `instance-storage-upsert-matchkey` 1.0
-* Prepares for deprecation of interface `instance-storage-match`
+* Provides interface `inventory-upsert-hrid` 1.0
+* Provides interface `shared-inventory-upsert-matchkey` 1.0
 
 ## 3.1.0
 

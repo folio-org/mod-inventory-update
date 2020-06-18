@@ -1,4 +1,4 @@
-package org.folio.inventorymatch;
+package org.folio.inventoryupdate;
 
 public interface InventoryQuery {
     public String getQueryString();

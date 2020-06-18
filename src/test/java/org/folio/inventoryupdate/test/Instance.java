@@ -1,4 +1,4 @@
-package org.folio.inventorymatch.test;
+package org.folio.inventoryupdate.test;
 
 import io.vertx.core.json.JsonObject;
 

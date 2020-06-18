@@ -1,7 +1,17 @@
-## 3.2.0
+## 0.0.1
+
+* Initial version of `mod-inventory-update` based on (disconnected) clone of `mod-inventory-match` `v3.1.0`
 
 * Provides interface `inventory-upsert-hrid` 1.0
 * Provides interface `shared-inventory-upsert-matchkey` 1.0
+
+
+
+
+
+
+
+Just for reference, the history of `mod-inventory-match` up until the point of cloning.
 
 ## 3.1.0
 

@@ -8,7 +8,7 @@ Mod-inventory-update is an Okapi service that can be put in front of mod-invento
 ## API
 Inventory Update so far supports two different update schemes implemented by two different end-points, which both accepts PUT requests with a payload of an [Inventory Record Set JSON body](ramls/InventoryRecordSet.json). An inventory records set is a set of records including an Inventory Instance and an array of holdings records with embedded arrays of items
 
-* /inventory-upsert-hrid -- updates an Instance as well as its associated holdings and items based on incoming HRIDs on all three record types. If an instance with the incoming HRID does not exist in storage already, the new Instance is inserted - thus the term 'upsert'. This means that HRIDs are required to present from the client side on all record types. The API will detect if holdings and/or items have disappeared from the instance since last update and remove them. It will also detect if new holdings or items on the Instance existed already on a different Instance in storage and then move them over to the incoming Instance. The IDs (UUIDs) on any pre-existing Instances, holdings records and items will be preserved in this process, thus avoiding to break any external UUID based references to these records, except in the case of actual deletes of holdings/items.  
+* /inventory-upsert-hrid -- updates an Instance as well as its associated holdings and items based on incoming HRIDs on all three record types. If an instance with the incoming HRID does not exist in storage already, the new Instance is inserted - thus the term 'upsert'. This means that HRIDs are required to present from the client side on all record types. The API will detect if holdings and/or items have disappeared from the instance since last update and remove them. It will also detect if new holdings or items on the Instance existed already on a different Instance in storage and then move them over to the incoming Instance. The IDs (UUIDs) on any pre-existing Instances, holdings records and items will be preserved in this process, thus avoiding to break any external UUID based references to these records, except in the case of actual deletes of holdings/items.
 
 * /shared-inventory-upsert-matchkey -- insert or updates an Instance based on whether a Instance with the same matchkey as the incomining Instance exists in storage already. The matchkey is typically generated from a combination of metadata in the bibliographic record, and the API contains the logic for that, but its possible to provide the endpoint with Instances with readymade 'matchKey's and the end-point will then used those instead. This API will replace existing holdings and items on the Instance when updating the Instance. Clients using this end-point must in other words expect the UUIDs of previously existing holdings records and items to be lost on Instance update. The scheme updates a so called shared Inventory, that is, an Inventory shared by multiple institutions that have agreed on this matchkey mechanism to identify "same" Instances. The end-point will mark the shared Instance with an identifier for each Institution that contributed to the Instance. When updating an Instance from one of the institutions, the end-point will take care to only replace existing holdings records and items that came from that particular institution before.
 
@@ -25,15 +25,17 @@ Inventory Match will return the resulting Instance to the caller as a JSON strin
 
 ## Planned developments
 
-Both of the provided APIs are work in progress. Error handling, Inventory update feedback (counts and performance metrics), and unit testing is outstanding. 
+Both of the provided APIs are work in progress. Error handling, Inventory update feedback (counts and performance metrics), and unit testing is outstanding.
+
+They both need to have their different schemes for Instance deletes implemented.
 
 There is a legacay end-point for back-wards compatibility with the module that was the basis for this module (mod-inventory-match). This end-point will eventually be deprecated.
 
 * /instance-storage-match/instances  -- matches based on combination of meta data in instance
 
-More Inventory update schemes might be added, specifically an end-point that support Instance identification by matchKey _and_ holdings records and items identification by HRID for shared-inventory libraries that can provide such unique local identifiers for their records, for example: 
+More Inventory update schemes might be added, specifically an end-point that support Instance identification by matchKey _and_ holdings records and items identification by HRID for shared-inventory libraries that can provide such unique local identifiers for their records, for example:
 
-* /shared-inventory-upsert-matchkey-and-hrid 
+* /shared-inventory-upsert-matchkey-and-hrid
 
 
 ## Prerequisites

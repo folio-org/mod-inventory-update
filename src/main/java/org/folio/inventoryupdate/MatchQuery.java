@@ -18,7 +18,7 @@ import io.vertx.core.logging.LoggerFactory;
  */
 public class MatchQuery implements InventoryQuery {
 
-  private final Logger logger = LoggerFactory.getLogger("inventory-matcher-match-query");
+  private final Logger logger = LoggerFactory.getLogger("inventory-update-match-query");
   private final String matchKey;
   private final String queryString;
 

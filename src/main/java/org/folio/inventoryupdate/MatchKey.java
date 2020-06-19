@@ -15,7 +15,7 @@ import io.vertx.core.logging.LoggerFactory;
 
 public class MatchKey {
 
-  private final Logger logger = LoggerFactory.getLogger("inventory-matcher-match-key");
+  private final Logger logger = LoggerFactory.getLogger("inventory-update-match-key");
 
   private final JsonObject candidateInstance;
   private final String matchKey;

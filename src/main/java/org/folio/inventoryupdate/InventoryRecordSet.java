@@ -20,7 +20,7 @@ public class InventoryRecordSet {
     private List<HoldingsRecord> allHoldingsRecords = new ArrayList<HoldingsRecord>();
     private List<Item> allItems = new ArrayList<Item>();
     @SuppressWarnings("unused")
-    private final Logger logger = LoggerFactory.getLogger("inventory-matcher");
+    private final Logger logger = LoggerFactory.getLogger("inventory-update");
 
     public InventoryRecordSet (JsonObject inventoryRecordSet) {
         if (inventoryRecordSet != null) {

@@ -26,16 +26,10 @@ import io.vertx.ext.web.RoutingContext;
  * Instance and either updates or creates an Instance based on the results.
  *
  */
-public class MatchService {
-  private final Logger logger = LoggerFactory.getLogger("inventory-matcher");
+public class InventoryUpdateService {
+  private final Logger logger = LoggerFactory.getLogger("inventory-update");
 
-  public final static String INVENTORY_UPSERT_HRID_PATH = "/inventory-upsert-hrid";
-  public final static String SHARED_INVENTORY_UPSERT_MATCHKEY_PATH = "/shared-inventory-upsert-matchkey";
-
-  // Old API
   private static final String INSTANCE_STORAGE_PATH = "/instance-storage/instances";
-  public final static String INSTANCE_MATCH_PATH = "/instance-storage-match/instances"; 
-  // End of old API
   
   public void handleSharedInventoryUpsertByMatchkey (RoutingContext routingCtx) { 
     if (contentTypeIsJson(routingCtx)) {

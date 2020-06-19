@@ -18,7 +18,7 @@ import io.vertx.core.logging.LoggerFactory;
  * Static methods making low level HTTP request to create and update records in Inventory Storage.
  */
 public class InventoryStorage {
-    private static final Logger logger = LoggerFactory.getLogger("inventory-matcher");
+    private static final Logger logger = LoggerFactory.getLogger("inventory-update");
     private static final String INSTANCE_STORAGE_PATH = "/instance-storage/instances";
     private static final String HOLDINGS_STORAGE_PATH = "/holdings-storage/holdings";
     private static final String ITEM_STORAGE_PATH = "/item-storage/items";

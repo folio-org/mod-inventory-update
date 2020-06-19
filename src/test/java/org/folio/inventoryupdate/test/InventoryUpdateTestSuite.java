@@ -2,7 +2,6 @@ package org.folio.inventoryupdate.test;
 
 import org.folio.inventoryupdate.MainVerticle;
 import org.folio.inventoryupdate.MatchKey;
-import org.folio.inventoryupdate.MatchService;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -21,7 +20,7 @@ import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
 
 @RunWith(VertxUnitRunner.class)
-public class InstanceMatchingTestSuite {
+public class InventoryUpdateTestSuite {
 
   static {
     System.setProperty(LoggerFactory.LOGGER_DELEGATE_FACTORY_CLASS_NAME,
@@ -34,7 +33,7 @@ public class InstanceMatchingTestSuite {
 
   private FakeInventoryStorage inventoryStorage;
 
-  public InstanceMatchingTestSuite() {}
+  public InventoryUpdateTestSuite() {}
 
   @Before
   public void setUp(TestContext testContext) {
@@ -86,7 +85,7 @@ public class InstanceMatchingTestSuite {
             .body(instance.getJson().toString())
             .header("Content-type","application/json")
             .header(OKAPI_URL_HEADER)
-            .put(MatchService.INSTANCE_MATCH_PATH)
+            .put(MainVerticle.INSTANCE_MATCH_PATH)
             .then()
             .log().ifValidationFails()
             .statusCode(200).extract().response();
@@ -137,7 +136,7 @@ public class InstanceMatchingTestSuite {
             .body(instance.getJson().toString())
             .header("Content-type","application/json")
             .header(OKAPI_URL_HEADER)
-            .put(MatchService.INSTANCE_MATCH_PATH)
+            .put(MainVerticle.INSTANCE_MATCH_PATH)
             .then()
             .log().ifValidationFails()
             .statusCode(200).extract().response();
@@ -187,7 +186,7 @@ public class InstanceMatchingTestSuite {
             .body(instance.getJson().toString())
             .header("Content-type","application/json")
             .header(OKAPI_URL_HEADER)
-            .put(MatchService.INSTANCE_MATCH_PATH)
+            .put(MainVerticle.INSTANCE_MATCH_PATH)
             .then()
             .log().ifValidationFails()
             .statusCode(200).extract().response();
@@ -238,7 +237,7 @@ public class InstanceMatchingTestSuite {
             .body(instance.getJson().toString())
             .header("Content-type","application/json")
             .header(OKAPI_URL_HEADER)
-            .put(MatchService.INSTANCE_MATCH_PATH)
+            .put(MainVerticle.INSTANCE_MATCH_PATH)
             .then()
             .log().ifValidationFails()
             .statusCode(200).extract().response();

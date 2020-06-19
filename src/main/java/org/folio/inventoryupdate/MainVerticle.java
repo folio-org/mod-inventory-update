@@ -16,8 +16,15 @@ import io.vertx.ext.web.handler.BodyHandler;
 
 public class MainVerticle extends AbstractVerticle {
 
-  private final Logger logger = LoggerFactory.getLogger("inventory-matcher");
-  private final MatchService matchService = new MatchService();
+  public final static String INVENTORY_UPSERT_HRID_PATH = "/inventory-upsert-hrid";
+  public final static String SHARED_INVENTORY_UPSERT_MATCHKEY_PATH = "/shared-inventory-upsert-matchkey";
+
+  // Old API
+  public final static String INSTANCE_MATCH_PATH = "/instance-storage-match/instances";
+
+
+  private final Logger logger = LoggerFactory.getLogger("inventory-update");
+  private final InventoryUpdateService matchService = new InventoryUpdateService();
 
   @Override
   public void start(Future<Void> fut)  {
@@ -28,10 +35,10 @@ public class MainVerticle extends AbstractVerticle {
 
     Router router = Router.router(vertx);
     router.put("/*").handler(BodyHandler.create()); // Tell vertx we want the whole PUT body in the handler
-    router.put(MatchService.INSTANCE_MATCH_PATH).handler(matchService::handleInstanceMatching); // old API
+    router.put(INSTANCE_MATCH_PATH).handler(matchService::handleInstanceMatching); // old API
 
-    router.put(MatchService.INVENTORY_UPSERT_HRID_PATH).handler(matchService::handleInventoryUpsertByHrid);
-    router.put(MatchService.SHARED_INVENTORY_UPSERT_MATCHKEY_PATH).handler(matchService::handleSharedInventoryUpsertByMatchkey);
+    router.put(INVENTORY_UPSERT_HRID_PATH).handler(matchService::handleInventoryUpsertByHrid);
+    router.put(SHARED_INVENTORY_UPSERT_MATCHKEY_PATH).handler(matchService::handleSharedInventoryUpsertByMatchkey);
 
     vertx.createHttpServer()
       .requestHandler(router::accept)

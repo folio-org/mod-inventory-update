@@ -34,7 +34,7 @@ public abstract class UpdatePlan {
     protected InventoryRecordSet incomingSet;
     protected InventoryQuery instanceQuery;
     protected InventoryRecordSet existingSet = new InventoryRecordSet(null);
-    protected final Logger logger = LoggerFactory.getLogger("inventory-matcher");
+    protected final Logger logger = LoggerFactory.getLogger("inventory-update");
 
 
 

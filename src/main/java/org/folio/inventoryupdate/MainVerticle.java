@@ -22,14 +22,13 @@ public class MainVerticle extends AbstractVerticle {
   // Old API
   public final static String INSTANCE_MATCH_PATH = "/instance-storage-match/instances";
 
-
   private final Logger logger = LoggerFactory.getLogger("inventory-update");
   private final InventoryUpdateService matchService = new InventoryUpdateService();
 
   @Override
   public void start(Future<Void> fut)  {
     final int port = Integer.parseInt(System.getProperty("port", "8080"));
-    logger.info("Starting Inventory match service "
+    logger.info("Starting Inventory Update service "
       + ManagementFactory.getRuntimeMXBean().getName()
       + " on port " + port);
 

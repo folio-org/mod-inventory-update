@@ -9,7 +9,13 @@
         {
           "methods": ["PUT"],
           "pathPattern": "/instance-storage-match/instances",
-          "permissionsRequired": ["instance-storage-match.instances.item.put"]
+          "permissionsRequired": ["instance-storage-match.instances.item.put"],
+          "modulePermissions": [
+            "inventory-storage.instances.collection.get",
+            "inventory-storage.instances.item.get",
+            "inventory-storage.instances.item.post",
+            "inventory-storage.instances.item.put"
+          ]
         }
       ]
     },
@@ -20,7 +26,28 @@
         {
           "methods": ["PUT"],
           "pathPattern": "/inventory-upsert-hrid",
-          "permissionsRequired": ["inventory-upsert-hrid.item.put"]
+          "permissionsRequired": ["inventory-upsert-hrid.item.put"],
+          "modulePermissions": [
+            "inventory-storage.items.collection.get",
+            "inventory-storage.items.item.get",
+            "inventory-storage.items.item.post",
+            "inventory-storage.items.item.put",
+            "inventory-storage.items.item.delete",
+            "inventory-storage.holdings.collection.get",
+            "inventory-storage.holdings.item.get",
+            "inventory-storage.holdings.item.post",
+            "inventory-storage.holdings.item.put",
+            "inventory-storage.holdings.item.delete",
+            "inventory-storage.instances.collection.get",
+            "inventory-storage.instances.item.get",
+            "inventory-storage.instances.item.post",
+            "inventory-storage.instances.item.put",
+            "inventory-storage.instances.item.delete",
+            "inventory-storage.shelf-locations.collection.get",
+            "inventory-storage.shelf-locations.item.get",
+            "inventory-storage.locations.collection.get",
+            "inventory-storage.locations.item.get"
+          ]
         }
 
       ]
@@ -32,7 +59,28 @@
         {
           "methods": ["PUT"],
           "pathPattern": "/shared-inventory-upsert-matchkey",
-          "permissionsRequired": ["shared-inventory-upsert-matchkey.item.put"]
+          "permissionsRequired": ["shared-inventory-upsert-matchkey.item.put"],
+          "modulePermissions": [
+            "inventory-storage.items.collection.get",
+            "inventory-storage.items.item.get",
+            "inventory-storage.items.item.post",
+            "inventory-storage.items.item.put",
+            "inventory-storage.items.item.delete",
+            "inventory-storage.holdings.collection.get",
+            "inventory-storage.holdings.item.get",
+            "inventory-storage.holdings.item.post",
+            "inventory-storage.holdings.item.put",
+            "inventory-storage.holdings.item.delete",
+            "inventory-storage.instances.collection.get",
+            "inventory-storage.instances.item.get",
+            "inventory-storage.instances.item.post",
+            "inventory-storage.instances.item.put",
+            "inventory-storage.instances.item.delete",
+            "inventory-storage.shelf-locations.collection.get",
+            "inventory-storage.shelf-locations.item.get",
+            "inventory-storage.locations.collection.get",
+            "inventory-storage.locations.item.get"
+          ]
         }
       ]
     }
@@ -60,9 +108,19 @@
       "description": "Create or update instances, create or replace holdings and items, based on the Instance matchkey"
     },
     {
+      "permissionName": "inventory-update.all",
+      "displayName": "inventory Update module - all permissions",
+      "description": "Set of permissions required to use all APIs of the inventory update module",
+      "subPermissions": [
+        "instance-storage-match.instances.item.put",
+        "inventory-upsert-hrid.item.put",
+        "shared-inventory-upsert-matchkey.item.put"
+      ]
+    },
+    {
       "permissionName": "inventory-match.all",
-      "displayName": "inventory match module - all permissions",
-      "description": "Entire set of permissions needed to use the inventory match module",
+      "displayName": "inventory Update module - all permissions",
+      "description": "Permission set included for backwards compatibility only",
       "subPermissions": [
         "instance-storage-match.instances.item.put",
         "inventory-upsert-hrid.item.put",

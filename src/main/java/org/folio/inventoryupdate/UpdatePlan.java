@@ -188,6 +188,8 @@ public abstract class UpdatePlan {
                         promise.fail("Failed to create new holdings records");
                     }
                 });
+            } else {
+                promise.fail("There was an error trying to create an instance: " + handler.cause().getMessage());
             }
         });
         return promise.future();
@@ -290,7 +292,7 @@ public abstract class UpdatePlan {
                 if (handler.succeeded()) {
                     promise.complete();
                 } else {
-                    promise.fail("Failed to POST incoming instance");
+                    promise.fail("Failed to POST incoming instance: " + handler.cause().getMessage());
                 }
             });
         } else {

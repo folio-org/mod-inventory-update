@@ -76,7 +76,7 @@ public class InventoryUpdateService {
                         "Created this record set: " + updatePlan.getIncomingRecordSet().getSourceJson().encodePrettily());
             okapiClient.close();
           } else {
-            responseJson(routingCtx, 500).end("Error executing inventory update plan");
+            responseJson(routingCtx, 500).end("Error executing inventory update plan: " + updatesDone.cause().getMessage());
           }
         });  
       }  else {

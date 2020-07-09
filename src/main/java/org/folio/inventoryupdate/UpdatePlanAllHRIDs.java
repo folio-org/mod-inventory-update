@@ -100,12 +100,12 @@ public class UpdatePlanAllHRIDs extends UpdatePlan {
                           }
                       });
                   } else {
-                      promise.fail("Failed to process reference record(s) (instances,holdings): " + prerequisites.cause().getMessage());
+                      promise.fail("Failed to process referenced record(s) (instances,holdings): " + prerequisites.cause().getMessage());
                   }
               });
               /* end */
           } else {
-              promise.fail("Failed to create prerequisites");
+              promise.fail("Failed to create prerequisites (records with dependendants potentially): " + prerequisites.cause().getMessage());
           }
         });
         return promise.future();

@@ -9,6 +9,7 @@ import java.lang.management.ManagementFactory;
 
 import io.vertx.core.AbstractVerticle;
 import io.vertx.core.Future;
+import io.vertx.core.Promise;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.web.Router;
@@ -26,7 +27,7 @@ public class MainVerticle extends AbstractVerticle {
   private final InventoryUpdateService matchService = new InventoryUpdateService();
 
   @Override
-  public void start(Future<Void> fut)  {
+  public void start(Promise<Void> promise)  {
     final int port = Integer.parseInt(System.getProperty("port", "8080"));
     logger.info("Starting Inventory Update service "
       + ManagementFactory.getRuntimeMXBean().getName()
@@ -40,14 +41,14 @@ public class MainVerticle extends AbstractVerticle {
     router.put(SHARED_INVENTORY_UPSERT_MATCHKEY_PATH).handler(matchService::handleSharedInventoryUpsertByMatchkey);
 
     vertx.createHttpServer()
-      .requestHandler(router::accept)
+      .requestHandler(router)
       .listen(port, result -> {
         if (result.succeeded()) {
           logger.debug("Succeeded in starting the listener for Inventory match/upsert service");
-          fut.complete();
+          promise.complete();
         } else {
           logger.error("Inventory match/upsert service failed: " + result.cause().getMessage());
-          fut.fail(result.cause());
+          promise.fail(result.cause());
         }
       });
   }

@@ -105,7 +105,7 @@ public class UpdatePlanAllHRIDs extends UpdatePlan {
               });
               /* end */
           } else {
-              promise.fail("Failed to create prerequisites (records with dependendants potentially): " + prerequisites.cause().getMessage());
+              promise.fail("Failed to create prerequisites (records with possible dependants): " + prerequisites.cause().getMessage());
           }
         });
         return promise.future();

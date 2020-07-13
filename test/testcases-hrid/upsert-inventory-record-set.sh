@@ -13,6 +13,7 @@ curl -X PUT -D - \
   -H "X-Okapi-Token: $token" \
   -d @$file $protocol://$host/inventory-upsert-hrid
 
+echo 
 echo `date`
 echo
 

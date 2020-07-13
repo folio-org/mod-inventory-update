@@ -30,15 +30,15 @@ public class InventoryUpdateService {
   private final Logger logger = LoggerFactory.getLogger("inventory-update");
 
   private static final String INSTANCE_STORAGE_PATH = "/instance-storage/instances";
-  
-  public void handleSharedInventoryUpsertByMatchkey (RoutingContext routingCtx) { 
+
+  public void handleSharedInventoryUpsertByMatchkey (RoutingContext routingCtx) {
     if (contentTypeIsJson(routingCtx)) {
       JsonObject inventoryRecordSet = getIncomingInventoryRecordSet(routingCtx);
       InventoryRecordSet incomingSet = new InventoryRecordSet(inventoryRecordSet);
-      MatchKey matchKey = new MatchKey(incomingSet.getInstance().getJson());
+      MatchKey matchKey = new MatchKey(incomingSet.getInstance().asJson());
       InventoryQuery instanceByMatchKeyQuery = new MatchQuery(matchKey.getKey());
-      incomingSet.getInstance().getJson().put("matchKey", matchKey.getKey());
-      incomingSet.getInstance().getJson().put("indexTitle", matchKey.getKey());
+      incomingSet.getInstance().asJson().put("matchKey", matchKey.getKey());
+      incomingSet.getInstance().asJson().put("indexTitle", matchKey.getKey());
 
       UpdatePlan updatePlan = new UpdatePlanSharedInventory(incomingSet, instanceByMatchKeyQuery);
       runPlan(updatePlan, routingCtx);
@@ -59,7 +59,7 @@ public class InventoryUpdateService {
 
   private void runPlan(UpdatePlan updatePlan, RoutingContext routingCtx) {
 
-    OkapiClient okapiClient = getOkapiClient(routingCtx); 
+    OkapiClient okapiClient = getOkapiClient(routingCtx);
 
     Future<Void> planCreated = updatePlan.planInventoryUpdates(okapiClient);
     planCreated.onComplete( planDone -> {
@@ -67,18 +67,22 @@ public class InventoryUpdateService {
         updatePlan.writePlanToLog();
         Future<Void> planExecuted = updatePlan.doInventoryUpdates(okapiClient);
         planExecuted.onComplete( updatesDone -> {
+          JsonObject pushedRecordSetWithStats = updatePlan.getPostedRecordSet();
+          pushedRecordSetWithStats.put("metrics", updatePlan.getUpdateStats());
           if (updatesDone.succeeded()) {
-            responseJson(routingCtx, 200).end(
+            responseJson(routingCtx, 200).end(pushedRecordSetWithStats.encodePrettily());
+              /*
               updatePlan.isInstanceUpdating() ?
                         "Updated this record set: " + updatePlan.getExistingRecordSet().getSourceJson().encodePrettily()
                         +  " with this record set: " + updatePlan.getIncomingRecordSet().getSourceJson().encodePrettily()
                         :
                         "Created this record set: " + updatePlan.getIncomingRecordSet().getSourceJson().encodePrettily());
+                        */
             okapiClient.close();
           } else {
-            responseJson(routingCtx, 500).end("Error executing inventory update plan: " + updatesDone.cause().getMessage());
+            responseJson(routingCtx, okapiClient.getStatusCode()).end(pushedRecordSetWithStats.encodePrettily());
           }
-        });  
+        });
       }  else {
         responseJson(routingCtx, 500).end("Error creating inventory update plan");
       }
@@ -114,11 +118,12 @@ public class InventoryUpdateService {
     return client;
   }
 
-  /* 
+
+  /*
      =================
      Old API and supporting methods
-     ================= 
-  */ 
+     =================
+  */
 
   /**
    * Main flow of Instance matching and creating/updating.

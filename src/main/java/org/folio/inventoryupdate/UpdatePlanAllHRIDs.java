@@ -3,10 +3,10 @@ package org.folio.inventoryupdate;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.folio.inventoryupdate.InventoryRecordSet.HoldingsRecord;
-import org.folio.inventoryupdate.InventoryRecordSet.InventoryRecord;
-import org.folio.inventoryupdate.InventoryRecordSet.Item;
-import org.folio.inventoryupdate.InventoryRecordSet.Transition;
+import org.folio.inventoryupdate.entities.HoldingsRecord;
+import org.folio.inventoryupdate.entities.InventoryRecord;
+import org.folio.inventoryupdate.entities.Item;
+import org.folio.inventoryupdate.entities.InventoryRecord.Transaction;
 import org.folio.okapi.common.OkapiClient;
 
 import io.vertx.core.CompositeFuture;
@@ -44,7 +44,7 @@ public class UpdatePlanAllHRIDs extends UpdatePlan {
                 });
 
             }
-        });     
+        });
         return promisedPlan.future();
     }
 
@@ -54,36 +54,12 @@ public class UpdatePlanAllHRIDs extends UpdatePlan {
         promisedPrerequisites.onComplete(prerequisites -> {
           if (prerequisites.succeeded()) {
               logger.debug("Successfully created records referenced by other records if any");
-  
-              // this has issues for updating holdings and items concurrently
-              /*
-              @SuppressWarnings("rawtypes")
-              List<Future> testFutures = new ArrayList<Future>();
-              testFutures.add(handleInstanceAndHoldingsUpdatesIfAny(okapiClient));
-              testFutures.add(handleItemUpdatesAndCreatesIfAny(okapiClient));
-              CompositeFuture.all(testFutures).onComplete(composite -> {
-                  if (composite.succeeded()) {
-                      Future<Void> promisedDeletes = handleDeletionsIfAny(okapiClient);
-                      promisedDeletes.onComplete(deletes -> {
-                          if (deletes.succeeded()) {
-                              logger.debug("Successfully processed deletions if any.");
-                              promise.complete();
-                          } else {
-                              promise.fail("There was a problem processing deletes " + deletes.cause().getMessage());
-                          }
-                      });
-                  } else {
-                      promise.fail("Failed to successfully process instance, holdings, item updates: " + composite.cause().getMessage());
-                  }
-              });
-              */
-  
-              /* This works by updating holdings and items non-concurrently */
+
               Future<Void> promisedInstanceAndHoldingsUpdates = handleInstanceAndHoldingsUpdatesIfAny(okapiClient);
               promisedInstanceAndHoldingsUpdates.onComplete( instanceAndHoldingsUpdates -> {
                   if (instanceAndHoldingsUpdates.succeeded()) {
                       logger.debug("Successfully processed instance and holdings updates if any");
-                      Future<Void> promisedItemUpdates = handleItemUpdatesAndCreatesIfAny (okapiClient);
+                      Future<JsonObject> promisedItemUpdates = handleItemUpdatesAndCreatesIfAny (okapiClient);
                       promisedItemUpdates.onComplete(itemUpdatesAndCreates -> {
                           if (itemUpdatesAndCreates.succeeded()) {
                               Future<Void> promisedDeletes = handleDeletionsIfAny(okapiClient);
@@ -125,30 +101,30 @@ public class UpdatePlanAllHRIDs extends UpdatePlan {
             HoldingsRecord incomingHoldingsRecord = getIncomingInstance().getHoldingsRecordByHRID(existingHoldingsRecord.getHRID());
             // HoldingsRecord gone, mark for deletion and check for existing items to delete with it
             if (incomingHoldingsRecord == null) {
-                existingHoldingsRecord.setTransition(Transition.DELETING);
+                existingHoldingsRecord.setTransition(Transaction.DELETE);
                 for (Item existingItem : existingHoldingsRecord.getItems()) {
                     Item incomingItem = incomingSet.getItemByHRID(existingItem.getHRID());
                     if (incomingItem == null) {
-                        existingItem.setTransition(Transition.DELETING);
+                        existingItem.setTransition(Transaction.DELETE);
                     } else {
                         // Item appear to be moved to another holdings record in the instance
-                        incomingItem.setUUID(existingItem.getUUID());
-                        incomingItem.setTransition(Transition.UPDATING);
+                        incomingItem.setUUID(existingItem.UUID());
+                        incomingItem.setTransition(Transaction.UPDATE);
                     }
                 }
             } else {
                 // There is an existing holdings record with the same HRID, on the same Instance
-                incomingHoldingsRecord.setUUID(existingHoldingsRecord.getUUID());
-                incomingHoldingsRecord.setTransition(Transition.UPDATING);
+                incomingHoldingsRecord.setUUID(existingHoldingsRecord.UUID());
+                incomingHoldingsRecord.setTransition(Transaction.UPDATE);
                 for (Item existingItem : existingHoldingsRecord.getItems()) {
                     Item incomingItem = incomingSet.getItemByHRID(existingItem.getHRID());
                     if (incomingItem == null) {
                         // The item is gone from the instance
-                        existingItem.setTransition(Transition.DELETING);
+                        existingItem.setTransition(Transaction.DELETE);
                     } else {
                         // There is an incoming item with the same HRID somewhere in the instance
-                        incomingItem.setUUID(existingItem.getUUID());
-                        incomingItem.setTransition(Transition.UPDATING);
+                        incomingItem.setUUID(existingItem.UUID());
+                        incomingItem.setTransition(Transaction.UPDATE);
                     }
                 }
             }
@@ -182,11 +158,11 @@ public class UpdatePlanAllHRIDs extends UpdatePlan {
     public CompositeFuture flagAndIdNewRecordsAndImports(OkapiClient okapiClient) {
         @SuppressWarnings("rawtypes")
         List<Future> recordFutures = new ArrayList<Future>();
-        List<HoldingsRecord> holdingsRecords = incomingSet.getHoldingsRecordsByTransitionType(Transition.UNKNOWN);
+        List<HoldingsRecord> holdingsRecords = incomingSet.getHoldingsRecordsByTransitionType(Transaction.UNKNOWN);
         for (HoldingsRecord record : holdingsRecords) {
             recordFutures.add(flagAndIdHoldingsByStorageLookup(okapiClient, record));
         }
-        List<Item> items = incomingSet.getItemsByTransitionType(Transition.UNKNOWN);
+        List<Item> items = incomingSet.getItemsByTransitionType(Transaction.UNKNOWN);
         for (Item item : items) {
             recordFutures.add(flagAndIdItemsByStorageLookup(okapiClient, item));
         }
@@ -208,11 +184,11 @@ public class UpdatePlanAllHRIDs extends UpdatePlan {
             if (result.succeeded()) {
                 if (result.result() == null) {
                     record.generateUUID();
-                    record.setTransition(Transition.CREATING);
+                    record.setTransition(Transaction.CREATE);
                 } else {
                     String existingHoldingsRecordId = result.result().getString("id");
                     record.setUUID(existingHoldingsRecordId);
-                    record.setTransition(Transition.UPDATING);
+                    record.setTransition(Transaction.UPDATE);
                 }
                 promise.complete();
             } else {
@@ -237,11 +213,11 @@ public class UpdatePlanAllHRIDs extends UpdatePlan {
             if (result.succeeded()) {
                 if (result.result() == null) {
                     record.generateUUID();
-                    record.setTransition(Transition.CREATING);
+                    record.setTransition(Transaction.CREATE);
                 } else {
                     String existingItemId = result.result().getString("id");
                     record.setUUID(existingItemId);
-                    record.setTransition(Transition.UPDATING);
+                    record.setTransition(Transaction.UPDATE);
                 }
                 promise.complete();
             } else {
@@ -253,6 +229,6 @@ public class UpdatePlanAllHRIDs extends UpdatePlan {
 
     /* END OF PLANNING METHODS */
 
- 
+
 
 }

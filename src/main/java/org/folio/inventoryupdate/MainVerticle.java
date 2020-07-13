@@ -8,7 +8,6 @@ package org.folio.inventoryupdate;
 import java.lang.management.ManagementFactory;
 
 import io.vertx.core.AbstractVerticle;
-import io.vertx.core.Future;
 import io.vertx.core.Promise;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;

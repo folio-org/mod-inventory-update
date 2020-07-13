@@ -4,9 +4,9 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 
-import org.folio.inventoryupdate.InventoryRecordSet.HoldingsRecord;
-import org.folio.inventoryupdate.InventoryRecordSet.Item;
-import org.folio.inventoryupdate.InventoryRecordSet.Transition;
+import org.folio.inventoryupdate.entities.HoldingsRecord;
+import org.folio.inventoryupdate.entities.Item;
+import org.folio.inventoryupdate.entities.InventoryRecord.Transaction;
 import org.folio.okapi.common.OkapiClient;
 
 import io.vertx.core.Future;
@@ -32,7 +32,7 @@ public class UpdatePlanSharedInventory extends UpdatePlan {
                 JsonObject existingInventoryRecordSetJson = recordSet.result();
                 this.existingSet = new InventoryRecordSet(existingInventoryRecordSetJson);
                 if (existingInventoryRecordSetJson != null) {
-                    JsonObject mergedInstance = mergeInstances(getExistingInstance().getJson(), getIncomingInstance().getJson());
+                    JsonObject mergedInstance = mergeInstances(getExistingInstance().asJson(), getIncomingInstance().asJson());
                     getIncomingRecordSet().updateInstance(mergedInstance);
                 }
                 Future<Void> locationsMapReady = mapLocationsToInstitutions(okapiClient);
@@ -145,17 +145,17 @@ public class UpdatePlanSharedInventory extends UpdatePlan {
 
     private void flagExistingHoldingsAndItemsForDeletion () {
         for (HoldingsRecord existingHoldingsRecord : existingSet.getHoldingsRecords()) {
-            if (existingHoldingsRecord.getInstitutionId(locationsToInstitutionsMap) != null 
+            if (existingHoldingsRecord.getInstitutionId(locationsToInstitutionsMap) != null
                 && existingHoldingsRecord.getInstitutionId(locationsToInstitutionsMap)
                   .equals(incomingSet.getInstitutionIdFromArbitraryHoldingsRecord(locationsToInstitutionsMap))) {
-                existingHoldingsRecord.setTransition(Transition.DELETING);
+                existingHoldingsRecord.setTransition(Transaction.DELETE);
                 for (Item item : existingHoldingsRecord.getItems()) {
-                    item.setTransition(Transition.DELETING);
+                    item.setTransition(Transaction.DELETE);
                 }
             } else {
-                existingHoldingsRecord.setTransition(Transition.NONE);
+                existingHoldingsRecord.setTransition(Transaction.NONE);
                 for (Item item : existingHoldingsRecord.getItems()) {
-                    item.setTransition(Transition.NONE);
+                    item.setTransition(Transaction.NONE);
                 }
             }
         }
@@ -165,10 +165,10 @@ public class UpdatePlanSharedInventory extends UpdatePlan {
         logger.info("Got " + incomingSet.getHoldingsRecords().size() + " incoming holdings records. Instance's ID is currently " + incomingSet.getInstanceUUID());
         for (HoldingsRecord holdingsRecord : incomingSet.getHoldingsRecords()) {
             holdingsRecord.generateUUID();
-            holdingsRecord.setTransition(Transition.CREATING);
+            holdingsRecord.setTransition(Transaction.CREATE);
             for (Item item : holdingsRecord.getItems()) {
                 item.generateUUID();
-                item.setTransition(Transition.CREATING);
+                item.setTransition(Transaction.CREATE);
             }
         }
     }
@@ -186,7 +186,7 @@ public class UpdatePlanSharedInventory extends UpdatePlan {
                         promisedInstanceAndHoldingsUpdates.onComplete( instanceAndHoldingsUpdates -> {
                             if (instanceAndHoldingsUpdates.succeeded()) {
                                 logger.debug("Successfully processed instance and holdings updates if any");
-                                Future<Void> promisedItemUpdates = handleItemUpdatesAndCreatesIfAny (okapiClient);
+                                Future<JsonObject> promisedItemUpdates = handleItemUpdatesAndCreatesIfAny (okapiClient);
                                 promisedItemUpdates.onComplete(itemUpdatesAndCreates -> {
                                     if (itemUpdatesAndCreates.succeeded()) {
                                         promise.complete();

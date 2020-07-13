@@ -237,7 +237,7 @@ public abstract class UpdatePlan {
         }
         CompositeFuture.join(itemFutures).onComplete ( allItemsDone -> {
             if (allItemsDone.succeeded()) {
-                promise.complete(allItemsDone.result().resultAt(0));
+                promise.complete(new JsonObject());
             } else {
                 promise.fail("There was an error updating/creating items: " + allItemsDone.cause().getMessage());
             }

@@ -181,30 +181,20 @@ public class UpdatePlanSharedInventory extends UpdatePlan {
             if (deletes.succeeded()) {
                 Future<Void> promisedPrerequisites = createRecordsWithDependants(okapiClient);
                 promisedPrerequisites.onComplete(prerequisites -> {
-                    if (prerequisites.succeeded()) {
-                        Future<Void> promisedInstanceAndHoldingsUpdates = handleInstanceAndHoldingsUpdatesIfAny(okapiClient);
-                        promisedInstanceAndHoldingsUpdates.onComplete( instanceAndHoldingsUpdates -> {
-                            if (instanceAndHoldingsUpdates.succeeded()) {
-                                logger.debug("Successfully processed instance and holdings updates if any");
-                                Future<JsonObject> promisedItemUpdates = handleItemUpdatesAndCreatesIfAny (okapiClient);
-                                promisedItemUpdates.onComplete(itemUpdatesAndCreates -> {
-                                    if (itemUpdatesAndCreates.succeeded()) {
-                                        promise.complete();
-                                    } else {
-                                        promise.fail("Error updating items: " + itemUpdatesAndCreates.cause().getMessage());
-                                    }
-                                });
+                    Future<Void> promisedInstanceAndHoldingsUpdates = handleInstanceAndHoldingsUpdatesIfAny(okapiClient);
+                    promisedInstanceAndHoldingsUpdates.onComplete( instanceAndHoldingsUpdates -> {
+                        Future<JsonObject> promisedItemUpdates = handleItemUpdatesAndCreatesIfAny (okapiClient);
+                        promisedItemUpdates.onComplete(itemUpdatesAndCreates -> {
+                            if (prerequisites.succeeded() && instanceAndHoldingsUpdates.succeeded() && itemUpdatesAndCreates.succeeded() ) {
+                                promise.complete();
                             } else {
-                                promise.fail("Failed to process reference record(s) (instances,holdings): " + prerequisites.cause().getMessage());
+                                promise.fail("One or more errors occurred updating Inventory records");
                             }
                         });
-                        logger.debug("Successfully created records referenced by other records if any");
-                    } else {
-                        promise.fail("There was an error while attempting to create instance and/or holdings");
-                    }
+                    });
                 });
             } else {
-                promise.fail("There was a problem processing deletes " + deletes.cause().getMessage());
+                promise.fail("There was a problem processing deletes - all other updates skipped." );
             }
         });
         return promise.future();

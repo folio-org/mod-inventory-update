@@ -80,7 +80,7 @@ public class InventoryRecordSet {
         recordSetJson.put("instance", getInstance().asJson());
         JsonArray holdingsAndItemsArray = new JsonArray();
         for (HoldingsRecord holdingsRecord : getHoldingsRecords()) {
-            JsonObject holdingsRecordJson = holdingsRecord.asJson();
+            JsonObject holdingsRecordJson = new JsonObject(holdingsRecord.asJsonString());
             JsonArray itemsArray = new JsonArray();
             for (Item item : holdingsRecord.getItems()) {
                 itemsArray.add(item.asJson());
@@ -136,20 +136,20 @@ public class InventoryRecordSet {
         return itemsByHRID;
     }
 
-    public List<Item> getItemsByTransitionType (Transaction transition) {
+    public List<Item> getItemsByTransactionType (Transaction transition) {
         List<Item> records = new ArrayList<Item>();
         for (Item record : getItems()) {
-            if (record.getTransaction() == transition) {
+            if (record.getTransaction() == transition && ! record.skipped()) {
                 records.add(record);
             }
         }
         return records;
     }
 
-    public List<HoldingsRecord> getHoldingsRecordsByTransitionType (Transaction transition) {
+    public List<HoldingsRecord> getHoldingsRecordsByTransactionType (Transaction transition) {
         List<HoldingsRecord> records = new ArrayList<HoldingsRecord>();
         for (HoldingsRecord record : getHoldingsRecords()) {
-            if (record.getTransaction() == transition) {
+            if (record.getTransaction() == transition && ! record.skipped()) {
                 records.add(record);
             }
         }
@@ -165,13 +165,34 @@ public class InventoryRecordSet {
         return allItems;
     }
 
-    public void skipHoldingsAndItems () {
-        for (InventoryRecord record : getHoldingsRecords()) {
-            record.skip();
+    public boolean hasErrors () {
+        if (getInstance().failed())
+            return true;
+        for (InventoryRecord record : allItems)
+            if (record.failed())
+                return true;
+        for (InventoryRecord record : allHoldingsRecords)
+            if (record.failed())
+                return true;
+        return false;
+    }
+
+    public JsonArray getErrors () {
+        JsonArray errors = new JsonArray();
+        if (getInstance().failed()) {
+            errors.add(getInstance().getError());
         }
-        for (InventoryRecord record : getItems()) {
-            record.skip();
+        for (HoldingsRecord holdingsRecord : allHoldingsRecords) {
+            if (holdingsRecord.failed()) {
+                errors.add(holdingsRecord.getError());
+            }
         }
+        for (Item item : allItems) {
+            if (item.failed()) {
+                errors.add(item.getError());
+            }
+        }
+        return errors;
     }
 
     /**

@@ -58,4 +58,11 @@ public class Instance extends InventoryRecord {
         return null;
     }
 
+    public void skipDependants () {
+       for (HoldingsRecord rec : holdingsRecords) {
+           rec.skip();
+           rec.skipDependants();
+       }
+    }
+
 }

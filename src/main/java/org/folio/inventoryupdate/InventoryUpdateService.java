@@ -71,16 +71,10 @@ public class InventoryUpdateService {
           pushedRecordSetWithStats.put("metrics", updatePlan.getUpdateStats());
           if (updatesDone.succeeded()) {
             responseJson(routingCtx, 200).end(pushedRecordSetWithStats.encodePrettily());
-              /*
-              updatePlan.isInstanceUpdating() ?
-                        "Updated this record set: " + updatePlan.getExistingRecordSet().getSourceJson().encodePrettily()
-                        +  " with this record set: " + updatePlan.getIncomingRecordSet().getSourceJson().encodePrettily()
-                        :
-                        "Created this record set: " + updatePlan.getIncomingRecordSet().getSourceJson().encodePrettily());
-                        */
             okapiClient.close();
           } else {
-            responseJson(routingCtx, okapiClient.getStatusCode()).end(pushedRecordSetWithStats.encodePrettily());
+            pushedRecordSetWithStats.put("errors", updatePlan.getErrors());
+            responseJson(routingCtx, 422).end(pushedRecordSetWithStats.encodePrettily());
           }
         });
       }  else {

@@ -52,40 +52,31 @@ public class UpdatePlanAllHRIDs extends UpdatePlan {
         Promise<Void> promise = Promise.promise();
         Future<Void> promisedPrerequisites = createRecordsWithDependants(okapiClient);
         promisedPrerequisites.onComplete(prerequisites -> {
-          if (prerequisites.succeeded()) {
-              logger.debug("Successfully created records referenced by other records if any");
+            logger.debug("Successfully created records referenced by other records if any");
 
-              Future<Void> promisedInstanceAndHoldingsUpdates = handleInstanceAndHoldingsUpdatesIfAny(okapiClient);
-              promisedInstanceAndHoldingsUpdates.onComplete( instanceAndHoldingsUpdates -> {
-                  if (instanceAndHoldingsUpdates.succeeded()) {
-                      logger.debug("Successfully processed instance and holdings updates if any");
-                      Future<JsonObject> promisedItemUpdates = handleItemUpdatesAndCreatesIfAny (okapiClient);
-                      promisedItemUpdates.onComplete(itemUpdatesAndCreates -> {
-                          if (itemUpdatesAndCreates.succeeded()) {
-                              Future<Void> promisedDeletes = handleDeletionsIfAny(okapiClient);
-                              promisedDeletes.onComplete(deletes -> {
-                                  if (deletes.succeeded()) {
-                                      logger.debug("Successfully processed deletions if any.");
-                                      promise.complete();
-                                  } else {
-                                      promise.fail("There was a problem processing deletes " + deletes.cause().getMessage());
-                                  }
-                              });
-                          } else {
-                              promise.fail("Error updating items: " + itemUpdatesAndCreates.cause().getMessage());
-                          }
-                      });
-                  } else {
-                      promise.fail("Failed to process referenced record(s) (instances,holdings): " + prerequisites.cause().getMessage());
-                  }
-              });
-              /* end */
-          } else {
-              promise.fail("Failed to create prerequisites (records with possible dependants): " + prerequisites.cause().getMessage());
-          }
+            Future<Void> promisedInstanceAndHoldingsUpdates = handleInstanceAndHoldingsUpdatesIfAny(okapiClient);
+            promisedInstanceAndHoldingsUpdates.onComplete( instanceAndHoldingsUpdates -> {
+                Future<JsonObject> promisedItemUpdates = handleItemUpdatesAndCreatesIfAny (okapiClient);
+                promisedItemUpdates.onComplete(itemUpdatesAndCreates -> {
+                    if (prerequisites.succeeded() && instanceAndHoldingsUpdates.succeeded() && itemUpdatesAndCreates.succeeded()) {
+                        logger.debug("Successfully processed record create requests if any");
+                        Future<Void> promisedDeletes = handleDeletionsIfAny(okapiClient);
+                        promisedDeletes.onComplete(deletes -> {
+                            if (deletes.succeeded()) {
+                                promise.complete();
+                            } else {
+                                promise.fail("There was a problem processing Inventory updates ");
+                            }
+                        });
+                    } else {
+                        promise.fail("There was a problem creating records, no deletes performed if any requested.");
+                    }
+                });
+
+            });
         });
         return promise.future();
-      }
+    }
 
     /* PLANNING METHODS */
 
@@ -158,11 +149,11 @@ public class UpdatePlanAllHRIDs extends UpdatePlan {
     public CompositeFuture flagAndIdNewRecordsAndImports(OkapiClient okapiClient) {
         @SuppressWarnings("rawtypes")
         List<Future> recordFutures = new ArrayList<Future>();
-        List<HoldingsRecord> holdingsRecords = incomingSet.getHoldingsRecordsByTransitionType(Transaction.UNKNOWN);
+        List<HoldingsRecord> holdingsRecords = incomingSet.getHoldingsRecordsByTransactionType(Transaction.UNKNOWN);
         for (HoldingsRecord record : holdingsRecords) {
             recordFutures.add(flagAndIdHoldingsByStorageLookup(okapiClient, record));
         }
-        List<Item> items = incomingSet.getItemsByTransitionType(Transaction.UNKNOWN);
+        List<Item> items = incomingSet.getItemsByTransactionType(Transaction.UNKNOWN);
         for (Item item : items) {
             recordFutures.add(flagAndIdItemsByStorageLookup(okapiClient, item));
         }

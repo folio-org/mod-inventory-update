@@ -21,4 +21,8 @@ public class Item extends InventoryRecord {
         jsonRecord.put("holdingsRecordId", uuid);
     }
 
+    public void skipDependants() {
+        // has none
+    }
+
 }

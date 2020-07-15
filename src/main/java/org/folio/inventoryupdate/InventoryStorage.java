@@ -39,7 +39,9 @@ public class InventoryStorage {
         promise.complete(responseJson);
       } else {
         record.fail();
-        failure(postResult.cause(), record.entityType(), record.getTransaction(), okapiClient.getStatusCode(), promise);
+        record.skipDependants();
+        record.logError(postResult.cause().getMessage(), okapiClient.getStatusCode());
+        promise.fail(record.getError().encodePrettily());
       }
     });
     return promise.future();
@@ -54,7 +56,8 @@ public class InventoryStorage {
         promise.complete(record.asJson());
       } else {
         record.fail();
-        failure(putResult.cause(), record.entityType(), record.getTransaction(), okapiClient.getStatusCode(), promise);
+        record.logError(putResult.cause().getMessage(), okapiClient.getStatusCode());
+        promise.fail(record.getError().encodePrettily());
       }
     });
     return promise.future();
@@ -68,7 +71,8 @@ public class InventoryStorage {
         promise.complete();
       } else {
         record.fail();
-        failure(deleteResult.cause(), record.entityType(), record.getTransaction(), okapiClient.getStatusCode(), promise);
+        record.logError(deleteResult.cause().getMessage(), okapiClient.getStatusCode());
+        promise.fail(record.getError().encodePrettily());
       }
     });
     return promise.future();
@@ -251,7 +255,8 @@ public class InventoryStorage {
   }
 
   private static <T> void failure(Throwable cause, Entity entityType, Transaction transaction, int httpStatusCode, Promise<T> promise, String contextNote) {
-    JsonObject errorMessage = new JsonObject(cause.getMessage());
+    JsonObject errorMessage = new JsonObject();
+    errorMessage.put("message", cause.getMessage());
     errorMessage.put("entity-type",entityType);
     errorMessage.put("operation", transaction);
     errorMessage.put("http-status-code", httpStatusCode);

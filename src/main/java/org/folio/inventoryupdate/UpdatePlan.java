@@ -15,6 +15,7 @@ import org.folio.okapi.common.OkapiClient;
 import io.vertx.core.CompositeFuture;
 import io.vertx.core.Future;
 import io.vertx.core.Promise;
+import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
@@ -99,18 +100,18 @@ public abstract class UpdatePlan {
     }
 
     public List<Item> itemsToDelete () {
-        return existingSet.getItemsByTransitionType(Transaction.DELETE);
+        return existingSet.getItemsByTransactionType(Transaction.DELETE);
     }
 
     public List<HoldingsRecord> holdingsToDelete () {
-        return existingSet.getHoldingsRecordsByTransitionType(Transaction.DELETE);
+        return existingSet.getHoldingsRecordsByTransactionType(Transaction.DELETE);
     }
 
     public boolean hasHoldingsToCreate () {
         return holdingsToCreate().size()>0;
     }
     public List<HoldingsRecord> holdingsToCreate () {
-        return incomingSet.getHoldingsRecordsByTransitionType(Transaction.CREATE);
+        return incomingSet.getHoldingsRecordsByTransactionType(Transaction.CREATE);
     }
 
     public boolean hasItemsToCreate () {
@@ -118,15 +119,15 @@ public abstract class UpdatePlan {
     }
 
     public List<Item> itemsToCreate () {
-        return incomingSet.getItemsByTransitionType(Transaction.CREATE);
+        return incomingSet.getItemsByTransactionType(Transaction.CREATE);
     }
 
     public List<HoldingsRecord> holdingsToUpdate () {
-        return incomingSet.getHoldingsRecordsByTransitionType(Transaction.UPDATE);
+        return incomingSet.getHoldingsRecordsByTransactionType(Transaction.UPDATE);
     }
 
     public List<Item> itemsToUpdate () {
-        return incomingSet.getItemsByTransitionType(Transaction.UPDATE);
+        return incomingSet.getItemsByTransactionType(Transaction.UPDATE);
     }
 
     public boolean isInstanceUpdating () {
@@ -180,8 +181,8 @@ public abstract class UpdatePlan {
     public Future<Void> createRecordsWithDependants (OkapiClient okapiClient) {
         Promise<Void> promise = Promise.promise();
         Future<Void> promisedNewInstanceIfAny = createNewInstanceIfAny(okapiClient);
-        promisedNewInstanceIfAny.onComplete( handler -> {
-            if (handler.succeeded()) {
+        promisedNewInstanceIfAny.onComplete( instanceResult -> {
+            if (instanceResult.succeeded()) {
                 Future<Void> promisedNewHoldingsIfAny = createNewHoldingsIfAny(okapiClient);
                 promisedNewHoldingsIfAny.onComplete(handler2 -> {
                     if (promisedNewHoldingsIfAny.succeeded()) {
@@ -192,8 +193,7 @@ public abstract class UpdatePlan {
                     }
                 });
             } else {
-                incomingSet.skipHoldingsAndItems();
-                promise.fail("There was an error trying to create an instance: " + handler.cause().getMessage());
+                promise.fail("There was an error trying to create an instance: " + instanceResult.cause().getMessage());
             }
         });
         return promise.future();
@@ -332,7 +332,7 @@ public abstract class UpdatePlan {
     public JsonObject getUpdateStats () {
 
         JsonObject stats = new JsonObject();
-        String outcomeStats = "{ \"" + Outcome.COMPLETED + "\": 0, \"" + Outcome.FAILED + "\": 0, \"" + Outcome.SKIPPED + "\": 0 }";
+        String outcomeStats = "{ \"" + Outcome.COMPLETED + "\": 0, \"" + Outcome.FAILED + "\": 0, \"" + Outcome.SKIPPED + "\": 0, \"" + Outcome.PENDING + "\": 0 }";
         String transactionStats = "{ \""+ Transaction.CREATE + "\": " + outcomeStats + ", \""
                                         + Transaction.UPDATE + "\": " + outcomeStats + ", \""
                                         + Transaction.DELETE + "\": " + outcomeStats + " }";
@@ -357,5 +357,13 @@ public abstract class UpdatePlan {
         }
 
         return stats;
+    }
+
+    public boolean hasErrors () {
+        return getIncomingRecordSet().hasErrors();
+    }
+
+    public JsonArray getErrors () {
+        return getIncomingRecordSet().getErrors();
     }
 }

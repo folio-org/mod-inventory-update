@@ -71,4 +71,10 @@ public class HoldingsRecord extends InventoryRecord {
         return institutionsMap.get(getPermanentLocationId());
     }
 
+    public void skipDependants () {
+        for (Item rec : items) {
+            rec.skip();
+        }
+    }
+
 }

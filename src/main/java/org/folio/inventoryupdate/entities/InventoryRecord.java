@@ -133,7 +133,6 @@ public abstract class InventoryRecord {
         return this.outcome == Outcome.SKIPPED;
     }
 
-
     public void logError (String error, int statusCode) {
         Object message = maybeJson(error);
         logError(error, statusCode, findShortMessage(message));
@@ -171,11 +170,17 @@ public abstract class InventoryRecord {
                 // Looks like FOLIO json schema validation error
                 shortMessage = getMessageFromFolioSchemaValidationError(shortMessage, jsonFormattedError);
             } else if (jsonFormattedError.containsKey("Message")) {
+                // Name of the essential message property in raw PostgreSQL error messages
                 shortMessage = jsonFormattedError.getString("Message");
+            } else {
+                // fallback
+                shortMessage = "Error: " + getTransaction() + " of " + entityType();
             }
         } else if (inventoryMessage instanceof String && inventoryMessage.toString().length()>1) {
+            // In some error scenarios, Inventory just returns a simple string.
             shortMessage = inventoryMessage.toString().substring(0, Math.min(inventoryMessage.toString().length()-1,60));
         } else {
+            // fallback
             shortMessage = "Error: " + getTransaction() + " of " + entityType();
         }
         return shortMessage;

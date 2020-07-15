@@ -287,7 +287,6 @@ public abstract class UpdatePlan {
         return promise.future();
     }
 
-
     public Future<Void> createNewInstanceIfAny (OkapiClient okapiClient) {
         Promise<Void> promise = Promise.promise();
         if (isInstanceCreating()) {
@@ -356,6 +355,22 @@ public abstract class UpdatePlan {
             outcomes.put(record.getOutcome().toString(), outcomes.getInteger(record.getOutcome().toString())+1);
         }
 
+        for (InventoryRecord record : existingSet.getHoldingsRecords()) {
+            if (record.isDeleting()) {
+                JsonObject entity = stats.getJsonObject(record.entityType().toString());
+                JsonObject outcomes = entity.getJsonObject(record.getTransaction().toString());
+                outcomes.put(record.getOutcome().toString(), outcomes.getInteger(record.getOutcome().toString())+1);
+            }
+        }
+
+        for (InventoryRecord record : existingSet.getItems()) {
+            if (record.isDeleting()) {
+                JsonObject entity = stats.getJsonObject(record.entityType().toString());
+                JsonObject outcomes = entity.getJsonObject(record.getTransaction().toString());
+                outcomes.put(record.getOutcome().toString(), outcomes.getInteger(record.getOutcome().toString())+1);
+
+            }
+        }
         return stats;
     }
 

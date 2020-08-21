@@ -10,12 +10,9 @@ documentation:
 
 types:
   instance: !include instance.json
-  instances: !include instances.json
   inventory-record-set: !include inventoryRecordSet.json
-  inventory-record-sets: !include inventoryRecordSets.json
 
 resourceTypes:
-  collection: !include raml-util/rtypes/collection.raml
   collection-item: !include raml-util/rtypes/item-collection.raml
 
 traits:
@@ -24,30 +21,14 @@ traits:
 /instance-storage-match:
   /instances:
     displayName: Instance create or update by matchkey (being deprecated)
-    type:
-      collection:
-        exampleCollection: !include  examples/instances.json
-        schemaCollection: instances
-        schemaItem: instance
-        exampleItem: !include examples/instance.json
     put:
 
 /inventory-upsert-hrid:
-  displayName: Create or update instance with holdings and items, based on instance HRID
-  type:
-    collection:
-      exampleCollection: !include examples/inventory-record-sets.json
-      schemaCollection: inventory-record-sets
-      schemaItem: inventory-record-set
-      exampleItem: !include examples/inventory-record-set.json
+  displayName: Create, update, delete instance with holdings and items, based on instance HRID
   put:
+  delete:
 
 /shared-inventory-upsert-matchkey:
-  displayName: Create or update instance with holdings and items, based on instance match key
-  type:
-    collection:
-      exampleCollection: !include examples/inventory-record-sets.json
-      schemaCollection: inventory-record-sets
-      schemaItem: inventory-record-set
-      exampleItem: !include examples/inventory-record-set.json
+  displayName: Create, update, "delete" instance with holdings and items, based on instance match key
   put:
+  delete:

@@ -25,23 +25,37 @@ public class UpdatePlanAllHRIDs extends UpdatePlan {
     /**
      * Creates an in-memory representation of all instances, holdings, and items
      * that need to be created, updated, or deleted in Inventory storage.
+   * @param okapiClient
+   * @return a Future to confirm that plan was created
      */
+    @Override
     public Future<Void> planInventoryUpdates (OkapiClient okapiClient) {
         Promise<Void> promisedPlan = Promise.promise();
+
         Future<Void> promisedInstanceLookup = lookupExistingRecordSet(okapiClient, instanceQuery);
         promisedInstanceLookup.onComplete( lookup -> {
             if (lookup.succeeded()) {
                 // Plan instance update
-                flagAndIdTheInstance();
-                // Plan holdings/items updates
-                if (existingSet.getInstance() != null) {
-                    flagAndIdUpdatesDeletesAndLocalMoves();
-                }
-                flagAndIdCreatesAndImports(okapiClient).onComplete( done -> {
-                    if (done.succeeded()) {
-                        promisedPlan.complete();
+                if (isDeletion) {
+                  getExistingInstance().setTransition(Transaction.DELETE);
+                  for (HoldingsRecord holdings : getExistingInstance().getHoldingsRecords()) {
+                    holdings.setTransition(Transaction.DELETE);
+                    for (Item item : holdings.getItems()) {
+                      item.setTransition(Transaction.DELETE);
                     }
-                });
+                  }
+                } else {
+                  flagAndIdTheIncomingInstance();
+                  // Plan holdings/items updates
+                  if (existingSet.getInstance() != null) {
+                      flagAndIdUpdatesDeletesAndLocalMoves();
+                  }
+                  flagAndIdCreatesAndImports(okapiClient).onComplete( done -> {
+                      if (done.succeeded()) {
+                          promisedPlan.complete();
+                      }
+                  });
+                }
 
             }
         });
@@ -219,7 +233,6 @@ public class UpdatePlanAllHRIDs extends UpdatePlan {
     }
 
     /* END OF PLANNING METHODS */
-
 
 
 }

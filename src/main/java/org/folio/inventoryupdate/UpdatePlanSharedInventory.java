@@ -19,6 +19,7 @@ public class UpdatePlanSharedInventory extends UpdatePlan {
 
 
     private static final Map<String,String> locationsToInstitutionsMap = new HashMap<String,String>();
+    private DeletionIdentifiers deletionIdentifiers;
 
     /**
      * Constructor for create/update
@@ -35,7 +36,9 @@ public class UpdatePlanSharedInventory extends UpdatePlan {
      * @param deletionIdentifiers
      */
     public UpdatePlanSharedInventory(DeletionIdentifiers deletionIdentifiers, InventoryQuery existingInstanceQuery) {
-      super(deletionIdentifiers, existingInstanceQuery);
+      super(null, existingInstanceQuery);
+      this.isDeletion = true;
+      this.deletionIdentifiers = deletionIdentifiers;
     }
 
     @Override

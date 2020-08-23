@@ -60,7 +60,10 @@ public class InventoryUpdateService {
 
   public void handleInventoryRecordSetDeleteByHrid (RoutingContext routingCtx) {
     if (contentTypeIsJson(routingCtx)) {
-      responseJson(routingCtx, 200).end("handleInventoryRecordSetDeleteByHrid: " + routingCtx.getBodyAsJson().encodePrettily());
+      JsonObject deletionJson = routingCtx.getBodyAsJson();
+      InventoryQuery queryByInstanceHrid = new HridQuery(deletionJson.getString("hrid"));
+      UpdatePlan updatePlan = new UpdatePlanAllHRIDs(queryByInstanceHrid);
+      runPlan(updatePlan, routingCtx);
     } else {
       //TODO: what if not?
     }
@@ -80,6 +83,8 @@ public class InventoryUpdateService {
     }
   }
 
+
+  //TODO: turn not-found conditions in case of deletion around?
   private void runPlan(UpdatePlan updatePlan, RoutingContext routingCtx) {
 
     OkapiClient okapiClient = getOkapiClient(routingCtx);

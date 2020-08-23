@@ -18,16 +18,30 @@ public class UpdatePlanAllHRIDs extends UpdatePlan {
 
 
 
+    /**
+     * Constructs plan for creating or updating an Inventory record set
+     * @param incomingInventoryRecordSet The record set to create or update with
+     * @param existingInstanceQuery query to find existing record set to update
+     */
     public UpdatePlanAllHRIDs(InventoryRecordSet incomingInventoryRecordSet, InventoryQuery existingInstanceQuery) {
         super(incomingInventoryRecordSet, existingInstanceQuery);
     }
 
     /**
+     * Constructs plan for deleting an existing Inventory record set
+     * @param existingInstanceQuery query to find existing Inventory records to delete
+     */
+    public UpdatePlanAllHRIDs (InventoryQuery existingInstanceQuery) {
+      super(null, existingInstanceQuery);
+      this.isDeletion = true;
+    }
+
+    /**
      * Creates an in-memory representation of all instances, holdings, and items
      * that need to be created, updated, or deleted in Inventory storage.
-   * @param okapiClient
-   * @return a Future to confirm that plan was created
-     */
+     * @param okapiClient
+     * @return a Future to confirm that plan was created
+    */
     @Override
     public Future<Void> planInventoryUpdates (OkapiClient okapiClient) {
         Promise<Void> promisedPlan = Promise.promise();
@@ -37,17 +51,20 @@ public class UpdatePlanAllHRIDs extends UpdatePlan {
             if (lookup.succeeded()) {
                 // Plan instance update
                 if (isDeletion) {
-                  getExistingInstance().setTransition(Transaction.DELETE);
-                  for (HoldingsRecord holdings : getExistingInstance().getHoldingsRecords()) {
-                    holdings.setTransition(Transaction.DELETE);
-                    for (Item item : holdings.getItems()) {
-                      item.setTransition(Transaction.DELETE);
+                  if (foundExistingRecordSet()) {
+                    getExistingInstance().setTransition(Transaction.DELETE);
+                    for (HoldingsRecord holdings : getExistingInstance().getHoldingsRecords()) {
+                      holdings.setTransition(Transaction.DELETE);
+                      for (Item item : holdings.getItems()) {
+                        item.setTransition(Transaction.DELETE);
+                      }
                     }
                   }
+                  promisedPlan.complete();
                 } else {
                   flagAndIdTheUpdatingInstance();
                   // Plan holdings/items updates
-                  if (existingSet.getInstance() != null) {
+                  if (foundExistingRecordSet()) {
                       flagAndIdUpdatesDeletesAndLocalMoves();
                   }
                   flagAndIdCreatesAndImports(okapiClient).onComplete( done -> {
@@ -57,11 +74,16 @@ public class UpdatePlanAllHRIDs extends UpdatePlan {
                   });
                 }
 
+            } else {
+              if (isDeletion) {
+                 // TODO: ?
+              }
             }
         });
         return promisedPlan.future();
     }
 
+    @Override
     public Future<Void> doInventoryUpdates (OkapiClient okapiClient) {
         Promise<Void> promise = Promise.promise();
         Future<Void> promisedPrerequisites = createRecordsWithDependants(okapiClient);

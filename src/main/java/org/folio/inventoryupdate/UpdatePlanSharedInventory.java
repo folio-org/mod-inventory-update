@@ -48,10 +48,10 @@ public class UpdatePlanSharedInventory extends UpdatePlan {
                 if (foundExistingRecordSet()) {
                   if (isDeletion) {
                     logger.debug("UpdatePlanSharedInventory: received deletion");
-                    this.incomingSet = createIncomingRecordSetFromExisting(existingSet, deletionIdentifiers);
+                    this.updatingSet = createUpdatingRecordSetFromExistingSet(existingSet, deletionIdentifiers);
                   } else { // create or update
-                    JsonObject mergedInstance = mergeInstances(getExistingInstance().asJson(), getIncomingInstance().asJson());
-                    getIncomingRecordSet().updateInstance(mergedInstance);
+                    JsonObject mergedInstance = mergeInstances(getExistingInstance().asJson(), getUpdatingInstance().asJson());
+                    getUpdatingRecordSet().modifyInstance(mergedInstance);
                   }
                 }
                 Future<Void> locationsMapReady = mapLocationsToInstitutions(okapiClient);
@@ -73,13 +73,13 @@ public class UpdatePlanSharedInventory extends UpdatePlan {
         return promise.future();
     }
 
-    private static InventoryRecordSet createIncomingRecordSetFromExisting (InventoryRecordSet existingSet, DeletionIdentifiers deletionIdentifiers) {
+    private static InventoryRecordSet createUpdatingRecordSetFromExistingSet (InventoryRecordSet existingSet, DeletionIdentifiers deletionIdentifiers) {
       JsonObject inventoryRecordSetForInstanceDeletion = new JsonObject();
       inventoryRecordSetForInstanceDeletion.put("instance", existingSet.getInstance().asJson());
       inventoryRecordSetForInstanceDeletion.put("holdingsRecords", new JsonArray());
-      InventoryRecordSet derivedIncoming = new InventoryRecordSet(inventoryRecordSetForInstanceDeletion);
-      removeIdentifierFromInstanceForInstitution(deletionIdentifiers, derivedIncoming.getInstance().asJson());
-      return derivedIncoming;
+      InventoryRecordSet updatingRecordSetBasedOnExistingSet = new InventoryRecordSet(inventoryRecordSetForInstanceDeletion);
+      removeIdentifierFromInstanceForInstitution(deletionIdentifiers, updatingRecordSetBasedOnExistingSet.getInstance().asJson());
+      return updatingRecordSetBasedOnExistingSet;
     }
 
     private static void removeIdentifierFromInstanceForInstitution(DeletionIdentifiers deletionIdentifiers, JsonObject instance) {
@@ -140,8 +140,8 @@ public class UpdatePlanSharedInventory extends UpdatePlan {
     private Future<Void> mapLocationsToInstitutions (OkapiClient okapiClient) {
         Promise<Void> mapReady = Promise.promise();
         boolean missMappings = false;
-        if (gotIncomingRecordSet()) {
-          for (HoldingsRecord record : incomingSet.getHoldingsRecords()) {
+        if (gotUpdatingRecordSet()) {
+          for (HoldingsRecord record : updatingSet.getHoldingsRecords()) {
               if (! (locationsToInstitutionsMap.containsKey(record.getPermanentLocationId()))) {
                   missMappings = true;
                   break;
@@ -188,10 +188,10 @@ public class UpdatePlanSharedInventory extends UpdatePlan {
     protected void flagAndIdRecordsForInventoryUpdating () {
       // Plan instance update/deletion
       if (isDeletion && foundExistingRecordSet()) {
-        getIncomingInstance().setTransition(Transaction.UPDATE);
+        getUpdatingInstance().setTransition(Transaction.UPDATE);
         flagExistingHoldingsAndItemsForDeletion();
       } else if (!isDeletion) {
-        flagAndIdTheIncomingInstance();
+        flagAndIdTheUpdatingInstance();
         // Plan to clean out existing holdings and items
         flagExistingHoldingsAndItemsForDeletion();
         // Plan to (re-)create holdings and items
@@ -200,7 +200,7 @@ public class UpdatePlanSharedInventory extends UpdatePlan {
     }
 
     private void flagExistingHoldingsAndItemsForDeletion () {
-        String institutionId = (isDeletion ? deletionIdentifiers.institutionId() : incomingSet.getInstitutionIdFromArbitraryHoldingsRecord(locationsToInstitutionsMap));
+        String institutionId = (isDeletion ? deletionIdentifiers.institutionId() : updatingSet.getInstitutionIdFromArbitraryHoldingsRecord(locationsToInstitutionsMap));
         for (HoldingsRecord existingHoldingsRecord : existingSet.getHoldingsRecords()) {
             if (existingHoldingsRecord.getInstitutionId(locationsToInstitutionsMap) != null
                 && existingHoldingsRecord.getInstitutionId(locationsToInstitutionsMap)
@@ -219,8 +219,8 @@ public class UpdatePlanSharedInventory extends UpdatePlan {
     }
 
     private void flagAndIdIncomingHoldingsAndItemsForCreation () {
-        logger.debug("Got " + incomingSet.getHoldingsRecords().size() + " incoming holdings records. Instance's ID is currently " + incomingSet.getInstanceUUID());
-        for (HoldingsRecord holdingsRecord : incomingSet.getHoldingsRecords()) {
+        logger.debug("Got " + updatingSet.getHoldingsRecords().size() + " incoming holdings records. Instance's ID is currently " + updatingSet.getInstanceUUID());
+        for (HoldingsRecord holdingsRecord : updatingSet.getHoldingsRecords()) {
             holdingsRecord.generateUUID();
             holdingsRecord.setTransition(Transaction.CREATE);
             for (Item item : holdingsRecord.getItems()) {

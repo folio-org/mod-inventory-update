@@ -90,7 +90,7 @@ public class InventoryUpdateService {
         updatePlan.writePlanToLog();
         Future<Void> planExecuted = updatePlan.doInventoryUpdates(okapiClient);
         planExecuted.onComplete( updatesDone -> {
-          JsonObject pushedRecordSetWithStats = updatePlan.getPostedRecordSet();
+          JsonObject pushedRecordSetWithStats = updatePlan.getUpdatingRecordSetJson();
           pushedRecordSetWithStats.put("metrics", updatePlan.getUpdateStats());
           if (updatesDone.succeeded()) {
             if (updatePlan.isDeletion && !updatePlan.foundExistingRecordSet()) {

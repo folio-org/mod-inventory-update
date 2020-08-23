@@ -45,7 +45,7 @@ public class UpdatePlanAllHRIDs extends UpdatePlan {
                     }
                   }
                 } else {
-                  flagAndIdTheIncomingInstance();
+                  flagAndIdTheUpdatingInstance();
                   // Plan holdings/items updates
                   if (existingSet.getInstance() != null) {
                       flagAndIdUpdatesDeletesAndLocalMoves();
@@ -103,12 +103,12 @@ public class UpdatePlanAllHRIDs extends UpdatePlan {
      */
     private void flagAndIdUpdatesDeletesAndLocalMoves() {
         for (HoldingsRecord existingHoldingsRecord : getExistingInstance().getHoldingsRecords()) {
-            HoldingsRecord incomingHoldingsRecord = getIncomingInstance().getHoldingsRecordByHRID(existingHoldingsRecord.getHRID());
+            HoldingsRecord incomingHoldingsRecord = getUpdatingInstance().getHoldingsRecordByHRID(existingHoldingsRecord.getHRID());
             // HoldingsRecord gone, mark for deletion and check for existing items to delete with it
             if (incomingHoldingsRecord == null) {
                 existingHoldingsRecord.setTransition(Transaction.DELETE);
                 for (Item existingItem : existingHoldingsRecord.getItems()) {
-                    Item incomingItem = incomingSet.getItemByHRID(existingItem.getHRID());
+                    Item incomingItem = updatingSet.getItemByHRID(existingItem.getHRID());
                     if (incomingItem == null) {
                         existingItem.setTransition(Transaction.DELETE);
                     } else {
@@ -122,7 +122,7 @@ public class UpdatePlanAllHRIDs extends UpdatePlan {
                 incomingHoldingsRecord.setUUID(existingHoldingsRecord.UUID());
                 incomingHoldingsRecord.setTransition(Transaction.UPDATE);
                 for (Item existingItem : existingHoldingsRecord.getItems()) {
-                    Item incomingItem = incomingSet.getItemByHRID(existingItem.getHRID());
+                    Item incomingItem = updatingSet.getItemByHRID(existingItem.getHRID());
                     if (incomingItem == null) {
                         // The item is gone from the instance
                         existingItem.setTransition(Transaction.DELETE);
@@ -163,11 +163,11 @@ public class UpdatePlanAllHRIDs extends UpdatePlan {
     public CompositeFuture flagAndIdNewRecordsAndImports(OkapiClient okapiClient) {
         @SuppressWarnings("rawtypes")
         List<Future> recordFutures = new ArrayList<Future>();
-        List<HoldingsRecord> holdingsRecords = incomingSet.getHoldingsRecordsByTransactionType(Transaction.UNKNOWN);
+        List<HoldingsRecord> holdingsRecords = updatingSet.getHoldingsRecordsByTransactionType(Transaction.UNKNOWN);
         for (HoldingsRecord record : holdingsRecords) {
             recordFutures.add(flagAndIdHoldingsByStorageLookup(okapiClient, record));
         }
-        List<Item> items = incomingSet.getItemsByTransactionType(Transaction.UNKNOWN);
+        List<Item> items = updatingSet.getItemsByTransactionType(Transaction.UNKNOWN);
         for (Item item : items) {
             recordFutures.add(flagAndIdItemsByStorageLookup(okapiClient, item));
         }
@@ -179,7 +179,7 @@ public class UpdatePlanAllHRIDs extends UpdatePlan {
      * according to whether they were matched with existing records or not
      * @param okapiClient
      * @param record The incoming record to match with an existing record if any
-     * @return empty future for determining when loook-up is complete
+     * @return empty future for determining when look-up is complete
      */
     private Future<Void> flagAndIdHoldingsByStorageLookup (OkapiClient okapiClient, InventoryRecord record) {
         Promise<Void> promise = Promise.promise();

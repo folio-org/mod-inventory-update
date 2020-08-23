@@ -14,7 +14,7 @@ public class Instance extends InventoryRecord {
         type = Entity.INSTANCE;
     }
 
-    public void updateJson(JsonObject instance) {
+    public void replaceJson(JsonObject instance) {
         jsonRecord = instance;
         for (HoldingsRecord record : holdingsRecords) {
             record.setInstanceId(UUID());

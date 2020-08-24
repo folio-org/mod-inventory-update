@@ -195,10 +195,14 @@ public class UpdatePlanSharedInventory extends UpdatePlan {
         flagExistingHoldingsAndItemsForDeletion();
       } else if (!isDeletion) {
         flagAndIdTheUpdatingInstance();
-        // Plan to clean out existing holdings and items
-        flagExistingHoldingsAndItemsForDeletion();
-        // Plan to (re-)create holdings and items
-        flagAndIdIncomingHoldingsAndItemsForCreation();
+        if (foundExistingRecordSet()) {
+          // Plan to clean out existing holdings and items
+          flagExistingHoldingsAndItemsForDeletion();
+        }
+        if (gotUpdatingRecordSet()) {
+          // Plan to (re-)create holdings and items
+          flagAndIdIncomingHoldingsAndItemsForCreation();
+        }
       }
     }
 

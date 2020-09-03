@@ -11,6 +11,7 @@ import static org.folio.okapi.common.HttpResponse.responseJson;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.folio.inventoryupdate.entities.DeletionIdentifiers;
 import org.folio.okapi.common.OkapiClient;
 
 import io.vertx.core.Future;
@@ -57,6 +58,33 @@ public class InventoryUpdateService {
     }
   }
 
+  public void handleInventoryRecordSetDeleteByHrid (RoutingContext routingCtx) {
+    if (contentTypeIsJson(routingCtx)) {
+      JsonObject deletionJson = routingCtx.getBodyAsJson();
+      InventoryQuery queryByInstanceHrid = new HridQuery(deletionJson.getString("hrid"));
+      UpdatePlan updatePlan = new UpdatePlanAllHRIDs(queryByInstanceHrid);
+      runPlan(updatePlan, routingCtx);
+    } else {
+      //TODO: what if not?
+    }
+  }
+
+  public void handleSharedInventoryRecordSetDeleteByMatchkey (RoutingContext routingCtx) {
+    logger.debug("Handling delete request for shared index " + routingCtx.getBodyAsString());
+
+    if (contentTypeIsJson(routingCtx)) {
+      JsonObject deletionJson = routingCtx.getBodyAsJson();
+      DeletionIdentifiers deletionIdentifiers = new DeletionIdentifiers(deletionJson);
+      InventoryQuery instanceQuery = new SharedInstanceByLocalIdentifierQuery(deletionIdentifiers.localIdentifier(), deletionIdentifiers.identifierTypeId());
+      UpdatePlan updatePlan = new UpdatePlanSharedInventory(deletionIdentifiers, instanceQuery);
+      runPlan(updatePlan, routingCtx);
+    } else {
+      //TODO: what if not?
+    }
+  }
+
+
+  //TODO: turn not-found conditions in case of deletion around?
   private void runPlan(UpdatePlan updatePlan, RoutingContext routingCtx) {
 
     OkapiClient okapiClient = getOkapiClient(routingCtx);
@@ -67,10 +95,14 @@ public class InventoryUpdateService {
         updatePlan.writePlanToLog();
         Future<Void> planExecuted = updatePlan.doInventoryUpdates(okapiClient);
         planExecuted.onComplete( updatesDone -> {
-          JsonObject pushedRecordSetWithStats = updatePlan.getPostedRecordSet();
+          JsonObject pushedRecordSetWithStats = updatePlan.getUpdatingRecordSetJson();
           pushedRecordSetWithStats.put("metrics", updatePlan.getUpdateStats());
           if (updatesDone.succeeded()) {
-            responseJson(routingCtx, 200).end(pushedRecordSetWithStats.encodePrettily());
+            if (updatePlan.isDeletion && !updatePlan.foundExistingRecordSet()) {
+              responseJson(routingCtx, 404).end(pushedRecordSetWithStats.encodePrettily());
+            } else {
+              responseJson(routingCtx, 200).end(pushedRecordSetWithStats.encodePrettily());
+            }
             okapiClient.close();
           } else {
             pushedRecordSetWithStats.put("errors", updatePlan.getErrors());
@@ -80,13 +112,13 @@ public class InventoryUpdateService {
       }  else {
         responseJson(routingCtx, 500).end("Error creating inventory update plan");
       }
-
     });
   }
 
   private boolean contentTypeIsJson (RoutingContext routingCtx) {
     String contentType = routingCtx.request().getHeader("Content-Type");
     if (contentType != null && !contentType.startsWith("application/json")) {
+      logger.error("Only accepts Content-Type application/json, was: " + contentType);
       responseError(routingCtx, 400, "Only accepts Content-Type application/json, content type was: "+ contentType);
       return false;
     } else {
@@ -97,7 +129,7 @@ public class InventoryUpdateService {
   private JsonObject getIncomingInventoryRecordSet(RoutingContext routingCtx) {
     String inventoryRecordSetAsString = routingCtx.getBodyAsString("UTF-8");
     JsonObject inventoryRecordSet = new JsonObject(inventoryRecordSetAsString);
-    logger.info("Incoming record set " + inventoryRecordSet.encodePrettily());
+    logger.debug("Incoming record set " + inventoryRecordSet.encodePrettily());
     return inventoryRecordSet;
   }
 
@@ -133,13 +165,13 @@ public class InventoryUpdateService {
       String candidateInstanceAsString = routingCtx.getBodyAsString("UTF-8");
       JsonObject candidateInstance = new JsonObject(candidateInstanceAsString);
 
-      logger.info("Received a PUT of " + candidateInstance.toString());
+      logger.debug("Received a PUT of " + candidateInstance.toString());
 
       MatchKey matchKey = new MatchKey(candidateInstance);
       InventoryQuery matchQuery = new MatchQuery(matchKey.getKey());
       candidateInstance.put("matchKey", matchKey.getKey());
       candidateInstance.put("indexTitle", matchKey.getKey());
-      logger.info("Constructed match query: [" + matchQuery.getQueryString() + "]");
+      logger.debug("Constructed match query: [" + matchQuery.getQueryString() + "]");
 
       okapiClient.get(INSTANCE_STORAGE_PATH+"?query="+matchQuery.getURLEncodedQueryString(), res-> {
         if ( res.succeeded()) {
@@ -170,10 +202,10 @@ public class InventoryUpdateService {
 
     int recordCount = matchingInstances.getInteger("totalRecords");
     if (recordCount == 0) {
-      logger.info("Match query [" + matchQuery.getQueryString() + "] did not find a matching instance. Will POST a new instance");
+      logger.debug("Match query [" + matchQuery.getQueryString() + "] did not find a matching instance. Will POST a new instance");
       postInstance(okapiClient, routingCtx, candidateInstance);
     }  else if (recordCount == 1) {
-      logger.info("Match query [" + matchQuery.getQueryString() + "] found a matching instance. Will PUT an instance update");
+      logger.debug("Match query [" + matchQuery.getQueryString() + "] found a matching instance. Will PUT an instance update");
       JsonObject matchingInstance = matchingInstances.getJsonArray("instances").getJsonObject(0);
       JsonObject mergedInstance = mergeInstances(matchingInstance, candidateInstance);
       // Update existing instance
@@ -238,7 +270,7 @@ public class InventoryUpdateService {
       if (putResult.succeeded()) {
         okapiClient.get(INSTANCE_STORAGE_PATH+"/"+instanceId, res-> {
           if ( res.succeeded()) {
-            logger.info("PUT of Instance succeeded");
+            logger.debug("PUT of Instance succeeded");
             JsonObject instanceResponseJson = new JsonObject(res.result());
             String instancePrettyString = instanceResponseJson.encodePrettily();
             responseJson(routingCtx, 200).end(instancePrettyString);
@@ -265,7 +297,7 @@ public class InventoryUpdateService {
   private void postInstance (OkapiClient okapiClient, RoutingContext ctx, JsonObject newInstance) {
     okapiClient.post(INSTANCE_STORAGE_PATH, newInstance.toString(), postResult->{
       if (postResult.succeeded()) {
-        logger.info("POST of Instance succeeded");
+        logger.debug("POST of Instance succeeded");
         String instanceResult = postResult.result();
         JsonObject instanceResponseJson = new JsonObject(instanceResult);
         String instancePrettyString = instanceResponseJson.encodePrettily();

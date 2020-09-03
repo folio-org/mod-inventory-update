@@ -24,7 +24,7 @@
       "version": "1.0",
       "handlers": [
         {
-          "methods": ["PUT"],
+          "methods": ["PUT", "DELETE"],
           "pathPattern": "/inventory-upsert-hrid",
           "permissionsRequired": ["inventory-upsert-hrid.item.put"],
           "modulePermissions": [
@@ -57,7 +57,7 @@
       "version": "1.0",
       "handlers": [
         {
-          "methods": ["PUT"],
+          "methods": ["PUT", "DELETE"],
           "pathPattern": "/shared-inventory-upsert-matchkey",
           "permissionsRequired": ["shared-inventory-upsert-matchkey.item.put"],
           "modulePermissions": [

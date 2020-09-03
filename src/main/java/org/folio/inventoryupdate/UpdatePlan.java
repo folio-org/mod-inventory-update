@@ -35,18 +35,32 @@ import io.vertx.core.logging.LoggerFactory;
  */
 public abstract class UpdatePlan {
 
-    protected InventoryRecordSet incomingSet;
+    // The record set to update Inventory with - either coming in with the request
+    // or being derived from existing records in Inventory
+    protected InventoryRecordSet updatingSet = null;
     protected InventoryQuery instanceQuery;
-    protected InventoryRecordSet existingSet = new InventoryRecordSet(null);
+    // Existing Inventory records matching either an incoming record set or a set of deletion identifiers
+    protected InventoryRecordSet existingSet = null;
     protected final Logger logger = LoggerFactory.getLogger("inventory-update");
+    protected boolean isDeletion = false;
 
-
-
+    /**
+     * Constructor for plan for creating or updating an Inventory record set
+     * @param incomingSet
+     * @param existingInstanceQuery
+     */
     public UpdatePlan (InventoryRecordSet incomingSet, InventoryQuery existingInstanceQuery) {
-        this.incomingSet = incomingSet;
+        this.updatingSet = incomingSet;
         this.instanceQuery = existingInstanceQuery;
     }
 
+    public boolean foundExistingRecordSet () {
+      return existingSet != null;
+    }
+
+    public boolean gotUpdatingRecordSet () {
+      return updatingSet != null;
+    }
     public abstract Future<Void> planInventoryUpdates (OkapiClient client);
 
     public abstract Future<Void> doInventoryUpdates (OkapiClient client);
@@ -57,8 +71,9 @@ public abstract class UpdatePlan {
         promisedExistingInventoryRecordSet.onComplete( recordSet -> {
             if (recordSet.succeeded()) {
                 JsonObject existingInventoryRecordSetJson = recordSet.result();
-                this.existingSet = new InventoryRecordSet(existingInventoryRecordSetJson);
-
+                if (existingInventoryRecordSetJson != null) {
+                  this.existingSet = new InventoryRecordSet(existingInventoryRecordSetJson);
+                }
                 promise.complete();
             } else {
                 promise.fail("Error looking up existing record set");
@@ -68,31 +83,28 @@ public abstract class UpdatePlan {
     }
 
     /**
-     * Flag transaction type and set ID for the instance
-     * @param existingInstance
-     * @param incomingInstance
+     * Set transaction type and ID for the instance
      */
-    protected void flagAndIdTheInstance () {
-        if (getExistingInstance() == null) {
-            getIncomingInstance().generateUUID();
-            getIncomingInstance().setTransition(Transaction.CREATE);
-        } else {
-            getIncomingInstance().setUUID(getExistingInstance().UUID());
-            getIncomingInstance().setTransition(Transaction.UPDATE);
-        }
+    protected void flagAndIdTheUpdatingInstance () {
+      if (foundExistingRecordSet()) {
+        getUpdatingInstance().setUUID(getExistingInstance().UUID());
+        getUpdatingInstance().setTransition(Transaction.UPDATE);
+      } else {
+        getUpdatingInstance().generateUUID();
+        getUpdatingInstance().setTransition(Transaction.CREATE);
+      }
     }
 
-
-    public Instance getIncomingInstance() {
-        return incomingSet.getInstance();
+    public Instance getUpdatingInstance() {
+        return gotUpdatingRecordSet() ? updatingSet.getInstance() : null;
     }
 
     public Instance getExistingInstance() {
-        return existingSet.getInstance();
+        return foundExistingRecordSet() ? existingSet.getInstance() : null;
     }
 
-    public InventoryRecordSet getIncomingRecordSet () {
-        return incomingSet;
+    public InventoryRecordSet getUpdatingRecordSet () {
+        return updatingSet;
     }
 
     public InventoryRecordSet getExistingRecordSet () {
@@ -100,18 +112,19 @@ public abstract class UpdatePlan {
     }
 
     public List<Item> itemsToDelete () {
-        return existingSet.getItemsByTransactionType(Transaction.DELETE);
+
+        return foundExistingRecordSet() ? existingSet.getItemsByTransactionType(Transaction.DELETE) : new ArrayList<>();
     }
 
     public List<HoldingsRecord> holdingsToDelete () {
-        return existingSet.getHoldingsRecordsByTransactionType(Transaction.DELETE);
+        return foundExistingRecordSet() ? existingSet.getHoldingsRecordsByTransactionType(Transaction.DELETE) : new ArrayList<>();
     }
 
     public boolean hasHoldingsToCreate () {
         return holdingsToCreate().size()>0;
     }
     public List<HoldingsRecord> holdingsToCreate () {
-        return incomingSet.getHoldingsRecordsByTransactionType(Transaction.CREATE);
+        return gotUpdatingRecordSet() ? updatingSet.getHoldingsRecordsByTransactionType(Transaction.CREATE) : new ArrayList<>();
     }
 
     public boolean hasItemsToCreate () {
@@ -119,56 +132,71 @@ public abstract class UpdatePlan {
     }
 
     public List<Item> itemsToCreate () {
-        return incomingSet.getItemsByTransactionType(Transaction.CREATE);
+        return gotUpdatingRecordSet() ? updatingSet.getItemsByTransactionType(Transaction.CREATE) : new ArrayList<>();
     }
 
     public List<HoldingsRecord> holdingsToUpdate () {
-        return incomingSet.getHoldingsRecordsByTransactionType(Transaction.UPDATE);
+        return gotUpdatingRecordSet() ? updatingSet.getHoldingsRecordsByTransactionType(Transaction.UPDATE) : new ArrayList<>();
     }
 
     public List<Item> itemsToUpdate () {
-        return incomingSet.getItemsByTransactionType(Transaction.UPDATE);
+        return gotUpdatingRecordSet() ? updatingSet.getItemsByTransactionType(Transaction.UPDATE) : new ArrayList<>();
     }
 
     public boolean isInstanceUpdating () {
-        return incomingSet.getInstance().getTransaction() == Transaction.UPDATE;
+        return gotUpdatingRecordSet() ? updatingSet.getInstance().getTransaction() == Transaction.UPDATE : false;
     }
 
     public boolean isInstanceCreating () {
-        return incomingSet.getInstance().getTransaction() == Transaction.CREATE;
+        return gotUpdatingRecordSet() ? updatingSet.getInstance().getTransaction() == Transaction.CREATE : false;
     }
 
     public boolean isInstanceDeleting () {
-        return incomingSet.getInstance().getTransaction() == Transaction.DELETE;
+        return foundExistingRecordSet() ? existingSet.getInstance().getTransaction() == Transaction.DELETE : false;
     }
 
     public void writePlanToLog () {
-        logger.info("Planning done: ");
-        logger.info("Instance transition: " + getIncomingInstance().getTransaction());
-
-        logger.info("Holdings to create: ");
-        for (HoldingsRecord record : holdingsToCreate()) {
-          logger.info(record.asJson().encodePrettily());
-        }
-        logger.info("Holdings to update: ");
-        for (HoldingsRecord record : holdingsToUpdate()) {
-          logger.info(record.asJson().encodePrettily());
-        }
-        logger.info("Items to create: ");
-        for (Item record : itemsToCreate()) {
-          logger.info(record.asJson().encodePrettily());
-        }
-        logger.info("Items to update: ");
-        for (Item record : itemsToUpdate()) {
-          logger.info(record.asJson().encodePrettily());
-        }
-        logger.info("Items to delete: ");
-        for (Item record : itemsToDelete()) {
-          logger.info(record.asJson().encodePrettily());
-        }
-        logger.info("Holdings to delete: ");
-        for (HoldingsRecord record : holdingsToDelete()) {
-          logger.info(record.asJson().encodePrettily());
+        logger.info("Planning of " + (isDeletion ? " delete " : " create/update ") + " of Inventory records set done: ");
+        if (isDeletion) {
+          if (foundExistingRecordSet()) {            
+            logger.info("Instance transition: " + (gotUpdatingRecordSet() ? getUpdatingInstance().getTransaction() : getExistingInstance().getTransaction()));
+            logger.info("Items to delete: ");
+            for (Item record : itemsToDelete()) {
+              logger.info(record.asJson().encodePrettily());
+            }
+            logger.info("Holdings to delete: ");
+            for (HoldingsRecord record : holdingsToDelete()) {
+              logger.info(record.asJson().encodePrettily());
+            }
+          } else {
+            logger.info("Got delete request but no existing records found with provided identifier(s)");
+          }
+        } else {
+          logger.info("Instance transition: " + getUpdatingInstance().getTransaction());
+          logger.info("Holdings to create: ");
+          for (HoldingsRecord record : holdingsToCreate()) {
+            logger.info(record.asJson().encodePrettily());
+          }
+          logger.info("Holdings to update: ");
+          for (HoldingsRecord record : holdingsToUpdate()) {
+            logger.info(record.asJson().encodePrettily());
+          }
+          logger.info("Items to create: ");
+          for (Item record : itemsToCreate()) {
+            logger.info(record.asJson().encodePrettily());
+          }
+          logger.info("Items to update: ");
+          for (Item record : itemsToUpdate()) {
+            logger.info(record.asJson().encodePrettily());
+          }
+          logger.info("Items to delete: ");
+          for (Item record : itemsToDelete()) {
+            logger.info(record.asJson().encodePrettily());
+          }
+          logger.info("Holdings to delete: ");
+          for (HoldingsRecord record : holdingsToDelete()) {
+            logger.info(record.asJson().encodePrettily());
+          }
         }
     }
 
@@ -209,7 +237,7 @@ public abstract class UpdatePlan {
         @SuppressWarnings("rawtypes")
         List<Future> instanceAndHoldingsFutures = new ArrayList<Future>();
         if (isInstanceUpdating()) {
-            instanceAndHoldingsFutures.add(InventoryStorage.putInventoryRecord(okapiClient, getIncomingInstance()));
+            instanceAndHoldingsFutures.add(InventoryStorage.putInventoryRecord(okapiClient, getUpdatingInstance()));
         }
         for (HoldingsRecord holdingsRecord : holdingsToUpdate()) {
             instanceAndHoldingsFutures.add(InventoryStorage.putInventoryRecord(okapiClient, holdingsRecord));
@@ -290,7 +318,7 @@ public abstract class UpdatePlan {
     public Future<Void> createNewInstanceIfAny (OkapiClient okapiClient) {
         Promise<Void> promise = Promise.promise();
         if (isInstanceCreating()) {
-            Future<JsonObject> promisedInstance = InventoryStorage.postInventoryRecord(okapiClient, getIncomingInstance());
+            Future<JsonObject> promisedInstance = InventoryStorage.postInventoryRecord(okapiClient, getUpdatingInstance());
             promisedInstance.onComplete(handler -> {
                 if (handler.succeeded()) {
                     promise.complete();
@@ -323,8 +351,8 @@ public abstract class UpdatePlan {
 
     /* END OF UPDATE METHODS */
 
-    public JsonObject getPostedRecordSet () {
-        return incomingSet.asJson();
+    public JsonObject getUpdatingRecordSetJson () {
+        return gotUpdatingRecordSet() ? updatingSet.asJson() : new JsonObject();
     }
 
 
@@ -339,46 +367,55 @@ public abstract class UpdatePlan {
         stats.put(Entity.HOLDINGSRECORD.toString(), new JsonObject(transactionStats));
         stats.put(Entity.ITEM.toString(), new JsonObject(transactionStats));
 
-        JsonObject instance = stats.getJsonObject(Entity.INSTANCE.toString());
-        JsonObject instanceOutcomes = instance.getJsonObject(getIncomingInstance().getTransaction().toString());
-        instanceOutcomes.put(getIncomingInstance().getOutcome().toString(), instanceOutcomes.getInteger(getIncomingInstance().getOutcome().toString())+1);
+        if (gotUpdatingRecordSet()) {
+          JsonObject instance = stats.getJsonObject(Entity.INSTANCE.toString());
+          JsonObject instanceOutcomes = instance.getJsonObject(getUpdatingInstance().getTransaction().toString());
+          instanceOutcomes.put(getUpdatingInstance().getOutcome().toString(), instanceOutcomes.getInteger(getUpdatingInstance().getOutcome().toString())+1);
 
-        for (InventoryRecord record : incomingSet.getHoldingsRecords()) {
-            JsonObject entity = stats.getJsonObject(record.entityType().toString());
-            JsonObject outcomes = entity.getJsonObject(record.getTransaction().toString());
-            outcomes.put(record.getOutcome().toString(), outcomes.getInteger(record.getOutcome().toString())+1);
+          for (InventoryRecord record : updatingSet.getHoldingsRecords()) {
+              JsonObject entity = stats.getJsonObject(record.entityType().toString());
+              JsonObject outcomes = entity.getJsonObject(record.getTransaction().toString());
+              outcomes.put(record.getOutcome().toString(), outcomes.getInteger(record.getOutcome().toString())+1);
+          }
+
+          for (InventoryRecord record : updatingSet.getItems()) {
+              JsonObject entity = stats.getJsonObject(record.entityType().toString());
+              JsonObject outcomes = entity.getJsonObject(record.getTransaction().toString());
+              outcomes.put(record.getOutcome().toString(), outcomes.getInteger(record.getOutcome().toString())+1);
+          }
         }
 
-        for (InventoryRecord record : incomingSet.getItems()) {
-            JsonObject entity = stats.getJsonObject(record.entityType().toString());
-            JsonObject outcomes = entity.getJsonObject(record.getTransaction().toString());
-            outcomes.put(record.getOutcome().toString(), outcomes.getInteger(record.getOutcome().toString())+1);
-        }
+        if (foundExistingRecordSet()) {
+          if (existingSet.getInstance().isDeleting()) {
+              InventoryRecord record = existingSet.getInstance();
+              JsonObject entity = stats.getJsonObject(record.entityType().toString());
+              JsonObject outcomes = entity.getJsonObject(record.getTransaction().toString());
+              outcomes.put(record.getOutcome().toString(), outcomes.getInteger(record.getOutcome().toString())+1);            
+          }
+          for (InventoryRecord record : existingSet.getHoldingsRecords()) {
+              if (record.isDeleting()) {
+                  JsonObject entity = stats.getJsonObject(record.entityType().toString());
+                  JsonObject outcomes = entity.getJsonObject(record.getTransaction().toString());
+                  outcomes.put(record.getOutcome().toString(), outcomes.getInteger(record.getOutcome().toString())+1);
+              }
+          }
+          for (InventoryRecord record : existingSet.getItems()) {
+              if (record.isDeleting()) {
+                  JsonObject entity = stats.getJsonObject(record.entityType().toString());
+                  JsonObject outcomes = entity.getJsonObject(record.getTransaction().toString());
+                  outcomes.put(record.getOutcome().toString(), outcomes.getInteger(record.getOutcome().toString())+1);
 
-        for (InventoryRecord record : existingSet.getHoldingsRecords()) {
-            if (record.isDeleting()) {
-                JsonObject entity = stats.getJsonObject(record.entityType().toString());
-                JsonObject outcomes = entity.getJsonObject(record.getTransaction().toString());
-                outcomes.put(record.getOutcome().toString(), outcomes.getInteger(record.getOutcome().toString())+1);
-            }
-        }
-
-        for (InventoryRecord record : existingSet.getItems()) {
-            if (record.isDeleting()) {
-                JsonObject entity = stats.getJsonObject(record.entityType().toString());
-                JsonObject outcomes = entity.getJsonObject(record.getTransaction().toString());
-                outcomes.put(record.getOutcome().toString(), outcomes.getInteger(record.getOutcome().toString())+1);
-
-            }
+              }
+          }
         }
         return stats;
     }
 
     public boolean hasErrors () {
-        return getIncomingRecordSet().hasErrors();
+        return getUpdatingRecordSet().hasErrors();
     }
 
     public JsonArray getErrors () {
-        return getIncomingRecordSet().getErrors();
+        return getUpdatingRecordSet().getErrors();
     }
 }

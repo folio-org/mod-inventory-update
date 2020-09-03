@@ -37,8 +37,8 @@ public class InventoryRecordSet {
         }
     }
 
-    public void updateInstance (JsonObject updatedInstance) {
-        instance.updateJson(updatedInstance);
+    public void modifyInstance (JsonObject updatedInstance) {
+        instance.replaceJson(updatedInstance);
     }
 
     private void registerHoldingsRecordsAndItems (JsonArray holdingsRecordsWithEmbeddedItems) {

@@ -204,25 +204,26 @@ public abstract class InventoryRecord {
         return shortMessage;
     }
 
-    private static JsonObject parsePostgreSQLErrorTupples (String message) {
-        // Sample:  "ErrorMessage(fields=[(Severity, ERROR), (V, ERROR), (SQLSTATE, 23503),
-        //           (Message, insert or update on table \"holdings_record\" violates foreign key constraint \"holdings_record_permanentlocationid_fkey\"),
-        //           (Detail, Key (permanentlocationid)=(53cf956f-c1df-410b-8bea-27f712cca7c9) is not present in table \"location\".),
-        //           (s, diku_mod_inventory_storage), (t, holdings_record), (n, holdings_record_permanentlocationid_fkey),
-        //           (File, ri_triggers.c), (Line, 3266), (Routine, ri_ReportViolation)])"
 
-        // Match all between the square brackets
-        final String arrayExp =  "(?<=\\[).+?(?=\\])";
-        // Capture tupples in round brackets
-        final String tuppleGroups = "[^,(]*(?:\\([^)]*\\))*[^,]*";
-        final Pattern arrayPattern = Pattern.compile(arrayExp);
-        final Matcher arrayMatcher = arrayPattern.matcher(message);
+    // Sample:  "ErrorMessage(fields=[(Severity, ERROR), (V, ERROR), (SQLSTATE, 23503),
+    //           (Message, insert or update on table \"holdings_record\" violates foreign key constraint \"holdings_record_permanentlocationid_fkey\"),
+    //           (Detail, Key (permanentlocationid)=(53cf956f-c1df-410b-8bea-27f712cca7c9) is not present in table \"location\".),
+    //           (s, diku_mod_inventory_storage), (t, holdings_record), (n, holdings_record_permanentlocationid_fkey),
+    //           (File, ri_triggers.c), (Line, 3266), (Routine, ri_ReportViolation)])"
+
+    // everything between the square brackets of:   ErrorMessage(fields=[(),(),()])
+    private static Pattern POSTGRESQL_ERROR_TUPPLE_ARRAY_PATTERN = Pattern.compile("(?<=\\[).+?(?=\\])");
+    // capture tupples, enclosed in round brackets:  (0),(1),(2)
+    private static Pattern POSTGRESQL_ERROR_TUPPLE_GROUPS_PATTERN = Pattern.compile("[^,(]*(?:\\([^)]*\\))*[^,]*");
+
+    private static JsonObject parsePostgreSQLErrorTupples (String message) {
+
+        final Matcher arrayMatcher = POSTGRESQL_ERROR_TUPPLE_ARRAY_PATTERN.matcher(message);
         JsonObject messageJson = new JsonObject();
         if (arrayMatcher.find()) {
             String arrayString = arrayMatcher.group(0);
             System.out.println(arrayString);
-            Pattern tupplesPattern = Pattern.compile(tuppleGroups);
-            Matcher tupplesMatcher = tupplesPattern.matcher(arrayString);
+            Matcher tupplesMatcher = POSTGRESQL_ERROR_TUPPLE_GROUPS_PATTERN.matcher(arrayString);
             while (tupplesMatcher.find()) {
                 String tuppleString = tupplesMatcher.group(0).trim();
                 // trim the round brackets

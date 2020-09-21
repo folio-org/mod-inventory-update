@@ -1,3 +1,8 @@
+## 0.0.2
+
+* Provides DELETE methods for `inventory-upsert-hrid` and `shared-inventory-upsert-matchkey`
+* Upgrade core dependencies
+
 ## 0.0.1
 
 * Initial version of `mod-inventory-update` based on (disconnected) clone of `mod-inventory-match` `v3.1.0`

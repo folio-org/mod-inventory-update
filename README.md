@@ -40,7 +40,7 @@ More Inventory update schemes might be added, specifically an end-point that sup
 
 ## Prerequisites
 
-- Java 8 JDK
+- Java 11 JDK
 - Maven 3.3.9
 
 ## Git Submodules

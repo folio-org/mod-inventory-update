@@ -1,4 +1,4 @@
-FROM folioci/alpine-jre-openjdk8
+FROM folioci/alpine-jre-openjdk11:latest
 
 ENV VERTICLE_FILE mod-inventory-update-fat.jar
 

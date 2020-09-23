@@ -1,3 +1,7 @@
+## 0.0.3-SNAPSHOT
+
+* POM, Dockerfile upgraded to Java 11
+
 ## 0.0.2
 
 * Provides DELETE methods for `inventory-upsert-hrid` and `shared-inventory-upsert-matchkey`

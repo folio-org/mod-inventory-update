@@ -89,6 +89,13 @@
     {
       "id": "instance-storage",
       "version": "7.4"
+    },
+    { "id": "holdings-storage",
+      "version":  "4.1"
+    },
+    {
+      "id": "item-storage",
+      "version": "8.2"
     }
   ],
   "permissionSets": [

@@ -1,5 +1,9 @@
 # mod-inventory-update
 
+Copyright (C) 2019-2020 The Open Library Foundation
+
+This software is distributed under the terms of the Apache License,
+Version 2.0. See the file "[LICENSE](LICENSE)" for more information.
 
 ## Purpose
 Mod-inventory-update is an Okapi service that can be put in front of mod-inventory-storage (Inventory Storage) for populating the storage with Instances, holdings and items according to one of multiple different update schemes.

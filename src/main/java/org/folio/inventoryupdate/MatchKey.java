@@ -21,8 +21,8 @@ public class MatchKey {
   private final JsonObject candidateInstance;
   private final String matchkee;
   private static final Map<String, String> typeOfMap;
-  private static final String pMATCH_KEY = "matchKey";
-  private static final String pTITLE = "title";
+  private static final String MATCH_KEY = "matchKey";
+  private static final String TITLE = "title";
 
   static {
     typeOfMap = new HashMap<>();
@@ -58,11 +58,11 @@ public class MatchKey {
     StringBuilder key = new StringBuilder();
     if (hasMatchKeyAsString(candidateInstance)) {
       // use provided match key if any
-      key.append(candidateInstance.getString(pMATCH_KEY));
+      key.append(candidateInstance.getString(MATCH_KEY));
     } else {
       if (hasMatchKeyObject(candidateInstance)) {
         // build match key from match key object's properties
-        String title = getInstanceMatchKeyValue(pTITLE) + " "
+        String title = getInstanceMatchKeyValue(TITLE) + " "
             + getInstanceMatchKeyValue("remainder-of-title");
         key.append(get70chars(title))
            .append(get5chars(getInstanceMatchKeyValue("medium")));
@@ -91,8 +91,8 @@ public class MatchKey {
 
   private String getTitle() {
     String title = "";
-    if (candidateInstance.containsKey(pTITLE)) {
-      title = candidateInstance.getString(pTITLE);
+    if (candidateInstance.containsKey(TITLE)) {
+      title = candidateInstance.getString(TITLE);
       title = unaccent(title);
       title = stripTrimLowercase(title);
     }
@@ -167,7 +167,7 @@ public class MatchKey {
   private String getInstanceMatchKeyValue(String name) {
     String value = null;
     if (hasMatchKeyObject(candidateInstance)) {
-      value = candidateInstance.getJsonObject(pMATCH_KEY).getString(name);
+      value = candidateInstance.getJsonObject(MATCH_KEY).getString(name);
       value = unaccent(value);
       value = stripTrimLowercase(value);
     }
@@ -175,14 +175,14 @@ public class MatchKey {
   }
 
   private boolean hasMatchKeyObject (JsonObject instance) {
-    return (instance.containsKey(pMATCH_KEY)
-            && candidateInstance.getValue(pMATCH_KEY) instanceof JsonObject);
+    return (instance.containsKey(MATCH_KEY)
+            && candidateInstance.getValue(MATCH_KEY) instanceof JsonObject);
   }
 
   private boolean hasMatchKeyAsString (JsonObject instance) {
-    return (instance.containsKey(pMATCH_KEY)
-            && candidateInstance.getValue(pMATCH_KEY) instanceof String
-            && candidateInstance.getString(pMATCH_KEY) != null);
+    return (instance.containsKey(MATCH_KEY)
+            && candidateInstance.getValue(MATCH_KEY) instanceof String
+            && candidateInstance.getString(MATCH_KEY) != null);
   }
 
   /**

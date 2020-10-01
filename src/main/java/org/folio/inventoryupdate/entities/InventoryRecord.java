@@ -38,9 +38,9 @@ public abstract class InventoryRecord {
     protected Entity type;
     protected Transaction transaction = Transaction.UNKNOWN;
     protected Outcome outcome = Outcome.PENDING;
-    private static final String pMESSAGE = "message";
-    private static final String pERRORS = "errors";
-    private static final String pPARAMETERS = "parameters";
+    private static final String MESSAGE = "message";
+    private static final String ERRORS = "errors";
+    private static final String PARAMETERS = "parameters";
 
 
     public void setTransition (Transaction transaction) {
@@ -147,7 +147,7 @@ public abstract class InventoryRecord {
         this.error.put("transaction", getTransaction());
         this.error.put("statusCode", statusCode);
         this.error.put("shortMessage", shortMessage);
-        this.error.put(pMESSAGE, maybeJson(error));
+        this.error.put(MESSAGE, maybeJson(error));
         this.error.put("entity", jsonRecord);
     }
 
@@ -170,12 +170,12 @@ public abstract class InventoryRecord {
         String shortMessage = "";
         if (inventoryMessage instanceof JsonObject) {
             JsonObject jsonFormattedError = (JsonObject)inventoryMessage;
-            if (jsonFormattedError.containsKey(pERRORS) && jsonFormattedError.getValue(pERRORS) instanceof JsonArray) {
+            if (jsonFormattedError.containsKey(ERRORS) && jsonFormattedError.getValue(ERRORS) instanceof JsonArray) {
                 // Looks like FOLIO json schema validation error
                 shortMessage = getMessageFromFolioSchemaValidationError(shortMessage, jsonFormattedError);
-            } else if (jsonFormattedError.containsKey(pMESSAGE)) {
+            } else if (jsonFormattedError.containsKey(MESSAGE)) {
                 // Name of the essential message property in raw PostgreSQL error messages
-                shortMessage = jsonFormattedError.getString(pMESSAGE);
+                shortMessage = jsonFormattedError.getString(MESSAGE);
             } else {
                 // fallback
                 shortMessage = "Error: " + getTransaction() + " of " + entityType();
@@ -191,14 +191,14 @@ public abstract class InventoryRecord {
     }
 
     private String getMessageFromFolioSchemaValidationError(String shortMessage, JsonObject jsonFormattedError) {
-        JsonArray errors = jsonFormattedError.getJsonArray(pERRORS);
+        JsonArray errors = jsonFormattedError.getJsonArray(ERRORS);
         if (errors.size()>0 && errors.getValue(0) instanceof JsonObject) {
             JsonObject firstError = errors.getJsonObject(0);
-            if (firstError.containsKey(pMESSAGE) && firstError.getValue(pMESSAGE) instanceof String) {
-                shortMessage += firstError.getString(pMESSAGE);
+            if (firstError.containsKey(MESSAGE) && firstError.getValue(MESSAGE) instanceof String) {
+                shortMessage += firstError.getString(MESSAGE);
             }
-            if (firstError.containsKey(pPARAMETERS) && firstError.getValue(pPARAMETERS) instanceof JsonArray) {
-                JsonArray parameters = firstError.getJsonArray(pPARAMETERS);
+            if (firstError.containsKey(PARAMETERS) && firstError.getValue(PARAMETERS) instanceof JsonArray) {
+                JsonArray parameters = firstError.getJsonArray(PARAMETERS);
                 if (parameters.size()>0 && parameters.getValue(0) instanceof JsonObject) {
                     JsonObject firstParameter = parameters.getJsonObject(0);
                     shortMessage +=  ": " + firstParameter.getValue("key");

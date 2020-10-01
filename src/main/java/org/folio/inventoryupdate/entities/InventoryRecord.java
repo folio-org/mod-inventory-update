@@ -38,6 +38,10 @@ public abstract class InventoryRecord {
     protected Entity type;
     protected Transaction transaction = Transaction.UNKNOWN;
     protected Outcome outcome = Outcome.PENDING;
+    private static final String pMESSAGE = "message";
+    private static final String pERRORS = "errors";
+    private static final String pPARAMETERS = "parameters";
+
 
     public void setTransition (Transaction transaction) {
         this.transaction = transaction;
@@ -73,7 +77,7 @@ public abstract class InventoryRecord {
         jsonRecord.put("id", uuid);
     }
 
-    public String UUID () {
+    public String getUUID() {
         return jsonRecord.getString("id");
     }
 
@@ -143,7 +147,7 @@ public abstract class InventoryRecord {
         this.error.put("transaction", getTransaction());
         this.error.put("statusCode", statusCode);
         this.error.put("shortMessage", shortMessage);
-        this.error.put("message", maybeJson(error));
+        this.error.put(pMESSAGE, maybeJson(error));
         this.error.put("entity", jsonRecord);
     }
 
@@ -166,12 +170,12 @@ public abstract class InventoryRecord {
         String shortMessage = "";
         if (inventoryMessage instanceof JsonObject) {
             JsonObject jsonFormattedError = (JsonObject)inventoryMessage;
-            if (jsonFormattedError.containsKey("errors") && jsonFormattedError.getValue("errors") instanceof JsonArray) {
+            if (jsonFormattedError.containsKey(pERRORS) && jsonFormattedError.getValue(pERRORS) instanceof JsonArray) {
                 // Looks like FOLIO json schema validation error
                 shortMessage = getMessageFromFolioSchemaValidationError(shortMessage, jsonFormattedError);
-            } else if (jsonFormattedError.containsKey("Message")) {
+            } else if (jsonFormattedError.containsKey(pMESSAGE)) {
                 // Name of the essential message property in raw PostgreSQL error messages
-                shortMessage = jsonFormattedError.getString("Message");
+                shortMessage = jsonFormattedError.getString(pMESSAGE);
             } else {
                 // fallback
                 shortMessage = "Error: " + getTransaction() + " of " + entityType();
@@ -187,14 +191,14 @@ public abstract class InventoryRecord {
     }
 
     private String getMessageFromFolioSchemaValidationError(String shortMessage, JsonObject jsonFormattedError) {
-        JsonArray errors = jsonFormattedError.getJsonArray("errors");
+        JsonArray errors = jsonFormattedError.getJsonArray(pERRORS);
         if (errors.size()>0 && errors.getValue(0) instanceof JsonObject) {
             JsonObject firstError = errors.getJsonObject(0);
-            if (firstError.containsKey("message") && firstError.getValue("message") instanceof String) {
-                shortMessage += firstError.getString("message");
+            if (firstError.containsKey(pMESSAGE) && firstError.getValue(pMESSAGE) instanceof String) {
+                shortMessage += firstError.getString(pMESSAGE);
             }
-            if (firstError.containsKey("parameters") && firstError.getValue("parameters") instanceof JsonArray) {
-                JsonArray parameters = firstError.getJsonArray("parameters");
+            if (firstError.containsKey(pPARAMETERS) && firstError.getValue(pPARAMETERS) instanceof JsonArray) {
+                JsonArray parameters = firstError.getJsonArray(pPARAMETERS);
                 if (parameters.size()>0 && parameters.getValue(0) instanceof JsonObject) {
                     JsonObject firstParameter = parameters.getJsonObject(0);
                     shortMessage +=  ": " + firstParameter.getValue("key");
@@ -212,18 +216,17 @@ public abstract class InventoryRecord {
     //           (File, ri_triggers.c), (Line, 3266), (Routine, ri_ReportViolation)])"
 
     // everything between the square brackets of:   ErrorMessage(fields=[(),(),()])
-    private static Pattern POSTGRESQL_ERROR_TUPPLE_ARRAY_PATTERN = Pattern.compile("(?<=\\[).+?(?=\\])");
+    private static final Pattern pattern_POSTGRESQL_ERROR_TUPPLE_ARRAY = Pattern.compile("(?<=\\[).+?(?=\\])");
     // capture tupples, enclosed in round brackets:  (0),(1),(2)
-    private static Pattern POSTGRESQL_ERROR_TUPPLE_GROUPS_PATTERN = Pattern.compile("[^,(]*(?:\\([^)]*\\))*[^,]*");
+    private static final Pattern pattern_POSTGRESQL_ERROR_TUPPLE_GROUPS = Pattern.compile("[^,(]*(?:\\([^)]*\\))*[^,]*");
 
     private static JsonObject parsePostgreSQLErrorTupples (String message) {
 
-        final Matcher arrayMatcher = POSTGRESQL_ERROR_TUPPLE_ARRAY_PATTERN.matcher(message);
+        final Matcher arrayMatcher = pattern_POSTGRESQL_ERROR_TUPPLE_ARRAY.matcher(message);
         JsonObject messageJson = new JsonObject();
         if (arrayMatcher.find()) {
             String arrayString = arrayMatcher.group(0);
-            System.out.println(arrayString);
-            Matcher tupplesMatcher = POSTGRESQL_ERROR_TUPPLE_GROUPS_PATTERN.matcher(arrayString);
+            Matcher tupplesMatcher = pattern_POSTGRESQL_ERROR_TUPPLE_GROUPS.matcher(arrayString);
             while (tupplesMatcher.find()) {
                 String tuppleString = tupplesMatcher.group(0).trim();
                 // trim the round brackets

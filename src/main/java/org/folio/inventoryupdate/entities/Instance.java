@@ -17,15 +17,17 @@ public class Instance extends InventoryRecord {
     public void replaceJson(JsonObject instance) {
         jsonRecord = instance;
         for (HoldingsRecord record : holdingsRecords) {
-            record.setInstanceId(UUID());
+            record.setInstanceId(getUUID());
         }
     }
 
+    @Override
     public void setUUID(String uuid) {
         super.setUUID(uuid);
         setHoldingsRecordsInstanceId(uuid);
     }
 
+    @Override
     public String generateUUID () {
         String uuid = super.generateUUID();
         setHoldingsRecordsInstanceId(uuid);
@@ -40,7 +42,7 @@ public class Instance extends InventoryRecord {
 
     public void addHoldingsRecord(HoldingsRecord holdingsRecord) {
         if (hasUUID() && ! holdingsRecord.hasInstanceId()) {
-            holdingsRecord.setInstanceId(UUID());
+            holdingsRecord.setInstanceId(getUUID());
         }
         holdingsRecords.add(holdingsRecord);
     }

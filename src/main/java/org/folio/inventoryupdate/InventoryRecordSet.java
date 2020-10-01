@@ -24,14 +24,19 @@ public class InventoryRecordSet {
     private Map<String,Item> itemsByHRID = new HashMap<String,Item>();
     private List<HoldingsRecord> allHoldingsRecords = new ArrayList<HoldingsRecord>();
     private List<Item> allItems = new ArrayList<Item>();
+
+    private static final String pINSTANCE = "instance";
+    private static final String pHOLDINGS_RECORDS = "holdingsRecords";
+    private static final String pITEMS = "items";
+    private static final String pHRID = "hrid";
     @SuppressWarnings("unused")
     private final Logger logger = LoggerFactory.getLogger("inventory-update");
 
     public InventoryRecordSet (JsonObject inventoryRecordSet) {
         if (inventoryRecordSet != null) {
             sourceJson = new JsonObject(inventoryRecordSet.toString());
-            JsonObject instanceJson = inventoryRecordSet.getJsonObject("instance");
-            JsonArray holdings = inventoryRecordSet.getJsonArray("holdingsRecords");
+            JsonObject instanceJson = inventoryRecordSet.getJsonObject(pINSTANCE);
+            JsonArray holdings = inventoryRecordSet.getJsonArray(pHOLDINGS_RECORDS);
             instance = new Instance(instanceJson);
             registerHoldingsRecordsAndItems (holdings);
         }
@@ -46,21 +51,21 @@ public class InventoryRecordSet {
             for (Object holdings : holdingsRecordsWithEmbeddedItems) {
                 JsonObject holdingsRecordJson = (JsonObject) holdings;
                 JsonArray items = new JsonArray();
-                if (holdingsRecordJson.containsKey("items")) {
-                    items = extractJsonArrayFromObject(holdingsRecordJson, "items");
+                if (holdingsRecordJson.containsKey(pITEMS)) {
+                    items = extractJsonArrayFromObject(holdingsRecordJson, pITEMS);
                 }
                 HoldingsRecord holdingsRecord = new HoldingsRecord(holdingsRecordJson);
                 for (Object object : items) {
                     JsonObject itemJson = (JsonObject) object;
                     Item item = new Item(itemJson);
-                    String itemHrid = itemJson.getString("hrid");
+                    String itemHrid = itemJson.getString(pHRID);
                     if (itemHrid != null && !itemHrid.isEmpty()) {
                         itemsByHRID.put(itemHrid, item);
                     }
                     holdingsRecord.addItem(item);
                     allItems.add(item);
                 }
-                String holdingsRecordHrid = holdingsRecordJson.getString("hrid");
+                String holdingsRecordHrid = holdingsRecordJson.getString(pHRID);
                 if (holdingsRecordHrid != null && !holdingsRecordHrid.isEmpty()) {
                     holdingsRecordsByHRID.put(holdingsRecordHrid, holdingsRecord);
                 }
@@ -85,10 +90,10 @@ public class InventoryRecordSet {
             for (Item item : holdingsRecord.getItems()) {
                 itemsArray.add(item.asJson());
             }
-            holdingsRecordJson.put("items",itemsArray);
+            holdingsRecordJson.put(pITEMS,itemsArray);
             holdingsAndItemsArray.add(holdingsRecordJson);
         }
-        recordSetJson.put("holdingsRecords", holdingsAndItemsArray);
+        recordSetJson.put(pHOLDINGS_RECORDS, holdingsAndItemsArray);
         return recordSetJson;
     }
 
@@ -104,7 +109,7 @@ public class InventoryRecordSet {
         if (getInstance() == null) {
             return "no instance - no UUID";
         } else {
-            return getInstance().UUID();
+            return getInstance().getUUID();
         }
     }
 

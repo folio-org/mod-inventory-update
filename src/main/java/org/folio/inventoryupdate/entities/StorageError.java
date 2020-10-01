@@ -2,11 +2,32 @@ package org.folio.inventoryupdate.entities;
 
 public class StorageError {
 
-        public int statusCode;
-        public String reason;
-        public String response;
-        public String shortDescription;
-        public String entity;
+        private int statusCode;
+        private String reason;
+        private String response;
+        private String shortDescription;
+        private String entity;
+
+        public int getStatusCode() {
+            return statusCode;
+        }
+
+        public String getReason() {
+            return reason;
+        }
+
+        public String getResponse() {
+            return response;
+        }
+
+        public String getShortDescription() {
+            return shortDescription;
+        }
+
+        public String getEntity() {
+            return entity;
+        }
+
 
         public StorageError(int status, String reason, String response, String shortDescription, String entity) {
           this.statusCode = status;

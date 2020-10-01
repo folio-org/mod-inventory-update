@@ -5,11 +5,11 @@
  */
 package org.folio.inventoryupdate;
 
+import io.vertx.core.impl.logging.Logger;
+import io.vertx.core.impl.logging.LoggerFactory;
+
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
-
-import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.LoggerFactory;
 
 /**
  * MatchQuery takes an Instance and constructs a Inventory query needed for
@@ -55,7 +55,7 @@ public class MatchQuery implements InventoryQuery {
     try {
       encodedQuery = URLEncoder.encode(queryString,"UTF-8");
     } catch (UnsupportedEncodingException unsupportedEncodingException) {
-      logger.fatal("System error: Unsupported encoding of Inventory query" + unsupportedEncodingException);
+      logger.error("System error: Unsupported encoding of Inventory query" + unsupportedEncodingException);
       encodedQuery =  "encoding-error-while-building-query-string";
     }
     return encodedQuery;

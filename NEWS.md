@@ -1,6 +1,7 @@
 ## 0.0.3-SNAPSHOT
 
 * POM, Dockerfile upgraded to Java 11
+* Added Jenkinsfile
 
 ## 0.0.2
 

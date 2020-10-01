@@ -1,10 +1,11 @@
 package org.folio.inventoryupdate;
 
+import io.vertx.core.impl.logging.Logger;
+import io.vertx.core.impl.logging.LoggerFactory;
+
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
 
-import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.LoggerFactory;
 
 public class HridQuery implements InventoryQuery {
     private String hrid;
@@ -41,9 +42,9 @@ public class HridQuery implements InventoryQuery {
   public String getURLEncodedQueryString () {
     String encodedQuery;
     try {
-      encodedQuery = URLEncoder.encode(queryString.toString(),"UTF-8");
+      encodedQuery = URLEncoder.encode(queryString,"UTF-8");
     } catch (UnsupportedEncodingException unsupportedEncodingException) {
-      logger.fatal("System error: Unsupported encoding of Inventory query" + unsupportedEncodingException);
+      logger.error("System error: Unsupported encoding of Inventory query" + unsupportedEncodingException);
       encodedQuery =  "encoding-error-while-building-query-string";
     }
     return encodedQuery;

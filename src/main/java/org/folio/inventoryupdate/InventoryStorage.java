@@ -3,6 +3,8 @@ package org.folio.inventoryupdate;
 import java.util.ArrayList;
 import java.util.List;
 
+import io.vertx.core.impl.logging.Logger;
+import io.vertx.core.impl.logging.LoggerFactory;
 import org.folio.inventoryupdate.entities.InventoryRecord;
 import org.folio.inventoryupdate.entities.InventoryRecord.Entity;
 import org.folio.inventoryupdate.entities.InventoryRecord.Transaction;
@@ -14,8 +16,6 @@ import io.vertx.core.Promise;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
-import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.LoggerFactory;
 
 /**
  * Static methods making low level HTTP request to create and update records in Inventory Storage.
@@ -50,7 +50,7 @@ public class InventoryStorage {
   public static Future<JsonObject> putInventoryRecord (OkapiClient okapiClient, InventoryRecord record) {
     Promise<JsonObject> promise = Promise.promise();
     logger.debug("Putting " + record.entityType() + ": " + record.asJson().encodePrettily());
-    okapiClient.request(HttpMethod.PUT, getApi(record.entityType())+"/"+record.UUID(), record.asJsonString(), putResult -> {
+    okapiClient.request(HttpMethod.PUT, getApi(record.entityType())+"/"+record.getUUID(), record.asJsonString(), putResult -> {
       if (putResult.succeeded()) {
         record.complete();
         promise.complete(record.asJson());
@@ -65,7 +65,7 @@ public class InventoryStorage {
 
   public static Future<JsonObject> deleteInventoryRecord (OkapiClient okapiClient, InventoryRecord record) {
     Promise<JsonObject> promise = Promise.promise();
-    okapiClient.delete(getApi(record.entityType())+"/"+record.UUID(), deleteResult -> {
+    okapiClient.delete(getApi(record.entityType())+"/"+record.getUUID(), deleteResult -> {
       if (deleteResult.succeeded()) {
         record.complete();
         promise.complete();

@@ -93,10 +93,12 @@
       "description": "Indicates the shelving form of title."
     },
     "acquisitionFormat": {
-      "type": "string"
+      "type": "string",
+      "description": "Format of holdings record acquisition"
     },
     "acquisitionMethod": {
-      "type": "string"
+      "type": "string",
+      "description": "Method of holdings record acquisition"
     },
     "receiptStatus": {
       "type": "string",

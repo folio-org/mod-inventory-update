@@ -21,6 +21,7 @@
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <vertx-version>3.9.2</vertx-version>
     <docker.registry>docker.indexdata.com:5000</docker.registry>
+    <ramlfiles_path>${basedir}/ramls/</ramlfiles_path>
   </properties>
 
   <dependencies>
@@ -92,6 +93,22 @@
         <version>3.0.1</version>
         <executions>
           <execution>
+            <id>copy-resources</id>
+            <phase>process-resources</phase>
+            <goals>
+              <goal>copy-resources</goal>
+            </goals>
+            <configuration>
+              <outputDirectory>${basedir}/target/classes/apidocs/raml</outputDirectory>
+              <resources>
+                <resource>
+                  <directory>${ramlfiles_path}</directory>
+                  <filtering>true</filtering>
+                </resource>
+              </resources>
+            </configuration>
+          </execution>
+          <execution>
             <id>filter-descriptor-inputs</id>
             <phase>generate-resources</phase>
             <goals>
@@ -106,6 +123,28 @@
                   <filtering>true</filtering>
                 </resource>
               </resources>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-antrun-plugin</artifactId>
+        <version>1.8</version>
+        <executions>
+          <execution>
+            <!-- Replace the baseUri in the RAMLs that have been copied to
+            apidocs directory so that they can be used via the local html api console. -->
+            <phase>prepare-package</phase>
+            <goals>
+              <goal>run</goal>
+            </goals>
+            <configuration>
+              <target>
+                <replaceregexp match="baseUri:.+$" replace="baseUri: http://localhost:{http.port}" byline="true">
+                  <fileset dir="${basedir}/target/classes/apidocs/raml" includes="**/*.raml"/>
+                </replaceregexp>
+              </target>
             </configuration>
           </execution>
         </executions>

@@ -3,6 +3,8 @@ package org.folio.inventoryupdate;
 import java.util.ArrayList;
 import java.util.List;
 
+import io.vertx.core.impl.logging.Logger;
+import io.vertx.core.impl.logging.LoggerFactory;
 import org.folio.inventoryupdate.entities.HoldingsRecord;
 import org.folio.inventoryupdate.entities.Instance;
 import org.folio.inventoryupdate.entities.InventoryRecord;
@@ -17,8 +19,6 @@ import io.vertx.core.Future;
 import io.vertx.core.Promise;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
-import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.LoggerFactory;
 
 /**
  * Base class for implementing update plans

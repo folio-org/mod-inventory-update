@@ -8,33 +8,34 @@ import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import io.vertx.core.impl.logging.Logger;
+import io.vertx.core.impl.logging.LoggerFactory;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
-import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.LoggerFactory;
+
 
 public class MatchKey {
 
   private final Logger logger = LoggerFactory.getLogger("inventory-update-match-key");
 
   private final JsonObject candidateInstance;
-  private final String matchKey;
-  private final static Map<String, String> typeOfMap;
+  private final String matchkey;
+  private static final Map<String, String> typeOfMap;
 
 
   static {
     typeOfMap = new HashMap<>();
-    typeOfMap.put("6312d172-f0cf-40f6-b27d-9fa8feaf332f", "a");
-    typeOfMap.put("497b5090-3da2-486c-b57f-de5bb3c2e26d", "c");
+    // typeOfMap.put("6312d172-f0cf-40f6-b27d-9fa8feaf332f", "a");
+    // typeOfMap.put("497b5090-3da2-486c-b57f-de5bb3c2e26d", "c");
     typeOfMap.put("497b5090-3da2-486c-b57f-de5bb3c2e26d", "d");
     typeOfMap.put("526aa04d-9289-4511-8866-349299592c18", "e");
-    typeOfMap.put("a2c91e87-6bab-44d6-8adb-1fd02481fc4f", "f");
+    // typeOfMap.put("a2c91e87-6bab-44d6-8adb-1fd02481fc4f", "f");
     typeOfMap.put("535e3160-763a-42f9-b0c0-d8ed7df6e2a2", "g");
     typeOfMap.put("9bce18bd-45bf-4949-8fa8-63163e4b7d7f", "i");
     typeOfMap.put("3be24c14-3551-4180-9292-26a786649c8b", "j");
-    typeOfMap.put("a2c91e87-6bab-44d6-8adb-1fd02481fc4f", "k");
+    // typeOfMap.put("a2c91e87-6bab-44d6-8adb-1fd02481fc4f", "k");
     typeOfMap.put("df5dddff-9c30-4507-8b82-119ff972d4d7", "m");
-    typeOfMap.put("a2c91e87-6bab-44d6-8adb-1fd02481fc4f", "o");
+    // typeOfMap.put("a2c91e87-6bab-44d6-8adb-1fd02481fc4f", "o");
     typeOfMap.put("a2c91e87-6bab-44d6-8adb-1fd02481fc4f", "p");
     typeOfMap.put("c1e95c2b-4efc-48cf-9e71-edb622cf0c22", "r");
     typeOfMap.put("6312d172-f0cf-40f6-b27d-9fa8feaf332f", "t");
@@ -42,7 +43,7 @@ public class MatchKey {
 
   public MatchKey(JsonObject candidateInstance) {
     this.candidateInstance = candidateInstance;
-    matchKey = buildMatchKey();
+    matchkey = buildMatchKey();
   }
 
   /**
@@ -88,7 +89,7 @@ public class MatchKey {
   }
 
   private String getTitle() {
-    String title = null;
+    String title = "";
     if (candidateInstance.containsKey("title")) {
       title = candidateInstance.getString("title");
       title = unaccent(title);
@@ -125,10 +126,11 @@ public class MatchKey {
       input = input.replaceFirst("^[tT]he[ ]+", "");
       input = input.replaceAll("['{}]", "");
       input = input.replace("&", "and");
-      output = input.replaceAll("[#\\*\\$@<>\\[\\]\"\\\\,.?:()=^~|-©;`-]", " ").trim().toLowerCase();
+      output = input.replaceAll("[#*$@<>\\[\\]\"\\\\,.?:()=^~|©;`-]", " ").trim().toLowerCase();
     }
     return output;
   }
+
 
   private static String unaccent(String str) {
     return (str == null ? str :
@@ -191,7 +193,7 @@ public class MatchKey {
     String dateOfPublication = null;
     String dateDigits = null;
     JsonArray publication = candidateInstance.getJsonArray("publication");
-    if (publication != null && publication.getList().size()>0 ) {
+    if (publication != null && !publication.getList().isEmpty() ) {
       dateOfPublication = publication.getJsonObject(0).getString("dateOfPublication");
     }
     if(dateOfPublication != null) {
@@ -251,7 +253,7 @@ public class MatchKey {
 
   protected String getFormatChar() {
     String medium = getInstanceMatchKeyValue("medium");
-    if(medium != null && medium.contains("electronic")) {
+    if(medium.contains("electronic")) {
       return "e";
     }
     return "p";
@@ -348,7 +350,7 @@ public class MatchKey {
   public String getPhysicalDescription() {
     String physicalDescription = "";
     JsonArray physicalDescriptions = candidateInstance.getJsonArray("physicalDescriptions");
-    if (physicalDescriptions != null && physicalDescriptions.getList().size() >0) {
+    if (physicalDescriptions != null && !physicalDescriptions.getList().isEmpty()) {
       String physicalDescriptionSource = physicalDescriptions.getList().get(0).toString();
       physicalDescriptionSource = unaccent(physicalDescriptionSource);
       Matcher m = PAGINATION_REGEX.matcher(physicalDescriptionSource);
@@ -376,7 +378,7 @@ public class MatchKey {
   public String getEdition() {
     String edition = "";
     JsonArray editions = candidateInstance.getJsonArray("editions");
-    if (editions != null && editions.getList().size() > 0) {
+    if (editions != null && !editions.getList().isEmpty()) {
       String editionSource = editions.getList().get(0).toString();
       editionSource = unaccent(editionSource);
       Matcher m;
@@ -394,7 +396,7 @@ public class MatchKey {
   public String getPublisher() {
     String publisher = null;
     JsonArray publication = candidateInstance.getJsonArray("publication");
-    if (publication != null && publication.getList().size()>0 ) {
+    if (publication != null && !publication.getList().isEmpty() ) {
       publisher = publication.getJsonObject(0).getString("publisher");
     }
     publisher = unaccent(publisher);
@@ -406,12 +408,11 @@ public class MatchKey {
       publisher = "";
     }
     publisher = String.format("%-10s", publisher).replace(" ", "_");
-    //return publisher != null ? " " + publisher : "";
     return publisher;
   }
 
   public String getKey () {
-    return this.matchKey;
+    return this.matchkey;
   }
 
 }

@@ -135,13 +135,13 @@ public class UpdatePlanAllHRIDs extends UpdatePlan {
                         existingItem.setTransition(Transaction.DELETE);
                     } else {
                         // Item appear to be moved to another holdings record in the instance
-                        incomingItem.setUUID(existingItem.UUID());
+                        incomingItem.setUUID(existingItem.getUUID());
                         incomingItem.setTransition(Transaction.UPDATE);
                     }
                 }
             } else {
                 // There is an existing holdings record with the same HRID, on the same Instance
-                incomingHoldingsRecord.setUUID(existingHoldingsRecord.UUID());
+                incomingHoldingsRecord.setUUID(existingHoldingsRecord.getUUID());
                 incomingHoldingsRecord.setTransition(Transaction.UPDATE);
                 for (Item existingItem : existingHoldingsRecord.getItems()) {
                     Item incomingItem = updatingSet.getItemByHRID(existingItem.getHRID());
@@ -150,7 +150,7 @@ public class UpdatePlanAllHRIDs extends UpdatePlan {
                         existingItem.setTransition(Transaction.DELETE);
                     } else {
                         // There is an incoming item with the same HRID somewhere in the instance
-                        incomingItem.setUUID(existingItem.UUID());
+                        incomingItem.setUUID(existingItem.getUUID());
                         incomingItem.setTransition(Transaction.UPDATE);
                     }
                 }

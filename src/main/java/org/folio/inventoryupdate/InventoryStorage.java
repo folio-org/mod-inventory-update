@@ -50,7 +50,7 @@ public class InventoryStorage {
   public static Future<JsonObject> putInventoryRecord (OkapiClient okapiClient, InventoryRecord record) {
     Promise<JsonObject> promise = Promise.promise();
     logger.debug("Putting " + record.entityType() + ": " + record.asJson().encodePrettily());
-    okapiClient.request(HttpMethod.PUT, getApi(record.entityType())+"/"+record.UUID(), record.asJsonString(), putResult -> {
+    okapiClient.request(HttpMethod.PUT, getApi(record.entityType())+"/"+record.getUUID(), record.asJsonString(), putResult -> {
       if (putResult.succeeded()) {
         record.complete();
         promise.complete(record.asJson());
@@ -65,7 +65,7 @@ public class InventoryStorage {
 
   public static Future<JsonObject> deleteInventoryRecord (OkapiClient okapiClient, InventoryRecord record) {
     Promise<JsonObject> promise = Promise.promise();
-    okapiClient.delete(getApi(record.entityType())+"/"+record.UUID(), deleteResult -> {
+    okapiClient.delete(getApi(record.entityType())+"/"+record.getUUID(), deleteResult -> {
       if (deleteResult.succeeded()) {
         record.complete();
         promise.complete();

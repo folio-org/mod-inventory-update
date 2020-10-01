@@ -87,7 +87,7 @@ public abstract class UpdatePlan {
      */
     protected void flagAndIdTheUpdatingInstance () {
       if (foundExistingRecordSet()) {
-        getUpdatingInstance().setUUID(getExistingInstance().UUID());
+        getUpdatingInstance().setUUID(getExistingInstance().getUUID());
         getUpdatingInstance().setTransition(Transaction.UPDATE);
       } else {
         getUpdatingInstance().generateUUID();

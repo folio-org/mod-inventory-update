@@ -2,11 +2,11 @@ package org.folio.inventoryupdate.entities;
 
 public class StorageError {
 
-        public int statusCode;
-        public String reason;
-        public String response;
-        public String shortDescription;
-        public String entity;
+        private int statusCode;
+        private String reason;
+        private String response;
+        private String shortDescription;
+        private String entity;
 
         public StorageError(int status, String reason, String response, String shortDescription, String entity) {
           this.statusCode = status;

@@ -180,7 +180,7 @@
             <exclude>**/package/**XYZ.class</exclude>
           </excludes>
           <includes>
-              <include>**/test/InstanceMatchingTestSuite.class</include>
+              <include>**/test/InventoryUpdateTestSuite.class</include>
               <include>**/UnitTest.class</include>
           </includes>
         </configuration>

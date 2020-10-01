@@ -70,7 +70,6 @@ public class MatchKey {
       } else {
         // build match key from plain Instance properties
         key.append(get70chars(getTitle()));
-
       }
       key.append(getDateOfPublication())
           .append(getPhysicalDescription())
@@ -101,9 +100,9 @@ public class MatchKey {
 
   private static String get70chars (String input) {
     String output = "";
-    if (input.length()<70) {
+    if (input != null && input.length()<70) {
       output = String.format("%-70s", input).replace(" ", "_");
-    } else {
+    } else if (input != null) {
       output = input.substring(0,45);
       String[] rest = input.substring(45).split("[ ]+");
       for (int i=0; i<rest.length; i++) {

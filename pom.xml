@@ -21,13 +21,15 @@
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <vertx-version>3.9.2</vertx-version>
     <docker.registry>docker.indexdata.com:5000</docker.registry>
+    <raml-module-builder-version>31.1.0</raml-module-builder-version>
+    <ramlfiles_path>${basedir}/ramls/</ramlfiles_path>
   </properties>
 
   <dependencies>
     <dependency>
       <groupId>org.folio</groupId>
       <artifactId>domain-models-runtime</artifactId>
-      <version>31.0.0</version>
+      <version>${raml-module-builder-version}</version>
     </dependency>
     <dependency>
       <groupId>org.folio.okapi</groupId>

@@ -11,6 +11,8 @@ import static org.folio.okapi.common.HttpResponse.responseJson;
 import java.util.HashMap;
 import java.util.Map;
 
+import io.vertx.core.impl.logging.Logger;
+import io.vertx.core.impl.logging.LoggerFactory;
 import org.folio.inventoryupdate.entities.DeletionIdentifiers;
 import org.folio.okapi.common.OkapiClient;
 
@@ -18,8 +20,6 @@ import io.vertx.core.Future;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
-import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.web.RoutingContext;
 
 /**

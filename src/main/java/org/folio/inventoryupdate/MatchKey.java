@@ -19,7 +19,7 @@ public class MatchKey {
   private final Logger logger = LoggerFactory.getLogger("inventory-update-match-key");
 
   private final JsonObject candidateInstance;
-  private final String matchkey;
+  private final String matchkee;
   private static final Map<String, String> typeOfMap;
 
 
@@ -43,7 +43,7 @@ public class MatchKey {
 
   public MatchKey(JsonObject candidateInstance) {
     this.candidateInstance = candidateInstance;
-    matchkey = buildMatchKey();
+    matchkee = buildMatchKey();
   }
 
   /**
@@ -412,7 +412,7 @@ public class MatchKey {
   }
 
   public String getKey () {
-    return this.matchkey;
+    return this.matchkee;
   }
 
 }

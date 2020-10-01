@@ -19,7 +19,7 @@ import io.vertx.core.json.JsonObject;
 public class InventoryRecordSet {
 
     private JsonObject sourceJson = null;
-    private Instance instance = null;
+    private Instance anInstance = null;
     private Map<String,HoldingsRecord> holdingsRecordsByHRID     = new HashMap<String,HoldingsRecord>();
     private Map<String,Item> itemsByHRID = new HashMap<String,Item>();
     private List<HoldingsRecord> allHoldingsRecords = new ArrayList<HoldingsRecord>();
@@ -37,13 +37,13 @@ public class InventoryRecordSet {
             sourceJson = new JsonObject(inventoryRecordSet.toString());
             JsonObject instanceJson = inventoryRecordSet.getJsonObject(INSTANCE);
             JsonArray holdings = inventoryRecordSet.getJsonArray(HOLDINGS_RECORDS);
-            instance = new Instance(instanceJson);
+            anInstance = new Instance(instanceJson);
             registerHoldingsRecordsAndItems (holdings);
         }
     }
 
     public void modifyInstance (JsonObject updatedInstance) {
-        instance.replaceJson(updatedInstance);
+        anInstance.replaceJson(updatedInstance);
     }
 
     private void registerHoldingsRecordsAndItems (JsonArray holdingsRecordsWithEmbeddedItems) {
@@ -70,7 +70,7 @@ public class InventoryRecordSet {
                     holdingsRecordsByHRID.put(holdingsRecordHrid, holdingsRecord);
                 }
                 allHoldingsRecords.add(holdingsRecord);
-                instance.addHoldingsRecord(holdingsRecord);
+                anInstance.addHoldingsRecord(holdingsRecord);
             }
         }
     }
@@ -130,7 +130,7 @@ public class InventoryRecordSet {
     }
 
     public Instance getInstance () {
-        return instance;
+        return anInstance;
     }
 
     public Map<String, HoldingsRecord> getMapOfHoldingsRecordsByHRID () {

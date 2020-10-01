@@ -216,17 +216,17 @@ public abstract class InventoryRecord {
     //           (File, ri_triggers.c), (Line, 3266), (Routine, ri_ReportViolation)])"
 
     // everything between the square brackets of:   ErrorMessage(fields=[(),(),()])
-    private static final Pattern pattern_POSTGRESQL_ERROR_TUPPLE_ARRAY = Pattern.compile("(?<=\\[).+?(?=\\])");
+    private static final Pattern POSTGRESQL_ERROR_TUPPLE_ARRAY = Pattern.compile("(?<=\\[).+?(?=\\])");
     // capture tupples, enclosed in round brackets:  (0),(1),(2)
-    private static final Pattern pattern_POSTGRESQL_ERROR_TUPPLE_GROUPS = Pattern.compile("[^,(]*(?:\\([^)]*\\))*[^,]*");
+    private static final Pattern POSTGRESQL_ERROR_TUPPLE_GROUPS = Pattern.compile("[^,(]*(?:\\([^)]*\\))*[^,]*");
 
     private static JsonObject parsePostgreSQLErrorTupples (String message) {
 
-        final Matcher arrayMatcher = pattern_POSTGRESQL_ERROR_TUPPLE_ARRAY.matcher(message);
+        final Matcher arrayMatcher = POSTGRESQL_ERROR_TUPPLE_ARRAY.matcher(message);
         JsonObject messageJson = new JsonObject();
         if (arrayMatcher.find()) {
             String arrayString = arrayMatcher.group(0);
-            Matcher tupplesMatcher = pattern_POSTGRESQL_ERROR_TUPPLE_GROUPS.matcher(arrayString);
+            Matcher tupplesMatcher = POSTGRESQL_ERROR_TUPPLE_GROUPS.matcher(arrayString);
             while (tupplesMatcher.find()) {
                 String tuppleString = tupplesMatcher.group(0).trim();
                 // trim the round brackets

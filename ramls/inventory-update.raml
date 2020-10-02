@@ -11,6 +11,8 @@ documentation:
 types:
   instance: !include instance.json
   inventory-record-set: !include inventoryRecordSet.json
+  hrid-deletion: !include hrid-deletion.json
+  shared-index-deletion: !include shared-index-deletion.json
 
 resourceTypes:
   collection-item: !include raml-util/rtypes/item-collection.raml
@@ -27,17 +29,23 @@ traits:
                 type: instance
 
 /inventory-upsert-hrid:
-  displayName: Create, update, delete instance with holdings and items, based on instance HRID
+  displayName: Create, update, delete instance with holdings and items, based on incoming HRIDs on all three record types
   put:
     body:
         application/json:
             type: inventory-record-set
   delete:
+    body:
+        application/json:
+            type: hrid-deletion
 
 /shared-inventory-upsert-matchkey:
-  displayName: Create, update, "delete" instance with holdings and items, based on instance match key
+  displayName: Create, update, "delete" instance, replace its holdings and items, based on instance match key
   put:
     body:
         application/json:
             type: inventory-record-set
   delete:
+    body:
+        application/json:
+            type: shared-index-deletion

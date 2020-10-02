@@ -1,0 +1,14 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "description": "Deletion record for deletion by HRID",
+  "type": "object",
+  "properties": {
+    "hrid": {
+      "type": "string",
+      "description": "The legacy ID for the bibliographic record, as stored in the HRID of the Instance to be deleted."
+    }
+  },
+  "required": [
+    "hrid"
+  ]
+}

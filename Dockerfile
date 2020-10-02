@@ -9,4 +9,4 @@ ENV VERTICLE_HOME /usr/verticles
 COPY target/${VERTICLE_FILE} ${VERTICLE_HOME}/${VERTICLE_FILE}
 
 # Expose this port locally in the container.
-EXPOSE 8080
+EXPOSE 8081

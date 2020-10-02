@@ -22,13 +22,22 @@ traits:
   displayName: Instance create or update by match key (being deprecated)
   /instances:
     put:
+        body:
+            application/json:
+                type: instance
 
 /inventory-upsert-hrid:
   displayName: Create, update, delete instance with holdings and items, based on instance HRID
   put:
+    body:
+        application/json:
+            type: inventory-record-set
   delete:
 
 /shared-inventory-upsert-matchkey:
   displayName: Create, update, "delete" instance with holdings and items, based on instance match key
   put:
+    body:
+        application/json:
+            type: inventory-record-set
   delete:

@@ -42,6 +42,12 @@ public class InventoryRecordSet {
         }
     }
 
+    public static boolean isValidInventoryRecordSet(JsonObject inventoryRecordSet) {
+        if (inventoryRecordSet == null) return false;
+        if (!inventoryRecordSet.containsKey(INSTANCE)) return false;
+        return true;
+    }
+
     public void modifyInstance (JsonObject updatedInstance) {
         anInstance.replaceJson(updatedInstance);
     }

@@ -13,6 +13,7 @@ import java.util.Map;
 
 import io.vertx.core.impl.logging.Logger;
 import io.vertx.core.impl.logging.LoggerFactory;
+import io.vertx.core.json.DecodeException;
 import org.folio.inventoryupdate.entities.DeletionIdentifiers;
 import org.folio.okapi.common.OkapiClient;
 
@@ -34,27 +35,34 @@ public class InventoryUpdateService {
 
   public void handleSharedInventoryUpsertByMatchkey (RoutingContext routingCtx) {
     if (contentTypeIsJson(routingCtx)) {
-      JsonObject inventoryRecordSet = getIncomingInventoryRecordSet(routingCtx);
-      InventoryRecordSet incomingSet = new InventoryRecordSet(inventoryRecordSet);
-      MatchKey matchKey = new MatchKey(incomingSet.getInstance().asJson());
-      InventoryQuery instanceByMatchKeyQuery = new MatchQuery(matchKey.getKey());
-      incomingSet.getInstance().asJson().put("matchKey", matchKey.getKey());
-      incomingSet.getInstance().asJson().put("indexTitle", matchKey.getKey());
+      JsonObject incomingJson = getIncomingJsonBody(routingCtx);
+      if (InventoryRecordSet.isValidInventoryRecordSet(incomingJson)) {
+        InventoryRecordSet incomingSet = new InventoryRecordSet(incomingJson);
+        MatchKey matchKey = new MatchKey(incomingSet.getInstance().asJson());
+        InventoryQuery instanceByMatchKeyQuery = new MatchQuery(matchKey.getKey());
+        incomingSet.getInstance().asJson().put("matchKey", matchKey.getKey());
+        incomingSet.getInstance().asJson().put("indexTitle", matchKey.getKey());
 
-      UpdatePlan updatePlan = new UpdatePlanSharedInventory(incomingSet, instanceByMatchKeyQuery);
-      runPlan(updatePlan, routingCtx);
+        UpdatePlan updatePlan = new UpdatePlanSharedInventory(incomingSet, instanceByMatchKeyQuery);
+        runPlan(updatePlan, routingCtx);
+      } else {
+        responseError(routingCtx, 400, "Did not recognize input as an Inventory record set: "+ incomingJson.encodePrettily());
+      }
     }
   }
 
   public void handleInventoryUpsertByHrid (RoutingContext routingCtx) {
     if (contentTypeIsJson(routingCtx)) {
-      JsonObject incomingInventoryRecordSetJson = getIncomingInventoryRecordSet(routingCtx);
-      InventoryRecordSet incomingSet = new InventoryRecordSet(incomingInventoryRecordSetJson);
-      InventoryQuery queryByInstanceHrid = new HridQuery(incomingSet.getInstanceHRID());
+      JsonObject incomingJson = getIncomingJsonBody(routingCtx);
+      if (InventoryRecordSet.isValidInventoryRecordSet(incomingJson)) {
+        InventoryRecordSet incomingSet = new InventoryRecordSet(incomingJson);
+        InventoryQuery queryByInstanceHrid = new HridQuery(incomingSet.getInstanceHRID());
 
-      UpdatePlan updatePlan = new UpdatePlanAllHRIDs(incomingSet, queryByInstanceHrid);
-
-      runPlan(updatePlan, routingCtx);
+        UpdatePlan updatePlan = new UpdatePlanAllHRIDs(incomingSet, queryByInstanceHrid);
+        runPlan(updatePlan, routingCtx);
+      } else {
+        responseError(routingCtx, 400, "Did not recognize input as an Inventory record set: "+ incomingJson.encodePrettily());
+      }
     }
   }
 
@@ -64,8 +72,6 @@ public class InventoryUpdateService {
       InventoryQuery queryByInstanceHrid = new HridQuery(deletionJson.getString("hrid"));
       UpdatePlan updatePlan = new UpdatePlanAllHRIDs(queryByInstanceHrid);
       runPlan(updatePlan, routingCtx);
-    } else {
-      //TODO: what if not?
     }
   }
 
@@ -78,8 +84,6 @@ public class InventoryUpdateService {
       InventoryQuery instanceQuery = new SharedInstanceByLocalIdentifierQuery(deletionIdentifiers.localIdentifier(), deletionIdentifiers.identifierTypeId());
       UpdatePlan updatePlan = new UpdatePlanSharedInventory(deletionIdentifiers, instanceQuery);
       runPlan(updatePlan, routingCtx);
-    } else {
-      //TODO: what if not?
     }
   }
 
@@ -126,11 +130,17 @@ public class InventoryUpdateService {
     }
   }
 
-  private JsonObject getIncomingInventoryRecordSet(RoutingContext routingCtx) {
-    String inventoryRecordSetAsString = routingCtx.getBodyAsString("UTF-8");
-    JsonObject inventoryRecordSet = new JsonObject(inventoryRecordSetAsString);
-    logger.debug("Incoming record set " + inventoryRecordSet.encodePrettily());
-    return inventoryRecordSet;
+  private JsonObject getIncomingJsonBody(RoutingContext routingCtx) {
+    String bodyAsString = "no body";
+    try {
+      bodyAsString = routingCtx.getBodyAsString("UTF-8");
+      JsonObject bodyAsJson = new JsonObject(bodyAsString);
+      logger.debug("Request body " + bodyAsJson.encodePrettily());
+      return bodyAsJson;
+    } catch (DecodeException de) {
+      responseError(routingCtx, 400, "Only accepts json, content was: "+ bodyAsString);
+      return null;
+    }
   }
 
   private OkapiClient getOkapiClient (RoutingContext ctx) {

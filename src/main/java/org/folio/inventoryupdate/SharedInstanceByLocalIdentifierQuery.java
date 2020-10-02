@@ -49,7 +49,7 @@ public class SharedInstanceByLocalIdentifierQuery implements InventoryQuery {
   public String getURLEncodedQueryString() {
     String encodedQuery;
     try {
-      encodedQuery = URLEncoder.encode(queryString.toString(),"UTF-8");
+      encodedQuery = URLEncoder.encode(queryString,"UTF-8");
     } catch (UnsupportedEncodingException unsupportedEncodingException) {
       logger.error("System error: Unsupported encoding of Inventory query" + unsupportedEncodingException);
       encodedQuery =  "encoding-error-while-building-query-string";

@@ -27,7 +27,7 @@ public class InventoryUpdateTestSuite {
         "io.vertx.core.logging.Log4jLogDelegateFactory");
   }
   Vertx vertx;
-  private final int PORT_INVENTORY_MATCH = 9031;
+  private final int PORT_INVENTORY_UPDATE = 9031;
   private final Header OKAPI_URL_HEADER = new Header("X-Okapi-Url", "http://localhost:"
       + FakeInventoryStorage.PORT_INVENTORY_STORAGE);
 
@@ -46,7 +46,7 @@ public class InventoryUpdateTestSuite {
   }
 
   private void setUpMatch(TestContext testContext, Async async) {
-    System.setProperty("port", String.valueOf(PORT_INVENTORY_MATCH));
+    System.setProperty("port", String.valueOf(PORT_INVENTORY_UPDATE));
     vertx.deployVerticle(MainVerticle.class.getName(), new DeploymentOptions(),
       r -> {
         testContext.assertTrue(r.succeeded());
@@ -80,7 +80,7 @@ public class InventoryUpdateTestSuite {
     testContext.assertEquals(instancesBeforePutJson.getInteger("totalRecords"), 0,
         "Number of instance records for query by matchKey 'new_title___(etc)' before PUT expected: 0" );
 
-    RestAssured.port = PORT_INVENTORY_MATCH;
+    RestAssured.port = PORT_INVENTORY_UPDATE;
     RestAssured.given()
             .body(instance.getJson().toString())
             .header("Content-type","application/json")
@@ -103,6 +103,54 @@ public class InventoryUpdateTestSuite {
 
     testContext.assertEquals(instancesAfterPutJson.getInteger("totalRecords"), 1,
                              "Number of instance records for query by matchKey 'new_title' after PUT expected: 1" );
+
+  }
+
+  @Test
+  public void testUpsertByMatchKeyWillCreateNewInstanceForMatchKey (TestContext testContext) {
+    RestAssured.port = FakeInventoryStorage.PORT_INVENTORY_STORAGE;
+    Instance instance = new Instance()
+            .setTitle("New title")
+            .setInstanceTypeId("12345");
+    MatchKey matchKey = new MatchKey(instance.getJson());
+    instance.setMatchKey(matchKey.getKey());
+    InventoryRecordSet recordSet = new InventoryRecordSet(instance);
+    Response instancesBeforePut =
+            RestAssured.given()
+                    .get(FakeInventoryStorage.URL_INSTANCES+"?query="+ FakeInventoryStorage
+                            .encode("matchKey==\"" + matchKey.getKey() + "\""))
+                    .then()
+                    .log().ifValidationFails()
+                    .statusCode(200).extract().response();
+    String bodyAsStringBeforePut = instancesBeforePut.getBody().asString();
+    JsonObject instancesBeforePutJson = new JsonObject(bodyAsStringBeforePut);
+
+    testContext.assertEquals(instancesBeforePutJson.getInteger("totalRecords"), 0,
+            "Number of instance records for query by matchKey 'new_title___(etc)' before PUT expected: 0" );
+
+    RestAssured.port = PORT_INVENTORY_UPDATE;
+    RestAssured.given()
+            .body(recordSet.getJson().toString())
+            .header("Content-type","application/json")
+            .header(OKAPI_URL_HEADER)
+            .put(MainVerticle.SHARED_INVENTORY_UPSERT_MATCHKEY_PATH)
+            .then()
+            .log().ifValidationFails()
+            .statusCode(200).extract().response();
+
+    RestAssured.port = FakeInventoryStorage.PORT_INVENTORY_STORAGE;
+    Response instancesAfterPut =
+            RestAssured.given()
+                    .get(FakeInventoryStorage.URL_INSTANCES+"?query="
+                            + FakeInventoryStorage.encode("matchKey==\"" + matchKey.getKey() + "\""))
+                    .then()
+                    .log().ifValidationFails()
+                    .statusCode(200).extract().response();
+    String bodyAsStringAfterPut = instancesAfterPut.getBody().asString();
+    JsonObject instancesAfterPutJson = new JsonObject(bodyAsStringAfterPut);
+
+    testContext.assertEquals(instancesAfterPutJson.getInteger("totalRecords"), 1,
+            "Number of instance records for query by matchKey 'new_title' after PUT expected: 1" );
 
   }
 
@@ -131,7 +179,7 @@ public class InventoryUpdateTestSuite {
     testContext.assertEquals(instanceTypeIdBefore,"123",
                     "Expected instanceTypeId to be '123' before PUT");
 
-    RestAssured.port = PORT_INVENTORY_MATCH;
+    RestAssured.port = PORT_INVENTORY_UPDATE;
     RestAssured.given()
             .body(instance.getJson().toString())
             .header("Content-type","application/json")
@@ -161,7 +209,7 @@ public class InventoryUpdateTestSuite {
 
   }
 
-  //@Test
+  @Test
   public void testPushOfNewInstanceWillCreateNewInstanceForHrid (TestContext testContext) {
     RestAssured.port = FakeInventoryStorage.PORT_INVENTORY_STORAGE;
     Instance instance = new Instance()
@@ -181,7 +229,7 @@ public class InventoryUpdateTestSuite {
     testContext.assertEquals(instancesBeforePutJson.getInteger("totalRecords"), 0,
         "Number of instance records for query by hrid '2' before PUT expected: 0" );
 
-    RestAssured.port = PORT_INVENTORY_MATCH;
+    RestAssured.port = PORT_INVENTORY_UPDATE;
     RestAssured.given()
             .body(instance.getJson().toString())
             .header("Content-type","application/json")
@@ -207,7 +255,7 @@ public class InventoryUpdateTestSuite {
 
   }
 
-
+  @Test
   public void testPushOfExistingInstanceWillUpdateExistingInstanceForHrid (TestContext testContext) {
     RestAssured.port = FakeInventoryStorage.PORT_INVENTORY_STORAGE;
     Instance instance = new Instance()
@@ -232,7 +280,7 @@ public class InventoryUpdateTestSuite {
     testContext.assertEquals(instanceTypeIdBefore,"123",
                     "Expected instanceTypeId to be '123' before PUT");
 
-    RestAssured.port = PORT_INVENTORY_MATCH;
+    RestAssured.port = PORT_INVENTORY_UPDATE;
     RestAssured.given()
             .body(instance.getJson().toString())
             .header("Content-type","application/json")

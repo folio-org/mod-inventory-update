@@ -13,6 +13,7 @@ import io.vertx.core.impl.logging.Logger;
 import io.vertx.core.impl.logging.LoggerFactory;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.handler.BodyHandler;
+import io.vertx.ext.web.handler.StaticHandler;
 
 public class MainVerticle extends AbstractVerticle {
 
@@ -34,13 +35,15 @@ public class MainVerticle extends AbstractVerticle {
 
     Router router = Router.router(vertx);
     router.put("/*").handler(BodyHandler.create()); // Tell vertx we want the whole PUT body in the handler
-    router.delete("/*").handler(BodyHandler.create()); // Tell vertx we want the whole PUT body in the handler
+    router.delete("/*").handler(BodyHandler.create()); // Tell vertx we want the whole DELETE body in the handler
     router.put(INSTANCE_MATCH_PATH).handler(matchService::handleInstanceMatching); // old API
 
     router.put(INVENTORY_UPSERT_HRID_PATH).handler(matchService::handleInventoryUpsertByHrid);
     router.put(SHARED_INVENTORY_UPSERT_MATCHKEY_PATH).handler(matchService::handleSharedInventoryUpsertByMatchkey);
     router.delete(INVENTORY_UPSERT_HRID_PATH).handler(matchService::handleInventoryRecordSetDeleteByHrid);
     router.delete(SHARED_INVENTORY_UPSERT_MATCHKEY_PATH).handler(matchService::handleSharedInventoryRecordSetDeleteByMatchkey);
+    router.route("/apidocs/*").handler(StaticHandler.create("apidocs"));
+    router.route("/*").handler(matchService::handleUnrecognizedPath);
 
     vertx.createHttpServer()
       .requestHandler(router)

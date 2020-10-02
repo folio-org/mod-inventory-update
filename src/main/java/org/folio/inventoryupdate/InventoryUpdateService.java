@@ -33,6 +33,10 @@ public class InventoryUpdateService {
 
   private static final String INSTANCE_STORAGE_PATH = "/instance-storage/instances";
 
+  public void handleUnrecognizedPath(RoutingContext routingContext) {
+    responseError(routingContext, 404, "No Service found for requested path " + routingContext.request().path());
+  }
+
   public void handleSharedInventoryUpsertByMatchkey (RoutingContext routingCtx) {
     if (contentTypeIsJson(routingCtx)) {
       JsonObject incomingJson = getIncomingJsonBody(routingCtx);

@@ -10,9 +10,16 @@ documentation:
 
 types:
   instance: !include instance.json
-  inventory-record-set: !include inventoryRecordSet.json
+  inventory-record-set: !include inventory-record-set.json
+  inventory-record-set-with-hrids: !include inventory-record-set-with-hrids.json
+  holdings-record: !include holdings-record.json
+  holdings-record-with-hrid: !include holdings-record-with-hrid.json
+  item: !include item.json
+  item-with-hrid: !include item-with-hrid.json
   hrid-deletion: !include hrid-deletion.json
   shared-index-deletion: !include shared-index-deletion.json
+  upsert-response-200: !include upsert-response-200.json
+  upsert-response-422: !include upsert-response-422.json
 
 resourceTypes:
   collection-item: !include raml-util/rtypes/item-collection.raml
@@ -33,7 +40,18 @@ traits:
   put:
     body:
         application/json:
-            type: inventory-record-set
+            type: inventory-record-set-with-hrids
+    responses:
+        200:
+            description: "Inventory recordset successfully created or updated by HRIDs"
+            body:
+                application/json:
+                    type: upsert-response-200
+        422:
+            description: "One or more problems encountered when creating/updating an Inventory record set by HRIDs"
+            body:
+                application/json:
+                    type: upsert-response-422
   delete:
     body:
         application/json:
@@ -45,6 +63,17 @@ traits:
     body:
         application/json:
             type: inventory-record-set
+    responses:
+        200:
+            description: "Inventory recordset successfully created or updated by match key"
+            body:
+                application/json:
+                    type: upsert-response-200
+        422:
+            description: "One or more problems encountered when creating/updating an Inventory record set by match key"
+            body:
+                application/json:
+                    type: upsert-response-422
   delete:
     body:
         application/json:

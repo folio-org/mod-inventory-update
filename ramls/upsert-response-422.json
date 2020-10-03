@@ -1,0 +1,275 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "description": "Response on an upsert request that encountered one or more problems",
+  "type": "object",
+  "properties": {
+    "instance": {
+      "type": "object",
+      "description": "The Instance, the bibliographic part, of this Inventory record set as it was pushed to Inventory storage",
+      "$ref": "instance.json"
+    },
+    "holdingsRecords": {
+      "type": "array",
+      "description": "Collection of holdings of the Instance, each holdings record with embedded items as it was pushed to Inventory storage",
+      "items": {
+        "type": "object",
+        "$ref": "holdings-record.json"
+      }
+    },
+    "metrics" : {
+      "type": "object",
+      "description": "Reports the number of operations performed by record type, transaction type, and outcome",
+      "properties": {
+        "INSTANCE": {
+          "type": "object",
+          "description": "Reports the number of operations performed on Instance records by transaction type and outcome",
+          "properties": {
+            "CREATE": {
+              "type": "object",
+              "description": "Reports the number of Instance create operations by outcome",
+              "properties": {
+                "COMPLETED": {
+                  "type": "integer",
+                  "description": "Number of successfully completed Instance create operations (0 or 1)"
+                },
+                "FAILED": {
+                  "type": "integer",
+                  "description": "Number of failed Instance create operations (0 or 1)"
+                },
+                "SKIPPED": {
+                  "type": "integer",
+                  "description": "Number of Instance create operations that were skipped"
+                },
+                "PENDING": {
+                  "type": "integer",
+                  "description": "Number of Instance create operations not completed (should always be 0)"
+                }
+              }
+            },
+            "UPDATE": {
+              "type": "object",
+              "description": "Reports the number of Instance update operations by outcome",
+              "properties": {
+                "COMPLETED": {
+                  "type": "integer",
+                  "description": "Number of successfully completed Instance update operations (0 or 1)"
+                },
+                "FAILED": {
+                  "type": "integer",
+                  "description": "Number of failed Instance update operations (0 or 1)"
+                },
+                "SKIPPED": {
+                  "type": "integer",
+                  "description": "Number of Instance update operations that were skipped"
+                },
+                "PENDING": {
+                  "type": "integer",
+                  "description": "Number of Instance update operations not completed (should always be 0)"
+                }
+              }
+            },
+            "DELETE": {
+              "type": "object",
+              "description": "Reports the number of Instance delete operations by outcome",
+              "properties": {
+                "COMPLETED": {
+                  "type": "integer",
+                  "description": "Number of successfully completed Instance delete operations (0 or 1)"
+                },
+                "FAILED": {
+                  "type": "integer",
+                  "description": "Number of failed Instance delete operations (0 or 1)"
+                },
+                "SKIPPED": {
+                  "type": "integer",
+                  "description": "Number of Instance delete operations that were skipped"
+                },
+                "PENDING": {
+                  "type": "integer",
+                  "description": "Number of Instance delete operations not completed (should always be 0)"
+                }
+              }
+            }
+          }
+        },
+        "HOLDINGSRECORD": {
+          "type": "object",
+          "description": "Reports the number of operations performed on holdings records by transaction type and outcome",
+          "properties": {
+            "CREATE": {
+              "type": "object",
+              "description": "Reports the number of HoldingsRecord create operations by outcome",
+              "properties": {
+                "COMPLETED": {
+                  "type": "integer",
+                  "description": "Number of successfully completed HoldingsRecord create operations"
+                },
+                "FAILED": {
+                  "type": "integer",
+                  "description": "Number of failed HoldingsRecord create operations"
+                },
+                "SKIPPED": {
+                  "type": "integer",
+                  "description": "Number of HoldingsRecord create operations that were skipped"
+                },
+                "PENDING": {
+                  "type": "integer",
+                  "description": "Number of HoldingsRecord create operations not completed (should always be 0)"
+                }
+              }
+            },
+            "UPDATE": {
+              "type": "object",
+              "description": "Reports the number of HoldingsRecord update operations by outcome",
+              "properties": {
+                "COMPLETED": {
+                  "type": "integer",
+                  "description": "Number of successfully completed HoldingsRecord update operations"
+                },
+                "FAILED": {
+                  "type": "integer",
+                  "description": "Number of failed HoldingsRecord update operations"
+                },
+                "SKIPPED": {
+                  "type": "integer",
+                  "description": "Number of HoldingsRecord update operations that were skipped"
+                },
+                "PENDING": {
+                  "type": "integer",
+                  "description": "Number of HoldingsRecord update operations not completed (should always be 0)"
+                }
+              }
+            },
+            "DELETE": {
+              "type": "object",
+              "description": "Reports the number of HoldingsRecord delete operations by outcome",
+              "properties": {
+                "COMPLETED": {
+                  "type": "integer",
+                  "description": "Number of successfully completed HoldingsRecord delete operations"
+                },
+                "FAILED": {
+                  "type": "integer",
+                  "description": "Number of failed HoldingsRecord delete operations"
+                },
+                "SKIPPED": {
+                  "type": "integer",
+                  "description": "Number of HoldingsRecord delete operations that were skipped"
+                },
+                "PENDING": {
+                  "type": "integer",
+                  "description": "Number of HoldingsRecord delete operations not completed (should always be 0)"
+                }
+              }
+            }
+          }
+        },
+        "ITEM": {
+          "type": "object",
+          "description": "Reports the number of operations performed on Items by transaction type and outcome",
+          "properties": {
+            "CREATE": {
+              "type": "object",
+              "description": "Reports the number of Item create operations by outcome",
+              "properties": {
+                "COMPLETED": {
+                  "type": "integer",
+                  "description": "Number of successfully completed Item create operations"
+                },
+                "FAILED": {
+                  "type": "integer",
+                  "description": "Number of failed Item create operations"
+                },
+                "SKIPPED": {
+                  "type": "integer",
+                  "description": "Number of Item create operations that were skipped"
+                },
+                "PENDING": {
+                  "type": "integer",
+                  "description": "Number of Item create operations not completed (should always be 0)"
+                }
+              }
+            },
+            "UPDATE": {
+              "type": "object",
+              "description": "Reports the number of Item update operations by outcome",
+              "properties": {
+                "COMPLETED": {
+                  "type": "integer",
+                  "description": "Number of successfully completed Item update operations"
+                },
+                "FAILED": {
+                  "type": "integer",
+                  "description": "Number of failed Item update operations"
+                },
+                "SKIPPED": {
+                  "type": "integer",
+                  "description": "Number of Item update operations that were skipped"
+                },
+                "PENDING": {
+                  "type": "integer",
+                  "description": "Number of Item update operations not completed (should always be 0)"
+                }
+              }
+            },
+            "DELETE": {
+              "type": "object",
+              "description": "Reports the number of Item delete operations by outcome",
+              "properties": {
+                "COMPLETED": {
+                  "type": "integer",
+                  "description": "Number of successfully completed Item delete operations"
+                },
+                "FAILED": {
+                  "type": "integer",
+                  "description": "Number of failed Item delete operations"
+                },
+                "SKIPPED": {
+                  "type": "integer",
+                  "description": "Number of Item delete operations that were skipped"
+                },
+                "PENDING": {
+                  "type": "integer",
+                  "description": "Number of Item delete operations not completed (should always be 0)"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "errors": {
+      "type": "array",
+      "description": "List of problems encountered during an Inventory update or delete request",
+      "items": {
+        "type": "object",
+        "properties": {
+          "entityType": {
+            "type": "string",
+            "description": "The record type for which a problem occurred"
+          },
+          "transaction": {
+            "type": "string",
+            "description": "Type of REST operation for which the problem occurred"
+          },
+          "statusCode": {
+            "type": "string",
+            "description": "The HTTP status code returned by Inventory storage"
+          },
+          "shortMessage": {
+            "type": "string",
+            "description": "A short error message that might be used by the client to count similar error occurrences"
+          },
+          "message": {
+            "type": "string",
+            "description": "The error message returned by Inventory storage"
+          },
+          "entity": {
+            "type": "object",
+            "description": "The JSON object that was pushed to Inventory storage when the problem occurred"
+          }
+        }
+      }
+    }
+  }
+}

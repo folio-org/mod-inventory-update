@@ -72,7 +72,7 @@ public class InventoryUpdateService {
 
   public void handleInventoryRecordSetDeleteByHrid (RoutingContext routingCtx) {
     if (contentTypeIsJson(routingCtx)) {
-      JsonObject deletionJson = routingCtx.getBodyAsJson();
+      JsonObject deletionJson = getIncomingJsonBody(routingCtx);
       InventoryQuery queryByInstanceHrid = new HridQuery(deletionJson.getString("hrid"));
       UpdatePlan updatePlan = new UpdatePlanAllHRIDs(queryByInstanceHrid);
       runPlan(updatePlan, routingCtx);
@@ -83,7 +83,7 @@ public class InventoryUpdateService {
     logger.debug("Handling delete request for shared index " + routingCtx.getBodyAsString());
 
     if (contentTypeIsJson(routingCtx)) {
-      JsonObject deletionJson = routingCtx.getBodyAsJson();
+      JsonObject deletionJson = getIncomingJsonBody(routingCtx);
       DeletionIdentifiers deletionIdentifiers = new DeletionIdentifiers(deletionJson);
       InventoryQuery instanceQuery = new SharedInstanceByLocalIdentifierQuery(deletionIdentifiers.localIdentifier(), deletionIdentifiers.identifierTypeId());
       UpdatePlan updatePlan = new UpdatePlanSharedInventory(deletionIdentifiers, instanceQuery);

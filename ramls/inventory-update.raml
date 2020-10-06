@@ -27,13 +27,6 @@ resourceTypes:
 traits:
   language: !include raml-util/traits/language.raml
 
-/instance-storage-match:
-  displayName: Instance create or update by match key (being deprecated)
-  /instances:
-    put:
-        body:
-            application/json:
-                type: instance
 
 /inventory-upsert-hrid:
   displayName: Create, update, delete instance with holdings and items, based on incoming HRIDs on all three record types
@@ -103,3 +96,11 @@ traits:
           description: "Bad request, for example non-JSON in request body"
         500:
           description: "Error during delete by institution ID and record identifier"
+
+/instance-storage-match:
+  displayName: Instance create or update by match key (being deprecated)
+  /instances:
+    put:
+        body:
+            application/json:
+                type: instance

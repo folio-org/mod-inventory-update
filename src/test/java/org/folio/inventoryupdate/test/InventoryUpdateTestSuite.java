@@ -59,6 +59,10 @@ public class InventoryUpdateTestSuite {
     FakeInventoryStorageValidator.validateStorage(inventoryStorage, testContext);
   }
 
+  /**
+   * Tests API /instance-storage-match/instances
+   * @param testContext
+   */
   @Test
   public void testPushOfNewInstanceWillCreateNewInstanceForMatchKey (TestContext testContext) {
     RestAssured.port = FakeInventoryStorage.PORT_INVENTORY_STORAGE;
@@ -106,6 +110,10 @@ public class InventoryUpdateTestSuite {
 
   }
 
+  /**
+   * Tests API /shared-inventory-upsert-matchkey
+   * @param testContext
+   */
   @Test
   public void testUpsertByMatchKeyWillCreateNewInstanceForMatchKey (TestContext testContext) {
     RestAssured.port = FakeInventoryStorage.PORT_INVENTORY_STORAGE;
@@ -154,6 +162,10 @@ public class InventoryUpdateTestSuite {
 
   }
 
+  /**
+   * Tests API /instance-storage-match/instances
+   * @param testContext
+   */
   @Test
   public void testPushOfExistingInstanceWillUpdateExistingInstanceForMatchKey (TestContext testContext) {
     RestAssured.port = FakeInventoryStorage.PORT_INVENTORY_STORAGE;
@@ -209,6 +221,10 @@ public class InventoryUpdateTestSuite {
 
   }
 
+  /**
+   * Tests API /instance-storage-match/instances
+   * @param testContext
+   */
   @Test
   public void testPushOfNewInstanceWillCreateNewInstanceForHrid (TestContext testContext) {
     RestAssured.port = FakeInventoryStorage.PORT_INVENTORY_STORAGE;
@@ -255,6 +271,10 @@ public class InventoryUpdateTestSuite {
 
   }
 
+  /**
+   * Tests API /instance-storage-match/instances
+   * @param testContext
+   */
   @Test
   public void testPushOfExistingInstanceWillUpdateExistingInstanceForHrid (TestContext testContext) {
     RestAssured.port = FakeInventoryStorage.PORT_INVENTORY_STORAGE;

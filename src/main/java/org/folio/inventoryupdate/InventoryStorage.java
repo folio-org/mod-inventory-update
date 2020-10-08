@@ -40,7 +40,7 @@ public class InventoryStorage {
       } else {
         record.fail();
         record.skipDependants();
-        record.logError(postResult.cause().getMessage(), okapiClient.getStatusCode());
+        record.logError(okapiClient.getResponsebody(), okapiClient.getStatusCode());
         promise.fail(record.getError().encodePrettily());
       }
     });
@@ -56,7 +56,7 @@ public class InventoryStorage {
         promise.complete(record.asJson());
       } else {
         record.fail();
-        record.logError(putResult.cause().getMessage(), okapiClient.getStatusCode());
+        record.logError(okapiClient.getResponsebody(), okapiClient.getStatusCode());
         promise.fail(record.getError().encodePrettily());
       }
     });

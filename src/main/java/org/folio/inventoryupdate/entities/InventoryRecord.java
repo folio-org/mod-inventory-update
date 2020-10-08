@@ -172,7 +172,7 @@ public abstract class InventoryRecord {
             JsonObject jsonFormattedError = (JsonObject)inventoryMessage;
             if (jsonFormattedError.containsKey(ERRORS) && jsonFormattedError.getValue(ERRORS) instanceof JsonArray) {
                 // Looks like FOLIO json schema validation error
-                shortMessage = getMessageFromFolioSchemaValidationError(shortMessage, jsonFormattedError);
+                shortMessage = getMessageFromFolioSchemaValidationError(jsonFormattedError);
             } else if (jsonFormattedError.containsKey(MESSAGE)) {
                 // Name of the essential message property in raw PostgreSQL error messages
                 shortMessage = jsonFormattedError.getString(MESSAGE);
@@ -190,7 +190,8 @@ public abstract class InventoryRecord {
         return shortMessage;
     }
 
-    private String getMessageFromFolioSchemaValidationError(String shortMessage, JsonObject jsonFormattedError) {
+    private String getMessageFromFolioSchemaValidationError(JsonObject jsonFormattedError) {
+        String shortMessage = "";
         JsonArray errors = jsonFormattedError.getJsonArray(ERRORS);
         if (errors.size()>0 && errors.getValue(0) instanceof JsonObject) {
             JsonObject firstError = errors.getJsonObject(0);
@@ -207,7 +208,6 @@ public abstract class InventoryRecord {
         }
         return shortMessage;
     }
-
 
     // Sample:  "ErrorMessage(fields=[(Severity, ERROR), (V, ERROR), (SQLSTATE, 23503),
     //           (Message, insert or update on table \"holdings_record\" violates foreign key constraint \"holdings_record_permanentlocationid_fkey\"),

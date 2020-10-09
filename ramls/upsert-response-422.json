@@ -261,8 +261,16 @@
             "description": "A short error message that might be used by the client to count similar error occurrences"
           },
           "message": {
-            "type": "string",
-            "description": "The error message returned by Inventory storage"
+            "anyOf": [
+              {
+                "type": "string",
+                "description": "Error text returned by Inventory storage"
+              },
+              {
+                "type": "object",
+                "description": "JSON object of one or more structured error messages returned by Inventory storage"
+              }
+            ]
           },
           "entity": {
             "type": "object",

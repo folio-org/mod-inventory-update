@@ -28,18 +28,18 @@ public class MatchKey {
     typeOfMap = new HashMap<>();
     // typeOfMap.put("6312d172-f0cf-40f6-b27d-9fa8feaf332f", "a");
     // typeOfMap.put("497b5090-3da2-486c-b57f-de5bb3c2e26d", "c");
-    typeOfMap.put("497b5090-3da2-486c-b57f-de5bb3c2e26d", "d");
-    typeOfMap.put("526aa04d-9289-4511-8866-349299592c18", "e");
+    typeOfMap.put("497b5090-3da2-486c-b57f-de5bb3c2e26d", "d"); // notated music
+    typeOfMap.put("526aa04d-9289-4511-8866-349299592c18", "e"); // cartographic image
     // typeOfMap.put("a2c91e87-6bab-44d6-8adb-1fd02481fc4f", "f");
-    typeOfMap.put("535e3160-763a-42f9-b0c0-d8ed7df6e2a2", "g");
-    typeOfMap.put("9bce18bd-45bf-4949-8fa8-63163e4b7d7f", "i");
-    typeOfMap.put("3be24c14-3551-4180-9292-26a786649c8b", "j");
+    typeOfMap.put("535e3160-763a-42f9-b0c0-d8ed7df6e2a2", "g"); // still image
+    typeOfMap.put("9bce18bd-45bf-4949-8fa8-63163e4b7d7f", "i"); // sounds
+    typeOfMap.put("3be24c14-3551-4180-9292-26a786649c8b", "j"); // performed music
     // typeOfMap.put("a2c91e87-6bab-44d6-8adb-1fd02481fc4f", "k");
-    typeOfMap.put("df5dddff-9c30-4507-8b82-119ff972d4d7", "m");
+    typeOfMap.put("df5dddff-9c30-4507-8b82-119ff972d4d7", "m"); // computer dataset
     // typeOfMap.put("a2c91e87-6bab-44d6-8adb-1fd02481fc4f", "o");
-    typeOfMap.put("a2c91e87-6bab-44d6-8adb-1fd02481fc4f", "p");
-    typeOfMap.put("c1e95c2b-4efc-48cf-9e71-edb622cf0c22", "r");
-    typeOfMap.put("6312d172-f0cf-40f6-b27d-9fa8feaf332f", "t");
+    typeOfMap.put("a2c91e87-6bab-44d6-8adb-1fd02481fc4f", "p"); // other
+    typeOfMap.put("c1e95c2b-4efc-48cf-9e71-edb622cf0c22", "r"); // three-dimensional form
+    typeOfMap.put("6312d172-f0cf-40f6-b27d-9fa8feaf332f", "t"); // text
   }
 
   public MatchKey(JsonObject candidateInstance) {

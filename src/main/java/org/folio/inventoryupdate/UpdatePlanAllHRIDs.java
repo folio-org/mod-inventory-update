@@ -101,11 +101,11 @@ public class UpdatePlanAllHRIDs extends UpdatePlan {
                             if (deletes.succeeded()) {
                                 promise.complete();
                             } else {
-                                promise.fail("There was a problem processing Inventory updates ");
+                                promise.fail("There was a problem processing Inventory deletes: " + deletes.cause().getMessage());
                             }
                         });
                     } else {
-                        promise.fail("There was a problem creating records, no deletes performed if any requested.");
+                        promise.fail("There was a problem creating records, no deletes performed if any requested: " + prerequisites.cause().getMessage());
                     }
                 });
 

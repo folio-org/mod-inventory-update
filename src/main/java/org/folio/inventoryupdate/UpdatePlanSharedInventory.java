@@ -64,13 +64,13 @@ public class UpdatePlanSharedInventory extends UpdatePlan {
                         flagAndIdRecordsForInventoryUpdating();
                         promise.complete();
                     } else {
-                        promise.fail("There was a problem retrieving locations map, cannot perform updates");
+                        promise.fail("There was a problem retrieving locations map, cannot perform updates: " + handler.cause().getMessage());
                     }
 
                 });
 
             } else {
-                promise.fail("Error looking up existing record set");
+                promise.fail("Error looking up existing record set: " + recordSet.cause().getMessage());
             }
         });
         return promise.future();

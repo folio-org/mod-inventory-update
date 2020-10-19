@@ -118,7 +118,7 @@ public class InventoryUpdateService {
           }
         });
       }  else {
-        responseJson(routingCtx, 500).end("Error creating inventory update plan");
+        responseJson(routingCtx, 500).end("Internal Server Error running inventory update plan: " + planDone.cause().getMessage());
       }
     });
   }

@@ -1,5 +1,6 @@
 ## 0.0.3-SNAPSHOT
 
+* Respond with details about HTTP 500 errors from Inventory Storage
 * POM, Dockerfile upgraded to Java 11
 * Added Jenkinsfile
 

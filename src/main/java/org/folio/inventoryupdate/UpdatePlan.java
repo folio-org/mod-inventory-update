@@ -76,7 +76,7 @@ public abstract class UpdatePlan {
                 }
                 promise.complete();
             } else {
-                promise.fail("Error looking up existing record set");
+                promise.fail("Error looking up existing record set: " + recordSet.cause().getMessage());
             }
         });
         return promise.future();
@@ -217,7 +217,7 @@ public abstract class UpdatePlan {
                         logger.debug("Created new holdings");
                         promise.complete();
                     } else {
-                        promise.fail("Failed to create new holdings records");
+                        promise.fail("Failed to create new holdings records: " + handler2.cause().getMessage());
                     }
                 });
             } else {
@@ -246,7 +246,7 @@ public abstract class UpdatePlan {
             if (allDone.succeeded()) {
                 promise.complete();
             } else {
-                promise.fail("Failed to update some non-prerequisite records");
+                promise.fail("Failed to update some non-prerequisite records: " + allDone.cause().getMessage());
             }
         });
 
@@ -343,7 +343,7 @@ public abstract class UpdatePlan {
             if (handler.succeeded()) {
                 promise.complete();
             } else {
-                promise.fail("Failed to create new holdings records");
+                promise.fail("Failed to create new holdings records: " + handler.cause().toString());
             }
         });
         return promise.future();

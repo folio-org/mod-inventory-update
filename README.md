@@ -16,6 +16,8 @@ Inventory Update so far supports two different update schemes implemented by two
 
 * `/shared-inventory-upsert-matchkey`  _inserts or updates an Instance based on whether an Instance with the same matchkey  exists in storage already. The matchkey is typically generated from a combination of metadata in the bibliographic record, and the API has logic for that, but if an Instance comes in with a readymade `matchKey`, the end-point will used that instead. This API will replace (not update) existing holdings and items on the Instance when updating the Instance. Clients using this end-point must in other words expect the UUIDs of previously existing holdings records and items to be lost on Instance update. The scheme updates a so called shared Inventory, that is, an Inventory shared by multiple institutions that have agreed on this matchkey mechanism to identify "same" Instances. The end-point will mark the shared Instance with an identifier for each Institution that contributed to the Instance. When updating an Instance from one of the institutions, the end-point will take care to replace only those existing holdings records and items that came from that particular institution before._
 
+Both APIs come with a DELETE option to remove an Instance with its holdings and items. In case of the shared inventory update, the shared Instance is not deleted, rather the data coming from a given library that contributed to that Instance is removed - like the local record identifier from that library on the Instance as well as holdings and items previously attached to the Instance from that library.
+
 ### Details of the matching mechanism using a match key
 Based on select properties of the incoming Instance, Inventory Match will construct a match key and query Inventory
 Storage for it to determine if an instance with that key already exists.
@@ -31,7 +33,8 @@ Inventory Match will return the resulting Instance to the caller as a JSON strin
 
 Both of the provided APIs are work in progress. Error handling, Inventory update feedback (counts and performance metrics), and unit testing is outstanding.
 
-They both need to have their different schemes for Instance deletes implemented.
+* Support handling of Instance-to-Instance relationships
+* Support handling of bound-with relationships
 
 There is a legacay end-point for back-wards compatibility with the module that was the basis for this module (mod-inventory-match). This end-point will eventually be deprecated.
 

@@ -37,7 +37,7 @@ public class InventoryUpdateService {
     responseError(routingContext, 404, "No Service found for requested path " + routingContext.request().path());
   }
 
-  public void handleSharedInventoryUpsertByMatchkey (RoutingContext routingCtx) {
+  public void handleSharedInventoryUpsertByMatchKey(RoutingContext routingCtx) {
     if (contentTypeIsJson(routingCtx)) {
       JsonObject incomingJson = getIncomingJsonBody(routingCtx);
       if (InventoryRecordSet.isValidInventoryRecordSet(incomingJson)) {
@@ -184,7 +184,6 @@ public class InventoryUpdateService {
       MatchKey matchKey = new MatchKey(candidateInstance);
       InventoryQuery matchQuery = new MatchQuery(matchKey.getKey());
       candidateInstance.put("matchKey", matchKey.getKey());
-      candidateInstance.put("indexTitle", matchKey.getKey());
       logger.debug("Constructed match query: [" + matchQuery.getQueryString() + "]");
 
       okapiClient.get(INSTANCE_STORAGE_PATH+"?query="+matchQuery.getURLEncodedQueryString(), res-> {

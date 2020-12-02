@@ -39,7 +39,7 @@ public class MainVerticle extends AbstractVerticle {
     router.put(INSTANCE_MATCH_PATH).handler(matchService::handleInstanceMatching); // old API
 
     router.put(INVENTORY_UPSERT_HRID_PATH).handler(matchService::handleInventoryUpsertByHrid);
-    router.put(SHARED_INVENTORY_UPSERT_MATCHKEY_PATH).handler(matchService::handleSharedInventoryUpsertByMatchkey);
+    router.put(SHARED_INVENTORY_UPSERT_MATCHKEY_PATH).handler(matchService::handleSharedInventoryUpsertByMatchKey);
     router.delete(INVENTORY_UPSERT_HRID_PATH).handler(matchService::handleInventoryRecordSetDeleteByHrid);
     router.delete(SHARED_INVENTORY_UPSERT_MATCHKEY_PATH).handler(matchService::handleSharedInventoryRecordSetDeleteByMatchkey);
     router.route("/apidocs/*").handler(StaticHandler.create("apidocs"));

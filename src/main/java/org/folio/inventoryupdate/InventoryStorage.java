@@ -24,6 +24,7 @@ public class InventoryStorage {
 
   private static final Logger logger = LoggerFactory.getLogger("inventory-update");
   private static final String INSTANCE_STORAGE_PATH = "/instance-storage/instances";
+  private static final String INSTANCE_RELATIONSHIPS_STORAGE_PATH = "/instance-storage/instance-relationships";
   private static final String HOLDINGS_STORAGE_PATH = "/holdings-storage/holdings";
   private static final String ITEM_STORAGE_PATH = "/item-storage/items";
   private static final String LOCATIONS_STORAGE_PATH = "/locations";
@@ -109,7 +110,7 @@ public class InventoryStorage {
           promise.complete(null);
         }
       } else {
-        failure(res.cause(), Entity.HOLDINGSRECORD, Transaction.GET, okapiClient.getStatusCode(), promise);
+        failure(res.cause(), Entity.HOLDINGS_RECORD, Transaction.GET, okapiClient.getStatusCode(), promise);
     }
     });
     return promise.future();
@@ -145,9 +146,14 @@ public class InventoryStorage {
           String instanceUUID = instance.getString("id");
           JsonObject inventoryRecordSet = new JsonObject();
           inventoryRecordSet.put("instance",instance);
+          // GBV-106 have method for lookup and put in inventory record set?
+          Future<JsonArray> promisedInstanceRelationships =
+                      lookupExistingInstanceRelationshipsByInstanceUUID(okapiClient, instanceUUID);
+          // GBV-106 composite join? No, JsonObject not thread safe
+          // GBV-106 extract this one too to lookup and embed method?
           Future<JsonArray> promisedExistingHoldingsAndItems =
-                      lookupExistingHoldingsRecordsAndItemsByInstanceUUID(okapiClient, instanceUUID);
-          promisedExistingHoldingsAndItems.onComplete( existingHoldingsResult -> {
+                  lookupExistingHoldingsRecordsAndItemsByInstanceUUID(okapiClient, instanceUUID);
+          promisedExistingHoldingsAndItems.onComplete(existingHoldingsResult -> {
               if (existingHoldingsResult.succeeded()) {
                   if (existingHoldingsResult.result() != null) {
                       inventoryRecordSet.put("holdingsRecords",existingHoldingsResult.result());
@@ -156,7 +162,7 @@ public class InventoryStorage {
                   }
                   promise.complete(inventoryRecordSet);
               } else {
-                failure(existingHoldingsResult.cause(), Entity.HOLDINGSRECORD, Transaction.GET, okapiClient.getStatusCode(), promise, "While looking up Inventory record set");
+                failure(existingHoldingsResult.cause(), Entity.HOLDINGS_RECORD, Transaction.GET, okapiClient.getStatusCode(), promise, "While looking up Inventory record set");
               }
           });
         }
@@ -193,7 +199,7 @@ public class InventoryStorage {
           promise.complete(null);
         }
       } else {
-        failure(res.cause(), Entity.HOLDINGSRECORD, Transaction.GET, okapiClient.getStatusCode(), promise, "While looking up holdings by instance ID");
+        failure(res.cause(), Entity.HOLDINGS_RECORD, Transaction.GET, okapiClient.getStatusCode(), promise, "While looking up holdings by instance ID");
         promise.fail("There was an error looking up existing holdings and items");
       }
     });
@@ -211,6 +217,22 @@ public class InventoryStorage {
         promise.complete(holdingsRecord);
       } else {
         failure(res.cause(), Entity.ITEM, Transaction.GET, okapiClient.getStatusCode(), promise, "While looking up items by holdingsRecordId");
+      }
+    });
+    return promise.future();
+  }
+
+  // GBV-106?  Lookup the instances -- to get hrid, matchkey, etc?. Not here but in lookupAndEmbed?
+  public static Future<JsonArray> lookupExistingInstanceRelationshipsByInstanceUUID (OkapiClient okapiClient, String instanceId) {
+    Promise<JsonArray> promise = Promise.promise();
+    okapiClient.get(INSTANCE_RELATIONSHIPS_STORAGE_PATH+"?limit=1000&query=(subInstanceId%3D%3D"+instanceId+"%20or%20superInstanceId%3D%3D"+instanceId+")", res -> {
+      if (res.succeeded()) {
+        JsonObject relationshipsResult = new JsonObject(res.result());
+        JsonArray instanceRelationships = relationshipsResult.getJsonArray("instanceRelationships");
+        logger.info("Successfully looked up existing items, found  " + instanceRelationships.size());
+        promise.complete(instanceRelationships);
+      } else {
+        failure(res.cause(), Entity.ITEM, Transaction.GET, okapiClient.getStatusCode(), promise, "While looking instance relationships");
       }
     });
     return promise.future();
@@ -236,7 +258,7 @@ public class InventoryStorage {
       case INSTANCE:
         api = INSTANCE_STORAGE_PATH;
         break;
-      case HOLDINGSRECORD:
+      case HOLDINGS_RECORD:
         api = HOLDINGS_STORAGE_PATH;
         break;
       case ITEM:

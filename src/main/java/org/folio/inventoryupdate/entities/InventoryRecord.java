@@ -8,6 +8,14 @@ import io.vertx.core.json.DecodeException;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 
+
+/**
+ * Base class for Inventory entities (Instances, HoldingsRecords, Items)
+ *
+ * Contains flags for the transaction (to be) performed for a record of the given entity
+ * and the eventual outcome of that transaction and methods for parsing errors in case the
+ * outcome is FAILED.
+ */
 public abstract class InventoryRecord {
 
     public enum Transaction {
@@ -28,7 +36,7 @@ public abstract class InventoryRecord {
 
     public enum Entity {
         INSTANCE,
-        HOLDINGSRECORD,
+        HOLDINGS_RECORD,
         ITEM,
         LOCATION
     }
@@ -157,7 +165,7 @@ public abstract class InventoryRecord {
         } catch (DecodeException de) {
             if (message.startsWith("ErrorMessage") && message.contains("SQLSTATE")) {
                 // looks like PostgreSQL error, try to parse to JSON
-                JsonObject postgreSQLError = parsePostgreSQLErrorTupples(message);
+                JsonObject postgreSQLError = parsePostgreSQLErrorTuples(message);
                 if (!postgreSQLError.isEmpty()) {
                     return postgreSQLError;
                 }
@@ -216,23 +224,23 @@ public abstract class InventoryRecord {
     //           (File, ri_triggers.c), (Line, 3266), (Routine, ri_ReportViolation)])"
 
     // everything between the square brackets of:   ErrorMessage(fields=[(),(),()])
-    private static final Pattern POSTGRESQL_ERROR_TUPPLE_ARRAY = Pattern.compile("(?<=\\[).+?(?=\\])");
+    private static final Pattern POSTGRESQL_ERROR_TUPLE_ARRAY = Pattern.compile("(?<=\\[).+?(?=\\])");
     // capture tupples, enclosed in round brackets:  (0),(1),(2)
-    private static final Pattern POSTGRESQL_ERROR_TUPPLE_GROUPS = Pattern.compile("[^,(]*(?:\\([^)]*\\))*[^,]*");
+    private static final Pattern POSTGRESQL_ERROR_TUPLE_GROUPS = Pattern.compile("[^,(]*(?:\\([^)]*\\))*[^,]*");
 
-    private static JsonObject parsePostgreSQLErrorTupples (String message) {
+    private static JsonObject parsePostgreSQLErrorTuples(String message) {
 
-        final Matcher arrayMatcher = POSTGRESQL_ERROR_TUPPLE_ARRAY.matcher(message);
+        final Matcher arrayMatcher = POSTGRESQL_ERROR_TUPLE_ARRAY.matcher(message);
         JsonObject messageJson = new JsonObject();
         if (arrayMatcher.find()) {
             String arrayString = arrayMatcher.group(0);
-            Matcher tupplesMatcher = POSTGRESQL_ERROR_TUPPLE_GROUPS.matcher(arrayString);
-            while (tupplesMatcher.find()) {
-                String tuppleString = tupplesMatcher.group(0).trim();
+            Matcher tuplesMatcher = POSTGRESQL_ERROR_TUPLE_GROUPS.matcher(arrayString);
+            while (tuplesMatcher.find()) {
+                String tupleString = tuplesMatcher.group(0).trim();
                 // trim the round brackets
-                tuppleString = tuppleString.replaceFirst("\\(", "");
-                tuppleString = tuppleString.replaceAll("\\)+$", "");
-                String[] keyval = tuppleString.split(", ");
+                tupleString = tupleString.replaceFirst("\\(", "");
+                tupleString = tupleString.replaceAll("\\)+$", "");
+                String[] keyval = tupleString.split(", ");
                 if (keyval.length==2) {
                    messageJson.put(keyval[0],keyval[1]);
                 }

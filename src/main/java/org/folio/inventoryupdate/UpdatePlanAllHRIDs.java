@@ -73,11 +73,6 @@ public class UpdatePlanAllHRIDs extends UpdatePlan {
                       }
                   });
                 }
-
-            } else {
-              if (isDeletion) {
-                 // TODO: ?
-              }
             }
         });
         return promisedPlan.future();

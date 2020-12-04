@@ -210,7 +210,9 @@ public class UpdatePlanAllHRIDs extends UpdatePlan {
         promisedHoldingsRecord.onComplete( result -> {
             if (result.succeeded()) {
                 if (result.result() == null) {
-                    record.generateUUID();
+                    if (!record.hasUUID()) {
+                        record.generateUUID();
+                    }
                     record.setTransition(Transaction.CREATE);
                 } else {
                     String existingHoldingsRecordId = result.result().getString("id");
@@ -239,7 +241,9 @@ public class UpdatePlanAllHRIDs extends UpdatePlan {
         promisedItem.onComplete( result -> {
             if (result.succeeded()) {
                 if (result.result() == null) {
-                    record.generateUUID();
+                    if (!record.hasUUID()) {
+                        record.generateUUID();
+                    }
                     record.setTransition(Transaction.CREATE);
                 } else {
                     String existingItemId = result.result().getString("id");

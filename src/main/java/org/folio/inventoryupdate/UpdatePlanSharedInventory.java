@@ -228,10 +228,14 @@ public class UpdatePlanSharedInventory extends UpdatePlan {
     private void flagAndIdIncomingHoldingsAndItemsForCreation () {
         logger.debug("Got " + updatingSet.getHoldingsRecords().size() + " incoming holdings records. Instance's ID is currently " + updatingSet.getInstanceUUID());
         for (HoldingsRecord holdingsRecord : updatingSet.getHoldingsRecords()) {
-            holdingsRecord.generateUUID();
+            if (!holdingsRecord.hasUUID()) {
+                holdingsRecord.generateUUID();
+            }
             holdingsRecord.setTransition(Transaction.CREATE);
             for (Item item : holdingsRecord.getItems()) {
-                item.generateUUID();
+                if (!item.hasUUID()) {
+                    item.generateUUID();
+                }
                 item.setTransition(Transaction.CREATE);
             }
         }

@@ -1,5 +1,6 @@
 ## 0.0.3-SNAPSHOT
 
+* Upsert by HRID: Accpet an Incoming Instance UUID on Instance create
 * Shared Inventory upsert: Stop populating match key to `indexTitle`
 * Respond with details about HTTP 500 errors from Inventory Storage
 * POM, Dockerfile upgraded to Java 11

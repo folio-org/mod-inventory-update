@@ -90,7 +90,10 @@ public abstract class UpdatePlan {
         getUpdatingInstance().setUUID(getExistingInstance().getUUID());
         getUpdatingInstance().setTransition(Transaction.UPDATE);
       } else {
-        getUpdatingInstance().generateUUID();
+        // Use UUID on incoming record if any, otherwise generate
+        if (!getUpdatingInstance().hasUUID()) {
+          getUpdatingInstance().generateUUID();
+        }
         getUpdatingInstance().setTransition(Transaction.CREATE);
       }
     }

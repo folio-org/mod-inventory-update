@@ -16,5 +16,9 @@
         "$ref": "holdings-record-with-hrid.json"
       }
     }
-  }
+  },
+  "required": [
+    "instance",
+    "holdingsRecords"
+  ]
 }

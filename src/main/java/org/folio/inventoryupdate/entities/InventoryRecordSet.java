@@ -1,4 +1,4 @@
-package org.folio.inventoryupdate;
+package org.folio.inventoryupdate.entities;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -16,9 +16,8 @@ import org.folio.inventoryupdate.entities.InventoryRecord.Transaction;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 
-public class InventoryRecordSet {
+public class InventoryRecordSet extends JsonRepresentation {
 
-    private JsonObject sourceJson = null;
     private Instance anInstance = null;
     private Map<String,HoldingsRecord> holdingsRecordsByHRID     = new HashMap<String,HoldingsRecord>();
     private Map<String,Item> itemsByHRID = new HashMap<String,Item>();
@@ -52,6 +51,12 @@ public class InventoryRecordSet {
         anInstance.replaceJson(updatedInstance);
     }
 
+    /**
+     * Populate structures `holdingsRecordsByHRID`, `allHoldingsRecords`, `itemsByHRID`, `allItems`,
+     * add Item entities to their HoldingsRecord entity, add HoldingsRecord entities to the Instance entity.
+     *
+     * @param holdingsRecordsWithEmbeddedItems JSON array of holdings records, each record with embedded items.
+     */
     private void registerHoldingsRecordsAndItems (JsonArray holdingsRecordsWithEmbeddedItems) {
         if (holdingsRecordsWithEmbeddedItems != null) {
             for (Object holdings : holdingsRecordsWithEmbeddedItems) {
@@ -81,11 +86,7 @@ public class InventoryRecordSet {
         }
     }
 
-
-    public JsonObject getSourceJson() {
-        return sourceJson;
-    }
-
+    @Override
     public JsonObject asJson() {
         JsonObject recordSetJson = new JsonObject();
         recordSetJson.put(INSTANCE, getInstance().asJson());
@@ -100,6 +101,7 @@ public class InventoryRecordSet {
             holdingsAndItemsArray.add(holdingsRecordJson);
         }
         recordSetJson.put(HOLDINGS_RECORDS, holdingsAndItemsArray);
+        // GBV-106 also put instance relationships
         return recordSetJson;
     }
 
@@ -157,6 +159,8 @@ public class InventoryRecordSet {
         return records;
     }
 
+    // GBV-106?: get parents, get children, get by type, get succeeding, get preceding
+
     public List<HoldingsRecord> getHoldingsRecordsByTransactionType (Transaction transition) {
         List<HoldingsRecord> records = new ArrayList<HoldingsRecord>();
         for (HoldingsRecord record : getHoldingsRecords()) {
@@ -176,6 +180,7 @@ public class InventoryRecordSet {
         return allItems;
     }
 
+    @Override
     public boolean hasErrors () {
         if (getInstance().failed())
             return true;
@@ -188,6 +193,7 @@ public class InventoryRecordSet {
         return false;
     }
 
+    @Override
     public JsonArray getErrors () {
         JsonArray errors = new JsonArray();
         if (getInstance().failed()) {
@@ -205,21 +211,5 @@ public class InventoryRecordSet {
         }
         return errors;
     }
-
-    /**
-     * Creates a deep clone of a JSONArray from a JSONObject, removes the array from the source object and returns the clone
-     * @param jsonObject Source object containing the array to extract
-     * @param arrayName Property name of the array to extract
-     * @return  The extracted JsonArray or an empty JsonArray if none found to extract.
-     */
-    private static JsonArray extractJsonArrayFromObject(JsonObject jsonObject, String arrayName)  {
-        JsonArray array = new JsonArray();
-        if (jsonObject.containsKey(arrayName)) {
-            array = new JsonArray((jsonObject.getJsonArray(arrayName)).encode());
-            jsonObject.remove(arrayName);
-        }
-        return array;
-    }
-
 
 }

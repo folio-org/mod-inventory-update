@@ -26,7 +26,7 @@ public class InventoryStorage {
   private static final String INSTANCE_STORAGE_PATH = "/instance-storage/instances";
   private static final String HOLDINGS_STORAGE_PATH = "/holdings-storage/holdings";
   private static final String ITEM_STORAGE_PATH = "/item-storage/items";
-  private static final String LOCATIONS_STORAGE_PATH = "/locations";
+  private static final String LOCATION_STORAGE_PATH = "/locations";
 
 
   public static Future<JsonObject> postInventoryRecord (OkapiClient okapiClient, InventoryRecord record) {
@@ -109,7 +109,7 @@ public class InventoryStorage {
           promise.complete(null);
         }
       } else {
-        failure(res.cause(), Entity.HOLDINGSRECORD, Transaction.GET, okapiClient.getStatusCode(), promise);
+        failure(res.cause(), Entity.HOLDINGS_RECORD, Transaction.GET, okapiClient.getStatusCode(), promise);
     }
     });
     return promise.future();
@@ -135,19 +135,17 @@ public class InventoryStorage {
 
   public static Future<JsonObject> lookupSingleInventoryRecordSet (OkapiClient okapiClient, InventoryQuery uniqueQuery) {
     Promise<JsonObject> promise = Promise.promise();
-    Future<JsonObject> promisedExistingInstance = lookupInstance(okapiClient, uniqueQuery);
-    promisedExistingInstance.onComplete( instanceResult -> {
+    JsonObject inventoryRecordSet = new JsonObject();
+
+    lookupInstance(okapiClient, uniqueQuery).onComplete( instanceResult -> {
       if (instanceResult.succeeded()) {
-        if (instanceResult.result()==null) {
+        JsonObject instance = instanceResult.result();
+        if (instance==null) {
           promise.complete(null);
         } else {
-          JsonObject instance = instanceResult.result();
-          String instanceUUID = instance.getString("id");
-          JsonObject inventoryRecordSet = new JsonObject();
           inventoryRecordSet.put("instance",instance);
-          Future<JsonArray> promisedExistingHoldingsAndItems =
-                      lookupExistingHoldingsRecordsAndItemsByInstanceUUID(okapiClient, instanceUUID);
-          promisedExistingHoldingsAndItems.onComplete( existingHoldingsResult -> {
+          String instanceUUID = instance.getString("id");
+          lookupExistingHoldingsRecordsAndItemsByInstanceUUID(okapiClient, instanceUUID).onComplete(existingHoldingsResult -> {
               if (existingHoldingsResult.succeeded()) {
                   if (existingHoldingsResult.result() != null) {
                       inventoryRecordSet.put("holdingsRecords",existingHoldingsResult.result());
@@ -156,7 +154,7 @@ public class InventoryStorage {
                   }
                   promise.complete(inventoryRecordSet);
               } else {
-                failure(existingHoldingsResult.cause(), Entity.HOLDINGSRECORD, Transaction.GET, okapiClient.getStatusCode(), promise, "While looking up Inventory record set");
+                failure(existingHoldingsResult.cause(), Entity.HOLDINGS_RECORD, Transaction.GET, okapiClient.getStatusCode(), promise, "While looking up Inventory record set");
               }
           });
         }
@@ -193,7 +191,7 @@ public class InventoryStorage {
           promise.complete(null);
         }
       } else {
-        failure(res.cause(), Entity.HOLDINGSRECORD, Transaction.GET, okapiClient.getStatusCode(), promise, "While looking up holdings by instance ID");
+        failure(res.cause(), Entity.HOLDINGS_RECORD, Transaction.GET, okapiClient.getStatusCode(), promise, "While looking up holdings by instance ID");
         promise.fail("There was an error looking up existing holdings and items");
       }
     });
@@ -218,7 +216,7 @@ public class InventoryStorage {
 
   public static Future<JsonArray> getLocations(OkapiClient okapiClient)  {
     Promise<JsonArray> promise = Promise.promise();
-    okapiClient.get(LOCATIONS_STORAGE_PATH + "?limit=9999", locs -> {
+    okapiClient.get(LOCATION_STORAGE_PATH + "?limit=9999", locs -> {
       if (locs.succeeded()) {
         JsonObject response = new JsonObject(locs.result());
         JsonArray locationsJson = response.getJsonArray("locations");
@@ -236,7 +234,7 @@ public class InventoryStorage {
       case INSTANCE:
         api = INSTANCE_STORAGE_PATH;
         break;
-      case HOLDINGSRECORD:
+      case HOLDINGS_RECORD:
         api = HOLDINGS_STORAGE_PATH;
         break;
       case ITEM:

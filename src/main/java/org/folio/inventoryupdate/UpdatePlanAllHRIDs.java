@@ -5,6 +5,7 @@ import java.util.List;
 
 import org.folio.inventoryupdate.entities.HoldingsRecord;
 import org.folio.inventoryupdate.entities.InventoryRecord;
+import org.folio.inventoryupdate.entities.InventoryRecordSet;
 import org.folio.inventoryupdate.entities.Item;
 import org.folio.inventoryupdate.entities.InventoryRecord.Transaction;
 import org.folio.okapi.common.OkapiClient;
@@ -44,10 +45,10 @@ public class UpdatePlanAllHRIDs extends UpdatePlan {
     */
     @Override
     public Future<Void> planInventoryUpdates (OkapiClient okapiClient) {
+
         Promise<Void> promisedPlan = Promise.promise();
 
-        Future<Void> promisedInstanceLookup = lookupExistingRecordSet(okapiClient, instanceQuery);
-        promisedInstanceLookup.onComplete( lookup -> {
+        lookupExistingRecordSet(okapiClient, instanceQuery).onComplete( lookup -> {
             if (lookup.succeeded()) {
                 // Plan instance update
                 if (isDeletion) {
@@ -73,11 +74,6 @@ public class UpdatePlanAllHRIDs extends UpdatePlan {
                       }
                   });
                 }
-
-            } else {
-              if (isDeletion) {
-                 // TODO: ?
-              }
             }
         });
         return promisedPlan.future();

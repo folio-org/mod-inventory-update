@@ -8,6 +8,7 @@ package org.folio.inventoryupdate.entities;
 import io.vertx.core.json.JsonObject;
 
 /**
+ * Holds identifiers required for processing an Instance deletion request in a shared inventory
  *
  * @author ne
  */

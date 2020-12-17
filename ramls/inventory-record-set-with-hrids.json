@@ -8,6 +8,55 @@
       "description": "The Instance, the bibliographic part, of this Inventory record set",
       "$ref": "instance-with-hrid.json"
     },
+    "instanceRelations": {
+      "description": "Object holding information of different types of Instance-to-Instance relationships to create",
+      "parentInstances": {
+        "type": "array",
+        "description": "Collection of objects with information required for finding and linking to parent Instances",
+        "items": {
+          "type": "object",
+          "properties": {
+            "instanceIdentifier": {
+              "type": "object",
+              "description": "Object with information required for finding the parent Instance to link to",
+              "properties": {
+                "hrid": {
+                  "type": "string",
+                  "description": "A unique ID for the parent instance to link to"
+                }
+              }
+            },
+            "instancesRelationshipTypeId": {
+              "type": "string",
+              "description": "UUID for the type of relationship to establish to a parent instance (article, volume, multipart, series)"
+            }
+          }
+        }
+      },
+      "childInstances": {
+        "type": "array",
+        "description": "Collection of objects with information required for finding and linking to child Instances",
+        "items": {
+          "type": "object",
+          "properties": {
+            "instanceIdentifier": {
+              "type": "object",
+              "description": "Object with information required for finding the child Instance to link to",
+              "properties": {
+                "hrid": {
+                  "type": "string",
+                  "description": "A unique ID for the child instance to link to"
+                }
+              }
+            },
+            "instancesRelationshipTypeId": {
+              "type": "string",
+              "description": "UUID for the type of relationship to establish to a child instance (article, volume, multipart, series)"
+            }
+          }
+        }
+      }
+    },
     "holdingsRecords": {
       "type": "array",
       "description": "Collection of holdings of the Instance, each holdings record with embedded items",
@@ -16,5 +65,9 @@
         "$ref": "holdings-record-with-hrid.json"
       }
     }
-  }
+  },
+  "required": [
+    "instance",
+    "holdingsRecords"
+  ]
 }

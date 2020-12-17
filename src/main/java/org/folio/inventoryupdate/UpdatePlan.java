@@ -5,10 +5,8 @@ import java.util.List;
 
 import io.vertx.core.impl.logging.Logger;
 import io.vertx.core.impl.logging.LoggerFactory;
-import org.folio.inventoryupdate.entities.HoldingsRecord;
-import org.folio.inventoryupdate.entities.Instance;
-import org.folio.inventoryupdate.entities.InventoryRecord;
-import org.folio.inventoryupdate.entities.Item;
+import io.vertx.core.json.Json;
+import org.folio.inventoryupdate.entities.*;
 import org.folio.inventoryupdate.entities.InventoryRecord.Entity;
 import org.folio.inventoryupdate.entities.InventoryRecord.Outcome;
 import org.folio.inventoryupdate.entities.InventoryRecord.Transaction;
@@ -43,6 +41,7 @@ public abstract class UpdatePlan {
     protected InventoryRecordSet existingSet = null;
     protected final Logger logger = LoggerFactory.getLogger("inventory-update");
     protected boolean isDeletion = false;
+    protected InstanceRelationshipsManager instanceRelationshipsHandler;
 
     /**
      * Constructor for plan for creating or updating an Inventory record set
@@ -52,6 +51,7 @@ public abstract class UpdatePlan {
     public UpdatePlan (InventoryRecordSet incomingSet, InventoryQuery existingInstanceQuery) {
         this.updatingSet = incomingSet;
         this.instanceQuery = existingInstanceQuery;
+        instanceRelationshipsHandler = new InstanceRelationshipsManager(this);
     }
 
     public boolean foundExistingRecordSet () {
@@ -67,12 +67,11 @@ public abstract class UpdatePlan {
 
     protected Future<Void> lookupExistingRecordSet (OkapiClient okapiClient, InventoryQuery instanceQuery) {
         Promise<Void> promise = Promise.promise();
-        Future<JsonObject> promisedExistingInventoryRecordSet = InventoryStorage.lookupSingleInventoryRecordSet(okapiClient, instanceQuery);
-        promisedExistingInventoryRecordSet.onComplete( recordSet -> {
+        InventoryStorage.lookupSingleInventoryRecordSet(okapiClient, instanceQuery).onComplete( recordSet -> {
             if (recordSet.succeeded()) {
                 JsonObject existingInventoryRecordSetJson = recordSet.result();
                 if (existingInventoryRecordSetJson != null) {
-                  this.existingSet = new InventoryRecordSet(existingInventoryRecordSetJson);
+                    this.existingSet = new InventoryRecordSet(existingInventoryRecordSetJson);
                 }
                 promise.complete();
             } else {
@@ -115,7 +114,6 @@ public abstract class UpdatePlan {
     }
 
     public List<Item> itemsToDelete () {
-
         return foundExistingRecordSet() ? existingSet.getItemsByTransactionType(Transaction.DELETE) : new ArrayList<>();
     }
 
@@ -126,6 +124,7 @@ public abstract class UpdatePlan {
     public boolean hasHoldingsToCreate () {
         return holdingsToCreate().size()>0;
     }
+
     public List<HoldingsRecord> holdingsToCreate () {
         return gotUpdatingRecordSet() ? updatingSet.getHoldingsRecordsByTransactionType(Transaction.CREATE) : new ArrayList<>();
     }
@@ -206,17 +205,15 @@ public abstract class UpdatePlan {
     /* UPDATE METHODS */
 
     /**
-     * Perform storage creates that other updates will depend on for succesful completion
+     * Perform storage creates that other updates will depend on for successful completion
      * (must by synchronized)
      */
     public Future<Void> createRecordsWithDependants (OkapiClient okapiClient) {
         Promise<Void> promise = Promise.promise();
-        Future<Void> promisedNewInstanceIfAny = createNewInstanceIfAny(okapiClient);
-        promisedNewInstanceIfAny.onComplete( instanceResult -> {
+        createNewInstanceIfAny(okapiClient).onComplete( instanceResult -> {
             if (instanceResult.succeeded()) {
-                Future<Void> promisedNewHoldingsIfAny = createNewHoldingsIfAny(okapiClient);
-                promisedNewHoldingsIfAny.onComplete(handler2 -> {
-                    if (promisedNewHoldingsIfAny.succeeded()) {
+                createNewHoldingsIfAny(okapiClient).onComplete(handler2 -> {
+                    if (handler2.succeeded()) {
                         logger.debug("Created new holdings");
                         promise.complete();
                     } else {
@@ -295,8 +292,7 @@ public abstract class UpdatePlan {
                 CompositeFuture.join(deleteHoldingsRecords).onComplete( allHoldingsDone -> {
                     if (allHoldingsDone.succeeded()) {
                         if (isInstanceDeleting()) {
-                            Future<JsonObject> promisedInstanceDeletion = InventoryStorage.deleteInventoryRecord(okapiClient, getExistingRecordSet().getInstance());
-                            promisedInstanceDeletion.onComplete( handler -> {
+                            InventoryStorage.deleteInventoryRecord(okapiClient, getExistingRecordSet().getInstance()).onComplete( handler -> {
                                 if (handler.succeeded()) {
                                     promise.complete();
                                 } else {
@@ -321,8 +317,7 @@ public abstract class UpdatePlan {
     public Future<Void> createNewInstanceIfAny (OkapiClient okapiClient) {
         Promise<Void> promise = Promise.promise();
         if (isInstanceCreating()) {
-            Future<JsonObject> promisedInstance = InventoryStorage.postInventoryRecord(okapiClient, getUpdatingInstance());
-            promisedInstance.onComplete(handler -> {
+            InventoryStorage.postInventoryRecord(okapiClient, getUpdatingInstance()).onComplete(handler -> {
                 if (handler.succeeded()) {
                     promise.complete();
                 } else {
@@ -367,7 +362,7 @@ public abstract class UpdatePlan {
                                         + Transaction.UPDATE + "\": " + outcomeStats + ", \""
                                         + Transaction.DELETE + "\": " + outcomeStats + " }";
         stats.put(Entity.INSTANCE.toString(), new JsonObject(transactionStats));
-        stats.put(Entity.HOLDINGSRECORD.toString(), new JsonObject(transactionStats));
+        stats.put(Entity.HOLDINGS_RECORD.toString(), new JsonObject(transactionStats));
         stats.put(Entity.ITEM.toString(), new JsonObject(transactionStats));
 
         if (gotUpdatingRecordSet()) {

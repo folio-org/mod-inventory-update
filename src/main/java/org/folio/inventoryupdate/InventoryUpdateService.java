@@ -11,10 +11,12 @@ import static org.folio.okapi.common.HttpResponse.responseJson;
 import java.util.HashMap;
 import java.util.Map;
 
+import io.vertx.core.CompositeFuture;
 import io.vertx.core.impl.logging.Logger;
 import io.vertx.core.impl.logging.LoggerFactory;
 import io.vertx.core.json.DecodeException;
 import org.folio.inventoryupdate.entities.DeletionIdentifiers;
+import org.folio.inventoryupdate.entities.InventoryRecordSet;
 import org.folio.okapi.common.OkapiClient;
 
 import io.vertx.core.Future;
@@ -55,7 +57,7 @@ public class InventoryUpdateService {
     }
   }
 
-  public void handleInventoryUpsertByHrid (RoutingContext routingCtx) {
+  public void handleInventoryUpsertByHRID(RoutingContext routingCtx) {
     if (contentTypeIsJson(routingCtx)) {
       JsonObject incomingJson = getIncomingJsonBody(routingCtx);
       if (InventoryRecordSet.isValidInventoryRecordSet(incomingJson)) {
@@ -70,7 +72,7 @@ public class InventoryUpdateService {
     }
   }
 
-  public void handleInventoryRecordSetDeleteByHrid (RoutingContext routingCtx) {
+  public void handleInventoryRecordSetDeleteByHRID(RoutingContext routingCtx) {
     if (contentTypeIsJson(routingCtx)) {
       JsonObject deletionJson = getIncomingJsonBody(routingCtx);
       InventoryQuery queryByInstanceHrid = new HridQuery(deletionJson.getString("hrid"));
@@ -79,7 +81,7 @@ public class InventoryUpdateService {
     }
   }
 
-  public void handleSharedInventoryRecordSetDeleteByMatchkey (RoutingContext routingCtx) {
+  public void handleSharedInventoryRecordSetDeleteByMatchKey(RoutingContext routingCtx) {
     logger.debug("Handling delete request for shared index " + routingCtx.getBodyAsString());
 
     if (contentTypeIsJson(routingCtx)) {
@@ -92,17 +94,15 @@ public class InventoryUpdateService {
   }
 
 
-  //TODO: turn not-found conditions in case of deletion around?
+  //TODO: invert not-found conditions in case of deletion?
   private void runPlan(UpdatePlan updatePlan, RoutingContext routingCtx) {
 
     OkapiClient okapiClient = getOkapiClient(routingCtx);
-
-    Future<Void> planCreated = updatePlan.planInventoryUpdates(okapiClient);
-    planCreated.onComplete( planDone -> {
+    InstanceRelationshipsManager instanceRelationshipsManager = new InstanceRelationshipsManager(updatePlan);
+    updatePlan.planInventoryUpdates(okapiClient).onComplete(planDone -> {
       if (planDone.succeeded()) {
         updatePlan.writePlanToLog();
-        Future<Void> planExecuted = updatePlan.doInventoryUpdates(okapiClient);
-        planExecuted.onComplete( updatesDone -> {
+        updatePlan.doInventoryUpdates(okapiClient).onComplete( updatesDone -> {
           JsonObject pushedRecordSetWithStats = updatePlan.getUpdatingRecordSetJson();
           pushedRecordSetWithStats.put("metrics", updatePlan.getUpdateStats());
           if (updatesDone.succeeded()) {

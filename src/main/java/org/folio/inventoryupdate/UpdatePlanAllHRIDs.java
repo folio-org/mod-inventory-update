@@ -5,6 +5,7 @@ import java.util.List;
 
 import org.folio.inventoryupdate.entities.HoldingsRecord;
 import org.folio.inventoryupdate.entities.InventoryRecord;
+import org.folio.inventoryupdate.entities.InventoryRecordSet;
 import org.folio.inventoryupdate.entities.Item;
 import org.folio.inventoryupdate.entities.InventoryRecord.Transaction;
 import org.folio.okapi.common.OkapiClient;
@@ -15,7 +16,6 @@ import io.vertx.core.Promise;
 import io.vertx.core.json.JsonObject;
 
 public class UpdatePlanAllHRIDs extends UpdatePlan {
-
 
 
     /**
@@ -37,17 +37,19 @@ public class UpdatePlanAllHRIDs extends UpdatePlan {
     }
 
     /**
-     * Creates an in-memory representation of all instances, holdings, and items
-     * that need to be created, updated, or deleted in Inventory storage.
+     * Creates an in-memory representation of the instance, holdings, and items
+     * as well as possible instance-to-instance relationships, that need to be created,
+     * updated, or deleted in Inventory storage.
+     *
      * @param okapiClient
      * @return a Future to confirm that plan was created
     */
     @Override
     public Future<Void> planInventoryUpdates (OkapiClient okapiClient) {
-        Promise<Void> promisedPlan = Promise.promise();
 
-        Future<Void> promisedInstanceLookup = lookupExistingRecordSet(okapiClient, instanceQuery);
-        promisedInstanceLookup.onComplete( lookup -> {
+        Promise<Void> promisedPlan = Promise.promise();
+        // compose with look-up of instance relationships
+        lookupExistingRecordSet(okapiClient, instanceQuery).onComplete( lookup -> {
             if (lookup.succeeded()) {
                 // Plan instance update
                 if (isDeletion) {
@@ -205,7 +207,9 @@ public class UpdatePlanAllHRIDs extends UpdatePlan {
         promisedHoldingsRecord.onComplete( result -> {
             if (result.succeeded()) {
                 if (result.result() == null) {
-                    record.generateUUID();
+                    if (!record.hasUUID()) {
+                        record.generateUUID();
+                    }
                     record.setTransition(Transaction.CREATE);
                 } else {
                     String existingHoldingsRecordId = result.result().getString("id");
@@ -234,7 +238,9 @@ public class UpdatePlanAllHRIDs extends UpdatePlan {
         promisedItem.onComplete( result -> {
             if (result.succeeded()) {
                 if (result.result() == null) {
-                    record.generateUUID();
+                    if (!record.hasUUID()) {
+                        record.generateUUID();
+                    }
                     record.setTransition(Transaction.CREATE);
                 } else {
                     String existingItemId = result.result().getString("id");

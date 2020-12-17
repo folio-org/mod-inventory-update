@@ -38,7 +38,8 @@ public abstract class InventoryRecord {
         INSTANCE,
         HOLDINGS_RECORD,
         ITEM,
-        LOCATION
+        LOCATION,
+        INSTANCE_RELATIONSHIP
     }
 
     protected JsonObject jsonRecord;

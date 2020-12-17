@@ -86,14 +86,11 @@ public class UpdatePlanAllHRIDs extends UpdatePlan {
         promisedPrerequisites.onComplete(prerequisites -> {
             logger.debug("Successfully created records referenced by other records if any");
 
-            Future<Void> promisedInstanceAndHoldingsUpdates = handleInstanceAndHoldingsUpdatesIfAny(okapiClient);
-            promisedInstanceAndHoldingsUpdates.onComplete( instanceAndHoldingsUpdates -> {
-                Future<JsonObject> promisedItemUpdates = handleItemUpdatesAndCreatesIfAny (okapiClient);
-                promisedItemUpdates.onComplete(itemUpdatesAndCreates -> {
+            handleInstanceAndHoldingsUpdatesIfAny(okapiClient).onComplete( instanceAndHoldingsUpdates -> {
+                handleItemUpdatesAndCreatesIfAny (okapiClient).onComplete(itemUpdatesAndCreates -> {
                     if (prerequisites.succeeded() && instanceAndHoldingsUpdates.succeeded() && itemUpdatesAndCreates.succeeded()) {
                         logger.debug("Successfully processed record create requests if any");
-                        Future<Void> promisedDeletes = handleDeletionsIfAny(okapiClient);
-                        promisedDeletes.onComplete(deletes -> {
+                        handleDeletionsIfAny(okapiClient).onComplete(deletes -> {
                             if (deletes.succeeded()) {
                                 promise.complete();
                             } else {
@@ -161,8 +158,7 @@ public class UpdatePlanAllHRIDs extends UpdatePlan {
     */
     private Future<Void> flagAndIdCreatesAndImports(OkapiClient okapiClient) {
         Promise<Void> promise = Promise.promise();
-        CompositeFuture future = flagAndIdNewRecordsAndImports(okapiClient);
-        future.onComplete(handler -> {
+        flagAndIdNewRecordsAndImports(okapiClient).onComplete(handler -> {
             if (handler.succeeded()) {
                 promise.complete();
             } else {
@@ -202,8 +198,7 @@ public class UpdatePlanAllHRIDs extends UpdatePlan {
     private Future<Void> flagAndIdHoldingsByStorageLookup (OkapiClient okapiClient, InventoryRecord record) {
         Promise<Void> promise = Promise.promise();
         InventoryQuery hridQuery = new HridQuery(record.getHRID());
-        Future<JsonObject> promisedHoldingsRecord = InventoryStorage.lookupHoldingsRecordByHRID(okapiClient, hridQuery);
-        promisedHoldingsRecord.onComplete( result -> {
+        InventoryStorage.lookupHoldingsRecordByHRID(okapiClient, hridQuery).onComplete( result -> {
             if (result.succeeded()) {
                 if (result.result() == null) {
                     if (!record.hasUUID()) {
@@ -233,8 +228,7 @@ public class UpdatePlanAllHRIDs extends UpdatePlan {
     private Future<Void> flagAndIdItemsByStorageLookup (OkapiClient okapiClient, InventoryRecord record) {
         Promise<Void> promise = Promise.promise();
         InventoryQuery hridQuery = new HridQuery(record.getHRID());
-        Future<JsonObject> promisedItem = InventoryStorage.lookupItemByHRID(okapiClient, hridQuery);
-        promisedItem.onComplete( result -> {
+        InventoryStorage.lookupItemByHRID(okapiClient, hridQuery).onComplete( result -> {
             if (result.succeeded()) {
                 if (result.result() == null) {
                     if (!record.hasUUID()) {

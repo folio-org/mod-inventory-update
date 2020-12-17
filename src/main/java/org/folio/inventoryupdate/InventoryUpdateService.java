@@ -98,8 +98,7 @@ public class InventoryUpdateService {
   private void runPlan(UpdatePlan updatePlan, RoutingContext routingCtx) {
 
     OkapiClient okapiClient = getOkapiClient(routingCtx);
-    InstanceRelationshipsManager instanceRelationshipsManager = new InstanceRelationshipsManager(updatePlan);
-    updatePlan.planInventoryUpdates(okapiClient).onComplete(planDone -> {
+    updatePlan.planInventoryUpdates(okapiClient).onComplete( planDone -> {
       if (planDone.succeeded()) {
         updatePlan.writePlanToLog();
         updatePlan.doInventoryUpdates(okapiClient).onComplete( updatesDone -> {

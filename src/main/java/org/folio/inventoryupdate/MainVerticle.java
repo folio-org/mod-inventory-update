@@ -38,10 +38,10 @@ public class MainVerticle extends AbstractVerticle {
     router.delete("/*").handler(BodyHandler.create()); // Tell vertx we want the whole DELETE body in the handler
     router.put(INSTANCE_MATCH_PATH).handler(matchService::handleInstanceMatching); // old API
 
-    router.put(INVENTORY_UPSERT_HRID_PATH).handler(matchService::handleInventoryUpsertByHrid);
+    router.put(INVENTORY_UPSERT_HRID_PATH).handler(matchService::handleInventoryUpsertByHRID);
     router.put(SHARED_INVENTORY_UPSERT_MATCHKEY_PATH).handler(matchService::handleSharedInventoryUpsertByMatchKey);
-    router.delete(INVENTORY_UPSERT_HRID_PATH).handler(matchService::handleInventoryRecordSetDeleteByHrid);
-    router.delete(SHARED_INVENTORY_UPSERT_MATCHKEY_PATH).handler(matchService::handleSharedInventoryRecordSetDeleteByMatchkey);
+    router.delete(INVENTORY_UPSERT_HRID_PATH).handler(matchService::handleInventoryRecordSetDeleteByHRID);
+    router.delete(SHARED_INVENTORY_UPSERT_MATCHKEY_PATH).handler(matchService::handleSharedInventoryRecordSetDeleteByMatchKey);
     router.route("/apidocs/*").handler(StaticHandler.create("apidocs"));
     router.route("/*").handler(matchService::handleUnrecognizedPath);
 

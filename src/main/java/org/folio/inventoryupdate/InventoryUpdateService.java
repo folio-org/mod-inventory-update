@@ -15,6 +15,7 @@ import io.vertx.core.impl.logging.Logger;
 import io.vertx.core.impl.logging.LoggerFactory;
 import io.vertx.core.json.DecodeException;
 import org.folio.inventoryupdate.entities.DeletionIdentifiers;
+import org.folio.inventoryupdate.entities.InventoryRecordSet;
 import org.folio.okapi.common.OkapiClient;
 
 import io.vertx.core.Future;
@@ -55,7 +56,7 @@ public class InventoryUpdateService {
     }
   }
 
-  public void handleInventoryUpsertByHrid (RoutingContext routingCtx) {
+  public void handleInventoryUpsertByHRID(RoutingContext routingCtx) {
     if (contentTypeIsJson(routingCtx)) {
       JsonObject incomingJson = getIncomingJsonBody(routingCtx);
       if (InventoryRecordSet.isValidInventoryRecordSet(incomingJson)) {
@@ -70,7 +71,7 @@ public class InventoryUpdateService {
     }
   }
 
-  public void handleInventoryRecordSetDeleteByHrid (RoutingContext routingCtx) {
+  public void handleInventoryRecordSetDeleteByHRID(RoutingContext routingCtx) {
     if (contentTypeIsJson(routingCtx)) {
       JsonObject deletionJson = getIncomingJsonBody(routingCtx);
       InventoryQuery queryByInstanceHrid = new HridQuery(deletionJson.getString("hrid"));
@@ -79,7 +80,7 @@ public class InventoryUpdateService {
     }
   }
 
-  public void handleSharedInventoryRecordSetDeleteByMatchkey (RoutingContext routingCtx) {
+  public void handleSharedInventoryRecordSetDeleteByMatchKey(RoutingContext routingCtx) {
     logger.debug("Handling delete request for shared index " + routingCtx.getBodyAsString());
 
     if (contentTypeIsJson(routingCtx)) {

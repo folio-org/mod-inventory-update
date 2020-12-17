@@ -6,6 +6,7 @@ import java.util.Map;
 
 import org.folio.inventoryupdate.entities.DeletionIdentifiers;
 import org.folio.inventoryupdate.entities.HoldingsRecord;
+import org.folio.inventoryupdate.entities.InventoryRecordSet;
 import org.folio.inventoryupdate.entities.Item;
 import org.folio.inventoryupdate.entities.InventoryRecord.Transaction;
 import org.folio.okapi.common.OkapiClient;
@@ -45,8 +46,7 @@ public class UpdatePlanSharedInventory extends UpdatePlan {
     public Future<Void> planInventoryUpdates(OkapiClient okapiClient) {
         Promise<Void> promise = Promise.promise();
 
-        Future<Void> promisedExistingInventoryRecordSet = lookupExistingRecordSet(okapiClient, instanceQuery);
-        promisedExistingInventoryRecordSet.onComplete( recordSet -> {
+        lookupExistingRecordSet(okapiClient, instanceQuery).onComplete( recordSet -> {
             if (recordSet.succeeded()) {
                 if (foundExistingRecordSet()) {
                   if (isDeletion) {
@@ -57,8 +57,7 @@ public class UpdatePlanSharedInventory extends UpdatePlan {
                     getUpdatingRecordSet().modifyInstance(mergedInstance);
                   }
                 }
-                Future<Void> locationsMapReady = mapLocationsToInstitutions(okapiClient);
-                locationsMapReady.onComplete( handler -> {
+                mapLocationsToInstitutions(okapiClient).onComplete( handler -> {
                     if (handler.succeeded()) {
                         logger.debug("got institutions map: " + locationsToInstitutionsMap.toString());
                         flagAndIdRecordsForInventoryUpdating();

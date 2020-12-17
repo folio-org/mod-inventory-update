@@ -11,7 +11,7 @@ public class HoldingsRecord extends InventoryRecord {
 
     public HoldingsRecord(JsonObject holdingsRecord) {
         this.jsonRecord = holdingsRecord;
-        type = Entity.HOLDINGSRECORD;
+        type = Entity.HOLDINGS_RECORD;
     }
 
     @Override

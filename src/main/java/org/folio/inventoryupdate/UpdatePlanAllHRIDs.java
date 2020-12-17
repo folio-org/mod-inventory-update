@@ -46,7 +46,6 @@ public class UpdatePlanAllHRIDs extends UpdatePlan {
     */
     @Override
     public Future<Void> planInventoryUpdates (OkapiClient okapiClient) {
-
         Promise<Void> promisedPlan = Promise.promise();
         // compose with look-up of instance relationships
         lookupExistingRecordSet(okapiClient, instanceQuery).onComplete( lookup -> {

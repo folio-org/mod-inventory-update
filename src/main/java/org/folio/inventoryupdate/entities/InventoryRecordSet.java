@@ -171,7 +171,6 @@ public class InventoryRecordSet extends JsonRepresentation {
         return records;
     }
 
-
     public List<HoldingsRecord> getHoldingsRecords () {
         return allHoldingsRecords;
     }

@@ -161,8 +161,7 @@ public class UpdatePlanSharedInventory extends UpdatePlan {
 
         if (missMappings) {
             logger.info("Miss mappings for at least one location, retrieving locations from Inventory storage");
-            Future<JsonArray> promisedLocations = InventoryStorage.getLocations(okapiClient);
-            promisedLocations.onComplete(gotLocations -> {
+            InventoryStorage.getLocations(okapiClient).onComplete(gotLocations -> {
                 if (gotLocations.succeeded()) {
                     JsonArray locationsJson = gotLocations.result();
                     if (locationsJson == null || locationsJson.isEmpty()) {
@@ -246,15 +245,11 @@ public class UpdatePlanSharedInventory extends UpdatePlan {
         if (isDeletion && !foundExistingRecordSet()) {
           promise.complete();
         } else {
-          Future<Void> promisedDeletes = handleDeletionsIfAny(okapiClient);
-          promisedDeletes.onComplete(deletes -> {
+          handleDeletionsIfAny(okapiClient).onComplete(deletes -> {
               if (deletes.succeeded()) {
-                  Future<Void> promisedPrerequisites = createRecordsWithDependants(okapiClient);
-                  promisedPrerequisites.onComplete(prerequisites -> {
-                      Future<Void> promisedInstanceAndHoldingsUpdates = handleInstanceAndHoldingsUpdatesIfAny(okapiClient);
-                      promisedInstanceAndHoldingsUpdates.onComplete( instanceAndHoldingsUpdates -> {
-                          Future<JsonObject> promisedItemUpdates = handleItemUpdatesAndCreatesIfAny (okapiClient);
-                          promisedItemUpdates.onComplete(itemUpdatesAndCreates -> {
+                  createRecordsWithDependants(okapiClient).onComplete(prerequisites -> {
+                      handleInstanceAndHoldingsUpdatesIfAny(okapiClient).onComplete( instanceAndHoldingsUpdates -> {
+                          handleItemUpdatesAndCreatesIfAny (okapiClient).onComplete(itemUpdatesAndCreates -> {
                               if (prerequisites.succeeded() && instanceAndHoldingsUpdates.succeeded() && itemUpdatesAndCreates.succeeded() ) {
                                   promise.complete();
                               } else {

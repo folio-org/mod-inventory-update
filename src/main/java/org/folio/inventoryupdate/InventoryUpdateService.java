@@ -98,12 +98,10 @@ public class InventoryUpdateService {
 
     OkapiClient okapiClient = getOkapiClient(routingCtx);
 
-    Future<Void> planCreated = updatePlan.planInventoryUpdates(okapiClient);
-    planCreated.onComplete( planDone -> {
+    updatePlan.planInventoryUpdates(okapiClient).onComplete( planDone -> {
       if (planDone.succeeded()) {
         updatePlan.writePlanToLog();
-        Future<Void> planExecuted = updatePlan.doInventoryUpdates(okapiClient);
-        planExecuted.onComplete( updatesDone -> {
+        updatePlan.doInventoryUpdates(okapiClient).onComplete( updatesDone -> {
           JsonObject pushedRecordSetWithStats = updatePlan.getUpdatingRecordSetJson();
           pushedRecordSetWithStats.put("metrics", updatePlan.getUpdateStats());
           if (updatesDone.succeeded()) {

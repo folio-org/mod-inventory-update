@@ -101,6 +101,7 @@ public class InventoryRecordSet extends JsonRepresentation {
             holdingsAndItemsArray.add(holdingsRecordJson);
         }
         recordSetJson.put(HOLDINGS_RECORDS, holdingsAndItemsArray);
+        // GBV-106 also put instance relationships
         return recordSetJson;
     }
 
@@ -157,6 +158,8 @@ public class InventoryRecordSet extends JsonRepresentation {
         }
         return records;
     }
+
+    // GBV-106?: get parents, get children, get by type, get succeeding, get preceding
 
     public List<HoldingsRecord> getHoldingsRecordsByTransactionType (Transaction transition) {
         List<HoldingsRecord> records = new ArrayList<HoldingsRecord>();

@@ -68,7 +68,7 @@ public class UpdatePlanAllHRIDs extends UpdatePlan {
                   if (foundExistingRecordSet()) {
                       flagAndIdUpdatesDeletesAndLocalMoves();
                   }
-                  flagAndIdCreatesAndImports(okapiClient).onComplete( done -> {
+                  flagAndIdNewRecordsAndImports(okapiClient).onComplete( done -> {
                       if (done.succeeded()) {
                           promisedPlan.complete();
                       }
@@ -151,22 +151,6 @@ public class UpdatePlanAllHRIDs extends UpdatePlan {
         }
     }
 
-    /**
-       Mark non-previously-existing records for creation.
-       Lookup holdings/items that could be migrating here from other existing instance(s)
-       and mark them for update, if any.
-    */
-    private Future<Void> flagAndIdCreatesAndImports(OkapiClient okapiClient) {
-        Promise<Void> promise = Promise.promise();
-        flagAndIdNewRecordsAndImports(okapiClient).onComplete(handler -> {
-            if (handler.succeeded()) {
-                promise.complete();
-            } else {
-                promise.fail("Failed to retrieve UUIDs: " + handler.cause().getMessage());
-            }
-        });
-        return promise.future();
-    }
 
     /**
      * Catch up records that were not matched within an existing Instance (Transition = UNKNOWN)
@@ -174,7 +158,8 @@ public class UpdatePlanAllHRIDs extends UpdatePlan {
      * @param okapiClient client for looking up existing records
      * @return a future with all holdingsRecord and item lookups.
      */
-    public CompositeFuture flagAndIdNewRecordsAndImports(OkapiClient okapiClient) {
+    public Future<Void> flagAndIdNewRecordsAndImports(OkapiClient okapiClient) {
+        Promise<Void> promise = Promise.promise();
         @SuppressWarnings("rawtypes")
         List<Future> recordFutures = new ArrayList<Future>();
         List<HoldingsRecord> holdingsRecords = updatingSet.getHoldingsRecordsByTransactionType(Transaction.UNKNOWN);
@@ -185,7 +170,14 @@ public class UpdatePlanAllHRIDs extends UpdatePlan {
         for (Item item : items) {
             recordFutures.add(flagAndIdItemsByStorageLookup(okapiClient, item));
         }
-        return CompositeFuture.all(recordFutures);
+        CompositeFuture.all(recordFutures).onComplete( handler -> {
+            if (handler.succeeded()) {
+                promise.complete();
+            } else {
+                promise.fail("Failed to retrieve UUIDs: " + handler.cause().getMessage());
+            }
+        });
+        return promise.future();
     }
 
     /**

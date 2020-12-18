@@ -3,10 +3,7 @@ package org.folio.inventoryupdate;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.folio.inventoryupdate.entities.HoldingsRecord;
-import org.folio.inventoryupdate.entities.InventoryRecord;
-import org.folio.inventoryupdate.entities.InventoryRecordSet;
-import org.folio.inventoryupdate.entities.Item;
+import org.folio.inventoryupdate.entities.*;
 import org.folio.inventoryupdate.entities.InventoryRecord.Transaction;
 import org.folio.okapi.common.OkapiClient;
 
@@ -59,6 +56,9 @@ public class UpdatePlanAllHRIDs extends UpdatePlan {
                       for (Item item : holdings.getItems()) {
                         item.setTransition(Transaction.DELETE);
                       }
+                    }
+                    for (InstanceRelationship relation : getExistingInstance().getRelations()) {
+                        relation.setTransition(Transaction.DELETE);
                     }
                   }
                   promisedPlan.complete();
@@ -117,6 +117,7 @@ public class UpdatePlanAllHRIDs extends UpdatePlan {
      * Find records that have disappeared and mark them for deletion.
      */
     private void flagAndIdUpdatesDeletesAndLocalMoves() {
+
         for (HoldingsRecord existingHoldingsRecord : getExistingInstance().getHoldingsRecords()) {
             HoldingsRecord incomingHoldingsRecord = getUpdatingInstance().getHoldingsRecordByHRID(existingHoldingsRecord.getHRID());
             // HoldingsRecord gone, mark for deletion and check for existing items to delete with it

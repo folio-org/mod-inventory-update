@@ -1,7 +1,10 @@
 package org.folio.inventoryupdate.entities;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import io.vertx.core.json.JsonObject;
 
@@ -70,11 +73,18 @@ public class Instance extends InventoryRecord {
         }
     }
 */
-    public List<InstanceRelationship> getSuperInstances () {
+    public List<InstanceRelationship> getRelations () {
+        return Stream.concat(
+                parentRelationships.stream(),
+                childRelationships.stream()
+        ).collect(Collectors.toList());
+    }
+
+    public List<InstanceRelationship> getParentRelationships () {
         return parentRelationships;
     }
 
-    public List<InstanceRelationship> getSubInstances () {
+    public List<InstanceRelationship> getChildRelationships () {
         return childRelationships;
     }
 

@@ -40,7 +40,6 @@ public abstract class UpdatePlan {
     protected InventoryRecordSet existingSet = null;
     protected final Logger logger = LoggerFactory.getLogger("inventory-update");
     protected boolean isDeletion = false;
-    protected InstanceRelationshipsManager instanceRelationshipsHandler;
 
     /**
      * Constructor for plan for creating or updating an Inventory record set
@@ -50,7 +49,6 @@ public abstract class UpdatePlan {
     public UpdatePlan (InventoryRecordSet incomingSet, InventoryQuery existingInstanceQuery) {
         this.updatingSet = incomingSet;
         this.instanceQuery = existingInstanceQuery;
-        instanceRelationshipsHandler = new InstanceRelationshipsManager(this);
     }
 
     public boolean foundExistingRecordSet () {

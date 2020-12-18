@@ -5,9 +5,11 @@ import java.util.List;
 
 import io.vertx.core.impl.logging.Logger;
 import io.vertx.core.impl.logging.LoggerFactory;
+import org.folio.inventoryupdate.entities.InstanceRelations;
 import org.folio.inventoryupdate.entities.InventoryRecord;
 import org.folio.inventoryupdate.entities.InventoryRecord.Entity;
 import org.folio.inventoryupdate.entities.InventoryRecord.Transaction;
+import org.folio.inventoryupdate.entities.InventoryRecordSet;
 import org.folio.okapi.common.OkapiClient;
 
 import io.vertx.core.CompositeFuture;
@@ -144,19 +146,30 @@ public class InventoryStorage {
         if (instance==null) {
           promise.complete(null);
         } else {
-          inventoryRecordSet.put("instance",instance);
+          inventoryRecordSet.put(InventoryRecordSet.INSTANCE,instance);
           String instanceUUID = instance.getString("id");
           lookupExistingHoldingsRecordsAndItemsByInstanceUUID(okapiClient, instanceUUID).onComplete(existingHoldingsResult -> {
               if (existingHoldingsResult.succeeded()) {
                   if (existingHoldingsResult.result() != null) {
-                      inventoryRecordSet.put("holdingsRecords",existingHoldingsResult.result());
+                      inventoryRecordSet.put(InventoryRecordSet.HOLDINGS_RECORDS,existingHoldingsResult.result());
                   } else {
-                      inventoryRecordSet.put("holdingsRecords", new JsonArray());
+                      inventoryRecordSet.put(InventoryRecordSet.HOLDINGS_RECORDS, new JsonArray());
                   }
-                  promise.complete(inventoryRecordSet);
               } else {
                 failure(existingHoldingsResult.cause(), Entity.HOLDINGS_RECORD, Transaction.GET, okapiClient.getStatusCode(), promise, "While looking up Inventory record set");
               }
+              lookupExistingInstanceRelationshipsByInstanceUUID(okapiClient, instanceUUID).onComplete( existingRelations -> {
+                if (existingRelations.succeeded()) {
+                  JsonObject instanceRelations = new JsonObject();
+                  inventoryRecordSet.put(InstanceRelations.INSTANCE_RELATIONS, instanceRelations);
+                  if (existingRelations.result() != null) {
+                    instanceRelations.put(InstanceRelations.EXISTING_RELATIONS, existingRelations.result());
+                  }
+                } else {
+                  logger.error("Lookup of existing instance relationships failed. Continuing even so.");
+                }
+                promise.complete(inventoryRecordSet);
+              });
           });
         }
       } else {
@@ -215,7 +228,6 @@ public class InventoryStorage {
     return promise.future();
   }
 
-  // GBV-106?  Lookup the instances -- to get hrid, matchkey, etc?. Not here but in lookupAndEmbed?
   public static Future<JsonArray> lookupExistingInstanceRelationshipsByInstanceUUID (OkapiClient okapiClient, String instanceId) {
     Promise<JsonArray> promise = Promise.promise();
     okapiClient.get(INSTANCE_RELATIONSHIP_STORAGE_PATH +"?limit=1000&query=(subInstanceId%3D%3D"+instanceId+"%20or%20superInstanceId%3D%3D"+instanceId+")", res -> {

@@ -19,15 +19,16 @@ import io.vertx.core.json.JsonObject;
 public class InventoryRecordSet extends JsonRepresentation {
 
     private Instance anInstance = null;
-    private Map<String,HoldingsRecord> holdingsRecordsByHRID     = new HashMap<String,HoldingsRecord>();
+    private Map<String,HoldingsRecord> holdingsRecordsByHRID = new HashMap<String,HoldingsRecord>();
     private Map<String,Item> itemsByHRID = new HashMap<String,Item>();
     private List<HoldingsRecord> allHoldingsRecords = new ArrayList<HoldingsRecord>();
     private List<Item> allItems = new ArrayList<Item>();
+    private InstanceRelations instanceRelations;
 
-    private static final String INSTANCE = "instance";
-    private static final String HOLDINGS_RECORDS = "holdingsRecords";
-    private static final String ITEMS = "items";
-    private static final String HRID = "hrid";
+    public static final String INSTANCE = "instance";
+    public static final String HOLDINGS_RECORDS = "holdingsRecords";
+    public static final String ITEMS = "items";
+    public static final String HRID = "hrid";
     @SuppressWarnings("unused")
     private final Logger logger = LoggerFactory.getLogger("inventory-update");
 
@@ -38,6 +39,8 @@ public class InventoryRecordSet extends JsonRepresentation {
             JsonArray holdings = inventoryRecordSet.getJsonArray(HOLDINGS_RECORDS);
             anInstance = new Instance(instanceJson);
             registerHoldingsRecordsAndItems (holdings);
+            JsonObject instanceRelationsJson = inventoryRecordSet.getJsonObject(InstanceRelations.INSTANCE_RELATIONS);
+            this.instanceRelations = new InstanceRelations(anInstance.getUUID(), instanceRelationsJson);
         }
     }
 

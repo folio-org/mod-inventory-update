@@ -10,7 +10,6 @@ import org.folio.okapi.common.OkapiClient;
 import io.vertx.core.CompositeFuture;
 import io.vertx.core.Future;
 import io.vertx.core.Promise;
-import io.vertx.core.json.JsonObject;
 
 public class UpdatePlanAllHRIDs extends UpdatePlan {
 
@@ -50,16 +49,14 @@ public class UpdatePlanAllHRIDs extends UpdatePlan {
                 // Plan instance update
                 if (isDeletion) {
                   if (foundExistingRecordSet()) {
-                    getExistingInstance().setTransition(Transaction.DELETE);
-                    for (HoldingsRecord holdings : getExistingInstance().getHoldingsRecords()) {
-                      holdings.setTransition(Transaction.DELETE);
-                      for (Item item : holdings.getItems()) {
-                        item.setTransition(Transaction.DELETE);
+                      getExistingInstance().setTransition(Transaction.DELETE);
+                      for (HoldingsRecord holdings : getExistingInstance().getHoldingsRecords()) {
+                          holdings.setTransition(Transaction.DELETE);
+                          for (Item item : holdings.getItems()) {
+                              item.setTransition(Transaction.DELETE);
+                          }
                       }
-                    }
-                    for (InstanceRelationship relation : getExistingInstance().getRelations()) {
-                        relation.setTransition(Transaction.DELETE);
-                    }
+                      getExistingRecordSet().markInstanceRelationsForDeletion();
                   }
                   promisedPlan.complete();
                 } else {
@@ -68,10 +65,13 @@ public class UpdatePlanAllHRIDs extends UpdatePlan {
                   if (foundExistingRecordSet()) {
                       flagAndIdUpdatesDeletesAndLocalMoves();
                   }
-                  flagAndIdNewRecordsAndImports(okapiClient).onComplete( done -> {
-                      if (done.succeeded()) {
-                          promisedPlan.complete();
-                      }
+                  Future<Void> relationsFuture = getUpdatingRecordSet().createIncomingRelationshipRecords(okapiClient, getUpdatingInstance().getUUID());
+                  Future<Void> fladAndIdNewRecordsAndImportsFuture = flagAndIdNewRecordsAndImports(okapiClient);
+                  CompositeFuture.all(relationsFuture, fladAndIdNewRecordsAndImportsFuture).onComplete( done -> {
+                     if (done.succeeded()) {
+                         flagIncomingRelationships();
+                         promisedPlan.complete();
+                     }
                   });
                 }
             }
@@ -87,21 +87,27 @@ public class UpdatePlanAllHRIDs extends UpdatePlan {
             logger.debug("Successfully created records referenced by other records if any");
 
             handleInstanceAndHoldingsUpdatesIfAny(okapiClient).onComplete( instanceAndHoldingsUpdates -> {
-                handleItemUpdatesAndCreatesIfAny (okapiClient).onComplete(itemUpdatesAndCreates -> {
-                    if (prerequisites.succeeded() && instanceAndHoldingsUpdates.succeeded() && itemUpdatesAndCreates.succeeded()) {
-                        logger.debug("Successfully processed record create requests if any");
-                        handleDeletionsIfAny(okapiClient).onComplete(deletes -> {
-                            if (deletes.succeeded()) {
-                                promise.complete();
-                            } else {
-                                promise.fail("There was a problem processing Inventory deletes: " + deletes.cause().getMessage());
-                            }
-                        });
+                handleInstanceRelationCreatesIfAny(okapiClient).onComplete( relationsCreated -> {
+                    if (relationsCreated.succeeded()) {
+                        logger.debug("Successfully processed relationship create requests if any");
                     } else {
-                        promise.fail("There was a problem creating records, no deletes performed if any requested: " + prerequisites.cause().getMessage());
+                        logger.error("There was a problem creating Instance relationships");
                     }
+                    handleItemUpdatesAndCreatesIfAny(okapiClient).onComplete(itemUpdatesAndCreates -> {
+                        if (prerequisites.succeeded() && instanceAndHoldingsUpdates.succeeded() && itemUpdatesAndCreates.succeeded()) {
+                            logger.debug("Successfully processed record create requests if any");
+                            handleDeletionsIfAny(okapiClient).onComplete(deletes -> {
+                                if (deletes.succeeded()) {
+                                    promise.complete();
+                                } else {
+                                    promise.fail("There was a problem processing Inventory deletes: " + deletes.cause().getMessage());
+                                }
+                            });
+                        } else {
+                            promise.fail("There was a problem creating records, no deletes performed if any requested: " + prerequisites.cause().getMessage());
+                        }
+                    });
                 });
-
             });
         });
         return promise.future();
@@ -147,6 +153,21 @@ public class UpdatePlanAllHRIDs extends UpdatePlan {
                         incomingItem.setUUID(existingItem.getUUID());
                         incomingItem.setTransition(Transaction.UPDATE);
                     }
+                }
+            }
+        }
+    }
+
+    public void flagIncomingRelationships () {
+        logger.debug("Flagging incoming relationships for creation if any");
+        for (InstanceRelationship incomingRelationship : getUpdatingRecordSet().instanceRelations.getRelations()) {
+            incomingRelationship.setTransition(Transaction.CREATE);
+            logger.debug("Flagged a relationship for create");
+            for (InstanceRelationship existingRelationship : getExistingRecordSet().instanceRelations.getRelations()) {
+                if (existingRelationship.equals(incomingRelationship)) {
+                    incomingRelationship.setTransition(Transaction.NONE);
+                    logger.debug("Flagged a relationship to transaction NONE");
+                    break;
                 }
             }
         }

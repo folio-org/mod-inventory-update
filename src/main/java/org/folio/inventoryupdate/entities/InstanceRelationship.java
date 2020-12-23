@@ -9,10 +9,10 @@ public class InstanceRelationship extends InventoryRecord {
     public static final String SUPER_INSTANCE_ID = "superInstanceId";
     public static final String INSTANCE_RELATIONSHIP_TYPE_ID = "instanceRelationshipTypeId";
 
-    private String subInstanceHrid = null;
-    private String superInstanceHrid = null;
+    private String subInstanceId = null;
+    private String superInstanceId = null;
 
-    public static InstanceRelationship makeRelationshipFromExisting(String instanceId, JsonObject instanceRelationJson) {
+    public static InstanceRelationship makeRelationship(String instanceId, JsonObject instanceRelationJson) {
         InstanceRelationship relation = new InstanceRelationship();
         relation.instanceId = instanceId;
         relation.jsonRecord = instanceRelationJson;
@@ -20,28 +20,18 @@ public class InstanceRelationship extends InventoryRecord {
         return relation;
     }
 
-    public static InstanceRelationship makeParentRelationshipWithHRID(String instanceId, String parentHrid, String instanceRelationshipTypeId) {
+    public static InstanceRelationship makeRelationship (String instanceId, String subInstanceId, String superInstanceId, String instanceRelationshipTypeId) {
         InstanceRelationship relation = new InstanceRelationship();
-        relation.jsonRecord = new JsonObject();
         relation.instanceId = instanceId;
-        relation.jsonRecord.put(SUB_INSTANCE_ID, instanceId);
+        relation.superInstanceId = superInstanceId;
+        relation.subInstanceId = subInstanceId;
+        relation.jsonRecord = new JsonObject();
+        relation.jsonRecord.put(SUB_INSTANCE_ID, subInstanceId);
+        relation.jsonRecord.put(SUPER_INSTANCE_ID, superInstanceId);
         relation.jsonRecord.put(INSTANCE_RELATIONSHIP_TYPE_ID, instanceRelationshipTypeId);
-        relation.superInstanceHrid = parentHrid;
+        relation.type = Entity.INSTANCE_RELATIONSHIP;
         return relation;
     }
-
-    public static InstanceRelationship makeChildRelationshipWithHRID(String instanceId, String childHrid, String instanceRelationshipTypeId) {
-        InstanceRelationship relation = new InstanceRelationship();
-        relation.jsonRecord = new JsonObject();
-        relation.instanceId = instanceId;
-        relation.jsonRecord.put(SUPER_INSTANCE_ID, instanceId);
-        relation.jsonRecord.put(INSTANCE_RELATIONSHIP_TYPE_ID, instanceRelationshipTypeId);
-        relation.subInstanceHrid = childHrid;
-        return relation;
-    }
-
-
-    public InstanceRelationship() {}
 
     public boolean isRelationToParent () {
         return instanceId.equals(getSubInstanceId());
@@ -65,6 +55,18 @@ public class InstanceRelationship extends InventoryRecord {
 
     public void skipDependants() {
         // has none
+    }
+
+    @Override
+    public boolean equals (Object o) {
+        if (o instanceof InstanceRelationship) {
+            InstanceRelationship other = (InstanceRelationship) o;
+            return (other.getSubInstanceId().equals(this.getSubInstanceId()) &&
+                    other.getSuperInstanceId().equals(this.getSuperInstanceId()) &&
+                    other.getInstanceRelationshipTypeId().equals(this.getInstanceRelationshipTypeId()));
+        } else {
+            return false;
+        }
     }
 
 }

@@ -142,6 +142,14 @@ public abstract class UpdatePlan {
         return gotUpdatingRecordSet() ? updatingSet.getItemsByTransactionType(Transaction.UPDATE) : new ArrayList<>();
     }
 
+    public List<InstanceRelationship> relationshipsToDelete () {
+        return foundExistingRecordSet() ? existingSet.getInstanceRelationsByTransactionType(Transaction.DELETE) : new ArrayList<>();
+    }
+
+    public List<InstanceRelationship> relationshipsToCreate () {
+        return gotUpdatingRecordSet() ? updatingSet.getInstanceRelationsByTransactionType(Transaction.CREATE) : new ArrayList<>();
+    }
+
     public boolean isInstanceUpdating () {
         return gotUpdatingRecordSet() ? updatingSet.getInstance().getTransaction() == Transaction.UPDATE : false;
     }
@@ -196,6 +204,15 @@ public abstract class UpdatePlan {
           for (HoldingsRecord record : holdingsToDelete()) {
             logger.info(record.asJson().encodePrettily());
           }
+          logger.info("Instance relationships to create: ");
+          for (InstanceRelationship record : relationshipsToCreate()) {
+              logger.info(record.asJson().encodePrettily());
+          }
+          logger.info("Instance relationships to delete: ");
+          for (InstanceRelationship record : relationshipsToDelete()) {
+              logger.info(record.asJson().encodePrettily());
+          }
+
         }
     }
 
@@ -270,18 +287,40 @@ public abstract class UpdatePlan {
         return promise.future();
     }
 
+    public Future<JsonObject> handleInstanceRelationCreatesIfAny (OkapiClient okapiClient) {
+        Promise<JsonObject> promise = Promise.promise();
+        List<Future> createFutures = new ArrayList<Future>();
+        for (InstanceRelationship relation : relationshipsToCreate()) {
+            createFutures.add(InventoryStorage.postInventoryRecord(okapiClient, relation));
+        }
+        CompositeFuture.join(createFutures).onComplete( allRelationsCreated -> {
+            if (allRelationsCreated.succeeded()) {
+                promise.complete(new JsonObject());
+            } else {
+                promise.fail("There was an error creating instance relations: " + allRelationsCreated.cause().getMessage());
+            }
+        });
+        return promise.future();
+    }
+
+
     /**
-     * Perform deletions of items, holdings records, instance (if any and in that order)
+     * Perform deletions of any relations to other instances and
+     * deletions of items, holdings records, instance (if any and in that order)
      */
     @SuppressWarnings("rawtypes")
     public Future<Void> handleDeletionsIfAny (OkapiClient okapiClient) {
         Promise<Void> promise = Promise.promise();
-        List<Future> deleteItems = new ArrayList<Future>();
-        for (Item item : itemsToDelete()) {
-            deleteItems.add(InventoryStorage.deleteInventoryRecord(okapiClient, item));
+        List<Future> deleteRelationsDeleteItems = new ArrayList<Future>();
+        for (InstanceRelationship relation :  relationshipsToDelete()) {
+            deleteRelationsDeleteItems.add(InventoryStorage.deleteInventoryRecord(okapiClient,relation));
         }
-        CompositeFuture.join(deleteItems).onComplete ( allItemsDone -> {
-            if (allItemsDone.succeeded()) {
+        for (Item item : itemsToDelete()) {
+            deleteRelationsDeleteItems.add(InventoryStorage.deleteInventoryRecord(okapiClient, item));
+        }
+
+        CompositeFuture.join(deleteRelationsDeleteItems).onComplete ( allRelationshipsDoneAllItemsDone -> {
+            if (allRelationshipsDoneAllItemsDone.succeeded()) {
                 List<Future> deleteHoldingsRecords = new ArrayList<Future>();
                 for (HoldingsRecord holdingsRecord : holdingsToDelete()) {
                     deleteHoldingsRecords.add(InventoryStorage.deleteInventoryRecord(okapiClient, holdingsRecord));
@@ -305,7 +344,7 @@ public abstract class UpdatePlan {
 
                 });
             } else {
-                promise.fail("Failed to delete item(s): " + allItemsDone.cause().getMessage());
+                promise.fail("Failed to delete item(s) and/or instance-to-instance relations: " + allRelationshipsDoneAllItemsDone.cause().getMessage());
             }
         });
         return promise.future();

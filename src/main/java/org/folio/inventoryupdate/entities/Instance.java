@@ -11,8 +11,6 @@ import io.vertx.core.json.JsonObject;
 public class Instance extends InventoryRecord {
 
     List<HoldingsRecord> holdingsRecords = new ArrayList<HoldingsRecord>();
-    List<InstanceRelationship> parentRelationships = new ArrayList<InstanceRelationship>();
-    List<InstanceRelationship> childRelationships = new ArrayList<InstanceRelationship>();
 
     public Instance (JsonObject instance) {
         jsonRecord = instance;
@@ -63,29 +61,6 @@ public class Instance extends InventoryRecord {
             }
         }
         return null;
-    }
-/*
-    public void addInstanceRelationship(InstanceRelationship instanceRelationship) {
-        if (instanceRelationship.getSubInstanceId().equals(getUUID())) {
-            parentRelationships.add(instanceRelationship);
-        } else if (instanceRelationship.getSuperInstanceId().equals(getUUID())) {
-            childRelationships.add(instanceRelationship);
-        }
-    }
-*/
-    public List<InstanceRelationship> getRelations () {
-        return Stream.concat(
-                parentRelationships.stream(),
-                childRelationships.stream()
-        ).collect(Collectors.toList());
-    }
-
-    public List<InstanceRelationship> getParentRelationships () {
-        return parentRelationships;
-    }
-
-    public List<InstanceRelationship> getChildRelationships () {
-        return childRelationships;
     }
 
     public void skipDependants () {

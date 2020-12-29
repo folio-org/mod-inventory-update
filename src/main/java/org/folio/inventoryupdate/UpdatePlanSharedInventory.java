@@ -192,7 +192,7 @@ public class UpdatePlanSharedInventory extends UpdatePlan {
         getUpdatingInstance().setTransition(Transaction.UPDATE);
         flagExistingHoldingsAndItemsForDeletion();
       } else if (!isDeletion) {
-        flagAndIdTheUpdatingInstance();
+        prepareTheUpdatingInstance();
         if (foundExistingRecordSet()) {
           // Plan to clean out existing holdings and items
           flagExistingHoldingsAndItemsForDeletion();

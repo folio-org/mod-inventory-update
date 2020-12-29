@@ -23,6 +23,10 @@
                 "hrid": {
                   "type": "string",
                   "description": "A unique ID for the parent instance to link to"
+                },
+                "title": {
+                  "type": "string",
+                  "description": "The title of the parent Instance. Optional, used in case the HRID doesn't exist already"
                 }
               }
             },
@@ -46,6 +50,10 @@
                 "hrid": {
                   "type": "string",
                   "description": "A unique ID for the child instance to link to"
+                },
+                "title": {
+                  "type": "string",
+                  "description": "Title of the child Instance. Optional, used in case the HRID doesn't exist already"
                 }
               }
             },

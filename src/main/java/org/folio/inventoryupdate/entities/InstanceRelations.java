@@ -14,6 +14,7 @@ import org.folio.okapi.common.OkapiClient;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 import static org.folio.inventoryupdate.entities.InventoryRecordSet.HRID;
 
@@ -25,22 +26,23 @@ public class InstanceRelations extends JsonRepresentation {
     public static final String CHILD_INSTANCES = "childInstances";
     public static final String INSTANCE_IDENTIFIER = "instanceIdentifier";
 
-    private InventoryRecordSet inventoryRecordSet = null;
     private List<InstanceRelationship> parentRelations = new ArrayList<>();
     private List<InstanceRelationship> childRelations = new ArrayList<>();
     private JsonObject relationshipJson = new JsonObject();
     protected final Logger logger = LoggerFactory.getLogger("inventory-update");
+    private List<Instance> interimInstance = new ArrayList<>();
 
     public InstanceRelations () {}
 
     public List<InstanceRelationship> getInstanceRelationsByTransactionType (InventoryRecord.Transaction transition) {
-        logger.debug("Getting instance relations by transaction type " + transition);
         List<InstanceRelationship> records = new ArrayList();
         for (InstanceRelationship record : getRelations())  {
+            logger.debug("Looking at relationship with transaction type " + record.getTransaction());
             if (record.getTransaction() == transition && ! record.skipped()) {
                 records.add(record);
             }
         }
+        logger.debug("Found " + records.size() + " to " + transition);
         return records;
     }
 
@@ -49,10 +51,8 @@ public class InstanceRelations extends JsonRepresentation {
     }
 
     public void markRelationsForDeletion () {
-        if (hasRelations()) {
-            for (InstanceRelationship relation : getRelations()) {
-                relation.setTransition(InventoryRecord.Transaction.DELETE);
-            }
+        for (InstanceRelationship relation : getRelations()) {
+            relation.setTransition(InventoryRecord.Transaction.DELETE);
         }
     }
 
@@ -63,14 +63,21 @@ public class InstanceRelations extends JsonRepresentation {
             getParentRelations(client, instanceId, relationshipJson.getJsonArray(PARENT_INSTANCES)).onComplete(parents -> {
                 if (parents.succeeded()) {
                     this.parentRelations = parents.result();
+                } else {
+                    promise.fail("There was a problem looking up Instance IDs to build parent relationships: " + parents.cause().getMessage());
                 }
                 getChildRelations(client, instanceId, relationshipJson.getJsonArray(CHILD_INSTANCES)).onComplete (children -> {
                    if (children.succeeded()) {
                        this.childRelations = children.result();
+                       promise.complete();
+                   } else {
+                       promise.fail("There was a problem looking up Instance IDs to build child relationships: " + children.cause().getMessage());
                    }
-                   promise.complete();
+
                 });
             });
+        } else {
+            promise.complete();
         }
         return promise.future();
     }
@@ -95,6 +102,8 @@ public class InstanceRelations extends JsonRepresentation {
                        }
                        promise.complete(relations);
                    }
+               } else {
+                   promise.fail("Failed to look up parent Instances in storage: " + parentInstances.cause().getMessage());
                }
             });
         } else {
@@ -147,11 +156,21 @@ public class InstanceRelations extends JsonRepresentation {
                     promise.complete(relationship);
                 } else {
                     // todo: create temporary instance and relation to it
+                    Instance interimInstance = prepareInterimInstance(hrid);
                     promise.complete(null);
                 }
             }
         });
         return promise.future();
+    }
+
+    private static Instance prepareInterimInstance (String hrid) {
+        JsonObject json = new JsonObject();
+        json.put("hrid", hrid);
+        json.put("id", UUID.randomUUID().toString());
+        // todo: set material type
+        // todo: tag it 'interim'
+        return new Instance(json);
     }
 
     private static Future<InstanceRelationship> getChildRelation (OkapiClient client, String instanceId, JsonObject parentIdentifier, String identifierKey) {
@@ -194,7 +213,18 @@ public class InstanceRelations extends JsonRepresentation {
 
     @Override
     public JsonObject asJson() {
-        return null;
+        JsonObject json = new JsonObject();
+        JsonArray parents = new JsonArray();
+        for (InstanceRelationship relation : getParentRelations()) {
+            parents.add(relation.asJson());
+        }
+        json.put("parentInstances", parents);
+        JsonArray children = new JsonArray();
+        for (InstanceRelationship relation : getChildRelations()) {
+            children.add(relation.asJson());
+        }
+        json.put("childInstances", children);
+        return json;
     }
 
     @Override
@@ -215,10 +245,8 @@ public class InstanceRelations extends JsonRepresentation {
         return childRelations;
     }
 
-    public boolean hasRelations () {
-        return  (relationshipJson.containsKey(EXISTING_RELATIONS)
-                        || relationshipJson.containsKey(PARENT_INSTANCES)
-                        || relationshipJson.containsKey(CHILD_INSTANCES));
+    private boolean hasRelations () {
+        return  (parentRelations.size() + childRelations.size() > 0);
     }
 
     public List<InstanceRelationship> getRelations () {

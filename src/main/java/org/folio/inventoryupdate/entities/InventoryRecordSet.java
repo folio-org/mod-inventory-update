@@ -22,6 +22,7 @@ public class InventoryRecordSet extends JsonRepresentation {
     private List<HoldingsRecord> allHoldingsRecords = new ArrayList<HoldingsRecord>();
     private List<Item> allItems = new ArrayList<Item>();
     public InstanceRelations instanceRelations = new InstanceRelations();
+    public Instance interimRelatedInstance = null;
 
     public static final String INSTANCE = "instance";
     public static final String HOLDINGS_RECORDS = "holdingsRecords";
@@ -41,6 +42,7 @@ public class InventoryRecordSet extends JsonRepresentation {
             // If it's an incoming record set the related HRIDs will be stored for subsequent retrieval
             // of Instance IDs to create the relationship JSON
             if (hasRelationshipRecords(inventoryRecordSet)) {
+                logger.debug("InventoryRecordSet initialized with existing instance relationships");
                 instanceRelations.registerRelationshipJsonRecords(anInstance.getUUID(),inventoryRecordSet.getJsonObject(InstanceRelations.INSTANCE_RELATIONS));
             }
             if (hasRelationshipIdentifiers(inventoryRecordSet)) {
@@ -127,7 +129,7 @@ public class InventoryRecordSet extends JsonRepresentation {
             holdingsAndItemsArray.add(holdingsRecordJson);
         }
         recordSetJson.put(HOLDINGS_RECORDS, holdingsAndItemsArray);
-        // GBV-106 also put instance relationships
+        recordSetJson.put("instanceRelations",instanceRelations.asJson());
         return recordSetJson;
     }
 
@@ -185,7 +187,7 @@ public class InventoryRecordSet extends JsonRepresentation {
         return records;
     }
 
-    public void markInstanceRelationsForDeletion () {
+    public void prepareInstanceRelationsForDeletion() {
         instanceRelations.markRelationsForDeletion();
     }
 
@@ -193,7 +195,7 @@ public class InventoryRecordSet extends JsonRepresentation {
         return instanceRelations.getInstanceRelationsByTransactionType(transition);
     }
 
-    public Future<Void> createIncomingRelationshipRecords(OkapiClient client, String instanceId) {
+    public Future<Void> prepareIncomingRelationshipRecords(OkapiClient client, String instanceId) {
         return instanceRelations.makeRelationshipRecordsFromIdentifiers(client, instanceId);
     }
 

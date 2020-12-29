@@ -69,7 +69,7 @@ public abstract class UpdatePlan {
                 JsonObject existingInventoryRecordSetJson = recordSet.result();
                 if (existingInventoryRecordSetJson != null) {
                     this.existingSet = new InventoryRecordSet(existingInventoryRecordSetJson);
-                }
+                };
                 promise.complete();
             } else {
                 promise.fail("Error looking up existing record set: " + recordSet.cause().getMessage());
@@ -81,7 +81,7 @@ public abstract class UpdatePlan {
     /**
      * Set transaction type and ID for the instance
      */
-    protected void flagAndIdTheUpdatingInstance () {
+    protected void prepareTheUpdatingInstance() {
       if (foundExistingRecordSet()) {
         getUpdatingInstance().setUUID(getExistingInstance().getUUID());
         getUpdatingInstance().setTransition(Transaction.UPDATE);
@@ -175,6 +175,10 @@ public abstract class UpdatePlan {
             for (HoldingsRecord record : holdingsToDelete()) {
               logger.info(record.asJson().encodePrettily());
             }
+            logger.info("Relationships to delete: ");
+            for (InstanceRelationship record : relationshipsToDelete()) {
+                logger.info(record.asJson().encodePrettily());
+            }
           } else {
             logger.info("Got delete request but no existing records found with provided identifier(s)");
           }
@@ -228,7 +232,7 @@ public abstract class UpdatePlan {
             if (instanceResult.succeeded()) {
                 createNewHoldingsIfAny(okapiClient).onComplete(handler2 -> {
                     if (handler2.succeeded()) {
-                        logger.debug("Created new holdings");
+                        logger.debug("Created new holdings if any");
                         promise.complete();
                     } else {
                         promise.fail("Failed to create new holdings records: " + handler2.cause().getMessage());
@@ -446,10 +450,12 @@ public abstract class UpdatePlan {
     }
 
     public boolean hasErrors () {
+        // todo: account for deletes (no updating set)
         return getUpdatingRecordSet().hasErrors();
     }
 
     public JsonArray getErrors () {
-        return getUpdatingRecordSet().getErrors();
+        // todo: combine error sets?
+        return isDeletion ? getExistingRecordSet().getErrors() : getUpdatingRecordSet().getErrors();
     }
 }

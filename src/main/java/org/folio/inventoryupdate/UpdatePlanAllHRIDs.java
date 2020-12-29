@@ -56,21 +56,23 @@ public class UpdatePlanAllHRIDs extends UpdatePlan {
                               item.setTransition(Transaction.DELETE);
                           }
                       }
-                      getExistingRecordSet().markInstanceRelationsForDeletion();
+                      getExistingRecordSet().prepareInstanceRelationsForDeletion();
                   }
                   promisedPlan.complete();
                 } else {
-                  flagAndIdTheUpdatingInstance();
+                  prepareTheUpdatingInstance();
                   // Plan holdings/items updates
                   if (foundExistingRecordSet()) {
-                      flagAndIdUpdatesDeletesAndLocalMoves();
+                      prepareUpdatesDeletesAndLocalMoves();
                   }
-                  Future<Void> relationsFuture = getUpdatingRecordSet().createIncomingRelationshipRecords(okapiClient, getUpdatingInstance().getUUID());
-                  Future<Void> fladAndIdNewRecordsAndImportsFuture = flagAndIdNewRecordsAndImports(okapiClient);
-                  CompositeFuture.all(relationsFuture, fladAndIdNewRecordsAndImportsFuture).onComplete( done -> {
+                  Future<Void> relationsFuture = getUpdatingRecordSet().prepareIncomingRelationshipRecords(okapiClient, getUpdatingInstance().getUUID());
+                  Future<Void> prepareNewRecordsAndImportsFuture = prepareNewRecordsAndImports(okapiClient);
+                  CompositeFuture.all(relationsFuture, prepareNewRecordsAndImportsFuture).onComplete( done -> {
                      if (done.succeeded()) {
-                         flagIncomingRelationships();
+                         prepareIncomingRelationships();
                          promisedPlan.complete();
+                     } else {
+                         promisedPlan.fail("There was a problem fetching existing relations, holdings and/or items from storage: " + done.cause().getMessage());
                      }
                   });
                 }
@@ -122,7 +124,7 @@ public class UpdatePlanAllHRIDs extends UpdatePlan {
      * Find items that have moved between holdings locally and mark them for update.
      * Find records that have disappeared and mark them for deletion.
      */
-    private void flagAndIdUpdatesDeletesAndLocalMoves() {
+    private void prepareUpdatesDeletesAndLocalMoves() {
 
         for (HoldingsRecord existingHoldingsRecord : getExistingInstance().getHoldingsRecords()) {
             HoldingsRecord incomingHoldingsRecord = getUpdatingInstance().getHoldingsRecordByHRID(existingHoldingsRecord.getHRID());
@@ -158,16 +160,18 @@ public class UpdatePlanAllHRIDs extends UpdatePlan {
         }
     }
 
-    public void flagIncomingRelationships () {
+    public void prepareIncomingRelationships() {
         logger.debug("Flagging incoming relationships for creation if any");
         for (InstanceRelationship incomingRelationship : getUpdatingRecordSet().instanceRelations.getRelations()) {
             incomingRelationship.setTransition(Transaction.CREATE);
             logger.debug("Flagged a relationship for create");
-            for (InstanceRelationship existingRelationship : getExistingRecordSet().instanceRelations.getRelations()) {
-                if (existingRelationship.equals(incomingRelationship)) {
-                    incomingRelationship.setTransition(Transaction.NONE);
-                    logger.debug("Flagged a relationship to transaction NONE");
-                    break;
+            if (foundExistingRecordSet()) {
+                for (InstanceRelationship existingRelationship : getExistingRecordSet().instanceRelations.getRelations()) {
+                    if (existingRelationship.equals(incomingRelationship)) {
+                        incomingRelationship.setTransition(Transaction.NONE);
+                        logger.debug("Flagged a relationship to transaction NONE");
+                        break;
+                    }
                 }
             }
         }
@@ -179,7 +183,7 @@ public class UpdatePlanAllHRIDs extends UpdatePlan {
      * @param okapiClient client for looking up existing records
      * @return a future with all holdingsRecord and item lookups.
      */
-    public Future<Void> flagAndIdNewRecordsAndImports(OkapiClient okapiClient) {
+    public Future<Void> prepareNewRecordsAndImports(OkapiClient okapiClient) {
         Promise<Void> promise = Promise.promise();
         @SuppressWarnings("rawtypes")
         List<Future> recordFutures = new ArrayList<Future>();

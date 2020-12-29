@@ -164,6 +164,9 @@ public class InventoryStorage {
                   inventoryRecordSet.put(InstanceRelations.INSTANCE_RELATIONS, instanceRelations);
                   if (existingRelations.result() != null) {
                     instanceRelations.put(InstanceRelations.EXISTING_RELATIONS, existingRelations.result());
+                    logger.debug("InventoryRecordSet JSON populated with " +
+                            inventoryRecordSet.getJsonObject(InstanceRelations.INSTANCE_RELATIONS)
+                                    .getJsonArray(InstanceRelations.EXISTING_RELATIONS).size() + " relations");
                   }
                 } else {
                   logger.error("Lookup of existing instance relationships failed. Continuing even so.");
@@ -234,7 +237,7 @@ public class InventoryStorage {
       if (res.succeeded()) {
         JsonObject relationshipsResult = new JsonObject(res.result());
         JsonArray instanceRelationships = relationshipsResult.getJsonArray("instanceRelationships");
-        logger.info("Successfully looked up existing items, found  " + instanceRelationships.size());
+        logger.info("Successfully looked up existing instance relationships, found  " + instanceRelationships.size());
         promise.complete(instanceRelationships);
       } else {
         failure(res.cause(), Entity.ITEM, Transaction.GET, okapiClient.getStatusCode(), promise, "While looking instance relationships");

@@ -146,10 +146,11 @@ public abstract class UpdatePlan {
         return foundExistingRecordSet() ? existingSet.getInstanceRelationsByTransactionType(Transaction.DELETE) : new ArrayList<>();
     }
 
+    /*
     public List<InstanceRelationship> relationshipsToCreate () {
         return gotUpdatingRecordSet() ? updatingSet.getInstanceRelationsByTransactionType(Transaction.CREATE) : new ArrayList<>();
     }
-
+    */
     public boolean isInstanceUpdating () {
         return gotUpdatingRecordSet() ? updatingSet.getInstance().getTransaction() == Transaction.UPDATE : false;
     }
@@ -209,7 +210,7 @@ public abstract class UpdatePlan {
             logger.info(record.asJson().encodePrettily());
           }
           logger.info("Instance relationships to create: ");
-          for (InstanceRelationship record : relationshipsToCreate()) {
+          for (InstanceRelationship record : getUpdatingRecordSet().instanceRelations.relationshipsToCreate()) {
               logger.info(record.asJson().encodePrettily());
           }
           logger.info("Instance relationships to delete: ");
@@ -291,7 +292,9 @@ public abstract class UpdatePlan {
         return promise.future();
     }
 
+    /*
     public Future<JsonObject> handleInstanceRelationCreatesIfAny (OkapiClient okapiClient) {
+
         Promise<JsonObject> promise = Promise.promise();
         List<Future> createFutures = new ArrayList<Future>();
         for (InstanceRelationship relation : relationshipsToCreate()) {
@@ -306,7 +309,7 @@ public abstract class UpdatePlan {
         });
         return promise.future();
     }
-
+    */
 
     /**
      * Perform deletions of any relations to other instances and

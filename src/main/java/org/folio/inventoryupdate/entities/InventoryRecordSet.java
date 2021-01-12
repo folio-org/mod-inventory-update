@@ -42,11 +42,12 @@ public class InventoryRecordSet extends JsonRepresentation {
             // If it's an incoming record set the related HRIDs will be stored for subsequent retrieval
             // of Instance IDs to create the relationship JSON
             if (hasRelationshipRecords(inventoryRecordSet)) {
-                logger.debug("InventoryRecordSet initialized with existing instance relationships");
                 instanceRelations.registerRelationshipJsonRecords(anInstance.getUUID(),inventoryRecordSet.getJsonObject(InstanceRelations.INSTANCE_RELATIONS));
+                logger.debug("InventoryRecordSet initialized with existing instance relationships: " + instanceRelations.toString());
             }
             if (hasRelationshipIdentifiers(inventoryRecordSet)) {
                 instanceRelations.setRelationshipsJson(inventoryRecordSet.getJsonObject(InstanceRelations.INSTANCE_RELATIONS));
+                logger.debug("InventoryRecordSet initialized with incoming instance relationships JSON (relations to be built.");
             }
         }
     }
@@ -188,7 +189,7 @@ public class InventoryRecordSet extends JsonRepresentation {
     }
 
     public void prepareInstanceRelationsForDeletion() {
-        instanceRelations.markRelationsForDeletion();
+        instanceRelations.markAllRelationsForDeletion();
     }
 
     public List<InstanceRelationship> getInstanceRelationsByTransactionType (Transaction transition) {

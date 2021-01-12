@@ -12,7 +12,9 @@ public class InstanceRelationship extends InventoryRecord {
     private String subInstanceId = null;
     private String superInstanceId = null;
 
-    public static InstanceRelationship makeRelationship(String instanceId, JsonObject instanceRelationJson) {
+    private Instance interimInstance = null;
+
+    public static InstanceRelationship makeRelationshipFromJson(String instanceId, JsonObject instanceRelationJson) {
         InstanceRelationship relation = new InstanceRelationship();
         relation.instanceId = instanceId;
         relation.jsonRecord = instanceRelationJson;
@@ -20,7 +22,7 @@ public class InstanceRelationship extends InventoryRecord {
         return relation;
     }
 
-    public static InstanceRelationship makeRelationship (String instanceId, String subInstanceId, String superInstanceId, String instanceRelationshipTypeId) {
+    public static InstanceRelationship makeRelationshipWithInstanceIdentifier(String instanceId, String subInstanceId, String superInstanceId, String instanceRelationshipTypeId) {
         InstanceRelationship relation = new InstanceRelationship();
         relation.instanceId = instanceId;
         relation.superInstanceId = superInstanceId;
@@ -39,6 +41,18 @@ public class InstanceRelationship extends InventoryRecord {
 
     public boolean isRelationToChild () {
         return instanceId.equals(getSuperInstanceId());
+    }
+
+    public void setInterimInstance (Instance interim) {
+        this.interimInstance = interim;
+    }
+
+    public boolean requiresInterimInstanceToBeCreated () {
+        return interimInstance != null;
+    }
+
+    public Instance getInterimInstance () {
+        return interimInstance;
     }
 
     public String getSubInstanceId () {
@@ -67,6 +81,19 @@ public class InstanceRelationship extends InventoryRecord {
         } else {
             return false;
         }
+    }
+
+    @Override
+    public int hashCode() {
+        return toString().hashCode();
+    }
+
+    public String toString () {
+        StringBuilder str = new StringBuilder();
+        str.append("// Sub: ").append(jsonRecord.getString(SUB_INSTANCE_ID))
+           .append(" Super: ").append(jsonRecord.getString(SUPER_INSTANCE_ID))
+           .append(" TypeId: ").append(jsonRecord.getString(INSTANCE_RELATIONSHIP_TYPE_ID));
+        return str.toString();
     }
 
 }

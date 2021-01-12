@@ -1,26 +1,26 @@
 {
     "instance": {
-      "title": "Instance 1",
+      "title": "Instance 4",
       "source": "Local",
       "instanceTypeId": "6312d172-f0cf-40f6-b27d-9fa8feaf332f",
-      "hrid": "ins001",
+      "hrid": "ins004",
       "identifiers": [
         {
           "identifierTypeId": "8261054f-be78-422d-bd51-4ed9f33c3422",
-          "value": "9781466636897-1"
+          "value": "9781466636897-4"
         }
       ]
     },
     "holdingsRecords": [
       {
-        "callNumber": "Holdings 1-1",
+        "callNumber": "Holdings 4-1",
         "permanentLocationId": "53cf956f-c1df-410b-8bea-27f712cca7c0",
-        "hrid": "hol001-1",
+        "hrid": "hol004-1",
         "items": [
           {
-            "itemIdentifier": "it001-1-1",
-            "hrid": "it001-1-1",
-            "barcode": "Item 1-1-1",
+            "itemIdentifier": "it004-1-1",
+            "hrid": "it004-1-1",
+            "barcode": "Item 4-1-1",
             "materialTypeId": "1a54b431-2e4f-452d-9cae-9cee66c9a892",
             "permanentLoanTypeId": "2b94c631-fca9-4892-a730-03ee529ffe27",
             "status": {

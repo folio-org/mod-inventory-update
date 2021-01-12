@@ -3,6 +3,7 @@ package org.folio.inventoryupdate;
 import java.util.ArrayList;
 import java.util.List;
 
+import io.vertx.core.json.JsonObject;
 import org.folio.inventoryupdate.entities.*;
 import org.folio.inventoryupdate.entities.InventoryRecord.Transaction;
 import org.folio.okapi.common.OkapiClient;
@@ -89,6 +90,7 @@ public class UpdatePlanAllHRIDs extends UpdatePlan {
             logger.debug("Successfully created records referenced by other records if any");
 
             handleInstanceAndHoldingsUpdatesIfAny(okapiClient).onComplete( instanceAndHoldingsUpdates -> {
+
                 handleInstanceRelationCreatesIfAny(okapiClient).onComplete( relationsCreated -> {
                     if (relationsCreated.succeeded()) {
                         logger.debug("Successfully processed relationship create requests if any");
@@ -113,6 +115,16 @@ public class UpdatePlanAllHRIDs extends UpdatePlan {
             });
         });
         return promise.future();
+    }
+
+    public Future<JsonObject> handleInstanceRelationCreatesIfAny (OkapiClient okapiClient) {
+        if (!isDeletion) {
+            return getUpdatingRecordSet().instanceRelations.handleInstanceRelationCreatesIfAny(okapiClient);
+        } else {
+            Promise<JsonObject> promise = Promise.promise();
+            promise.complete(null);
+            return promise.future();
+        }
     }
 
     /* PLANNING METHODS */
@@ -161,20 +173,36 @@ public class UpdatePlanAllHRIDs extends UpdatePlan {
     }
 
     public void prepareIncomingRelationships() {
-        logger.debug("Flagging incoming relationships for creation if any");
-        for (InstanceRelationship incomingRelationship : getUpdatingRecordSet().instanceRelations.getRelations()) {
-            incomingRelationship.setTransition(Transaction.CREATE);
-            logger.debug("Flagged a relationship for create");
-            if (foundExistingRecordSet()) {
-                for (InstanceRelationship existingRelationship : getExistingRecordSet().instanceRelations.getRelations()) {
-                    if (existingRelationship.equals(incomingRelationship)) {
-                        incomingRelationship.setTransition(Transaction.NONE);
-                        logger.debug("Flagged a relationship to transaction NONE");
-                        break;
+        if (getUpdatingRecordSet() != null) {
+            logger.debug("Flagging incoming relationships for creation if any");
+            for (InstanceRelationship incomingRelationship : getUpdatingRecordSet().instanceRelations.getRelations()) {
+                incomingRelationship.setTransition(Transaction.CREATE);
+                logger.debug("Flagged a relationship for create");
+                if (foundExistingRecordSet()) {
+                    for (InstanceRelationship existingRelationship : getExistingRecordSet().instanceRelations.getRelations()) {
+                        if (existingRelationship.equals(incomingRelationship)) {
+                            incomingRelationship.setTransition(Transaction.NONE);
+                            logger.debug("Flagged a relationship to transaction NONE");
+                            break;
+                        }
                     }
                 }
             }
         }
+        if (getExistingRecordSet() != null) {
+            logger.info("Checking for existing instance relations to delete: " + getExistingRecordSet().instanceRelations.getRelations());
+            for (InstanceRelationship existingRelation : getExistingRecordSet().instanceRelations.getRelations()) {
+                if (!getUpdatingRecordSet().instanceRelations.hasRelation(existingRelation)) {
+                    logger.info("Not found in updating record, mark for deletion. ");
+                    existingRelation.setTransition(Transaction.DELETE);
+                } else {
+                    logger.info("Found in updating record, keep it");
+                    existingRelation.setTransition(Transaction.NONE);
+                }
+            }
+        }
+
+
     }
 
     /**

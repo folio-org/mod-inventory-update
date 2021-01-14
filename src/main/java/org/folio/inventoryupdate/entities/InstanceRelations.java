@@ -20,12 +20,20 @@ import static org.folio.inventoryupdate.entities.InventoryRecordSet.HRID;
 
 public class InstanceRelations extends JsonRepresentation {
 
+    // JSON property keys
     public static final String INSTANCE_RELATIONS = "instanceRelations";
     public static final String EXISTING_RELATIONS = "existingRelations";
     public static final String PARENT_INSTANCES = "parentInstances";
     public static final String CHILD_INSTANCES = "childInstances";
     public static final String INSTANCE_IDENTIFIER = "instanceIdentifier";
+    public static final String ID = "id";
+    public static final String INSTANCE_TYPE_ID = "instanceTypeId";
+    public static final String TITLE = "title";
+    public static final String SOURCE = "source";
+    public static final String PROVISIONAL_INSTANCE = "provisionalInstance";
+    // EOF JSON property keys
 
+    private static String LF = System.lineSeparator();
     private List<InstanceRelationship> parentRelations = new ArrayList<>();
     private List<InstanceRelationship> childRelations = new ArrayList<>();
     private JsonObject relationshipJson = new JsonObject();
@@ -78,20 +86,20 @@ public class InstanceRelations extends JsonRepresentation {
                     if (parents.result() != null) {
                         this.parentRelations = parents.result();
                     }
-                } else {
-                    promise.fail("There was a problem looking up Instance IDs to build parent relationships: " + parents.cause().getMessage());
-                }
-                makeChildRelationsWithInstanceIdentifiers(client, instanceId, relationshipJson.getJsonArray(CHILD_INSTANCES)).onComplete (children -> {
-                   if (children.succeeded()) {
-                       if (children.result() != null) {
-                           this.childRelations = children.result();
-                       }
-                       promise.complete();
-                   } else {
-                       promise.fail("There was a problem looking up Instance IDs to build child relationships: " + children.cause().getMessage());
-                   }
+                    makeChildRelationsWithInstanceIdentifiers(client, instanceId, relationshipJson.getJsonArray(CHILD_INSTANCES)).onComplete (children -> {
+                        if (children.succeeded()) {
+                            if (children.result() != null) {
+                                this.childRelations = children.result();
+                            }
+                            promise.complete();
+                        } else {
+                            promise.fail("There was a problem looking up or creating Instance IDs to build child relationships:" + LF + "  " + children.cause().getMessage());
+                        }
 
-                });
+                    });
+                } else {
+                    promise.fail("There was a problem looking up or creating Instance IDs to build parent relationships:" + LF + "  " + parents.cause().getMessage());
+                }
             });
         } else {
             promise.complete();
@@ -102,10 +110,11 @@ public class InstanceRelations extends JsonRepresentation {
     private static Future<List<InstanceRelationship>> makeParentRelationsWithInstanceIdentifiers(OkapiClient client, String instanceId, JsonArray parentIdentifiers) {
         Promise<List<InstanceRelationship>> promise = Promise.promise();
         if (parentIdentifiers != null) {
+            @SuppressWarnings("rawtypes")
             List<Future> relationsFutures = new ArrayList<>();
             for (Object o : parentIdentifiers) {
                 JsonObject relationshipJson = (JsonObject) o;
-                if (relationshipJson.containsKey(INSTANCE_IDENTIFIER) && relationshipJson.getJsonObject(INSTANCE_IDENTIFIER).containsKey("hrid")) {
+                if (relationshipJson.containsKey(INSTANCE_IDENTIFIER) && relationshipJson.getJsonObject(INSTANCE_IDENTIFIER).containsKey(HRID)) {
                     relationsFutures.add(makeParentRelationWithInstanceIdentifier(client, instanceId, relationshipJson, HRID ));
                 }
             }
@@ -120,7 +129,7 @@ public class InstanceRelations extends JsonRepresentation {
                        promise.complete(relations);
                    }
                } else {
-                   promise.fail("Failed to look up parent Instances in storage: " + parentInstances.cause().getMessage());
+                   promise.fail("Failed to construct parent relationships with provided parent Instance identifiers:" + LF + "  " + parentInstances.cause().getMessage());
                }
             });
         } else {
@@ -132,10 +141,11 @@ public class InstanceRelations extends JsonRepresentation {
     private static Future<List<InstanceRelationship>> makeChildRelationsWithInstanceIdentifiers(OkapiClient client, String instanceId, JsonArray identifiers) {
         Promise<List<InstanceRelationship>> promise = Promise.promise();
         if (identifiers != null) {
+            @SuppressWarnings("rawtypes")
             List<Future> relationsFutures = new ArrayList<>();
             for (Object o : identifiers) {
                 JsonObject relationshipJson = (JsonObject) o;
-                if (relationshipJson.containsKey(INSTANCE_IDENTIFIER) && relationshipJson.getJsonObject(INSTANCE_IDENTIFIER).containsKey("hrid")) {
+                if (relationshipJson.containsKey(INSTANCE_IDENTIFIER) && relationshipJson.getJsonObject(INSTANCE_IDENTIFIER).containsKey(HRID)) {
                     relationsFutures.add(makeChildRelationWithInstanceIdentifier(client, instanceId, relationshipJson, HRID ));
                 }
             }
@@ -149,6 +159,8 @@ public class InstanceRelations extends JsonRepresentation {
                         }
                         promise.complete(relations);
                     }
+                } else  {
+                    promise.fail("Failed to construct child relationships with provided child Instance identifiers:" + LF + "  " + instances.cause().getMessage());
                 }
             });
         } else {
@@ -157,9 +169,9 @@ public class InstanceRelations extends JsonRepresentation {
         return promise.future();
     }
 
-    private static Future<InstanceRelationship> makeParentRelationWithInstanceIdentifier(OkapiClient client, String instanceId, JsonObject parentIdentifier, String identifierKey) {
+    private static Future<InstanceRelationship> makeParentRelationWithInstanceIdentifier(OkapiClient client, String instanceId, JsonObject parentJson, String identifierKey) {
         Promise<InstanceRelationship> promise = Promise.promise();
-        JsonObject instanceIdentifier = parentIdentifier.getJsonObject(INSTANCE_IDENTIFIER);
+        JsonObject instanceIdentifier = parentJson.getJsonObject(INSTANCE_IDENTIFIER);
         String hrid = instanceIdentifier.getString(identifierKey);
         InventoryQuery hridQuery = new HridQuery(hrid);
         InventoryStorage.lookupInstance(client, hridQuery).onComplete( instance -> {
@@ -169,24 +181,29 @@ public class InstanceRelations extends JsonRepresentation {
                     InstanceRelationship relationship = InstanceRelationship.makeRelationshipWithInstanceIdentifier(
                             instanceId,
                             instanceId,
-                            instanceJson.getString("id"),
-                            parentIdentifier.getString(InstanceRelationship.INSTANCE_RELATIONSHIP_TYPE_ID));
+                            instanceJson.getString(ID),
+                            parentJson.getString(InstanceRelationship.INSTANCE_RELATIONSHIP_TYPE_ID));
                     promise.complete(relationship);
                 } else {
-                    String title = parentIdentifier.getString("title");
-                    String source = parentIdentifier.getString("source");
-                    String resourceTypeId = parentIdentifier.getString("resourceTypeId");
-                    if (title == null || source == null || resourceTypeId == null) {
-                        promise.fail("Cannot create relationship to non-existing Instance [" + hrid + "] unless title, source and resource type is provided for creating an interim Instance");
+                    JsonObject provisionalInstanceJson = parentJson.getJsonObject(PROVISIONAL_INSTANCE);
+                    if (provisionalInstanceJson == null) {
+                        promise.fail(" Referenced parent Instance not found and no provisional Instance info provided; cannot create relationship to non-existing Instance [" + hrid + "], got:" + LF + parentJson.encodePrettily());
                     } else {
-                        Instance interimInstance = prepareInterimInstance(hrid, title, source, resourceTypeId);
-                        InstanceRelationship relationship = InstanceRelationship.makeRelationshipWithInstanceIdentifier(
-                                instanceId,
-                                instanceId,
-                                interimInstance.getUUID(),
-                                parentIdentifier.getString(InstanceRelationship.INSTANCE_RELATIONSHIP_TYPE_ID));
-                        relationship.setInterimInstance(interimInstance);
-                        promise.complete(relationship);
+                        String title = provisionalInstanceJson.getString(TITLE);
+                        String source = provisionalInstanceJson.getString(SOURCE);
+                        String instanceTypeId = provisionalInstanceJson.getString(INSTANCE_TYPE_ID);
+                        if (title == null || source == null || instanceTypeId == null) {
+                            promise.fail(" Cannot create relationship to non-existing Instance [" + hrid + "] unless both title, source and resource type is provided for creating a provisional Instance, got:" + LF + parentJson.encodePrettily());
+                        } else {
+                            Instance provisionalInstance = prepareProvisionalInstance(hrid, provisionalInstanceJson);
+                            InstanceRelationship relationship = InstanceRelationship.makeRelationshipWithInstanceIdentifier(
+                                    instanceId,
+                                    instanceId,
+                                    provisionalInstance.getUUID(),
+                                    parentJson.getString(InstanceRelationship.INSTANCE_RELATIONSHIP_TYPE_ID));
+                            relationship.setProvisionalInstance(provisionalInstance);
+                            promise.complete(relationship);
+                        }
                     }
                 }
             }
@@ -194,19 +211,9 @@ public class InstanceRelations extends JsonRepresentation {
         return promise.future();
     }
 
-    private static Instance prepareInterimInstance (String hrid, String title, String source, String instanceTypeId) {
-        JsonObject json = new JsonObject();
-        json.put("hrid", hrid);
-        json.put("id", UUID.randomUUID().toString());
-        json.put("title", title);
-        json.put("source", source);
-        json.put("instanceTypeId", instanceTypeId);  // Type: 'unspecified'
-        return new Instance(json);
-    }
-
-    private static Future<InstanceRelationship> makeChildRelationWithInstanceIdentifier(OkapiClient client, String instanceId, JsonObject parentIdentifier, String identifierKey) {
+    private static Future<InstanceRelationship> makeChildRelationWithInstanceIdentifier(OkapiClient client, String instanceId, JsonObject childJson, String identifierKey) {
         Promise<InstanceRelationship> promise = Promise.promise();
-        String hrid = parentIdentifier.getJsonObject(INSTANCE_IDENTIFIER).getString(identifierKey);
+        String hrid = childJson.getJsonObject(INSTANCE_IDENTIFIER).getString(identifierKey);
         InventoryQuery hridQuery = new HridQuery(hrid);
         InventoryStorage.lookupInstance(client, hridQuery).onComplete( instance -> {
             if (instance.succeeded()) {
@@ -214,24 +221,30 @@ public class InstanceRelations extends JsonRepresentation {
                     JsonObject instanceJson = instance.result();
                     InstanceRelationship relationship = InstanceRelationship.makeRelationshipWithInstanceIdentifier(
                             instanceId,
-                            instanceJson.getString("id"),
+                            instanceJson.getString(ID),
                             instanceId,
-                            parentIdentifier.getString(InstanceRelationship.INSTANCE_RELATIONSHIP_TYPE_ID));
+                            childJson.getString(InstanceRelationship.INSTANCE_RELATIONSHIP_TYPE_ID));
                     promise.complete(relationship);
                 } else {
-                    String title = parentIdentifier.getString("title");
-                    String source = parentIdentifier.getString("source");
-                    String instanceTypeId = parentIdentifier.getString("resourceTypeId");
-                    if (title == null || source == null || instanceTypeId == null) {
-                        promise.fail("Cannot create relationship to non-existing Instance [" + hrid + "] unless title, source and resource type is provided for creating an interim Instance");
+                    JsonObject provisionalInstanceJson = childJson.getJsonObject(PROVISIONAL_INSTANCE);
+                    if (provisionalInstanceJson == null) {
+                        promise.fail(" Referenced parent Instance not found and no provisional Instance info provided; cannot create relationship to non-existing Instance [" + hrid + "], got:" + LF + childJson.encodePrettily());
                     } else {
-                        Instance interimInstance = prepareInterimInstance(hrid, title, source, instanceTypeId);
-                        InstanceRelationship relationship = InstanceRelationship.makeRelationshipWithInstanceIdentifier(
-                                instanceId,
-                                interimInstance.getUUID(),
-                                instanceId,
-                                parentIdentifier.getString(InstanceRelationship.INSTANCE_RELATIONSHIP_TYPE_ID));
-                        promise.complete(relationship);
+                        String title = provisionalInstanceJson.getString(TITLE);
+                        String source = provisionalInstanceJson.getString(SOURCE);
+                        String instanceTypeId = provisionalInstanceJson.getString(INSTANCE_TYPE_ID);
+                        if (title == null || source == null || instanceTypeId == null) {
+                            promise.fail(" Cannot create relationship to non-existing Instance [" + hrid + "] unless both title, source and resource type is provided for creating a provisional Instance, got:" + LF + childJson.encodePrettily());
+                        } else {
+                            Instance provisionalInstance = prepareProvisionalInstance(hrid, provisionalInstanceJson);
+                            InstanceRelationship relationship = InstanceRelationship.makeRelationshipWithInstanceIdentifier(
+                                    instanceId,
+                                    instanceId,
+                                    provisionalInstance.getUUID(),
+                                    childJson.getString(InstanceRelationship.INSTANCE_RELATIONSHIP_TYPE_ID));
+                            relationship.setProvisionalInstance(provisionalInstance);
+                            promise.complete(relationship);
+                        }
                     }
                 }
             }
@@ -239,6 +252,22 @@ public class InstanceRelations extends JsonRepresentation {
         return promise.future();
     }
 
+    /**
+     * Create a temporary Instance to create a relationship to.
+     * @param hrid
+     * @param provisionalInstanceJson
+     * @return
+     */
+    private static Instance prepareProvisionalInstance (String hrid, JsonObject provisionalInstanceJson) {
+        JsonObject json = new JsonObject(provisionalInstanceJson.toString());
+        if (! json.containsKey(HRID)) {
+            json.put(HRID, hrid);
+        }
+        if (! json.containsKey(ID)) {
+            json.put(ID, UUID.randomUUID().toString());
+        }
+        return new Instance(json);
+    }
 
     public void registerRelationshipJsonRecords(String instanceId, JsonObject instanceRelations) {
         if (instanceRelations.containsKey(EXISTING_RELATIONS)) {
@@ -254,19 +283,20 @@ public class InstanceRelations extends JsonRepresentation {
         }
     }
 
-    // moved over from UpdatePlan
     public Future<JsonObject> handleInstanceRelationCreatesIfAny (OkapiClient okapiClient) {
 
         Promise<JsonObject> promise = Promise.promise();
 
-        List<Future> interimInstancesFutures = new ArrayList<>();
+        @SuppressWarnings("rawtypes")
+        List<Future> provisionalInstancesFutures = new ArrayList<>();
         for (InstanceRelationship relation : relationshipsToCreate()) {
-            if (relation.requiresInterimInstanceToBeCreated()) {
-                interimInstancesFutures.add(InventoryStorage.postInventoryRecord(okapiClient, relation.getInterimInstance()));
+            if (relation.requiresProvisionalInstanceToBeCreated()) {
+                provisionalInstancesFutures.add(InventoryStorage.postInventoryRecord(okapiClient, relation.getProvisionalInstance()));
             }
         }
-        CompositeFuture.join(interimInstancesFutures).onComplete( allInterimsCreated -> {
-            if (allInterimsCreated.succeeded()) {
+        CompositeFuture.join(provisionalInstancesFutures).onComplete( allProvisionalInstancesCreated -> {
+            if (allProvisionalInstancesCreated.succeeded()) {
+                @SuppressWarnings("rawtypes")
                 List<Future> createFutures = new ArrayList<>();
                 for (InstanceRelationship relation : relationshipsToCreate()) {
                     createFutures.add(InventoryStorage.postInventoryRecord(okapiClient, relation));
@@ -275,11 +305,11 @@ public class InstanceRelations extends JsonRepresentation {
                     if (allRelationsCreated.succeeded()) {
                         promise.complete(new JsonObject());
                     } else {
-                        promise.fail("There was an error creating instance relations: " + allRelationsCreated.cause().getMessage());
+                        promise.fail("There was an error creating instance relations:" + LF + "  " + allRelationsCreated.cause().getMessage());
                     }
                 });
             } else {
-                promise.fail("There was an error creating interim Instances: " + allInterimsCreated.cause().getMessage());
+                promise.fail("There was an error creating provisional Instances:" + LF + "  " + allProvisionalInstancesCreated.cause().getMessage());
             }
         });
         return promise.future();
@@ -299,12 +329,12 @@ public class InstanceRelations extends JsonRepresentation {
         for (InstanceRelationship relation : makeParentRelationsWithInstanceIdentifiers()) {
             parents.add(relation.asJson());
         }
-        json.put("parentInstances", parents);
+        json.put(PARENT_INSTANCES, parents);
         JsonArray children = new JsonArray();
         for (InstanceRelationship relation : makeChildRelationsWithInstanceIdentifiers()) {
             children.add(relation.asJson());
         }
-        json.put("childInstances", children);
+        json.put(CHILD_INSTANCES, children);
         return json;
     }
 

@@ -22,7 +22,7 @@ public class InventoryRecordSet extends JsonRepresentation {
     private List<HoldingsRecord> allHoldingsRecords = new ArrayList<HoldingsRecord>();
     private List<Item> allItems = new ArrayList<Item>();
     public InstanceRelations instanceRelations = new InstanceRelations();
-    public Instance interimRelatedInstance = null;
+    public Instance provisionalRelatedInstance = null;
 
     public static final String INSTANCE = "instance";
     public static final String HOLDINGS_RECORDS = "holdingsRecords";

@@ -35,6 +35,8 @@ public class InventoryUpdateService {
 
   private static final String INSTANCE_STORAGE_PATH = "/instance-storage/instances";
 
+  private static final String LF = System.lineSeparator();
+
   public void handleUnrecognizedPath(RoutingContext routingContext) {
     responseError(routingContext, 404, "No Service found for requested path " + routingContext.request().path());
   }
@@ -110,14 +112,14 @@ public class InventoryUpdateService {
             } else {
               responseJson(routingCtx, 200).end(pushedRecordSetWithStats.encodePrettily());
             }
-            okapiClient.close();
           } else {
             pushedRecordSetWithStats.put("errors", updatePlan.getErrors());
             responseJson(routingCtx, 422).end(pushedRecordSetWithStats.encodePrettily());
           }
         });
+        okapiClient.close();
       }  else {
-        responseJson(routingCtx, 500).end("Internal Server Error running inventory update plan: " + planDone.cause().getMessage());
+        responseJson(routingCtx, 422).end("Error creating an inventory update plan:" + LF + "  " + planDone.cause().getMessage());
       }
     });
   }

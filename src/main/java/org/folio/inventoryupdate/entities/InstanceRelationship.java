@@ -12,7 +12,7 @@ public class InstanceRelationship extends InventoryRecord {
     private String subInstanceId = null;
     private String superInstanceId = null;
 
-    private Instance interimInstance = null;
+    private Instance provisionalInstance = null;
 
     public static InstanceRelationship makeRelationshipFromJson(String instanceId, JsonObject instanceRelationJson) {
         InstanceRelationship relation = new InstanceRelationship();
@@ -43,16 +43,16 @@ public class InstanceRelationship extends InventoryRecord {
         return instanceId.equals(getSuperInstanceId());
     }
 
-    public void setInterimInstance (Instance interim) {
-        this.interimInstance = interim;
+    public void setProvisionalInstance (Instance provisionalInstance) {
+        this.provisionalInstance = provisionalInstance;
     }
 
-    public boolean requiresInterimInstanceToBeCreated () {
-        return interimInstance != null;
+    public boolean requiresProvisionalInstanceToBeCreated () {
+        return provisionalInstance != null;
     }
 
-    public Instance getInterimInstance () {
-        return interimInstance;
+    public Instance getProvisionalInstance () {
+        return provisionalInstance;
     }
 
     public String getSubInstanceId () {

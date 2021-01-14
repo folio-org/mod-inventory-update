@@ -15,6 +15,7 @@ import io.vertx.core.Promise;
 public class UpdatePlanAllHRIDs extends UpdatePlan {
 
 
+    private static final String LF = System.lineSeparator();
     /**
      * Constructs plan for creating or updating an Inventory record set
      * @param incomingInventoryRecordSet The record set to create or update with
@@ -68,12 +69,12 @@ public class UpdatePlanAllHRIDs extends UpdatePlan {
                   }
                   Future<Void> relationsFuture = getUpdatingRecordSet().prepareIncomingRelationshipRecords(okapiClient, getUpdatingInstance().getUUID());
                   Future<Void> prepareNewRecordsAndImportsFuture = prepareNewRecordsAndImports(okapiClient);
-                  CompositeFuture.all(relationsFuture, prepareNewRecordsAndImportsFuture).onComplete( done -> {
+                  CompositeFuture.join(relationsFuture, prepareNewRecordsAndImportsFuture).onComplete( done -> {
                      if (done.succeeded()) {
                          prepareIncomingRelationships();
                          promisedPlan.complete();
                      } else {
-                         promisedPlan.fail("There was a problem fetching existing relations, holdings and/or items from storage: " + done.cause().getMessage());
+                         promisedPlan.fail("There was a problem fetching existing relations, holdings and/or items from storage:" + LF + "  " + done.cause().getMessage());
                      }
                   });
                 }
@@ -102,13 +103,17 @@ public class UpdatePlanAllHRIDs extends UpdatePlan {
                             logger.debug("Successfully processed record create requests if any");
                             handleDeletionsIfAny(okapiClient).onComplete(deletes -> {
                                 if (deletes.succeeded()) {
-                                    promise.complete();
+                                    if (relationsCreated.succeeded()) {
+                                        promise.complete();
+                                    } else {
+                                        promise.fail("There was a problem creating Instance relationships: " + LF + relationsCreated.cause().getMessage());
+                                    }
                                 } else {
-                                    promise.fail("There was a problem processing Inventory deletes: " + deletes.cause().getMessage());
+                                    promise.fail("There was a problem processing Inventory deletes:" + LF + "  " + deletes.cause().getMessage());
                                 }
                             });
                         } else {
-                            promise.fail("There was a problem creating records, no deletes performed if any requested: " + prerequisites.cause().getMessage());
+                            promise.fail("There was a problem creating records, no deletes performed if any requested:" + LF + "  " + prerequisites.cause().getMessage());
                         }
                     });
                 });
@@ -227,7 +232,7 @@ public class UpdatePlanAllHRIDs extends UpdatePlan {
             if (handler.succeeded()) {
                 promise.complete();
             } else {
-                promise.fail("Failed to retrieve UUIDs: " + handler.cause().getMessage());
+                promise.fail("Failed to retrieve UUIDs:" + LF + "  " + handler.cause().getMessage());
             }
         });
         return promise.future();
@@ -257,7 +262,7 @@ public class UpdatePlanAllHRIDs extends UpdatePlan {
                 }
                 promise.complete();
             } else {
-                promise.fail("Failed to look up holdings record by HRID: " + result.cause().getMessage());
+                promise.fail("Failed to look up holdings record by HRID:" + LF + "  " + result.cause().getMessage());
             }
         });
         return promise.future();
@@ -287,7 +292,7 @@ public class UpdatePlanAllHRIDs extends UpdatePlan {
                 }
                 promise.complete();
             } else {
-                promise.fail("Failed to look up item by HRID: " + result.cause().getMessage());
+                promise.fail("Failed to look up item by HRID:" + LF + "  " + result.cause().getMessage());
             }
         });
         return promise.future();

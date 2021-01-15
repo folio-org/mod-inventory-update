@@ -5,7 +5,7 @@ import java.util.List;
 
 import io.vertx.core.impl.logging.Logger;
 import io.vertx.core.impl.logging.LoggerFactory;
-import org.folio.inventoryupdate.entities.InstanceRelations;
+import org.folio.inventoryupdate.entities.InstanceToInstanceRelations;
 import org.folio.inventoryupdate.entities.InventoryRecord;
 import org.folio.inventoryupdate.entities.InventoryRecord.Entity;
 import org.folio.inventoryupdate.entities.InventoryRecord.Transaction;
@@ -27,6 +27,7 @@ public class InventoryStorage {
   private static final Logger logger = LoggerFactory.getLogger("inventory-update");
   private static final String INSTANCE_STORAGE_PATH = "/instance-storage/instances";
   private static final String INSTANCE_RELATIONSHIP_STORAGE_PATH = "/instance-storage/instance-relationships";
+  private static final String PRECEDING_SUCCEEDING_TITLE_STORAGE_PATH = "/preceding-succeeding-titles";
   private static final String HOLDINGS_STORAGE_PATH = "/holdings-storage/holdings";
   private static final String ITEM_STORAGE_PATH = "/item-storage/items";
   private static final String LOCATION_STORAGE_PATH = "/locations";
@@ -161,12 +162,12 @@ public class InventoryStorage {
               lookupExistingInstanceRelationshipsByInstanceUUID(okapiClient, instanceUUID).onComplete( existingRelations -> {
                 if (existingRelations.succeeded()) {
                   JsonObject instanceRelations = new JsonObject();
-                  inventoryRecordSet.put(InstanceRelations.INSTANCE_RELATIONS, instanceRelations);
+                  inventoryRecordSet.put(InstanceToInstanceRelations.INSTANCE_RELATIONS, instanceRelations);
                   if (existingRelations.result() != null) {
-                    instanceRelations.put(InstanceRelations.EXISTING_RELATIONS, existingRelations.result());
+                    instanceRelations.put(InstanceToInstanceRelations.EXISTING_RELATIONS, existingRelations.result());
                     logger.debug("InventoryRecordSet JSON populated with " +
-                            inventoryRecordSet.getJsonObject(InstanceRelations.INSTANCE_RELATIONS)
-                                    .getJsonArray(InstanceRelations.EXISTING_RELATIONS).size() + " relations");
+                            inventoryRecordSet.getJsonObject(InstanceToInstanceRelations.INSTANCE_RELATIONS)
+                                    .getJsonArray(InstanceToInstanceRelations.EXISTING_RELATIONS).size() + " relations");
                   }
                 } else {
                   logger.error("Lookup of existing instance relationships failed. Continuing even so.");
@@ -276,6 +277,9 @@ public class InventoryStorage {
         break;
       case INSTANCE_RELATIONSHIP:
         api = INSTANCE_RELATIONSHIP_STORAGE_PATH;
+        break;
+      case INSTANCE_TITLE_SUCCESSION:
+        api = PRECEDING_SUCCEEDING_TITLE_STORAGE_PATH;
         break;
       default:
         break;

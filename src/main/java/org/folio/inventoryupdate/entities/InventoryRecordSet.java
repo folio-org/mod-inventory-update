@@ -21,7 +21,7 @@ public class InventoryRecordSet extends JsonRepresentation {
     private Map<String,Item> itemsByHRID = new HashMap<String,Item>();
     private List<HoldingsRecord> allHoldingsRecords = new ArrayList<HoldingsRecord>();
     private List<Item> allItems = new ArrayList<Item>();
-    public InstanceRelations instanceRelations = new InstanceRelations();
+    public InstanceToInstanceRelations instanceToInstanceRelations = new InstanceToInstanceRelations();
     public Instance provisionalRelatedInstance = null;
 
     public static final String INSTANCE = "instance";
@@ -42,11 +42,11 @@ public class InventoryRecordSet extends JsonRepresentation {
             // If it's an incoming record set the related HRIDs will be stored for subsequent retrieval
             // of Instance IDs to create the relationship JSON
             if (hasRelationshipRecords(inventoryRecordSet)) {
-                instanceRelations.registerRelationshipJsonRecords(anInstance.getUUID(),inventoryRecordSet.getJsonObject(InstanceRelations.INSTANCE_RELATIONS));
-                logger.debug("InventoryRecordSet initialized with existing instance relationships: " + instanceRelations.toString());
+                instanceToInstanceRelations.registerRelationshipJsonRecords(anInstance.getUUID(),inventoryRecordSet.getJsonObject(InstanceToInstanceRelations.INSTANCE_RELATIONS));
+                logger.debug("InventoryRecordSet initialized with existing instance relationships: " + instanceToInstanceRelations.toString());
             }
             if (hasRelationshipIdentifiers(inventoryRecordSet)) {
-                instanceRelations.setRelationshipsJson(inventoryRecordSet.getJsonObject(InstanceRelations.INSTANCE_RELATIONS));
+                instanceToInstanceRelations.setInstanceRelationsJson(inventoryRecordSet.getJsonObject(InstanceToInstanceRelations.INSTANCE_RELATIONS));
                 logger.debug("InventoryRecordSet initialized with incoming instance relationships JSON (relations to be built.");
             }
         }
@@ -59,15 +59,15 @@ public class InventoryRecordSet extends JsonRepresentation {
 
     private boolean hasRelationshipRecords (JsonObject json) {
         return (json != null
-                && json.containsKey(InstanceRelations.INSTANCE_RELATIONS)
-                && json.getJsonObject(InstanceRelations.INSTANCE_RELATIONS).containsKey(InstanceRelations.EXISTING_RELATIONS));
+                && json.containsKey(InstanceToInstanceRelations.INSTANCE_RELATIONS)
+                && json.getJsonObject(InstanceToInstanceRelations.INSTANCE_RELATIONS).containsKey(InstanceToInstanceRelations.EXISTING_RELATIONS));
     }
 
     private boolean hasRelationshipIdentifiers (JsonObject json) {
         if (json != null) {
-            JsonObject relationsJson = json.getJsonObject(InstanceRelations.INSTANCE_RELATIONS);
+            JsonObject relationsJson = json.getJsonObject(InstanceToInstanceRelations.INSTANCE_RELATIONS);
             if (relationsJson != null) {
-                return (relationsJson.containsKey(InstanceRelations.PARENT_INSTANCES) || relationsJson.containsKey(InstanceRelations.CHILD_INSTANCES));
+                return (relationsJson.containsKey(InstanceToInstanceRelations.PARENT_INSTANCES) || relationsJson.containsKey(InstanceToInstanceRelations.CHILD_INSTANCES));
             } else {
                 return false;
             }
@@ -130,7 +130,7 @@ public class InventoryRecordSet extends JsonRepresentation {
             holdingsAndItemsArray.add(holdingsRecordJson);
         }
         recordSetJson.put(HOLDINGS_RECORDS, holdingsAndItemsArray);
-        recordSetJson.put("instanceRelations",instanceRelations.asJson());
+        // recordSetJson.put("instanceRelations", instanceToInstanceRelations.asJson());
         return recordSetJson;
     }
 
@@ -189,15 +189,15 @@ public class InventoryRecordSet extends JsonRepresentation {
     }
 
     public void prepareInstanceRelationsForDeletion() {
-        instanceRelations.markAllRelationsForDeletion();
+        instanceToInstanceRelations.markAllRelationsForDeletion();
     }
 
-    public List<InstanceRelationship> getInstanceRelationsByTransactionType (Transaction transition) {
-        return instanceRelations.getInstanceRelationsByTransactionType(transition);
+    public List<InstanceToInstanceRelation> getInstanceRelationsByTransactionType (Transaction transition) {
+        return instanceToInstanceRelations.getInstanceRelationsByTransactionType(transition);
     }
 
     public Future<Void> prepareIncomingRelationshipRecords(OkapiClient client, String instanceId) {
-        return instanceRelations.makeRelationshipRecordsFromIdentifiers(client, instanceId);
+        return instanceToInstanceRelations.makeRelationshipRecordsFromIdentifiers(client, instanceId);
     }
 
     public List<HoldingsRecord> getHoldingsRecordsByTransactionType (Transaction transition) {

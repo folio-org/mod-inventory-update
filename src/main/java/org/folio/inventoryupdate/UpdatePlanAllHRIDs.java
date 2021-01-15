@@ -124,7 +124,7 @@ public class UpdatePlanAllHRIDs extends UpdatePlan {
 
     public Future<JsonObject> handleInstanceRelationCreatesIfAny (OkapiClient okapiClient) {
         if (!isDeletion) {
-            return getUpdatingRecordSet().instanceRelations.handleInstanceRelationCreatesIfAny(okapiClient);
+            return getUpdatingRecordSet().instanceToInstanceRelations.handleInstanceRelationCreatesIfAny(okapiClient);
         } else {
             Promise<JsonObject> promise = Promise.promise();
             promise.complete(null);
@@ -180,11 +180,11 @@ public class UpdatePlanAllHRIDs extends UpdatePlan {
     public void prepareIncomingRelationships() {
         if (getUpdatingRecordSet() != null) {
             logger.debug("Flagging incoming relationships for creation if any");
-            for (InstanceRelationship incomingRelationship : getUpdatingRecordSet().instanceRelations.getRelations()) {
+            for (InstanceRelationship incomingRelationship : getUpdatingRecordSet().instanceToInstanceRelations.getRelationships()) {
                 incomingRelationship.setTransition(Transaction.CREATE);
                 logger.debug("Flagged a relationship for create");
                 if (foundExistingRecordSet()) {
-                    for (InstanceRelationship existingRelationship : getExistingRecordSet().instanceRelations.getRelations()) {
+                    for (InstanceRelationship existingRelationship : getExistingRecordSet().instanceToInstanceRelations.getRelationships()) {
                         if (existingRelationship.equals(incomingRelationship)) {
                             incomingRelationship.setTransition(Transaction.NONE);
                             logger.debug("Flagged a relationship to transaction NONE");
@@ -195,9 +195,9 @@ public class UpdatePlanAllHRIDs extends UpdatePlan {
             }
         }
         if (getExistingRecordSet() != null) {
-            logger.info("Checking for existing instance relations to delete: " + getExistingRecordSet().instanceRelations.getRelations());
-            for (InstanceRelationship existingRelation : getExistingRecordSet().instanceRelations.getRelations()) {
-                if (!getUpdatingRecordSet().instanceRelations.hasRelation(existingRelation)) {
+            logger.info("Checking for existing instance relations to delete: " + getExistingRecordSet().instanceToInstanceRelations.getRelationships());
+            for (InstanceRelationship existingRelation : getExistingRecordSet().instanceToInstanceRelations.getRelationships()) {
+                if (!getUpdatingRecordSet().instanceToInstanceRelations.hasRelationship(existingRelation)) {
                     logger.info("Not found in updating record, mark for deletion. ");
                     existingRelation.setTransition(Transaction.DELETE);
                 } else {

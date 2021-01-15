@@ -142,7 +142,7 @@ public abstract class UpdatePlan {
         return gotUpdatingRecordSet() ? updatingSet.getItemsByTransactionType(Transaction.UPDATE) : new ArrayList<>();
     }
 
-    public List<InstanceRelationship> relationshipsToDelete () {
+    public List<InstanceToInstanceRelation> relationshipsToDelete () {
         return foundExistingRecordSet() ? existingSet.getInstanceRelationsByTransactionType(Transaction.DELETE) : new ArrayList<>();
     }
 
@@ -177,7 +177,7 @@ public abstract class UpdatePlan {
               logger.info(record.asJson().encodePrettily());
             }
             logger.info("Relationships to delete: ");
-            for (InstanceRelationship record : relationshipsToDelete()) {
+            for (InstanceToInstanceRelation record : relationshipsToDelete()) {
                 logger.info(record.asJson().encodePrettily());
             }
           } else {
@@ -209,14 +209,14 @@ public abstract class UpdatePlan {
           for (HoldingsRecord record : holdingsToDelete()) {
             logger.info(record.asJson().encodePrettily());
           }
-          logger.info("Instance relationships to create: ");
-          for (InstanceRelationship record : getUpdatingRecordSet().instanceRelations.relationshipsToCreate()) {
+          logger.info("Instance to Instance relations to create: ");
+          for (InstanceToInstanceRelation record : getUpdatingRecordSet().instanceToInstanceRelations.instanceRelationsToCreate()) {
               logger.info(record.asJson().encodePrettily());
           }
-          logger.info("Instance relationships to delete: ");
-          for (InstanceRelationship record : relationshipsToDelete()) {
-              logger.info(record.asJson().encodePrettily());
-          }
+          logger.info("Instance to Instance relationships to delete: ");
+          //for (InstanceToInstanceRelation record : relationshipsToDelete()) {
+          //    logger.info(record.asJson().encodePrettily());
+          //}
 
         }
     }
@@ -319,7 +319,7 @@ public abstract class UpdatePlan {
     public Future<Void> handleDeletionsIfAny (OkapiClient okapiClient) {
         Promise<Void> promise = Promise.promise();
         List<Future> deleteRelationsDeleteItems = new ArrayList<Future>();
-        for (InstanceRelationship relation :  relationshipsToDelete()) {
+        for (InstanceToInstanceRelation relation : relationshipsToDelete()) {
             deleteRelationsDeleteItems.add(InventoryStorage.deleteInventoryRecord(okapiClient,relation));
         }
         for (Item item : itemsToDelete()) {

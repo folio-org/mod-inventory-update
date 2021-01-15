@@ -112,12 +112,12 @@ public class InventoryUpdateService {
             } else {
               responseJson(routingCtx, 200).end(pushedRecordSetWithStats.encodePrettily());
             }
+            okapiClient.close();
           } else {
             pushedRecordSetWithStats.put("errors", updatePlan.getErrors());
             responseJson(routingCtx, 422).end(pushedRecordSetWithStats.encodePrettily());
           }
         });
-        okapiClient.close();
       }  else {
         responseJson(routingCtx, 422).end("Error creating an inventory update plan:" + LF + "  " + planDone.cause().getMessage());
       }

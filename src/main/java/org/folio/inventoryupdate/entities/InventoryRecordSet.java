@@ -28,6 +28,7 @@ public class InventoryRecordSet extends JsonRepresentation {
     public static final String HOLDINGS_RECORDS = "holdingsRecords";
     public static final String ITEMS = "items";
     public static final String HRID = "hrid";
+
     @SuppressWarnings("unused")
     private final Logger logger = LoggerFactory.getLogger("inventory-update");
 
@@ -67,7 +68,10 @@ public class InventoryRecordSet extends JsonRepresentation {
         if (json != null) {
             JsonObject relationsJson = json.getJsonObject(InstanceToInstanceRelations.INSTANCE_RELATIONS);
             if (relationsJson != null) {
-                return (relationsJson.containsKey(InstanceToInstanceRelations.PARENT_INSTANCES) || relationsJson.containsKey(InstanceToInstanceRelations.CHILD_INSTANCES));
+                return (relationsJson.containsKey(InstanceToInstanceRelations.PARENT_INSTANCES) ||
+                        relationsJson.containsKey(InstanceToInstanceRelations.CHILD_INSTANCES) ||
+                        relationsJson.containsKey(InstanceToInstanceRelations.PRECEDING_TITLES) ||
+                        relationsJson.containsKey(InstanceToInstanceRelations.SUCCEEDING_TITLES));
             } else {
                 return false;
             }
@@ -130,7 +134,7 @@ public class InventoryRecordSet extends JsonRepresentation {
             holdingsAndItemsArray.add(holdingsRecordJson);
         }
         recordSetJson.put(HOLDINGS_RECORDS, holdingsAndItemsArray);
-        // recordSetJson.put("instanceRelations", instanceToInstanceRelations.asJson());
+        recordSetJson.put(InstanceToInstanceRelations.INSTANCE_RELATIONS, instanceToInstanceRelations.asJson());
         return recordSetJson;
     }
 

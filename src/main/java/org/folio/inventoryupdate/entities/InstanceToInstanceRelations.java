@@ -72,9 +72,9 @@ public class InstanceToInstanceRelations extends JsonRepresentation {
         }
     }
 
-    public boolean hasRelationship(InstanceRelationship relationship) {
-        for (InstanceRelationship relationHere : getRelationships()) {
-            if (relationship.equals(relationHere)) {
+    public boolean hasThisRelation(InstanceToInstanceRelation relation) {
+        for (InstanceToInstanceRelation relationHere : getInstanceToInstanceRelations()) {
+            if (relation.equals(relationHere)) {
                 return true;
             }
         }
@@ -92,27 +92,51 @@ public class InstanceToInstanceRelations extends JsonRepresentation {
 
     public Future<Void> makeRelationshipRecordsFromIdentifiers(OkapiClient client, String instanceId) {
         Promise<Void> promise = Promise.promise();
-        if (instanceRelationsJson.containsKey(PARENT_INSTANCES) || instanceRelationsJson.containsKey(CHILD_INSTANCES)) {
-
+        if (instanceRelationsJson.containsKey(PARENT_INSTANCES)
+                || instanceRelationsJson.containsKey(CHILD_INSTANCES)
+                || instanceRelationsJson.containsKey(SUCCEEDING_TITLES)
+                || instanceRelationsJson.containsKey(PRECEDING_TITLES)) {
             makeParentRelationsFromIdentifiers(client, instanceId, instanceRelationsJson.getJsonArray(PARENT_INSTANCES)).onComplete(parents -> {
-                if (parents.succeeded()) {
-                    if (parents.result() != null) {
-                        this.parentRelations = parents.result();
-                    }
                     makeChildRelationsFromIdentifiers(client, instanceId, instanceRelationsJson.getJsonArray(CHILD_INSTANCES)).onComplete (children -> {
-                        if (children.succeeded()) {
-                            if (children.result() != null) {
-                                this.childRelations = children.result();
-                            }
-                            promise.complete();
-                        } else {
-                            promise.fail("There was a problem looking up or creating Instance IDs to build child relationships:" + LF + "  " + children.cause().getMessage());
-                        }
-
+                        makeSucceedingTitlesFromIdentifiers(client, instanceId, instanceRelationsJson.getJsonArray(SUCCEEDING_TITLES)).onComplete(succeedingTitles -> {
+                            makePrecedingTitlesFromIdentifiers(client, instanceId, instanceRelationsJson.getJsonArray(PRECEDING_TITLES)).onComplete(precedingTitles -> {
+                                StringBuilder errorMessages = new StringBuilder();
+                                if (parents.succeeded()) {
+                                    if (parents.result() != null) {
+                                        this.parentRelations = parents.result();
+                                    }
+                                } else {
+                                    errorMessages.append(LF + "There was a problem looking up or creating Instance IDs to build parent relationships:" + LF + "  " + parents.cause().getMessage());
+                                }
+                                if (children.succeeded()) {
+                                    if (children.result() != null) {
+                                        this.childRelations = children.result();
+                                    }
+                                } else {
+                                    errorMessages.append(LF + "There was a problem looking up or creating Instance IDs to build child relationships:" + LF + "  " + children.cause().getMessage());
+                                }
+                                if (succeedingTitles.succeeded()) {
+                                    if (succeedingTitles.result() != null) {
+                                        this.succeedingTitles = succeedingTitles.result();
+                                    }
+                                } else {
+                                    errorMessages.append(LF + "There was a problem looking up or creating Instance IDs to build succeeding titles links:" + LF + "  " + succeedingTitles.cause().getMessage());
+                                }
+                                if (precedingTitles.succeeded()) {
+                                    if (precedingTitles.result() != null) {
+                                        this.precedingTitles = precedingTitles.result();
+                                    }
+                                } else {
+                                    errorMessages.append(LF + "There was a problem looking up or creating Instance IDs to build preceding titles links:" + LF + "  " + precedingTitles.cause().getMessage());
+                                }
+                                if (parents.succeeded() && children.succeeded() && succeedingTitles.succeeded() && precedingTitles.succeeded()) {
+                                    promise.complete();
+                                } else {
+                                    promise.fail(errorMessages.toString());
+                                }
+                            });
+                        });
                     });
-                } else {
-                    promise.fail("There was a problem looking up or creating Instance IDs to build parent relationships:" + LF + "  " + parents.cause().getMessage());
-                }
             });
         } else {
             promise.complete();
@@ -181,6 +205,69 @@ public class InstanceToInstanceRelations extends JsonRepresentation {
         }
         return promise.future();
     }
+
+    private static Future<List<InstanceTitleSuccession>> makeSucceedingTitlesFromIdentifiers (OkapiClient client, String instanceId, JsonArray identifiers) {
+        Promise<List<InstanceTitleSuccession>> promise = Promise.promise();
+        if (identifiers != null) {
+            @SuppressWarnings("rawtypes")
+            List<Future> titlesFutures = new ArrayList<>();
+            for (Object o : identifiers) {
+                JsonObject successionJson = (JsonObject) o;
+                if (successionJson.containsKey(INSTANCE_IDENTIFIER) && successionJson.getJsonObject(INSTANCE_IDENTIFIER).containsKey(HRID)) {
+                    titlesFutures.add(InstanceTitleSuccession.makeSucceedingTitleWithInstanceIdentifier(client, instanceId, successionJson, HRID ));
+                }
+            }
+            CompositeFuture.all(titlesFutures).onComplete( instances -> {
+                if (instances.succeeded()) {
+                    if (instances.result().list() != null) {
+                        List<InstanceTitleSuccession> relations = new ArrayList<>();
+                        for (Object o : instances.result().list()) {
+                            InstanceTitleSuccession relation =  (InstanceTitleSuccession) o;
+                            relations.add(relation);
+                        }
+                        promise.complete(relations);
+                    }
+                } else  {
+                    promise.fail("Failed to construct links to succeeding titles with provided Instance identifiers:" + LF + "  " + instances.cause().getMessage());
+                }
+            });
+        } else {
+            promise.complete(null);
+        }
+        return promise.future();
+    }
+
+    private static Future<List<InstanceTitleSuccession>> makePrecedingTitlesFromIdentifiers (OkapiClient client, String instanceId, JsonArray identifiers) {
+        Promise<List<InstanceTitleSuccession>> promise = Promise.promise();
+        if (identifiers != null) {
+            @SuppressWarnings("rawtypes")
+            List<Future> titlesFutures = new ArrayList<>();
+            for (Object o : identifiers) {
+                JsonObject successionJson = (JsonObject) o;
+                if (successionJson.containsKey(INSTANCE_IDENTIFIER) && successionJson.getJsonObject(INSTANCE_IDENTIFIER).containsKey(HRID)) {
+                    titlesFutures.add(InstanceTitleSuccession.makePrecedingTitleWithInstanceIdentifier(client, instanceId, successionJson, HRID ));
+                }
+            }
+            CompositeFuture.all(titlesFutures).onComplete( instances -> {
+                if (instances.succeeded()) {
+                    if (instances.result().list() != null) {
+                        List<InstanceTitleSuccession> relations = new ArrayList<>();
+                        for (Object o : instances.result().list()) {
+                            InstanceTitleSuccession relation =  (InstanceTitleSuccession) o;
+                            relations.add(relation);
+                        }
+                        promise.complete(relations);
+                    }
+                } else  {
+                    promise.fail("Failed to construct links for preceding titles with provided Instance identifiers:" + LF + "  " + instances.cause().getMessage());
+                }
+            });
+        } else {
+            promise.complete(null);
+        }
+        return promise.future();
+    }
+
 
     public void registerRelationshipJsonRecords(String instanceId, JsonObject instanceRelations) {
         if (instanceRelations.containsKey(EXISTING_RELATIONS)) {

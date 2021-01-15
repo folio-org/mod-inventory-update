@@ -1,0 +1,42 @@
+{
+  "instance": {
+    "title": "Instance 10",
+    "source": "Local",
+    "instanceTypeId": "6312d172-f0cf-40f6-b27d-9fa8feaf332f",
+    "hrid": "ins010",
+    "identifiers": [
+      {
+        "identifierTypeId": "8261054f-be78-422d-bd51-4ed9f33c3422",
+        "value": "9781466636897-10"
+      }
+    ]
+  },
+  "instanceRelations":{
+    "succeedingTitles": [
+      {
+        "instanceIdentifier": {
+          "hrid": "ins011"
+        }
+      }
+    ]
+  },
+  "holdingsRecords": [
+    {
+      "callNumber": "Holdings 10-1",
+      "permanentLocationId": "53cf956f-c1df-410b-8bea-27f712cca7c0",
+      "hrid": "hol010-1",
+      "items": [
+        {
+          "itemIdentifier": "it010-1-1",
+          "hrid": "it010-1-1",
+          "barcode": "Item 10-1-1",
+          "materialTypeId": "1a54b431-2e4f-452d-9cae-9cee66c9a892",
+          "permanentLoanTypeId": "2b94c631-fca9-4892-a730-03ee529ffe27",
+          "status": {
+            "name": "Available"
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -13,11 +13,13 @@ public class InstanceTitleSuccession extends InstanceToInstanceRelation {
     public static final String ID = "id";
     public static final String PRECEDING_INSTANCE_ID = "precedingInstanceId";
     public static final String SUCCEEDING_INSTANCE_ID = "succeedingInstanceId";
+    private String instanceId;
 
-    public static InstanceTitleSuccession makeInstanceTitleSuccessionFromJson(String instanceId, JsonObject precedingSucceedingJson) {
+    public static InstanceTitleSuccession makeInstanceTitleSuccessionFromJsonRecord(String instanceId, JsonObject precedingSucceedingJson) {
         InstanceTitleSuccession titleSuccession = new InstanceTitleSuccession();
         titleSuccession.jsonRecord = precedingSucceedingJson;
         titleSuccession.type = Entity.INSTANCE_TITLE_SUCCESSION;
+        titleSuccession.instanceId = instanceId;
         return titleSuccession;
     }
 
@@ -36,6 +38,14 @@ public class InstanceTitleSuccession extends InstanceToInstanceRelation {
 
     public String getPrecedingInstanceId() {
         return jsonRecord.getString(PRECEDING_INSTANCE_ID);
+    }
+
+    public boolean isSucceedingTitle () {
+        return getPrecedingInstanceId().equals(instanceId);
+    }
+
+    public boolean isPrecedingTitle() {
+        return getSucceedingInstanceId().equals(instanceId);
     }
 
     static Future<InstanceTitleSuccession> makePrecedingTitleWithInstanceIdentifier(OkapiClient client, String instanceId, JsonObject precedingJson, String identifierKey) {

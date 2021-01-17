@@ -19,11 +19,12 @@ public class InstanceToInstanceRelations extends JsonRepresentation {
 
     // JSON property keys
     public static final String INSTANCE_RELATIONS = "instanceRelations";
-    public static final String EXISTING_RELATIONS = "existingRelations";
+    public static final String EXISTING_PARENT_CHILD_RELATIONS = "existingParentChildRelations";
     public static final String PARENT_INSTANCES = "parentInstances";
     public static final String CHILD_INSTANCES = "childInstances";
     public static final String SUCCEEDING_TITLES = "succeedingTitles";
     public static final String PRECEDING_TITLES = "precedingTitles";
+    public static final String EXISTING_PRECEDING_SUCCEEDING_TITLES = "existingPrecedingSucceedingTitles";
     public static final String INSTANCE_IDENTIFIER = "instanceIdentifier";
     public static final String ID = "id";
     public static final String INSTANCE_TYPE_ID = "instanceTypeId";
@@ -54,14 +55,6 @@ public class InstanceToInstanceRelations extends JsonRepresentation {
         return records;
     }
 
-    public List<InstanceTitleSuccession> getInstanceSuccessionsByTransactionType (InventoryRecord.Transaction transition) {
-        List<InstanceTitleSuccession> records = new ArrayList<>();
-        for (InstanceTitleSuccession record : getTitleSuccessions()) {
-
-        }
-        return null;
-    }
-
     public void setInstanceRelationsJson(JsonObject json) {
         instanceRelationsJson = json;
     }
@@ -90,7 +83,7 @@ public class InstanceToInstanceRelations extends JsonRepresentation {
         return false;
     }
 
-    public Future<Void> makeRelationshipRecordsFromIdentifiers(OkapiClient client, String instanceId) {
+    public Future<Void> makeInstanceRelationRecordsFromIdentifiers(OkapiClient client, String instanceId) {
         Promise<Void> promise = Promise.promise();
         if (instanceRelationsJson.containsKey(PARENT_INSTANCES)
                 || instanceRelationsJson.containsKey(CHILD_INSTANCES)
@@ -270,14 +263,25 @@ public class InstanceToInstanceRelations extends JsonRepresentation {
 
 
     public void registerRelationshipJsonRecords(String instanceId, JsonObject instanceRelations) {
-        if (instanceRelations.containsKey(EXISTING_RELATIONS)) {
-            JsonArray existingRelations = instanceRelations.getJsonArray(EXISTING_RELATIONS);
+        if (instanceRelations.containsKey(EXISTING_PARENT_CHILD_RELATIONS)) {
+            JsonArray existingRelations = instanceRelations.getJsonArray(EXISTING_PARENT_CHILD_RELATIONS);
             for (Object o : existingRelations) {
                 InstanceRelationship relationship = InstanceRelationship.makeRelationshipFromJsonRecord(instanceId, (JsonObject) o);
                 if (relationship.isRelationToChild()) {
                     childRelations.add(relationship);
                 } else {
                     parentRelations.add(relationship);
+                }
+            }
+        }
+        if (instanceRelations.containsKey(EXISTING_PRECEDING_SUCCEEDING_TITLES)) {
+            JsonArray existingTitles = instanceRelations.getJsonArray(EXISTING_PRECEDING_SUCCEEDING_TITLES);
+            for (Object o : existingTitles) {
+                InstanceTitleSuccession relation = InstanceTitleSuccession.makeInstanceTitleSuccessionFromJsonRecord(instanceId, (JsonObject) o);
+                if (relation.isSucceedingTitle()) {
+                    succeedingTitles.add(relation);
+                } else {
+                    precedingTitles.add(relation);
                 }
             }
         }

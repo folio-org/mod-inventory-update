@@ -58,7 +58,7 @@ public class UpdatePlanAllHRIDs extends UpdatePlan {
                               item.setTransition(Transaction.DELETE);
                           }
                       }
-                      getExistingRecordSet().prepareInstanceRelationsForDeletion();
+                      getExistingRecordSet().prepareAllInstanceRelationsForDeletion();
                   }
                   promisedPlan.complete();
                 } else {
@@ -67,11 +67,11 @@ public class UpdatePlanAllHRIDs extends UpdatePlan {
                   if (foundExistingRecordSet()) {
                       prepareUpdatesDeletesAndLocalMoves();
                   }
-                  Future<Void> relationsFuture = getUpdatingRecordSet().prepareIncomingRelationshipRecords(okapiClient, getUpdatingInstance().getUUID());
+                  Future<Void> relationsFuture = getUpdatingRecordSet().prepareIncomingInstanceRelationRecords(okapiClient, getUpdatingInstance().getUUID());
                   Future<Void> prepareNewRecordsAndImportsFuture = prepareNewRecordsAndImports(okapiClient);
                   CompositeFuture.join(relationsFuture, prepareNewRecordsAndImportsFuture).onComplete( done -> {
                      if (done.succeeded()) {
-                         prepareIncomingRelationships();
+                         prepareIncomingInstanceRelations();
                          promisedPlan.complete();
                      } else {
                          promisedPlan.fail("There was a problem fetching existing relations, holdings and/or items from storage:" + LF + "  " + done.cause().getMessage());
@@ -177,7 +177,7 @@ public class UpdatePlanAllHRIDs extends UpdatePlan {
         }
     }
 
-    public void prepareIncomingRelationships() {
+    public void prepareIncomingInstanceRelations() {
         if (getUpdatingRecordSet() != null) {
             List<InstanceToInstanceRelation> incomingRelations = getUpdatingRecordSet().instanceToInstanceRelations.getInstanceToInstanceRelations();
             logger.debug("Flagging incoming relationships for creation if any. Got " + incomingRelations.size() + " incoming candidates.");

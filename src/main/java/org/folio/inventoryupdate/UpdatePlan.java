@@ -142,7 +142,7 @@ public abstract class UpdatePlan {
         return gotUpdatingRecordSet() ? updatingSet.getItemsByTransactionType(Transaction.UPDATE) : new ArrayList<>();
     }
 
-    public List<InstanceToInstanceRelation> relationshipsToDelete () {
+    public List<InstanceToInstanceRelation> instanceRelationsToDelete() {
         return foundExistingRecordSet() ? existingSet.getInstanceRelationsByTransactionType(Transaction.DELETE) : new ArrayList<>();
     }
 
@@ -177,7 +177,7 @@ public abstract class UpdatePlan {
               logger.info(record.asJson().encodePrettily());
             }
             logger.info("Relationships to delete: ");
-            for (InstanceToInstanceRelation record : relationshipsToDelete()) {
+            for (InstanceToInstanceRelation record : instanceRelationsToDelete()) {
                 logger.info(record.asJson().encodePrettily());
             }
           } else {
@@ -214,9 +214,9 @@ public abstract class UpdatePlan {
               logger.info(record.asJson().encodePrettily());
           }
           logger.info("Instance to Instance relationships to delete: ");
-          //for (InstanceToInstanceRelation record : relationshipsToDelete()) {
-          //    logger.info(record.asJson().encodePrettily());
-          //}
+          for (InstanceToInstanceRelation record : instanceRelationsToDelete()) {
+              logger.info(record.asJson().encodePrettily());
+          }
 
         }
     }
@@ -319,7 +319,7 @@ public abstract class UpdatePlan {
     public Future<Void> handleDeletionsIfAny (OkapiClient okapiClient) {
         Promise<Void> promise = Promise.promise();
         List<Future> deleteRelationsDeleteItems = new ArrayList<Future>();
-        for (InstanceToInstanceRelation relation : relationshipsToDelete()) {
+        for (InstanceToInstanceRelation relation : instanceRelationsToDelete()) {
             deleteRelationsDeleteItems.add(InventoryStorage.deleteInventoryRecord(okapiClient,relation));
         }
         for (Item item : itemsToDelete()) {

@@ -61,7 +61,7 @@ public class InventoryRecordSet extends JsonRepresentation {
     private boolean hasRelationshipRecords (JsonObject json) {
         return (json != null
                 && json.containsKey(InstanceToInstanceRelations.INSTANCE_RELATIONS)
-                && json.getJsonObject(InstanceToInstanceRelations.INSTANCE_RELATIONS).containsKey(InstanceToInstanceRelations.EXISTING_RELATIONS));
+                && json.getJsonObject(InstanceToInstanceRelations.INSTANCE_RELATIONS).containsKey(InstanceToInstanceRelations.EXISTING_PARENT_CHILD_RELATIONS));
     }
 
     private boolean hasRelationshipIdentifiers (JsonObject json) {
@@ -192,7 +192,7 @@ public class InventoryRecordSet extends JsonRepresentation {
         return records;
     }
 
-    public void prepareInstanceRelationsForDeletion() {
+    public void prepareAllInstanceRelationsForDeletion() {
         instanceToInstanceRelations.markAllRelationsForDeletion();
     }
 
@@ -200,8 +200,8 @@ public class InventoryRecordSet extends JsonRepresentation {
         return instanceToInstanceRelations.getInstanceRelationsByTransactionType(transition);
     }
 
-    public Future<Void> prepareIncomingRelationshipRecords(OkapiClient client, String instanceId) {
-        return instanceToInstanceRelations.makeRelationshipRecordsFromIdentifiers(client, instanceId);
+    public Future<Void> prepareIncomingInstanceRelationRecords(OkapiClient client, String instanceId) {
+        return instanceToInstanceRelations.makeInstanceRelationRecordsFromIdentifiers(client, instanceId);
     }
 
     public List<HoldingsRecord> getHoldingsRecordsByTransactionType (Transaction transition) {

@@ -25,12 +25,24 @@ import io.vertx.core.json.JsonObject;
  *
  * Method 'planInventoryUpdates' is meant to create an in-memory representation of the records
  * to update with all mandatory fields and required identifiers (UUIDs) set. Once the planning
- * is run, the 'incomingSet' should contain records flagged as CREATING or UPDATING and
+ * is done, the 'incomingSet' should contain records flagged as CREATING or UPDATING and
  * 'existingSet' should contain records flagged as DELETING, if any.
  *
- * Method 'updateInventory' is meant to run through 'incomingSet' and 'existingSet' and perform
- * updates as per the CREATING, UPDATING, and DELETING flags set in the planning phase -- in the
- * appropriate order to observe integrity constraints.
+ * The planning phase is not meant to stop on failure (unless some unexpected exception occurs for
+ * which there is no planned recovery, of course). Rather it's supposed to register possible
+ * record level errors but run to completion.
+ *
+ * Method 'updateInventory' is meant to run through the 'incomingSet' and 'existingSet' and perform
+ * the actual updates in Inventory storage as per the CREATING, UPDATING, and DELETING flags set
+ * in the planning phase and in the appropriate order to observe integrity constraints.
+ *
+ * The execution phase may fail certain operations, skip dependant operations of those that failed,
+ * and pick up the error messages along the way. If it thus completes with partial success, it should
+ * have updated whatever it could and should return an error code - typically 422 -- and display
+ * the error condition in the response.
+ *
+ * Or, put another way, even if the request results in a HTTP error response code, some Inventory
+ * records may have been successfully updated during the processing of the request.
  *
  */
 public abstract class UpdatePlan {
@@ -149,11 +161,6 @@ public abstract class UpdatePlan {
         return foundExistingRecordSet() ? existingSet.getInstanceRelationsByTransactionType(Transaction.DELETE) : new ArrayList<>();
     }
 
-    /*
-    public List<InstanceRelationship> relationshipsToCreate () {
-        return gotUpdatingRecordSet() ? updatingSet.getInstanceRelationsByTransactionType(Transaction.CREATE) : new ArrayList<>();
-    }
-    */
     public boolean isInstanceUpdating () {
         return gotUpdatingRecordSet() ? updatingSet.getInstance().getTransaction() == Transaction.UPDATE : false;
     }

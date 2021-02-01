@@ -21,6 +21,7 @@ import java.util.stream.Stream;
 
 import static org.folio.inventoryupdate.entities.InstanceRelationship.INSTANCE_RELATIONSHIP_TYPE_ID;
 import static org.folio.inventoryupdate.entities.InventoryRecordSet.HRID;
+import static org.folio.inventoryupdate.entities.InstanceToInstanceRelation.TypeOfRelation;
 
 public class InstanceRelationsController extends JsonRepresentation {
 
@@ -39,11 +40,11 @@ public class InstanceRelationsController extends JsonRepresentation {
     public static final String SOURCE = "source";
     // EOF JSON property keys
 
-    public static final String LF = System.lineSeparator();
     private List<InstanceToInstanceRelation> parentRelations = new ArrayList<>();
     private List<InstanceToInstanceRelation> childRelations = new ArrayList<>();
     private List<InstanceToInstanceRelation> succeedingTitles = new ArrayList<>();
     private List<InstanceToInstanceRelation> precedingTitles = new ArrayList<>();
+    public static final String LF = System.lineSeparator();
 
     private JsonObject instanceRelationsJson = new JsonObject();
     protected final Logger logger = LoggerFactory.getLogger("inventory-update");
@@ -53,12 +54,10 @@ public class InstanceRelationsController extends JsonRepresentation {
     public List<InstanceToInstanceRelation> getInstanceRelationsByTransactionType (InventoryRecord.Transaction transition) {
         List<InstanceToInstanceRelation> records = new ArrayList<>();
         for (InstanceToInstanceRelation record : getInstanceToInstanceRelations())  {
-            // logger.debug("Looking at relation (" + record.entityType() + ", " + record.asJsonString() + ") with transaction type " + record.getTransaction());
             if (record.getTransaction() == transition && ! record.skipped()) {
                 records.add(record);
             }
         }
-        // logger.debug("Found " + records.size() + " to " + transition);
         return records;
     }
 
@@ -101,10 +100,10 @@ public class InstanceRelationsController extends JsonRepresentation {
                 || instanceRelationsJson.containsKey(CHILD_INSTANCES)
                 || instanceRelationsJson.containsKey(SUCCEEDING_TITLES)
                 || instanceRelationsJson.containsKey(PRECEDING_TITLES)) {
-            makeRelationsFromIdentifiers(client, instanceId, instanceRelationsJson.getJsonArray(PARENT_INSTANCES), InstanceToInstanceRelation.TypeOfRelation.TO_PARENT).onComplete(parents -> {
-                    makeRelationsFromIdentifiers(client, instanceId, instanceRelationsJson.getJsonArray(CHILD_INSTANCES), InstanceToInstanceRelation.TypeOfRelation.TO_CHILD).onComplete (children -> {
-                        makeRelationsFromIdentifiers(client, instanceId, instanceRelationsJson.getJsonArray(SUCCEEDING_TITLES), InstanceToInstanceRelation.TypeOfRelation.TO_PRECEDING).onComplete(succeedingTitles -> {
-                            makeRelationsFromIdentifiers(client, instanceId, instanceRelationsJson.getJsonArray(PRECEDING_TITLES), InstanceToInstanceRelation.TypeOfRelation.TO_SUCCEEDING).onComplete(precedingTitles -> {
+            makeRelationsFromIdentifiers(client, instanceId, instanceRelationsJson.getJsonArray(PARENT_INSTANCES), TypeOfRelation.TO_PARENT).onComplete(parents -> {
+                    makeRelationsFromIdentifiers(client, instanceId, instanceRelationsJson.getJsonArray(CHILD_INSTANCES), TypeOfRelation.TO_CHILD).onComplete (children -> {
+                        makeRelationsFromIdentifiers(client, instanceId, instanceRelationsJson.getJsonArray(SUCCEEDING_TITLES), TypeOfRelation.TO_PRECEDING).onComplete(succeedingTitles -> {
+                            makeRelationsFromIdentifiers(client, instanceId, instanceRelationsJson.getJsonArray(PRECEDING_TITLES), TypeOfRelation.TO_SUCCEEDING).onComplete(precedingTitles -> {
                                 StringBuilder errorMessages = new StringBuilder();
                                 if (parents.succeeded()) {
                                     if (parents.result() != null) {

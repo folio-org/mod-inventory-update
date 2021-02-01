@@ -17,8 +17,8 @@ public abstract class InstanceToInstanceRelation extends InventoryRecord {
         TO_SUCCEEDING
     }
 
-    public void requiresProvisionalInstanceToBeCreated(boolean yes) {
-        needsProvisionalInstance = yes;
+    public void requiresProvisionalInstanceToBeCreated(boolean bool) {
+        needsProvisionalInstance = bool;
     }
 
     public boolean requiresProvisionalInstanceToBeCreated () {
@@ -35,24 +35,6 @@ public abstract class InstanceToInstanceRelation extends InventoryRecord {
 
     public Instance getProvisionalInstance () {
         return provisionalInstance;
-    }
-
-    /**
-     * Create a temporary Instance to create a relationship to.
-     * @param hrid human readable ID of the temporary Instance to create
-     * @param provisionalInstanceJson other properties of the Instance to create
-     * @return Instance POJO
-     */
-    //TODO: move to controller?
-    protected static Instance prepareProvisionalInstance (String hrid, JsonObject provisionalInstanceJson) {
-        JsonObject json = new JsonObject(provisionalInstanceJson.toString());
-        if (! json.containsKey(HRID)) {
-            json.put(HRID, hrid);
-        }
-        if (! json.containsKey(InstanceRelationsController.ID)) {
-            json.put(InstanceRelationsController.ID, UUID.randomUUID().toString());
-        }
-        return new Instance(json);
     }
 
 }

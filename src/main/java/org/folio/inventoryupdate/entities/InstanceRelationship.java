@@ -19,6 +19,12 @@ public class InstanceRelationship extends InstanceToInstanceRelation {
 
     protected static final Logger logger = LoggerFactory.getLogger("inventory-update");
 
+    /**
+     * Builds an Instance relationship object from a JSON record (from storage).
+     * @param instanceId
+     * @param instanceRelationJson
+     * @return
+     */
     public static InstanceRelationship makeRelationshipFromJsonRecord(String instanceId, JsonObject instanceRelationJson) {
         InstanceRelationship relation = new InstanceRelationship();
         relation.instanceId = instanceId;
@@ -27,6 +33,14 @@ public class InstanceRelationship extends InstanceToInstanceRelation {
         return relation;
     }
 
+    /**
+     * Builds an Instance relationship object by its individual properties.
+     * @param instanceId
+     * @param subInstanceId
+     * @param superInstanceId
+     * @param instanceRelationshipTypeId
+     * @return
+     */
     public static InstanceRelationship makeRelationship(String instanceId, String subInstanceId, String superInstanceId, String instanceRelationshipTypeId) {
         InstanceRelationship relation = new InstanceRelationship();
         relation.instanceId = instanceId;
@@ -55,7 +69,7 @@ public class InstanceRelationship extends InstanceToInstanceRelation {
     }
 
     public void skipDependants() {
-        // has none
+        // relationships has no dependants in the database
     }
 
     @Override

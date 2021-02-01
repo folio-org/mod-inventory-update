@@ -11,11 +11,14 @@ import org.folio.inventoryupdate.InventoryStorage;
 import org.folio.okapi.common.OkapiClient;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import static org.folio.inventoryupdate.entities.InventoryRecordSet.HRID;
 
-public class InstanceToInstanceRelations extends JsonRepresentation {
+public class InstanceRelationsController extends JsonRepresentation {
 
     // JSON property keys
     public static final String INSTANCE_RELATIONS = "instanceRelations";
@@ -41,17 +44,17 @@ public class InstanceToInstanceRelations extends JsonRepresentation {
     private JsonObject instanceRelationsJson = new JsonObject();
     protected final Logger logger = LoggerFactory.getLogger("inventory-update");
 
-    public InstanceToInstanceRelations() {}
+    public InstanceRelationsController() {}
 
     public List<InstanceToInstanceRelation> getInstanceRelationsByTransactionType (InventoryRecord.Transaction transition) {
         List<InstanceToInstanceRelation> records = new ArrayList<>();
         for (InstanceToInstanceRelation record : getInstanceToInstanceRelations())  {
-            logger.debug("Looking at relation (" + record.entityType() + ") with transaction type " + record.getTransaction());
+            // logger.debug("Looking at relation (" + record.entityType() + ", " + record.asJsonString() + ") with transaction type " + record.getTransaction());
             if (record.getTransaction() == transition && ! record.skipped()) {
                 records.add(record);
             }
         }
-        logger.debug("Found " + records.size() + " to " + transition);
+        // logger.debug("Found " + records.size() + " to " + transition);
         return records;
     }
 
@@ -74,13 +77,12 @@ public class InstanceToInstanceRelations extends JsonRepresentation {
         return false;
     }
 
-    public boolean hasInstanceTitleSuccession (InstanceTitleSuccession succession) {
-        for (InstanceTitleSuccession here : getTitleSuccessions()) {
-            if (succession.equals(here)) {
-                return true;
-            }
-        }
-        return false;
+    public boolean hasInstanceRelationships () {
+        return getRelationships().size()>0;
+    }
+
+    public boolean hasTitleSuccessions () {
+        return getTitleSuccessions().size()>0;
     }
 
     public Future<Void> makeInstanceRelationRecordsFromIdentifiers(OkapiClient client, String instanceId) {
@@ -294,7 +296,7 @@ public class InstanceToInstanceRelations extends JsonRepresentation {
         @SuppressWarnings("rawtypes")
         List<Future> provisionalInstancesFutures = new ArrayList<>();
         for (InstanceToInstanceRelation relation : instanceRelationsToCreate()) {
-            if (relation.requiresProvisionalInstanceToBeCreated()) {
+            if (relation.requiresProvisionalInstanceToBeCreated() && relation.hasPreparedProvisionalInstance()) {
                 provisionalInstancesFutures.add(InventoryStorage.postInventoryRecord(okapiClient, relation.getProvisionalInstance()));
             }
         }
@@ -303,7 +305,11 @@ public class InstanceToInstanceRelations extends JsonRepresentation {
                 @SuppressWarnings("rawtypes")
                 List<Future> createFutures = new ArrayList<>();
                 for (InstanceToInstanceRelation relation : instanceRelationsToCreate()) {
-                    createFutures.add(InventoryStorage.postInventoryRecord(okapiClient, relation));
+                    if (!relation.requiresProvisionalInstanceToBeCreated() || relation.hasPreparedProvisionalInstance()) {
+                        createFutures.add(InventoryStorage.postInventoryRecord(okapiClient, relation));
+                    } else {
+                        createFutures.add(failRelationCreation(relation));
+                    }
                 }
                 CompositeFuture.join(createFutures).onComplete( allRelationsCreated -> {
                     if (allRelationsCreated.succeeded()) {
@@ -319,8 +325,24 @@ public class InstanceToInstanceRelations extends JsonRepresentation {
         return promise.future();
     }
 
+    private Future<Void> failRelationCreation(InstanceToInstanceRelation relation) {
+        Promise promise = Promise.promise();
+        promise.fail(relation.getError().encodePrettily());
+        return promise.future();
+    }
+
     public List<InstanceToInstanceRelation> instanceRelationsToCreate() {
         return getInstanceRelationsByTransactionType(InventoryRecord.Transaction.CREATE);
+    }
+
+    public List<Instance> provisionalInstancesToCreate() {
+        ArrayList<Instance> provisionalInstances = new ArrayList<>();
+        for (InstanceToInstanceRelation relation: getInstanceRelationsByTransactionType(InventoryRecord.Transaction.CREATE)) {
+            if (relation.requiresProvisionalInstanceToBeCreated()) {
+                provisionalInstances.add(relation.provisionalInstance);
+            }
+        }
+        return provisionalInstances;
     }
 
     @Override
@@ -340,6 +362,7 @@ public class InstanceToInstanceRelations extends JsonRepresentation {
         for (InstanceTitleSuccession succeeding : succeedingTitles) {
             nextTitles.add(succeeding.asJson());
         }
+        //todo: fix this:
         json.put(SUCCEEDING_TITLES,nextTitles);
         JsonArray previousTitles = new JsonArray();
         for (InstanceTitleSuccession preceding : precedingTitles) {
@@ -387,6 +410,47 @@ public class InstanceToInstanceRelations extends JsonRepresentation {
         if (precedingTitles != null) all.addAll(precedingTitles);
         if (succeedingTitles != null) all.addAll(succeedingTitles);
         return all;
+    }
+
+    public void writeToStats(JsonObject stats) {
+//todo: add deletes
+        String outcomeStats = "{ \"" + InventoryRecord.Outcome.COMPLETED + "\": 0, \"" + InventoryRecord.Outcome.FAILED + "\": 0, \"" + InventoryRecord.Outcome.SKIPPED + "\": 0, \"" + InventoryRecord.Outcome.PENDING + "\": 0 }";
+
+        String transactionsStats =
+                "{ \""+ InventoryRecord.Transaction.CREATE + "\": " + outcomeStats + ", \""
+                      + InventoryRecord.Transaction.DELETE + "\": " + outcomeStats + ", \""
+                      + "PROVISIONAL_INSTANCE" + "\": " + outcomeStats + " }";
+
+        if (hasInstanceRelationships()) {
+            if (!stats.containsKey(InventoryRecord.Entity.INSTANCE_RELATIONSHIP.toString())) {
+                stats.put(InventoryRecord.Entity.INSTANCE_RELATIONSHIP.toString(), new JsonObject(transactionsStats));
+            }
+        }
+        if (hasTitleSuccessions()) {
+            if (!stats.containsKey(InventoryRecord.Entity.INSTANCE_TITLE_SUCCESSION.toString())) {
+                stats.put(InventoryRecord.Entity.INSTANCE_TITLE_SUCCESSION.toString(), new JsonObject(transactionsStats));
+            }
+        }
+
+        List<InstanceToInstanceRelation> relationsRecords = Stream.of(
+                getRelationships(),
+                getTitleSuccessions()
+        ).flatMap(Collection::stream).collect(Collectors.toList());
+
+        //todo: POJO wrapper around stats JSON?
+        for (InstanceToInstanceRelation record : relationsRecords) {
+            JsonObject entityStats;
+            entityStats = stats.getJsonObject(record.entityType().toString());
+            if (!record.getTransaction().equals(InventoryRecord.Transaction.NONE)) {
+                JsonObject outcomes = entityStats.getJsonObject(record.getTransaction().toString());
+                outcomes.put(record.getOutcome().toString(), outcomes.getInteger(record.getOutcome().toString()) + 1);
+                if (record.requiresProvisionalInstanceToBeCreated()) {
+                    Instance instance = record.getProvisionalInstance();
+                    JsonObject provisionalInstanceStats = entityStats.getJsonObject("PROVISIONAL_INSTANCE");
+                    provisionalInstanceStats.put(instance.getOutcome().toString(), provisionalInstanceStats.getInteger(instance.getOutcome().toString()) +1);
+                }
+            }
+        }
     }
 
     @Override

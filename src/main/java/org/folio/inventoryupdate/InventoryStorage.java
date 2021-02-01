@@ -5,7 +5,7 @@ import java.util.List;
 
 import io.vertx.core.impl.logging.Logger;
 import io.vertx.core.impl.logging.LoggerFactory;
-import org.folio.inventoryupdate.entities.InstanceToInstanceRelations;
+import org.folio.inventoryupdate.entities.InstanceRelationsController;
 import org.folio.inventoryupdate.entities.InventoryRecord;
 import org.folio.inventoryupdate.entities.InventoryRecord.Entity;
 import org.folio.inventoryupdate.entities.InventoryRecord.Transaction;
@@ -172,23 +172,23 @@ public class InventoryStorage {
               lookupExistingParentChildRelationshipsByInstanceUUID(okapiClient, instanceUUID).onComplete(existingParentChildRelations -> {
                 lookupExistingPrecedingOrSucceedingTitlesByInstanceUUID(okapiClient, instanceUUID).onComplete( existingInstanceTitleSuccessions -> {
                   JsonObject instanceRelations = new JsonObject();
-                  inventoryRecordSet.put(InstanceToInstanceRelations.INSTANCE_RELATIONS, instanceRelations);
+                  inventoryRecordSet.put(InstanceRelationsController.INSTANCE_RELATIONS, instanceRelations);
                   if(existingInstanceTitleSuccessions.succeeded()) {
                     if (existingInstanceTitleSuccessions.result() != null)  {
-                      instanceRelations.put(InstanceToInstanceRelations.EXISTING_PRECEDING_SUCCEEDING_TITLES, existingInstanceTitleSuccessions.result());
+                      instanceRelations.put(InstanceRelationsController.EXISTING_PRECEDING_SUCCEEDING_TITLES, existingInstanceTitleSuccessions.result());
                       logger.debug("InventoryRecordSet JSON populated with " +
-                              inventoryRecordSet.getJsonObject(InstanceToInstanceRelations.INSTANCE_RELATIONS)
-                                      .getJsonArray(InstanceToInstanceRelations.EXISTING_PRECEDING_SUCCEEDING_TITLES).size() + " preceding/succeeding titles");
+                              inventoryRecordSet.getJsonObject(InstanceRelationsController.INSTANCE_RELATIONS)
+                                      .getJsonArray(InstanceRelationsController.EXISTING_PRECEDING_SUCCEEDING_TITLES).size() + " preceding/succeeding titles");
                     }
                     //TODO: handle error
                     logger.error("Lookup of existing instance preceding/succeeding titles failed. Continuing even so.");
                   }
                   if (existingParentChildRelations.succeeded()) {
                     if (existingParentChildRelations.result() != null) {
-                      instanceRelations.put(InstanceToInstanceRelations.EXISTING_PARENT_CHILD_RELATIONS, existingParentChildRelations.result());
+                      instanceRelations.put(InstanceRelationsController.EXISTING_PARENT_CHILD_RELATIONS, existingParentChildRelations.result());
                       logger.debug("InventoryRecordSet JSON populated with " +
-                              inventoryRecordSet.getJsonObject(InstanceToInstanceRelations.INSTANCE_RELATIONS)
-                                      .getJsonArray(InstanceToInstanceRelations.EXISTING_PARENT_CHILD_RELATIONS).size() + " parent/child relations");
+                              inventoryRecordSet.getJsonObject(InstanceRelationsController.INSTANCE_RELATIONS)
+                                      .getJsonArray(InstanceRelationsController.EXISTING_PARENT_CHILD_RELATIONS).size() + " parent/child relations");
                     }
                   } else {
                     //TODO: handle error
@@ -212,7 +212,7 @@ public class InventoryStorage {
       if (res.succeeded()) {
         JsonObject holdingsRecordsResult = new JsonObject(res.result());
         JsonArray holdingsRecords = holdingsRecordsResult.getJsonArray(HOLDINGS_RECORDS);
-        logger.info("Successfully looked up existing holdings records, found  " + holdingsRecords.size());
+        logger.debug("Successfully looked up existing holdings records, found  " + holdingsRecords.size());
         if (holdingsRecords.size()>0) {
           @SuppressWarnings("rawtypes")
           List<Future> itemFutures = new ArrayList<Future>();
@@ -222,7 +222,7 @@ public class InventoryStorage {
           }
           CompositeFuture.all(itemFutures).onComplete( result -> {
             if (result.succeeded()) {
-              logger.info("Composite succeeded with " + result.result().size() + " result(s). First item: " + ((JsonObject) result.result().resultAt(0)).encodePrettily());
+              logger.debug("Composite succeeded with " + result.result().size() + " result(s). First item: " + ((JsonObject) result.result().resultAt(0)).encodePrettily());
               promise.complete(holdingsRecords);
             } else {
               failure(result.cause(), Entity.ITEM, Transaction.GET, okapiClient.getStatusCode(), promise, "While looking up and embedding items for holdings records");
@@ -245,7 +245,7 @@ public class InventoryStorage {
       if (res.succeeded()) {
         JsonObject itemsResult = new JsonObject(res.result());
         JsonArray items = itemsResult.getJsonArray(ITEMS);
-        logger.info("Successfully looked up existing items, found  " + items.size());
+        logger.debug("Successfully looked up existing items, found  " + items.size());
         holdingsRecord.put(ITEMS,items);
         promise.complete(holdingsRecord);
       } else {
@@ -261,7 +261,7 @@ public class InventoryStorage {
       if (res.succeeded()) {
         JsonObject relationshipsResult = new JsonObject(res.result());
         JsonArray parentChildRelations = relationshipsResult.getJsonArray(INSTANCE_RELATIONSHIPS);
-        logger.info("Successfully looked up existing instance relationships, found  " + parentChildRelations.size());
+        logger.debug("Successfully looked up existing instance relationships, found  " + parentChildRelations.size());
         promise.complete(parentChildRelations);
       } else {
         failure(res.cause(), Entity.ITEM, Transaction.GET, okapiClient.getStatusCode(), promise, "While looking instance relationships");
@@ -276,7 +276,7 @@ public class InventoryStorage {
       if (res.succeeded()) {
         JsonObject relationsResult = new JsonObject(res.result());
         JsonArray instanceTitleSuccessions = relationsResult.getJsonArray(PRECEDING_SUCCEEDING_TITLES);
-        logger.info("Successfully looked up existing preceding/succeeding titles, found  " + instanceTitleSuccessions.size());
+        logger.debug("Successfully looked up existing preceding/succeeding titles, found  " + instanceTitleSuccessions.size());
         promise.complete(instanceTitleSuccessions);
       } else {
         failure(res.cause(), Entity.ITEM, Transaction.GET, okapiClient.getStatusCode(), promise, "While looking up preceding/succeeding titles for the Instance");

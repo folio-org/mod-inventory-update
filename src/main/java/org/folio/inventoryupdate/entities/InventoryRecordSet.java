@@ -21,8 +21,7 @@ public class InventoryRecordSet extends JsonRepresentation {
     private Map<String,Item> itemsByHRID = new HashMap<String,Item>();
     private List<HoldingsRecord> allHoldingsRecords = new ArrayList<HoldingsRecord>();
     private List<Item> allItems = new ArrayList<Item>();
-    public InstanceToInstanceRelations instanceToInstanceRelations = new InstanceToInstanceRelations();
-    public Instance provisionalRelatedInstance = null;
+    private InstanceRelationsController instanceRelationsController = new InstanceRelationsController();
 
     public static final String INSTANCE = "instance";
     public static final String HOLDINGS_RECORDS = "holdingsRecords";
@@ -43,11 +42,11 @@ public class InventoryRecordSet extends JsonRepresentation {
             // If it's an incoming record set the related HRIDs will be stored for subsequent retrieval
             // of Instance IDs to create the relationship JSON
             if (hasRelationshipRecords(inventoryRecordSet)) {
-                instanceToInstanceRelations.registerRelationshipJsonRecords(anInstance.getUUID(),inventoryRecordSet.getJsonObject(InstanceToInstanceRelations.INSTANCE_RELATIONS));
-                logger.debug("InventoryRecordSet initialized with existing instance relationships: " + instanceToInstanceRelations.toString());
+                instanceRelationsController.registerRelationshipJsonRecords(anInstance.getUUID(),inventoryRecordSet.getJsonObject(InstanceRelationsController.INSTANCE_RELATIONS));
+                logger.debug("InventoryRecordSet initialized with existing instance relationships: " + instanceRelationsController.toString());
             }
             if (hasRelationshipIdentifiers(inventoryRecordSet)) {
-                instanceToInstanceRelations.setInstanceRelationsJson(inventoryRecordSet.getJsonObject(InstanceToInstanceRelations.INSTANCE_RELATIONS));
+                instanceRelationsController.setInstanceRelationsJson(inventoryRecordSet.getJsonObject(InstanceRelationsController.INSTANCE_RELATIONS));
                 logger.debug("InventoryRecordSet initialized with incoming instance relationships JSON (relations to be built.");
             }
         }
@@ -60,18 +59,18 @@ public class InventoryRecordSet extends JsonRepresentation {
 
     private boolean hasRelationshipRecords (JsonObject json) {
         return (json != null
-                && json.containsKey(InstanceToInstanceRelations.INSTANCE_RELATIONS)
-                && json.getJsonObject(InstanceToInstanceRelations.INSTANCE_RELATIONS).containsKey(InstanceToInstanceRelations.EXISTING_PARENT_CHILD_RELATIONS));
+                && json.containsKey(InstanceRelationsController.INSTANCE_RELATIONS)
+                && json.getJsonObject(InstanceRelationsController.INSTANCE_RELATIONS).containsKey(InstanceRelationsController.EXISTING_PARENT_CHILD_RELATIONS));
     }
 
     private boolean hasRelationshipIdentifiers (JsonObject json) {
         if (json != null) {
-            JsonObject relationsJson = json.getJsonObject(InstanceToInstanceRelations.INSTANCE_RELATIONS);
+            JsonObject relationsJson = json.getJsonObject(InstanceRelationsController.INSTANCE_RELATIONS);
             if (relationsJson != null) {
-                return (relationsJson.containsKey(InstanceToInstanceRelations.PARENT_INSTANCES) ||
-                        relationsJson.containsKey(InstanceToInstanceRelations.CHILD_INSTANCES) ||
-                        relationsJson.containsKey(InstanceToInstanceRelations.PRECEDING_TITLES) ||
-                        relationsJson.containsKey(InstanceToInstanceRelations.SUCCEEDING_TITLES));
+                return (relationsJson.containsKey(InstanceRelationsController.PARENT_INSTANCES) ||
+                        relationsJson.containsKey(InstanceRelationsController.CHILD_INSTANCES) ||
+                        relationsJson.containsKey(InstanceRelationsController.PRECEDING_TITLES) ||
+                        relationsJson.containsKey(InstanceRelationsController.SUCCEEDING_TITLES));
             } else {
                 return false;
             }
@@ -134,7 +133,7 @@ public class InventoryRecordSet extends JsonRepresentation {
             holdingsAndItemsArray.add(holdingsRecordJson);
         }
         recordSetJson.put(HOLDINGS_RECORDS, holdingsAndItemsArray);
-        recordSetJson.put(InstanceToInstanceRelations.INSTANCE_RELATIONS, instanceToInstanceRelations.asJson());
+        recordSetJson.put(InstanceRelationsController.INSTANCE_RELATIONS, instanceRelationsController.asJson());
         return recordSetJson;
     }
 
@@ -193,15 +192,15 @@ public class InventoryRecordSet extends JsonRepresentation {
     }
 
     public void prepareAllInstanceRelationsForDeletion() {
-        instanceToInstanceRelations.markAllRelationsForDeletion();
+        instanceRelationsController.markAllRelationsForDeletion();
     }
 
     public List<InstanceToInstanceRelation> getInstanceRelationsByTransactionType (Transaction transition) {
-        return instanceToInstanceRelations.getInstanceRelationsByTransactionType(transition);
+        return instanceRelationsController.getInstanceRelationsByTransactionType(transition);
     }
 
     public Future<Void> prepareIncomingInstanceRelationRecords(OkapiClient client, String instanceId) {
-        return instanceToInstanceRelations.makeInstanceRelationRecordsFromIdentifiers(client, instanceId);
+        return instanceRelationsController.makeInstanceRelationRecordsFromIdentifiers(client, instanceId);
     }
 
     public List<HoldingsRecord> getHoldingsRecordsByTransactionType (Transaction transition) {
@@ -218,6 +217,8 @@ public class InventoryRecordSet extends JsonRepresentation {
         return allHoldingsRecords;
     }
 
+    public InstanceRelationsController getInstanceRelationsController() { return instanceRelationsController; }
+
     public List<Item> getItems () {
         return allItems;
     }
@@ -226,10 +227,14 @@ public class InventoryRecordSet extends JsonRepresentation {
     public boolean hasErrors () {
         if (getInstance().failed())
             return true;
+        // TODO: flatMap
         for (InventoryRecord record : allItems)
             if (record.failed())
                 return true;
         for (InventoryRecord record : allHoldingsRecords)
+            if (record.failed())
+                return true;
+        for (InventoryRecord record : getInstanceRelationsController().getInstanceToInstanceRelations())
             if (record.failed())
                 return true;
         return false;
@@ -249,6 +254,11 @@ public class InventoryRecordSet extends JsonRepresentation {
         for (Item item : allItems) {
             if (item.failed()) {
                 errors.add(item.getError());
+            }
+        }
+        for (InstanceToInstanceRelation relation : getInstanceRelationsController().getInstanceToInstanceRelations()) {
+            if (relation.failed()) {
+                errors.add(relation.getError());
             }
         }
         return errors;

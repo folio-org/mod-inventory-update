@@ -1,7 +1,10 @@
 package org.folio.inventoryupdate;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import io.vertx.core.impl.logging.Logger;
 import io.vertx.core.impl.logging.LoggerFactory;
@@ -164,60 +167,66 @@ public abstract class UpdatePlan {
     }
 
     public void writePlanToLog () {
-        logger.info("Planning of " + (isDeletion ? " delete " : " create/update ") + " of Inventory records set done: ");
-        if (isDeletion) {
-          if (foundExistingRecordSet()) {            
-            logger.info("Instance transition: " + (gotUpdatingRecordSet() ? getUpdatingInstance().getTransaction() : getExistingInstance().getTransaction()));
-            logger.info("Items to delete: ");
-            for (Item record : itemsToDelete()) {
-              logger.info(record.asJson().encodePrettily());
-            }
-            logger.info("Holdings to delete: ");
-            for (HoldingsRecord record : holdingsToDelete()) {
-              logger.info(record.asJson().encodePrettily());
-            }
-            logger.info("Relationships to delete: ");
-            for (InstanceToInstanceRelation record : instanceRelationsToDelete()) {
-                logger.info(record.asJson().encodePrettily());
-            }
-          } else {
-            logger.info("Got delete request but no existing records found with provided identifier(s)");
-          }
-        } else {
-          logger.info("Instance transition: " + getUpdatingInstance().getTransaction());
-          logger.info("Holdings to create: ");
-          for (HoldingsRecord record : holdingsToCreate()) {
-            logger.info(record.asJson().encodePrettily());
-          }
-          logger.info("Holdings to update: ");
-          for (HoldingsRecord record : holdingsToUpdate()) {
-            logger.info(record.asJson().encodePrettily());
-          }
-          logger.info("Items to create: ");
-          for (Item record : itemsToCreate()) {
-            logger.info(record.asJson().encodePrettily());
-          }
-          logger.info("Items to update: ");
-          for (Item record : itemsToUpdate()) {
-            logger.info(record.asJson().encodePrettily());
-          }
-          logger.info("Items to delete: ");
-          for (Item record : itemsToDelete()) {
-            logger.info(record.asJson().encodePrettily());
-          }
-          logger.info("Holdings to delete: ");
-          for (HoldingsRecord record : holdingsToDelete()) {
-            logger.info(record.asJson().encodePrettily());
-          }
-          logger.info("Instance to Instance relations to create: ");
-          for (InstanceToInstanceRelation record : getUpdatingRecordSet().instanceToInstanceRelations.instanceRelationsToCreate()) {
-              logger.info(record.asJson().encodePrettily());
-          }
-          logger.info("Instance to Instance relationships to delete: ");
-          for (InstanceToInstanceRelation record : instanceRelationsToDelete()) {
-              logger.info(record.asJson().encodePrettily());
-          }
+        if (logger.isDebugEnabled()) {
+            logger.debug("Planning of " + (isDeletion ? " delete " : " create/update ") + " of Inventory records set done: ");
+            if (isDeletion) {
+                if (foundExistingRecordSet()) {
+                    logger.debug("Instance transition: " + (gotUpdatingRecordSet() ? getUpdatingInstance().getTransaction() : getExistingInstance().getTransaction()));
+                    logger.debug("Items to delete: ");
+                    for (Item record : itemsToDelete()) {
+                        logger.debug(record.asJson().encodePrettily());
+                    }
+                    logger.debug("Holdings to delete: ");
+                    for (HoldingsRecord record : holdingsToDelete()) {
+                        logger.debug(record.asJson().encodePrettily());
+                    }
+                    logger.debug("Relationships to delete: ");
+                    for (InstanceToInstanceRelation record : instanceRelationsToDelete()) {
+                        logger.debug(record.asJson().encodePrettily());
+                    }
+                } else {
+                    logger.debug("Got delete request but no existing records found with provided identifier(s)");
+                }
+            } else {
+                logger.debug("Instance transition: " + getUpdatingInstance().getTransaction());
+                logger.debug("Holdings to create: ");
+                for (HoldingsRecord record : holdingsToCreate()) {
+                    logger.debug(record.asJson().encodePrettily());
+                }
+                logger.debug("Holdings to update: ");
+                for (HoldingsRecord record : holdingsToUpdate()) {
+                    logger.debug(record.asJson().encodePrettily());
+                }
+                logger.debug("Items to create: ");
+                for (Item record : itemsToCreate()) {
+                    logger.debug(record.asJson().encodePrettily());
+                }
+                logger.debug("Items to update: ");
+                for (Item record : itemsToUpdate()) {
+                    logger.debug(record.asJson().encodePrettily());
+                }
+                logger.debug("Items to delete: ");
+                for (Item record : itemsToDelete()) {
+                    logger.debug(record.asJson().encodePrettily());
+                }
+                logger.debug("Holdings to delete: ");
+                for (HoldingsRecord record : holdingsToDelete()) {
+                    logger.debug(record.asJson().encodePrettily());
+                }
+                logger.debug("Instance to Instance relations to create: ");
+                for (InstanceToInstanceRelation record : getUpdatingRecordSet().getInstanceRelationsController().instanceRelationsToCreate()) {
+                    logger.debug(record.asJson().encodePrettily());
+                }
+                logger.debug("Provisional Instances to create: ");
+                for (Instance record : getUpdatingRecordSet().getInstanceRelationsController().provisionalInstancesToCreate()) {
+                    logger.debug(record.asJson().encodePrettily());
+                }
+                logger.debug("Instance to Instance relationships to delete: ");
+                for (InstanceToInstanceRelation record : instanceRelationsToDelete()) {
+                    logger.debug(record.asJson().encodePrettily());
+                }
 
+            }
         }
     }
 
@@ -291,25 +300,6 @@ public abstract class UpdatePlan {
         });
         return promise.future();
     }
-
-    /*
-    public Future<JsonObject> handleInstanceRelationCreatesIfAny (OkapiClient okapiClient) {
-
-        Promise<JsonObject> promise = Promise.promise();
-        List<Future> createFutures = new ArrayList<Future>();
-        for (InstanceRelationship relation : relationshipsToCreate()) {
-            createFutures.add(InventoryStorage.postInventoryRecord(okapiClient, relation));
-        }
-        CompositeFuture.join(createFutures).onComplete( allRelationsCreated -> {
-            if (allRelationsCreated.succeeded()) {
-                promise.complete(new JsonObject());
-            } else {
-                promise.fail("There was an error creating instance relations: " + allRelationsCreated.cause().getMessage());
-            }
-        });
-        return promise.future();
-    }
-    */
 
     /**
      * Perform deletions of any relations to other instances and
@@ -404,6 +394,7 @@ public abstract class UpdatePlan {
         String transactionStats = "{ \""+ Transaction.CREATE + "\": " + outcomeStats + ", \""
                                         + Transaction.UPDATE + "\": " + outcomeStats + ", \""
                                         + Transaction.DELETE + "\": " + outcomeStats + " }";
+
         stats.put(Entity.INSTANCE.toString(), new JsonObject(transactionStats));
         stats.put(Entity.HOLDINGS_RECORD.toString(), new JsonObject(transactionStats));
         stats.put(Entity.ITEM.toString(), new JsonObject(transactionStats));
@@ -413,17 +404,18 @@ public abstract class UpdatePlan {
           JsonObject instanceOutcomes = instance.getJsonObject(getUpdatingInstance().getTransaction().toString());
           instanceOutcomes.put(getUpdatingInstance().getOutcome().toString(), instanceOutcomes.getInteger(getUpdatingInstance().getOutcome().toString())+1);
 
-          for (InventoryRecord record : updatingSet.getHoldingsRecords()) {
+          List<InventoryRecord> holdingsRecordsAndItemsInUpdatingSet = Stream.of(
+                  updatingSet.getHoldingsRecords(),
+                  updatingSet.getItems())
+                  .flatMap(Collection::stream).collect(Collectors.toList());
+
+          for (InventoryRecord record : holdingsRecordsAndItemsInUpdatingSet) {
               JsonObject entity = stats.getJsonObject(record.entityType().toString());
               JsonObject outcomes = entity.getJsonObject(record.getTransaction().toString());
               outcomes.put(record.getOutcome().toString(), outcomes.getInteger(record.getOutcome().toString())+1);
           }
 
-          for (InventoryRecord record : updatingSet.getItems()) {
-              JsonObject entity = stats.getJsonObject(record.entityType().toString());
-              JsonObject outcomes = entity.getJsonObject(record.getTransaction().toString());
-              outcomes.put(record.getOutcome().toString(), outcomes.getInteger(record.getOutcome().toString())+1);
-          }
+          updatingSet.getInstanceRelationsController().writeToStats(stats);
         }
 
         if (foundExistingRecordSet()) {
@@ -433,21 +425,20 @@ public abstract class UpdatePlan {
               JsonObject outcomes = entity.getJsonObject(record.getTransaction().toString());
               outcomes.put(record.getOutcome().toString(), outcomes.getInteger(record.getOutcome().toString())+1);            
           }
-          for (InventoryRecord record : existingSet.getHoldingsRecords()) {
-              if (record.isDeleting()) {
-                  JsonObject entity = stats.getJsonObject(record.entityType().toString());
-                  JsonObject outcomes = entity.getJsonObject(record.getTransaction().toString());
-                  outcomes.put(record.getOutcome().toString(), outcomes.getInteger(record.getOutcome().toString())+1);
-              }
-          }
-          for (InventoryRecord record : existingSet.getItems()) {
-              if (record.isDeleting()) {
-                  JsonObject entity = stats.getJsonObject(record.entityType().toString());
-                  JsonObject outcomes = entity.getJsonObject(record.getTransaction().toString());
-                  outcomes.put(record.getOutcome().toString(), outcomes.getInteger(record.getOutcome().toString())+1);
+          List<InventoryRecord> holdingsRecordsAndItemsInExistingSet = Stream.of(
+              existingSet.getHoldingsRecords(),
+              existingSet.getItems()
+          ).flatMap(Collection::stream).collect(Collectors.toList());
 
+          for (InventoryRecord record : holdingsRecordsAndItemsInExistingSet) {
+              if (record.isDeleting()) {
+                  JsonObject entity = stats.getJsonObject(record.entityType().toString());
+                  JsonObject outcomes = entity.getJsonObject(record.getTransaction().toString());
+                  outcomes.put(record.getOutcome().toString(), outcomes.getInteger(record.getOutcome().toString())+1);
               }
           }
+          existingSet.getInstanceRelationsController().writeToStats(stats);
+
         }
         return stats;
     }

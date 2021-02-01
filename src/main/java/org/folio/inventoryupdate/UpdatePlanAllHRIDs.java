@@ -96,7 +96,7 @@ public class UpdatePlanAllHRIDs extends UpdatePlan {
                     if (relationsCreated.succeeded()) {
                         logger.debug("Successfully processed relationship create requests if any");
                     } else {
-                        logger.error("There was a problem creating Instance relationships");
+                        logger.error(relationsCreated.cause().getMessage());
                     }
                     handleItemUpdatesAndCreatesIfAny(okapiClient).onComplete(itemUpdatesAndCreates -> {
                         if (prerequisites.succeeded() && instanceAndHoldingsUpdates.succeeded() && itemUpdatesAndCreates.succeeded()) {
@@ -113,7 +113,10 @@ public class UpdatePlanAllHRIDs extends UpdatePlan {
                                 }
                             });
                         } else {
-                            promise.fail("There was a problem creating records, no deletes performed if any requested:" + LF + "  " + prerequisites.cause().getMessage());
+                            promise.fail("There was a problem creating records, no deletes performed if any requested:" + LF + "  " +
+                                    (prerequisites.failed() ? prerequisites.cause().getMessage() : "")
+                                    + (instanceAndHoldingsUpdates.failed() ? " " + instanceAndHoldingsUpdates.cause().getMessage() : "")
+                                    + (itemUpdatesAndCreates.failed() ? " " + itemUpdatesAndCreates.cause().getMessage(): ""));
                         }
                     });
                 });
@@ -124,7 +127,7 @@ public class UpdatePlanAllHRIDs extends UpdatePlan {
 
     public Future<JsonObject> handleInstanceRelationCreatesIfAny (OkapiClient okapiClient) {
         if (!isDeletion) {
-            return getUpdatingRecordSet().instanceToInstanceRelations.handleInstanceRelationCreatesIfAny(okapiClient);
+            return getUpdatingRecordSet().getInstanceRelationsController().handleInstanceRelationCreatesIfAny(okapiClient);
         } else {
             Promise<JsonObject> promise = Promise.promise();
             promise.complete(null);
@@ -177,37 +180,33 @@ public class UpdatePlanAllHRIDs extends UpdatePlan {
         }
     }
 
+    //todo: move to controller?
     public void prepareIncomingInstanceRelations() {
         if (getUpdatingRecordSet() != null) {
-            List<InstanceToInstanceRelation> incomingRelations = getUpdatingRecordSet().instanceToInstanceRelations.getInstanceToInstanceRelations();
+            List<InstanceToInstanceRelation> incomingRelations = getUpdatingRecordSet().getInstanceRelationsController().getInstanceToInstanceRelations();
             logger.debug("Flagging incoming relationships for creation if any. Got " + incomingRelations.size() + " incoming candidates.");
-            for (InstanceToInstanceRelation incomingRelation : getUpdatingRecordSet().instanceToInstanceRelations.getInstanceToInstanceRelations()) {
+            for (InstanceToInstanceRelation incomingRelation : getUpdatingRecordSet().getInstanceRelationsController().getInstanceToInstanceRelations()) {
                 incomingRelation.setTransition(Transaction.CREATE);
-                logger.debug("Flagged a relationship for create");
                 if (foundExistingRecordSet()) {
-                    for (InstanceToInstanceRelation existingRelation : getExistingRecordSet().instanceToInstanceRelations.getInstanceToInstanceRelations()) {
-                        if (existingRelation.equals(incomingRelation)) {
-                            incomingRelation.setTransition(Transaction.NONE);
-                            logger.debug("Flagged a relationship to transaction NONE");
-                            break;
-                        }
+                    if (getExistingRecordSet().getInstanceRelationsController().hasThisRelation(incomingRelation)) {
+                        logger.debug("Relationship already exists - skipping creation");
+                        incomingRelation.skip();
                     }
                 }
             }
         }
         if (getExistingRecordSet() != null) {
-            logger.info("Checking for existing instance relations to delete: " + getExistingRecordSet().instanceToInstanceRelations.getInstanceToInstanceRelations());
-            for (InstanceToInstanceRelation existingRelation : getExistingRecordSet().instanceToInstanceRelations.getInstanceToInstanceRelations()) {
-                if (!getUpdatingRecordSet().instanceToInstanceRelations.hasThisRelation(existingRelation)) {
-                    logger.info("Not found in updating record, mark for deletion. ");
+            logger.debug("Checking for existing instance relations to delete: " + getExistingRecordSet().getInstanceRelationsController().getInstanceToInstanceRelations());
+            for (InstanceToInstanceRelation existingRelation : getExistingRecordSet().getInstanceRelationsController().getInstanceToInstanceRelations()) {
+                if (!getUpdatingRecordSet().getInstanceRelationsController().hasThisRelation(existingRelation)) {
+                    logger.debug("Relation not found in updating record, mark for deletion. ");
                     existingRelation.setTransition(Transaction.DELETE);
                 } else {
-                    logger.info("Found in updating record, keep it");
+                    logger.debug("Relation found in updating record, keep it");
                     existingRelation.setTransition(Transaction.NONE);
                 }
             }
         }
-
 
     }
 

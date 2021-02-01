@@ -89,6 +89,12 @@ public class InstanceRelationsController extends JsonRepresentation {
         return getTitleSuccessions().size()>0;
     }
 
+    /**
+     * Planning
+     * @param client
+     * @param instanceId
+     * @return
+     */
     public Future<Void> makeInstanceRelationRecordsFromIdentifiers(OkapiClient client, String instanceId) {
         Promise<Void> promise = Promise.promise();
         if (instanceRelationsJson.containsKey(PARENT_INSTANCES)
@@ -143,6 +149,14 @@ public class InstanceRelationsController extends JsonRepresentation {
         return promise.future();
     }
 
+    /**
+     * Planning
+     * @param client
+     * @param instanceId
+     * @param identifiers
+     * @param type
+     * @return
+     */
     private static Future<List<InstanceToInstanceRelation>> makeRelationsFromIdentifiers(OkapiClient client, String instanceId, JsonArray identifiers, InstanceToInstanceRelation.TypeOfRelation type) {
         Promise<List<InstanceToInstanceRelation>> promise = Promise.promise();
         if (identifiers != null) {
@@ -174,6 +188,15 @@ public class InstanceRelationsController extends JsonRepresentation {
         return promise.future();
     }
 
+    /**
+     * Planning: Looks up the related Instance from storage and builds an Instance relation object of a given type,
+     * @param client
+     * @param instanceId
+     * @param relatedObject
+     * @param identifierKey
+     * @param type
+     * @return
+     */
     private static Future<InstanceToInstanceRelation> makeInstanceRelationWithInstanceIdentifier(OkapiClient client,
                                                                                                  String instanceId,
                                                                                                  JsonObject relatedObject,
@@ -219,6 +242,12 @@ public class InstanceRelationsController extends JsonRepresentation {
                         break;
                 }
                 relation.setTransition(InventoryRecord.Transaction.CREATE);
+
+                // If the related Instance does not already exist and it cannot be created, register the
+                // problem but don't fail it here, in the planning phase, since that would abort the entire update.
+                // Rather give the update plan a chance to continue to successful completion and then let the
+                // record(s) in question fail eventually during execution of the plan.
+                // @see: handleInstanceRelationCreatesIfAny and failRelationCreation
                 if (existingInstance.result() == null) {
                     relation.requiresProvisionalInstanceToBeCreated(true);
                     if (provisionalInstance == null) {
@@ -240,6 +269,11 @@ public class InstanceRelationsController extends JsonRepresentation {
         return promise.future();
     }
 
+    /**
+     * Planning: Checks that the required information for creating a provisional Instance is available.
+     * @param provisionalInstanceProperties
+     * @return
+     */
     private static boolean validateProvisionalInstanceProperties (JsonObject provisionalInstanceProperties) {
         if (provisionalInstanceProperties == null) {
             return false;
@@ -255,7 +289,7 @@ public class InstanceRelationsController extends JsonRepresentation {
     }
 
     /**
-     * Create a temporary Instance to create a relationship to.
+     * Planning Create a temporary Instance to create a relationship to.
      * @param hrid human readable ID of the temporary Instance to create
      * @param provisionalInstanceJson other properties of the Instance to create
      * @return Instance POJO
@@ -271,6 +305,11 @@ public class InstanceRelationsController extends JsonRepresentation {
         return new Instance(json);
     }
 
+    /**
+     * Planning: Takes Instance relation records from storage and creates Instance relations objects
+     * @param instanceId
+     * @param instanceRelations
+     */
     public void registerRelationshipJsonRecords(String instanceId, JsonObject instanceRelations) {
         if (instanceRelations.containsKey(EXISTING_PARENT_CHILD_RELATIONS)) {
             JsonArray existingRelations = instanceRelations.getJsonArray(EXISTING_PARENT_CHILD_RELATIONS);
@@ -296,8 +335,12 @@ public class InstanceRelationsController extends JsonRepresentation {
         }
     }
 
+    /**
+     * Executing plan
+     * @param okapiClient
+     * @return
+     */
     public Future<JsonObject> handleInstanceRelationCreatesIfAny (OkapiClient okapiClient) {
-
         Promise<JsonObject> promise = Promise.promise();
 
         @SuppressWarnings("rawtypes")
@@ -332,6 +375,12 @@ public class InstanceRelationsController extends JsonRepresentation {
         return promise.future();
     }
 
+    /**
+     * Executing plan: Force Instance relation creation to fail; used when the planning logic detected a problem creating a
+     * provisional record to relate to.
+     * @param relation  the problematic Instance relation
+     * @return
+     */
     private Future<Void> failRelationCreation(InstanceToInstanceRelation relation) {
         Promise promise = Promise.promise();
         promise.fail(relation.getError().encodePrettily());

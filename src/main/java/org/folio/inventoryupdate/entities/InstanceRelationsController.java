@@ -7,15 +7,19 @@ import io.vertx.core.impl.logging.Logger;
 import io.vertx.core.impl.logging.LoggerFactory;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
+import org.folio.inventoryupdate.HridQuery;
+import org.folio.inventoryupdate.InventoryQuery;
 import org.folio.inventoryupdate.InventoryStorage;
 import org.folio.okapi.common.OkapiClient;
 
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.UUID;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import static org.folio.inventoryupdate.entities.InstanceRelationship.INSTANCE_RELATIONSHIP_TYPE_ID;
 import static org.folio.inventoryupdate.entities.InventoryRecordSet.HRID;
 
 public class InstanceRelationsController extends JsonRepresentation {
@@ -36,10 +40,10 @@ public class InstanceRelationsController extends JsonRepresentation {
     // EOF JSON property keys
 
     public static final String LF = System.lineSeparator();
-    private List<InstanceRelationship> parentRelations = new ArrayList<>();
-    private List<InstanceRelationship> childRelations = new ArrayList<>();
-    private List<InstanceTitleSuccession> succeedingTitles = new ArrayList<>();
-    private List<InstanceTitleSuccession> precedingTitles = new ArrayList<>();
+    private List<InstanceToInstanceRelation> parentRelations = new ArrayList<>();
+    private List<InstanceToInstanceRelation> childRelations = new ArrayList<>();
+    private List<InstanceToInstanceRelation> succeedingTitles = new ArrayList<>();
+    private List<InstanceToInstanceRelation> precedingTitles = new ArrayList<>();
 
     private JsonObject instanceRelationsJson = new JsonObject();
     protected final Logger logger = LoggerFactory.getLogger("inventory-update");
@@ -91,10 +95,10 @@ public class InstanceRelationsController extends JsonRepresentation {
                 || instanceRelationsJson.containsKey(CHILD_INSTANCES)
                 || instanceRelationsJson.containsKey(SUCCEEDING_TITLES)
                 || instanceRelationsJson.containsKey(PRECEDING_TITLES)) {
-            makeParentRelationsFromIdentifiers(client, instanceId, instanceRelationsJson.getJsonArray(PARENT_INSTANCES)).onComplete(parents -> {
-                    makeChildRelationsFromIdentifiers(client, instanceId, instanceRelationsJson.getJsonArray(CHILD_INSTANCES)).onComplete (children -> {
-                        makeSucceedingTitlesFromIdentifiers(client, instanceId, instanceRelationsJson.getJsonArray(SUCCEEDING_TITLES)).onComplete(succeedingTitles -> {
-                            makePrecedingTitlesFromIdentifiers(client, instanceId, instanceRelationsJson.getJsonArray(PRECEDING_TITLES)).onComplete(precedingTitles -> {
+            makeRelationsFromIdentifiers(client, instanceId, instanceRelationsJson.getJsonArray(PARENT_INSTANCES), InstanceToInstanceRelation.TypeOfRelation.TO_PARENT).onComplete(parents -> {
+                    makeRelationsFromIdentifiers(client, instanceId, instanceRelationsJson.getJsonArray(CHILD_INSTANCES), InstanceToInstanceRelation.TypeOfRelation.TO_CHILD).onComplete (children -> {
+                        makeRelationsFromIdentifiers(client, instanceId, instanceRelationsJson.getJsonArray(SUCCEEDING_TITLES), InstanceToInstanceRelation.TypeOfRelation.TO_PRECEDING).onComplete(succeedingTitles -> {
+                            makeRelationsFromIdentifiers(client, instanceId, instanceRelationsJson.getJsonArray(PRECEDING_TITLES), InstanceToInstanceRelation.TypeOfRelation.TO_SUCCEEDING).onComplete(precedingTitles -> {
                                 StringBuilder errorMessages = new StringBuilder();
                                 if (parents.succeeded()) {
                                     if (parents.result() != null) {
@@ -139,91 +143,29 @@ public class InstanceRelationsController extends JsonRepresentation {
         return promise.future();
     }
 
-    private static Future<List<InstanceRelationship>> makeParentRelationsFromIdentifiers(OkapiClient client, String instanceId, JsonArray parentIdentifiers) {
-        Promise<List<InstanceRelationship>> promise = Promise.promise();
-        if (parentIdentifiers != null) {
-            @SuppressWarnings("rawtypes")
-            List<Future> relationsFutures = new ArrayList<>();
-            for (Object o : parentIdentifiers) {
-                JsonObject relationshipJson = (JsonObject) o;
-                if (relationshipJson.containsKey(INSTANCE_IDENTIFIER) && relationshipJson.getJsonObject(INSTANCE_IDENTIFIER).containsKey(HRID)) {
-                    relationsFutures.add(InstanceRelationship.makeParentRelationWithInstanceIdentifier(client, instanceId, relationshipJson, HRID ));
-                }
-            }
-            CompositeFuture.all(relationsFutures).onComplete( parentInstances -> {
-               if (parentInstances.succeeded()) {
-                   if (parentInstances.result().list() != null) {
-                       List<InstanceRelationship> relations = new ArrayList<>();
-                       for (Object o : parentInstances.result().list()) {
-                           InstanceRelationship relationship =  (InstanceRelationship) o;
-                           relations.add(relationship);
-                       }
-                       promise.complete(relations);
-                   }
-               } else {
-                   promise.fail("Failed to construct parent relationships with provided parent Instance identifiers:" + LF + "  " + parentInstances.cause().getMessage());
-               }
-            });
-        } else {
-            promise.complete(null);
-        }
-        return promise.future();
-    }
-
-    private static Future<List<InstanceRelationship>> makeChildRelationsFromIdentifiers(OkapiClient client, String instanceId, JsonArray identifiers) {
-        Promise<List<InstanceRelationship>> promise = Promise.promise();
+    private static Future<List<InstanceToInstanceRelation>> makeRelationsFromIdentifiers(OkapiClient client, String instanceId, JsonArray identifiers, InstanceToInstanceRelation.TypeOfRelation type) {
+        Promise<List<InstanceToInstanceRelation>> promise = Promise.promise();
         if (identifiers != null) {
             @SuppressWarnings("rawtypes")
             List<Future> relationsFutures = new ArrayList<>();
             for (Object o : identifiers) {
-                JsonObject relationshipJson = (JsonObject) o;
-                if (relationshipJson.containsKey(INSTANCE_IDENTIFIER) && relationshipJson.getJsonObject(INSTANCE_IDENTIFIER).containsKey(HRID)) {
-                    relationsFutures.add(InstanceRelationship.makeChildRelationWithInstanceIdentifier(client, instanceId, relationshipJson, HRID ));
+                JsonObject relationJson = (JsonObject) o;
+                if (relationJson.containsKey(INSTANCE_IDENTIFIER) && relationJson.getJsonObject(INSTANCE_IDENTIFIER).containsKey(HRID)) {
+                    relationsFutures.add(makeInstanceRelationWithInstanceIdentifier(client, instanceId, relationJson, HRID, type ));
                 }
             }
-            CompositeFuture.all(relationsFutures).onComplete( instances -> {
-                if (instances.succeeded()) {
-                    if (instances.result().list() != null) {
-                        List<InstanceRelationship> relations = new ArrayList<>();
-                        for (Object o : instances.result().list()) {
-                            InstanceRelationship relationship =  (InstanceRelationship) o;
-                            relations.add(relationship);
-                        }
-                        promise.complete(relations);
-                    }
-                } else  {
-                    promise.fail("Failed to construct child relationships with provided child Instance identifiers:" + LF + "  " + instances.cause().getMessage());
-                }
-            });
-        } else {
-            promise.complete(null);
-        }
-        return promise.future();
-    }
-
-    private static Future<List<InstanceTitleSuccession>> makeSucceedingTitlesFromIdentifiers (OkapiClient client, String instanceId, JsonArray identifiers) {
-        Promise<List<InstanceTitleSuccession>> promise = Promise.promise();
-        if (identifiers != null) {
-            @SuppressWarnings("rawtypes")
-            List<Future> titlesFutures = new ArrayList<>();
-            for (Object o : identifiers) {
-                JsonObject successionJson = (JsonObject) o;
-                if (successionJson.containsKey(INSTANCE_IDENTIFIER) && successionJson.getJsonObject(INSTANCE_IDENTIFIER).containsKey(HRID)) {
-                    titlesFutures.add(InstanceTitleSuccession.makeSucceedingTitleWithInstanceIdentifier(client, instanceId, successionJson, HRID ));
-                }
-            }
-            CompositeFuture.all(titlesFutures).onComplete( instances -> {
-                if (instances.succeeded()) {
-                    if (instances.result().list() != null) {
-                        List<InstanceTitleSuccession> relations = new ArrayList<>();
-                        for (Object o : instances.result().list()) {
-                            InstanceTitleSuccession relation =  (InstanceTitleSuccession) o;
+            CompositeFuture.all(relationsFutures).onComplete( relatedInstances -> {
+                if (relatedInstances.succeeded()) {
+                    if (relatedInstances.result().list() != null) {
+                        List<InstanceToInstanceRelation> relations = new ArrayList<>();
+                        for (Object o : relatedInstances.result().list()) {
+                            InstanceToInstanceRelation relation =  (InstanceToInstanceRelation) o;
                             relations.add(relation);
                         }
                         promise.complete(relations);
                     }
-                } else  {
-                    promise.fail("Failed to construct links to succeeding titles with provided Instance identifiers:" + LF + "  " + instances.cause().getMessage());
+                } else {
+                    promise.fail("Failed to construct parent relationships with provided parent Instance identifiers:" + LF + "  " + relatedInstances.cause().getMessage());
                 }
             });
         } else {
@@ -232,37 +174,102 @@ public class InstanceRelationsController extends JsonRepresentation {
         return promise.future();
     }
 
-    private static Future<List<InstanceTitleSuccession>> makePrecedingTitlesFromIdentifiers (OkapiClient client, String instanceId, JsonArray identifiers) {
-        Promise<List<InstanceTitleSuccession>> promise = Promise.promise();
-        if (identifiers != null) {
-            @SuppressWarnings("rawtypes")
-            List<Future> titlesFutures = new ArrayList<>();
-            for (Object o : identifiers) {
-                JsonObject successionJson = (JsonObject) o;
-                if (successionJson.containsKey(INSTANCE_IDENTIFIER) && successionJson.getJsonObject(INSTANCE_IDENTIFIER).containsKey(HRID)) {
-                    titlesFutures.add(InstanceTitleSuccession.makePrecedingTitleWithInstanceIdentifier(client, instanceId, successionJson, HRID ));
-                }
-            }
-            CompositeFuture.all(titlesFutures).onComplete( instances -> {
-                if (instances.succeeded()) {
-                    if (instances.result().list() != null) {
-                        List<InstanceTitleSuccession> relations = new ArrayList<>();
-                        for (Object o : instances.result().list()) {
-                            InstanceTitleSuccession relation =  (InstanceTitleSuccession) o;
-                            relations.add(relation);
-                        }
-                        promise.complete(relations);
+    private static Future<InstanceToInstanceRelation> makeInstanceRelationWithInstanceIdentifier(OkapiClient client,
+                                                                                                 String instanceId,
+                                                                                                 JsonObject relatedObject,
+                                                                                                 String identifierKey,
+                                                                                                 InstanceToInstanceRelation.TypeOfRelation type) {
+        Promise<InstanceToInstanceRelation> promise = Promise.promise();
+        JsonObject instanceIdentifier = relatedObject.getJsonObject(InstanceRelationsController.INSTANCE_IDENTIFIER);
+        String hrid = instanceIdentifier.getString(identifierKey);
+        InventoryQuery hridQuery = new HridQuery(hrid);
+        InventoryStorage.lookupInstance(client, hridQuery).onComplete(existingInstance -> {
+            if (existingInstance.succeeded()) {
+                Instance provisionalInstance = null;
+                String relateToThisId = null;
+                if (existingInstance.result() != null) {
+                    JsonObject relatedInstanceJson = existingInstance.result();
+                    relateToThisId = relatedInstanceJson.getString(InstanceRelationsController.ID);
+                } else {
+                    JsonObject provisionalInstanceJson = relatedObject.getJsonObject(InstanceToInstanceRelation.PROVISIONAL_INSTANCE);
+                    if (validateProvisionalInstanceProperties(provisionalInstanceJson)) {
+                        provisionalInstance = prepareProvisionalInstance(hrid, provisionalInstanceJson);
+                        relateToThisId = provisionalInstance.getUUID();
                     }
-                } else  {
-                    promise.fail("Failed to construct links for preceding titles with provided Instance identifiers:" + LF + "  " + instances.cause().getMessage());
                 }
-            });
-        } else {
-            promise.complete(null);
-        }
+                InstanceToInstanceRelation relation = null;
+                switch (type) {
+                    case TO_PARENT:
+                        relation = InstanceRelationship.makeRelationship(
+                                instanceId, instanceId, relateToThisId,
+                                relatedObject.getString(INSTANCE_RELATIONSHIP_TYPE_ID));
+                        break;
+                    case TO_CHILD:
+                        relation = InstanceRelationship.makeRelationship(
+                                instanceId, relateToThisId, instanceId,
+                                relatedObject.getString(INSTANCE_RELATIONSHIP_TYPE_ID));
+                        break;
+                    case TO_PRECEDING:
+                        relation = InstanceTitleSuccession.makeInstanceTitleSuccession(
+                                relateToThisId, instanceId);
+                        break;
+                    case TO_SUCCEEDING:
+                        relation = InstanceTitleSuccession.makeInstanceTitleSuccession(
+                                instanceId, relateToThisId);
+                        break;
+                }
+                relation.setTransition(InventoryRecord.Transaction.CREATE);
+                if (existingInstance.result() == null) {
+                    relation.requiresProvisionalInstanceToBeCreated(true);
+                    if (provisionalInstance == null) {
+                        Instance failedProvisionalInstance = new Instance(new JsonObject());
+                        failedProvisionalInstance.fail();
+                        failedProvisionalInstance.logError("Missing required properties for creating required provisional instance", 422);
+                        relation.setProvisionalInstance(failedProvisionalInstance);
+                        relation.logError("Referenced parent Instance not found and required provisional Instance info is missing; cannot create relation to non-existing Instance [" + hrid + "], got:" + InstanceRelationsController.LF + relatedObject.encodePrettily(), 422);
+                        relation.fail();
+                    } else {
+                        relation.setProvisionalInstance(provisionalInstance);
+                    }
+                }
+                promise.complete(relation);
+            } else {
+                promise.fail("Error looking up Instance for creating Instance to Instance relation to it: " + existingInstance.cause().getMessage());
+            }
+        });
         return promise.future();
     }
 
+    private static boolean validateProvisionalInstanceProperties (JsonObject provisionalInstanceProperties) {
+        if (provisionalInstanceProperties == null) {
+            return false;
+        } else {
+            if (provisionalInstanceProperties.getString(InstanceRelationsController.TITLE) != null
+                && provisionalInstanceProperties.getString(InstanceRelationsController.SOURCE) != null
+                && provisionalInstanceProperties.getString(InstanceRelationsController.INSTANCE_TYPE_ID) != null) {
+                return true;
+            } else {
+                return false;
+            }
+        }
+    }
+
+    /**
+     * Create a temporary Instance to create a relationship to.
+     * @param hrid human readable ID of the temporary Instance to create
+     * @param provisionalInstanceJson other properties of the Instance to create
+     * @return Instance POJO
+     */
+    protected static Instance prepareProvisionalInstance (String hrid, JsonObject provisionalInstanceJson) {
+        JsonObject json = new JsonObject(provisionalInstanceJson.toString());
+        if (! json.containsKey(HRID)) {
+            json.put(HRID, hrid);
+        }
+        if (! json.containsKey(InstanceRelationsController.ID)) {
+            json.put(InstanceRelationsController.ID, UUID.randomUUID().toString());
+        }
+        return new Instance(json);
+    }
 
     public void registerRelationshipJsonRecords(String instanceId, JsonObject instanceRelations) {
         if (instanceRelations.containsKey(EXISTING_PARENT_CHILD_RELATIONS)) {
@@ -348,26 +355,31 @@ public class InstanceRelationsController extends JsonRepresentation {
     @Override
     public JsonObject asJson() {
         JsonObject json = new JsonObject();
+
         JsonArray parents = new JsonArray();
-        for (InstanceRelationship relation : getParentRelations()) {
+        for (InstanceToInstanceRelation relation : getParentRelations()) {
             parents.add(relation.asJson());
         }
         json.put(PARENT_INSTANCES, parents);
+
         JsonArray children = new JsonArray();
-        for (InstanceRelationship relation : getChildRelations()) {
+        for (InstanceToInstanceRelation relation : getChildRelations()) {
             children.add(relation.asJson());
         }
         json.put(CHILD_INSTANCES, children);
+
         JsonArray nextTitles = new JsonArray();
-        for (InstanceTitleSuccession succeeding : succeedingTitles) {
+        for (InstanceToInstanceRelation succeeding : succeedingTitles) {
             nextTitles.add(succeeding.asJson());
         }
-        //todo: fix this:
         json.put(SUCCEEDING_TITLES,nextTitles);
+
         JsonArray previousTitles = new JsonArray();
-        for (InstanceTitleSuccession preceding : precedingTitles) {
+        for (InstanceToInstanceRelation preceding : precedingTitles) {
             previousTitles.add(preceding.asJson());
         }
+        json.put(PRECEDING_TITLES,previousTitles);
+
         return json;
     }
 
@@ -381,23 +393,23 @@ public class InstanceRelationsController extends JsonRepresentation {
         return null;
     }
 
-    public List<InstanceRelationship> getParentRelations() {
+    public List<InstanceToInstanceRelation> getParentRelations() {
         return parentRelations;
     }
 
-    public List<InstanceRelationship> getChildRelations() {
+    public List<InstanceToInstanceRelation> getChildRelations() {
         return childRelations;
     }
 
-    public List<InstanceRelationship> getRelationships() {
-        List<InstanceRelationship> all = new ArrayList<>();
+    public List<InstanceToInstanceRelation> getRelationships() {
+        List<InstanceToInstanceRelation> all = new ArrayList<>();
         if (parentRelations != null) all.addAll(parentRelations);
         if (childRelations != null) all.addAll(childRelations);
         return all;
     }
 
-    public List<InstanceTitleSuccession> getTitleSuccessions() {
-        List<InstanceTitleSuccession> all = new ArrayList<>();
+    public List<InstanceToInstanceRelation> getTitleSuccessions() {
+        List<InstanceToInstanceRelation> all = new ArrayList<>();
         if (precedingTitles != null) all.addAll(precedingTitles);
         if (succeedingTitles != null) all.addAll(succeedingTitles);
         return all;
@@ -447,7 +459,7 @@ public class InstanceRelationsController extends JsonRepresentation {
                 if (record.requiresProvisionalInstanceToBeCreated()) {
                     Instance instance = record.getProvisionalInstance();
                     JsonObject provisionalInstanceStats = entityStats.getJsonObject("PROVISIONAL_INSTANCE");
-                    provisionalInstanceStats.put(instance.getOutcome().toString(), provisionalInstanceStats.getInteger(instance.getOutcome().toString()) +1);
+                    provisionalInstanceStats.put(instance.getOutcome().toString(), provisionalInstanceStats.getInteger(instance.getOutcome().toString()) + 1);
                 }
             }
         }
@@ -456,10 +468,10 @@ public class InstanceRelationsController extends JsonRepresentation {
     @Override
     public String toString () {
         StringBuilder str = new StringBuilder();
-        for (InstanceRelationship rel : getRelationships()) {
+        for (InstanceToInstanceRelation rel : getRelationships()) {
             str.append(rel.toString());
         }
-        for (InstanceTitleSuccession rel : getTitleSuccessions()) {
+        for (InstanceToInstanceRelation rel : getTitleSuccessions()) {
             str.append(rel.toString());
         }
         return str.toString();

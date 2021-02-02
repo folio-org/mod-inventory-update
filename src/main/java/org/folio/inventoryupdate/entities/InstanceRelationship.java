@@ -1,14 +1,8 @@
 package org.folio.inventoryupdate.entities;
 
-import io.vertx.core.Future;
-import io.vertx.core.Promise;
 import io.vertx.core.impl.logging.Logger;
 import io.vertx.core.impl.logging.LoggerFactory;
 import io.vertx.core.json.JsonObject;
-import org.folio.inventoryupdate.HridQuery;
-import org.folio.inventoryupdate.InventoryQuery;
-import org.folio.inventoryupdate.InventoryStorage;
-import org.folio.okapi.common.OkapiClient;
 
 public class InstanceRelationship extends InstanceToInstanceRelation {
 
@@ -29,7 +23,8 @@ public class InstanceRelationship extends InstanceToInstanceRelation {
         InstanceRelationship relation = new InstanceRelationship();
         relation.instanceId = instanceId;
         relation.jsonRecord = instanceRelationJson;
-        relation.type = Entity.INSTANCE_RELATIONSHIP;
+        relation.entityType = Entity.INSTANCE_RELATIONSHIP;
+        relation.instanceRelationClass = (relation.isRelationToChild() ? InstanceRelationsClass.TO_CHILD : InstanceRelationsClass.TO_PARENT);
         return relation;
     }
 
@@ -48,7 +43,8 @@ public class InstanceRelationship extends InstanceToInstanceRelation {
         relation.jsonRecord.put(SUB_INSTANCE_ID, subInstanceId);
         relation.jsonRecord.put(SUPER_INSTANCE_ID, superInstanceId);
         relation.jsonRecord.put(INSTANCE_RELATIONSHIP_TYPE_ID, instanceRelationshipTypeId);
-        relation.type = Entity.INSTANCE_RELATIONSHIP;
+        relation.entityType = Entity.INSTANCE_RELATIONSHIP;
+        relation.instanceRelationClass = (relation.isRelationToChild() ? InstanceRelationsClass.TO_CHILD : InstanceRelationsClass.TO_PARENT);
         return relation;
     }
 

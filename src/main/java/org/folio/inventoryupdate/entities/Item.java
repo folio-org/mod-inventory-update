@@ -6,7 +6,7 @@ public class Item extends InventoryRecord {
 
     public Item (JsonObject item) {
         this.jsonRecord = item;
-        type = Entity.ITEM;
+        entityType = Entity.ITEM;
     }
 
     public String getHoldingsRecordId () {

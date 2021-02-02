@@ -21,7 +21,7 @@ import java.util.stream.Stream;
 
 import static org.folio.inventoryupdate.entities.InstanceRelationship.INSTANCE_RELATIONSHIP_TYPE_ID;
 import static org.folio.inventoryupdate.entities.InventoryRecordSet.HRID;
-import static org.folio.inventoryupdate.entities.InstanceToInstanceRelation.TypeOfRelation;
+import static org.folio.inventoryupdate.entities.InstanceToInstanceRelation.InstanceRelationsClass;
 
 /**
  * Instance-to-Instance relations are held in the InventoryRecordSet class but the planning and update logic
@@ -132,14 +132,11 @@ public class InstanceRelationsController extends JsonRepresentation {
      */
     public Future<Void> makeInstanceRelationRecordsFromIdentifiers(OkapiClient client, String instanceId) {
         Promise<Void> promise = Promise.promise();
-        if (irs.instanceRelationsJson.containsKey(PARENT_INSTANCES)
-                || irs.instanceRelationsJson.containsKey(CHILD_INSTANCES)
-                || irs.instanceRelationsJson.containsKey(SUCCEEDING_TITLES)
-                || irs.instanceRelationsJson.containsKey(PRECEDING_TITLES)) {
-            makeRelationsFromIdentifiers(client, instanceId, irs.instanceRelationsJson.getJsonArray(PARENT_INSTANCES), TypeOfRelation.TO_PARENT).onComplete(parents -> {
-                    makeRelationsFromIdentifiers(client, instanceId, irs.instanceRelationsJson.getJsonArray(CHILD_INSTANCES), TypeOfRelation.TO_CHILD).onComplete (children -> {
-                        makeRelationsFromIdentifiers(client, instanceId, irs.instanceRelationsJson.getJsonArray(SUCCEEDING_TITLES), TypeOfRelation.TO_PRECEDING).onComplete(succeedingTitles -> {
-                            makeRelationsFromIdentifiers(client, instanceId, irs.instanceRelationsJson.getJsonArray(PRECEDING_TITLES), TypeOfRelation.TO_SUCCEEDING).onComplete(precedingTitles -> {
+        if (hasRelationshipIdentifiers(irs.sourceJson)) {
+            makeRelationsFromIdentifiers(client, instanceId, irs.instanceRelationsJson.getJsonArray(PARENT_INSTANCES), InstanceRelationsClass.TO_PARENT).onComplete(parents -> {
+                    makeRelationsFromIdentifiers(client, instanceId, irs.instanceRelationsJson.getJsonArray(CHILD_INSTANCES), InstanceRelationsClass.TO_CHILD).onComplete (children -> {
+                        makeRelationsFromIdentifiers(client, instanceId, irs.instanceRelationsJson.getJsonArray(SUCCEEDING_TITLES), InstanceRelationsClass.TO_PRECEDING).onComplete(succeedingTitles -> {
+                            makeRelationsFromIdentifiers(client, instanceId, irs.instanceRelationsJson.getJsonArray(PRECEDING_TITLES), InstanceRelationsClass.TO_SUCCEEDING).onComplete(precedingTitles -> {
                                 StringBuilder errorMessages = new StringBuilder();
                                 if (parents.succeeded()) {
                                     if (parents.result() != null) {
@@ -189,10 +186,10 @@ public class InstanceRelationsController extends JsonRepresentation {
      * @param client
      * @param instanceId
      * @param identifiers
-     * @param type
+     * @param classOfRelations
      * @return
      */
-    private static Future<List<InstanceToInstanceRelation>> makeRelationsFromIdentifiers(OkapiClient client, String instanceId, JsonArray identifiers, InstanceToInstanceRelation.TypeOfRelation type) {
+    private static Future<List<InstanceToInstanceRelation>> makeRelationsFromIdentifiers(OkapiClient client, String instanceId, JsonArray identifiers, InstanceRelationsClass classOfRelations) {
         Promise<List<InstanceToInstanceRelation>> promise = Promise.promise();
         if (identifiers != null) {
             @SuppressWarnings("rawtypes")
@@ -200,7 +197,7 @@ public class InstanceRelationsController extends JsonRepresentation {
             for (Object o : identifiers) {
                 JsonObject relationJson = (JsonObject) o;
                 if (relationJson.containsKey(INSTANCE_IDENTIFIER) && relationJson.getJsonObject(INSTANCE_IDENTIFIER).containsKey(HRID)) {
-                    relationsFutures.add(makeInstanceRelationWithInstanceIdentifier(client, instanceId, relationJson, HRID, type ));
+                    relationsFutures.add(makeInstanceRelationWithInstanceIdentifier(client, instanceId, relationJson, HRID, classOfRelations ));
                 }
             }
             CompositeFuture.all(relationsFutures).onComplete( relatedInstances -> {
@@ -229,14 +226,14 @@ public class InstanceRelationsController extends JsonRepresentation {
      * @param instanceId
      * @param relatedObject
      * @param identifierKey
-     * @param type
+     * @param classOfRelations
      * @return
      */
     private static Future<InstanceToInstanceRelation> makeInstanceRelationWithInstanceIdentifier(OkapiClient client,
                                                                                                  String instanceId,
                                                                                                  JsonObject relatedObject,
                                                                                                  String identifierKey,
-                                                                                                 InstanceToInstanceRelation.TypeOfRelation type) {
+                                                                                                 InstanceRelationsClass classOfRelations) {
         Promise<InstanceToInstanceRelation> promise = Promise.promise();
         JsonObject instanceIdentifier = relatedObject.getJsonObject(InstanceRelationsController.INSTANCE_IDENTIFIER);
         String hrid = instanceIdentifier.getString(identifierKey);
@@ -256,7 +253,7 @@ public class InstanceRelationsController extends JsonRepresentation {
                     }
                 }
                 InstanceToInstanceRelation relation = null;
-                switch (type) {
+                switch (classOfRelations) {
                     case TO_PARENT:
                         relation = InstanceRelationship.makeRelationship(
                                 instanceId, instanceId, relateToThisId,
@@ -466,31 +463,29 @@ public class InstanceRelationsController extends JsonRepresentation {
     @Override
     public JsonObject asJson() {
         JsonObject json = new JsonObject();
+        json.put(PARENT_INSTANCES, new JsonArray());
+        json.put(CHILD_INSTANCES, new JsonArray());
+        json.put(SUCCEEDING_TITLES, new JsonArray());
+        json.put(PRECEDING_TITLES, new JsonArray());
 
-        JsonArray parents = new JsonArray();
-        for (InstanceToInstanceRelation relation : irs.parentRelations) {
-            parents.add(relation.asJson());
+        for (InstanceToInstanceRelation relation : getInstanceToInstanceRelations()) {
+            logger.info("Relation: " + relation);
+            logger.info("type of relation: " + relation.instanceRelationClass);
+            switch (relation.instanceRelationClass) {
+                case TO_PARENT:
+                    json.getJsonArray(PARENT_INSTANCES).add(relation.asJson());
+                    break;
+                case TO_CHILD:
+                    json.getJsonArray(CHILD_INSTANCES).add(relation.asJson());
+                    break;
+                case TO_PRECEDING:
+                    json.getJsonArray(PRECEDING_TITLES).add(relation.asJson());
+                    break;
+                case TO_SUCCEEDING:
+                    json.getJsonArray(SUCCEEDING_TITLES).add(relation.asJson());
+                    break;
+            }
         }
-        json.put(PARENT_INSTANCES, parents);
-
-        JsonArray children = new JsonArray();
-        for (InstanceToInstanceRelation relation : irs.childRelations) {
-            children.add(relation.asJson());
-        }
-        json.put(CHILD_INSTANCES, children);
-
-        JsonArray nextTitles = new JsonArray();
-        for (InstanceToInstanceRelation succeeding : irs.succeedingTitles) {
-            nextTitles.add(succeeding.asJson());
-        }
-        json.put(SUCCEEDING_TITLES,nextTitles);
-
-        JsonArray previousTitles = new JsonArray();
-        for (InstanceToInstanceRelation preceding : irs.precedingTitles) {
-            previousTitles.add(preceding.asJson());
-        }
-        json.put(PRECEDING_TITLES,previousTitles);
-
         return json;
     }
 

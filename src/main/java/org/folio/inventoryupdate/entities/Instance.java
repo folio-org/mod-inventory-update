@@ -1,10 +1,7 @@
 package org.folio.inventoryupdate.entities;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import io.vertx.core.json.JsonObject;
 
@@ -14,7 +11,7 @@ public class Instance extends InventoryRecord {
 
     public Instance (JsonObject instance) {
         jsonRecord = instance;
-        type = Entity.INSTANCE;
+        entityType = Entity.INSTANCE;
     }
 
     public void replaceJson(JsonObject instance) {

@@ -45,7 +45,7 @@ public abstract class InventoryRecord {
 
     protected JsonObject jsonRecord;
     protected JsonObject error = new JsonObject();
-    protected Entity type;
+    protected Entity entityType;
     protected Transaction transaction = Transaction.UNKNOWN;
     protected Outcome outcome = Outcome.PENDING;
     private static final String MESSAGE = "message";
@@ -112,7 +112,7 @@ public abstract class InventoryRecord {
     }
 
     public Entity entityType () {
-        return type;
+        return entityType;
     }
 
     public void setOutcome (Outcome outcome) {

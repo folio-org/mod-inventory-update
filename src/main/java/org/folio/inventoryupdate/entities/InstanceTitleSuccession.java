@@ -1,12 +1,6 @@
 package org.folio.inventoryupdate.entities;
 
-import io.vertx.core.Future;
-import io.vertx.core.Promise;
 import io.vertx.core.json.JsonObject;
-import org.folio.inventoryupdate.HridQuery;
-import org.folio.inventoryupdate.InventoryQuery;
-import org.folio.inventoryupdate.InventoryStorage;
-import org.folio.okapi.common.OkapiClient;
 
 public class InstanceTitleSuccession extends InstanceToInstanceRelation {
 
@@ -18,8 +12,9 @@ public class InstanceTitleSuccession extends InstanceToInstanceRelation {
     public static InstanceTitleSuccession makeInstanceTitleSuccessionFromJsonRecord(String instanceId, JsonObject precedingSucceedingJson) {
         InstanceTitleSuccession titleSuccession = new InstanceTitleSuccession();
         titleSuccession.jsonRecord = precedingSucceedingJson;
-        titleSuccession.type = Entity.INSTANCE_TITLE_SUCCESSION;
+        titleSuccession.entityType = Entity.INSTANCE_TITLE_SUCCESSION;
         titleSuccession.instanceId = instanceId;
+        titleSuccession.setInstanceRelationsClass(titleSuccession.isSucceedingTitle() ? InstanceRelationsClass.TO_SUCCEEDING : InstanceRelationsClass.TO_PRECEDING);
         return titleSuccession;
     }
 
@@ -28,7 +23,8 @@ public class InstanceTitleSuccession extends InstanceToInstanceRelation {
         instanceTitleSuccession.jsonRecord = new JsonObject();
         instanceTitleSuccession.jsonRecord.put(SUCCEEDING_INSTANCE_ID, succeedingInstanceId);
         instanceTitleSuccession.jsonRecord.put(PRECEDING_INSTANCE_ID, precedingInstanceId);
-        instanceTitleSuccession.type = Entity.INSTANCE_TITLE_SUCCESSION;
+        instanceTitleSuccession.entityType = Entity.INSTANCE_TITLE_SUCCESSION;
+        instanceTitleSuccession.setInstanceRelationsClass(instanceTitleSuccession.isSucceedingTitle() ? InstanceRelationsClass.TO_SUCCEEDING : InstanceRelationsClass.TO_PRECEDING);
         return instanceTitleSuccession;
     }
 

@@ -10,11 +10,16 @@ public abstract class InstanceToInstanceRelation extends InventoryRecord {
     public static final String PROVISIONAL_INSTANCE = "provisionalInstance";
     private boolean needsProvisionalInstance = false;
     protected Instance provisionalInstance = null;
-    protected enum TypeOfRelation {
+    protected InstanceRelationsClass instanceRelationClass = null;
+    public enum InstanceRelationsClass {
         TO_PARENT,
         TO_CHILD,
         TO_PRECEDING,
         TO_SUCCEEDING
+    }
+
+    public void setInstanceRelationsClass (InstanceRelationsClass typeOfRelation) {
+        instanceRelationClass = typeOfRelation;
     }
 
     public void requiresProvisionalInstanceToBeCreated(boolean bool) {

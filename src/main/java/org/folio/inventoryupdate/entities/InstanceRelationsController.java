@@ -468,13 +468,13 @@ public class InstanceRelationsController extends JsonRepresentation {
         JsonObject json = new JsonObject();
 
         JsonArray parents = new JsonArray();
-        for (InstanceToInstanceRelation relation : getParentRelations()) {
+        for (InstanceToInstanceRelation relation : irs.parentRelations) {
             parents.add(relation.asJson());
         }
         json.put(PARENT_INSTANCES, parents);
 
         JsonArray children = new JsonArray();
-        for (InstanceToInstanceRelation relation : getChildRelations()) {
+        for (InstanceToInstanceRelation relation : irs.childRelations) {
             children.add(relation.asJson());
         }
         json.put(CHILD_INSTANCES, children);
@@ -504,35 +504,27 @@ public class InstanceRelationsController extends JsonRepresentation {
         return null;
     }
 
-    public List<InstanceToInstanceRelation> getParentRelations() {
-        return irs.parentRelations;
-    }
-
-    public List<InstanceToInstanceRelation> getChildRelations() {
-        return irs.childRelations;
-    }
-
     public List<InstanceToInstanceRelation> getRelationships() {
-        List<InstanceToInstanceRelation> all = new ArrayList<>();
-        if (irs.parentRelations != null) all.addAll(irs.parentRelations);
-        if (irs.childRelations != null) all.addAll(irs.childRelations);
-        return all;
+        return Stream.of(
+                irs.parentRelations,
+                irs.childRelations
+        ).flatMap(Collection::stream).collect(Collectors.toList());
     }
 
     public List<InstanceToInstanceRelation> getTitleSuccessions() {
-        List<InstanceToInstanceRelation> all = new ArrayList<>();
-        if (irs.precedingTitles != null) all.addAll(irs.precedingTitles);
-        if (irs.succeedingTitles != null) all.addAll(irs.succeedingTitles);
-        return all;
+        return Stream.of(
+                irs.precedingTitles,
+                irs.succeedingTitles
+        ).flatMap(Collection::stream).collect(Collectors.toList());
     }
 
     public List<InstanceToInstanceRelation> getInstanceToInstanceRelations() {
-        List<InstanceToInstanceRelation> all = new ArrayList<>();
-        if (irs.parentRelations != null) all.addAll(irs.parentRelations);
-        if (irs.childRelations != null) all.addAll(irs.childRelations);
-        if (irs.precedingTitles != null) all.addAll(irs.precedingTitles);
-        if (irs.succeedingTitles != null) all.addAll(irs.succeedingTitles);
-        return all;
+        return Stream.of(
+                irs.parentRelations,
+                irs.childRelations,
+                irs.precedingTitles,
+                irs.succeedingTitles
+        ).flatMap(Collection::stream).collect(Collectors.toList());
     }
 
     public void writeToStats(JsonObject stats) {
@@ -555,13 +547,7 @@ public class InstanceRelationsController extends JsonRepresentation {
             }
         }
 
-        List<InstanceToInstanceRelation> relationsRecords = Stream.of(
-                getRelationships(),
-                getTitleSuccessions()
-        ).flatMap(Collection::stream).collect(Collectors.toList());
-
-        //todo: POJO wrapper around stats JSON?
-        for (InstanceToInstanceRelation record : relationsRecords) {
+        for (InstanceToInstanceRelation record : getInstanceToInstanceRelations()) {
             JsonObject entityStats;
             entityStats = stats.getJsonObject(record.entityType().toString());
             if (!record.getTransaction().equals(InventoryRecord.Transaction.NONE)) {
@@ -579,10 +565,7 @@ public class InstanceRelationsController extends JsonRepresentation {
     @Override
     public String toString () {
         StringBuilder str = new StringBuilder();
-        for (InstanceToInstanceRelation rel : getRelationships()) {
-            str.append(rel.toString());
-        }
-        for (InstanceToInstanceRelation rel : getTitleSuccessions()) {
+        for (InstanceToInstanceRelation rel : getInstanceToInstanceRelations()) {
             str.append(rel.toString());
         }
         return str.toString();

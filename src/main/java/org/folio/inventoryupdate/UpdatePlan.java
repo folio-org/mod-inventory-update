@@ -445,7 +445,6 @@ public abstract class UpdatePlan {
               }
           }
           existingSet.getInstanceRelationsController().writeToStats(stats);
-
         }
         return stats;
     }

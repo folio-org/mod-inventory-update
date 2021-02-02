@@ -1,9 +1,8 @@
 package org.folio.inventoryupdate.entities;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import io.vertx.core.Future;
 import io.vertx.core.impl.logging.Logger;
@@ -56,10 +55,6 @@ public class InventoryRecordSet extends JsonRepresentation {
         return false;
     }
 
-    public void modifyInstance (JsonObject updatedInstance) {
-        anInstance.replaceJson(updatedInstance);
-    }
-
     /**
      * Populate structures `holdingsRecordsByHRID`, `allHoldingsRecords`, `itemsByHRID`, `allItems`,
      * add Item entities to their HoldingsRecord entity, add HoldingsRecord entities to the Instance entity.
@@ -95,23 +90,20 @@ public class InventoryRecordSet extends JsonRepresentation {
         }
     }
 
-    @Override
-    public JsonObject asJson() {
-        JsonObject recordSetJson = new JsonObject();
-        recordSetJson.put(INSTANCE, getInstance().asJson());
-        JsonArray holdingsAndItemsArray = new JsonArray();
-        for (HoldingsRecord holdingsRecord : getHoldingsRecords()) {
-            JsonObject holdingsRecordJson = new JsonObject(holdingsRecord.asJsonString());
-            JsonArray itemsArray = new JsonArray();
-            for (Item item : holdingsRecord.getItems()) {
-                itemsArray.add(item.asJson());
-            }
-            holdingsRecordJson.put(ITEMS,itemsArray);
-            holdingsAndItemsArray.add(holdingsRecordJson);
+    public String getInstitutionIdFromArbitraryHoldingsRecord (Map<String,String> institutionsMap) {
+        if (institutionsMap != null && !getHoldingsRecords().isEmpty()) {
+            return getHoldingsRecords().get(0).getInstitutionId(institutionsMap);
+        } else {
+            return "";
         }
-        recordSetJson.put(HOLDINGS_RECORDS, holdingsAndItemsArray);
-        recordSetJson.put(InstanceRelationsController.INSTANCE_RELATIONS, instanceRelationsController.asJson());
-        return recordSetJson;
+    }
+
+    public void modifyInstance (JsonObject updatedInstance) {
+        anInstance.replaceJson(updatedInstance);
+    }
+
+    public Instance getInstance () {
+        return anInstance;
     }
 
     public String getInstanceHRID () {
@@ -130,32 +122,12 @@ public class InventoryRecordSet extends JsonRepresentation {
         }
     }
 
-    public String getInstitutionIdFromArbitraryHoldingsRecord (Map<String,String> institutionsMap) {
-        if (institutionsMap != null && !getHoldingsRecords().isEmpty()) {
-            return getHoldingsRecords().get(0).getInstitutionId(institutionsMap);
-        } else {
-            return "";
-        }
-    }
-
-    public HoldingsRecord getHoldingsRecordByHRID (String holdingsHrid) {
-        return holdingsRecordsByHRID.get(holdingsHrid);
+    public List<Item> getItems () {
+        return allItems;
     }
 
     public Item getItemByHRID (String itemHrid) {
         return itemsByHRID.get(itemHrid);
-    }
-
-    public Instance getInstance () {
-        return anInstance;
-    }
-
-    public Map<String, HoldingsRecord> getMapOfHoldingsRecordsByHRID () {
-        return holdingsRecordsByHRID;
-    }
-
-    public Map<String, Item> getMapOfItemsByHRID() {
-        return itemsByHRID;
     }
 
     public List<Item> getItemsByTransactionType (Transaction transition) {
@@ -167,19 +139,6 @@ public class InventoryRecordSet extends JsonRepresentation {
         }
         return records;
     }
-
-    public void prepareAllInstanceRelationsForDeletion() {
-        instanceRelationsController.markAllRelationsForDeletion();
-    }
-
-    public List<InstanceToInstanceRelation> getInstanceRelationsByTransactionType (Transaction transition) {
-        return instanceRelationsController.getInstanceRelationsByTransactionType(transition);
-    }
-
-    public Future<Void> prepareIncomingInstanceRelationRecords(OkapiClient client, String instanceId) {
-        return instanceRelationsController.makeInstanceRelationRecordsFromIdentifiers(client, instanceId);
-    }
-
     public List<HoldingsRecord> getHoldingsRecordsByTransactionType (Transaction transition) {
         List<HoldingsRecord> records = new ArrayList<HoldingsRecord>();
         for (HoldingsRecord record : getHoldingsRecords()) {
@@ -194,26 +153,38 @@ public class InventoryRecordSet extends JsonRepresentation {
         return allHoldingsRecords;
     }
 
-    public InstanceRelationsController getInstanceRelationsController() { return instanceRelationsController; }
-
-    public List<Item> getItems () {
-        return allItems;
+    private List<InventoryRecord> getAllInventoryRecords() {
+        return Stream.of(
+                Arrays.asList(getInstance()),
+                allHoldingsRecords,
+                allItems,
+                getInstanceRelationsController().getInstanceToInstanceRelations()
+        ).flatMap(Collection::stream).collect(Collectors.toList());
     }
 
+    // Instance-to-Instance relations methods
+    public InstanceRelationsController getInstanceRelationsController() {
+        return instanceRelationsController;
+    }
+
+    public void prepareAllInstanceRelationsForDeletion() {
+        instanceRelationsController.markAllRelationsForDeletion();
+    }
+
+    public List<InstanceToInstanceRelation> getInstanceRelationsByTransactionType (Transaction transition) {
+        return instanceRelationsController.getInstanceRelationsByTransactionType(transition);
+    }
+
+    public Future<Void> prepareIncomingInstanceRelationRecords(OkapiClient client, String instanceId) {
+        return instanceRelationsController.makeInstanceRelationRecordsFromIdentifiers(client, instanceId);
+    }
+
+    // Errors
     @Override
     public boolean hasErrors () {
-        if (getInstance().failed())
-            return true;
-        // TODO: flatMap
-        for (InventoryRecord record : allItems)
-            if (record.failed())
-                return true;
-        for (InventoryRecord record : allHoldingsRecords)
-            if (record.failed())
-                return true;
-        for (InventoryRecord record : getInstanceRelationsController().getInstanceToInstanceRelations())
-            if (record.failed())
-                return true;
+        for (InventoryRecord record : getAllInventoryRecords()) {
+            if (record.failed()) return true;
+        }
         return false;
     }
 
@@ -223,22 +194,31 @@ public class InventoryRecordSet extends JsonRepresentation {
         if (getInstance().failed()) {
             errors.add(getInstance().getError());
         }
-        for (HoldingsRecord holdingsRecord : allHoldingsRecords) {
-            if (holdingsRecord.failed()) {
-                errors.add(holdingsRecord.getError());
-            }
-        }
-        for (Item item : allItems) {
-            if (item.failed()) {
-                errors.add(item.getError());
-            }
-        }
-        for (InstanceToInstanceRelation relation : getInstanceRelationsController().getInstanceToInstanceRelations()) {
-            if (relation.failed()) {
-                errors.add(relation.getError());
+        for (InventoryRecord record : getAllInventoryRecords()) {
+            if (record.failed()) {
+                errors.add(record.getError());
             }
         }
         return errors;
+    }
+
+    @Override
+    public JsonObject asJson() {
+        JsonObject recordSetJson = new JsonObject();
+        recordSetJson.put(INSTANCE, getInstance().asJson());
+        JsonArray holdingsAndItemsArray = new JsonArray();
+        for (HoldingsRecord holdingsRecord : getHoldingsRecords()) {
+            JsonObject holdingsRecordJson = new JsonObject(holdingsRecord.asJsonString());
+            JsonArray itemsArray = new JsonArray();
+            for (Item item : holdingsRecord.getItems()) {
+                itemsArray.add(item.asJson());
+            }
+            holdingsRecordJson.put(ITEMS,itemsArray);
+            holdingsAndItemsArray.add(holdingsRecordJson);
+        }
+        recordSetJson.put(HOLDINGS_RECORDS, holdingsAndItemsArray);
+        recordSetJson.put(InstanceRelationsController.INSTANCE_RELATIONS, instanceRelationsController.asJson());
+        return recordSetJson;
     }
 
 }

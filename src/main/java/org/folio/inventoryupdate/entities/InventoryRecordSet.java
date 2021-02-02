@@ -21,7 +21,6 @@ public class InventoryRecordSet extends JsonRepresentation {
     private Map<String,Item> itemsByHRID = new HashMap<String,Item>();
     private List<HoldingsRecord> allHoldingsRecords = new ArrayList<HoldingsRecord>();
     private List<Item> allItems = new ArrayList<Item>();
-    private InstanceRelationsController instanceRelationsController = new InstanceRelationsController();
 
     public static final String INSTANCE = "instance";
     public static final String HOLDINGS_RECORDS = "holdingsRecords";
@@ -31,6 +30,16 @@ public class InventoryRecordSet extends JsonRepresentation {
     @SuppressWarnings("unused")
     private final Logger logger = LoggerFactory.getLogger("inventory-update");
 
+    // Controller handles planning and update logic for instance-to-instance relations
+    private InstanceRelationsController instanceRelationsController;
+    // Instance relations properties that the controller access directly
+    public List<InstanceToInstanceRelation> parentRelations = new ArrayList<>();
+    public List<InstanceToInstanceRelation> childRelations = new ArrayList<>();
+    public List<InstanceToInstanceRelation> succeedingTitles = new ArrayList<>();
+    public List<InstanceToInstanceRelation> precedingTitles = new ArrayList<>();
+    public JsonObject instanceRelationsJson = new JsonObject();
+
+
     public InventoryRecordSet (JsonObject inventoryRecordSet) {
         if (inventoryRecordSet != null) {
             sourceJson = new JsonObject(inventoryRecordSet.toString());
@@ -38,17 +47,7 @@ public class InventoryRecordSet extends JsonRepresentation {
             JsonArray holdings = inventoryRecordSet.getJsonArray(HOLDINGS_RECORDS);
             anInstance = new Instance(instanceJson);
             registerHoldingsRecordsAndItems (holdings);
-            // If this is an existing record set, any existing relations will be registered as is.
-            // If it's an incoming record set the related HRIDs will be stored for subsequent retrieval
-            // of Instance IDs to create the relationship JSON
-            if (hasRelationshipRecords(inventoryRecordSet)) {
-                instanceRelationsController.registerRelationshipJsonRecords(anInstance.getUUID(),inventoryRecordSet.getJsonObject(InstanceRelationsController.INSTANCE_RELATIONS));
-                logger.debug("InventoryRecordSet initialized with existing instance relationships: " + instanceRelationsController.toString());
-            }
-            if (hasRelationshipIdentifiers(inventoryRecordSet)) {
-                instanceRelationsController.setInstanceRelationsJson(inventoryRecordSet.getJsonObject(InstanceRelationsController.INSTANCE_RELATIONS));
-                logger.debug("InventoryRecordSet initialized with incoming instance relationships JSON (relations to be built.");
-            }
+            instanceRelationsController = new InstanceRelationsController(this);
         }
     }
 
@@ -56,28 +55,6 @@ public class InventoryRecordSet extends JsonRepresentation {
         if (inventoryRecordSet != null && inventoryRecordSet.containsKey(INSTANCE)) return true;
         return false;
     }
-
-    private boolean hasRelationshipRecords (JsonObject json) {
-        return (json != null
-                && json.containsKey(InstanceRelationsController.INSTANCE_RELATIONS)
-                && json.getJsonObject(InstanceRelationsController.INSTANCE_RELATIONS).containsKey(InstanceRelationsController.EXISTING_PARENT_CHILD_RELATIONS));
-    }
-
-    private boolean hasRelationshipIdentifiers (JsonObject json) {
-        if (json != null) {
-            JsonObject relationsJson = json.getJsonObject(InstanceRelationsController.INSTANCE_RELATIONS);
-            if (relationsJson != null) {
-                return (relationsJson.containsKey(InstanceRelationsController.PARENT_INSTANCES) ||
-                        relationsJson.containsKey(InstanceRelationsController.CHILD_INSTANCES) ||
-                        relationsJson.containsKey(InstanceRelationsController.PRECEDING_TITLES) ||
-                        relationsJson.containsKey(InstanceRelationsController.SUCCEEDING_TITLES));
-            } else {
-                return false;
-            }
-        }
-        return false;
-    }
-
 
     public void modifyInstance (JsonObject updatedInstance) {
         anInstance.replaceJson(updatedInstance);

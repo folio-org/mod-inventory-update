@@ -71,7 +71,7 @@ public class UpdatePlanAllHRIDs extends UpdatePlan {
                   Future<Void> prepareNewRecordsAndImportsFuture = prepareNewRecordsAndImports(okapiClient);
                   CompositeFuture.join(relationsFuture, prepareNewRecordsAndImportsFuture).onComplete( done -> {
                      if (done.succeeded()) {
-                         prepareIncomingInstanceRelations();
+                         getUpdatingRecordSet().getInstanceRelationsController().prepareIncomingInstanceRelations(updatingSet, existingSet);
                          promisedPlan.complete();
                      } else {
                          promisedPlan.fail("There was a problem fetching existing relations, holdings and/or items from storage:" + LF + "  " + done.cause().getMessage());
@@ -178,36 +178,6 @@ public class UpdatePlanAllHRIDs extends UpdatePlan {
                 }
             }
         }
-    }
-
-    //todo: move to controller?
-    public void prepareIncomingInstanceRelations() {
-        if (getUpdatingRecordSet() != null) {
-            List<InstanceToInstanceRelation> incomingRelations = getUpdatingRecordSet().getInstanceRelationsController().getInstanceToInstanceRelations();
-            logger.debug("Flagging incoming relationships for creation if any. Got " + incomingRelations.size() + " incoming candidates.");
-            for (InstanceToInstanceRelation incomingRelation : getUpdatingRecordSet().getInstanceRelationsController().getInstanceToInstanceRelations()) {
-                incomingRelation.setTransition(Transaction.CREATE);
-                if (foundExistingRecordSet()) {
-                    if (getExistingRecordSet().getInstanceRelationsController().hasThisRelation(incomingRelation)) {
-                        logger.debug("Relationship already exists - skipping creation");
-                        incomingRelation.skip();
-                    }
-                }
-            }
-        }
-        if (getExistingRecordSet() != null) {
-            logger.debug("Checking for existing instance relations to delete: " + getExistingRecordSet().getInstanceRelationsController().getInstanceToInstanceRelations());
-            for (InstanceToInstanceRelation existingRelation : getExistingRecordSet().getInstanceRelationsController().getInstanceToInstanceRelations()) {
-                if (!getUpdatingRecordSet().getInstanceRelationsController().hasThisRelation(existingRelation)) {
-                    logger.debug("Relation not found in updating record, mark for deletion. ");
-                    existingRelation.setTransition(Transaction.DELETE);
-                } else {
-                    logger.debug("Relation found in updating record, keep it");
-                    existingRelation.setTransition(Transaction.NONE);
-                }
-            }
-        }
-
     }
 
     /**

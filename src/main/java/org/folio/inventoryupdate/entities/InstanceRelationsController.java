@@ -23,6 +23,10 @@ import static org.folio.inventoryupdate.entities.InstanceRelationship.INSTANCE_R
 import static org.folio.inventoryupdate.entities.InventoryRecordSet.HRID;
 import static org.folio.inventoryupdate.entities.InstanceToInstanceRelation.TypeOfRelation;
 
+/**
+ * Instance-to-Instance relations are held in the InventoryRecordSet class but the planning and update logic
+ * is performed by this controller.
+ */
 public class InstanceRelationsController extends JsonRepresentation {
 
     // JSON property keys
@@ -40,16 +44,52 @@ public class InstanceRelationsController extends JsonRepresentation {
     public static final String SOURCE = "source";
     // EOF JSON property keys
 
-    private List<InstanceToInstanceRelation> parentRelations = new ArrayList<>();
-    private List<InstanceToInstanceRelation> childRelations = new ArrayList<>();
-    private List<InstanceToInstanceRelation> succeedingTitles = new ArrayList<>();
-    private List<InstanceToInstanceRelation> precedingTitles = new ArrayList<>();
     public static final String LF = System.lineSeparator();
-
-    private JsonObject instanceRelationsJson = new JsonObject();
+    InventoryRecordSet irs;
     protected final Logger logger = LoggerFactory.getLogger("inventory-update");
 
-    public InstanceRelationsController() {}
+    public InstanceRelationsController(InventoryRecordSet inventoryRecordSet) {
+        this.irs = inventoryRecordSet;
+        if (hasRelationshipRecords(irs.sourceJson)) {
+            registerRelationshipJsonRecords(irs.getInstance().getUUID(),irs.sourceJson.getJsonObject(InstanceRelationsController.INSTANCE_RELATIONS));
+            logger.debug("InventoryRecordSet initialized with existing instance relationships: " + this.toString());
+        }
+        if (hasRelationshipIdentifiers(irs.sourceJson)) {
+            irs.instanceRelationsJson = irs.sourceJson.getJsonObject(InstanceRelationsController.INSTANCE_RELATIONS);
+            logger.debug("InventoryRecordSet initialized with incoming instance relationships JSON (relations to be built.");
+        }
+    }
+
+    /**
+     * Checks if JSON contains relationship records from Inventory storage (got existing record set)
+     * @param irsJson  Source JSON for InventoryRecordSet
+     * @return
+     */
+    boolean hasRelationshipRecords(JsonObject irsJson) {
+        return (irsJson != null
+                && irsJson.containsKey(INSTANCE_RELATIONS)
+                && irsJson.getJsonObject(INSTANCE_RELATIONS).containsKey(EXISTING_PARENT_CHILD_RELATIONS));
+    }
+
+    /**
+     * Checks if JSON contains requests for creating relations (got updating/incoming record set)
+     * @param irsJson Source JSON for InventoryRecordSet
+     * @return
+     */
+    private boolean hasRelationshipIdentifiers (JsonObject irsJson) {
+        if (irsJson != null) {
+            JsonObject relationsJson = irsJson.getJsonObject(INSTANCE_RELATIONS);
+            if (relationsJson != null) {
+                return (relationsJson.containsKey(PARENT_INSTANCES) ||
+                        relationsJson.containsKey(CHILD_INSTANCES) ||
+                        relationsJson.containsKey(PRECEDING_TITLES) ||
+                        relationsJson.containsKey(SUCCEEDING_TITLES));
+            } else {
+                return false;
+            }
+        }
+        return false;
+    }
 
     public List<InstanceToInstanceRelation> getInstanceRelationsByTransactionType (InventoryRecord.Transaction transition) {
         List<InstanceToInstanceRelation> records = new ArrayList<>();
@@ -59,10 +99,6 @@ public class InstanceRelationsController extends JsonRepresentation {
             }
         }
         return records;
-    }
-
-    public void setInstanceRelationsJson(JsonObject json) {
-        instanceRelationsJson = json;
     }
 
     public void markAllRelationsForDeletion() {
@@ -96,39 +132,39 @@ public class InstanceRelationsController extends JsonRepresentation {
      */
     public Future<Void> makeInstanceRelationRecordsFromIdentifiers(OkapiClient client, String instanceId) {
         Promise<Void> promise = Promise.promise();
-        if (instanceRelationsJson.containsKey(PARENT_INSTANCES)
-                || instanceRelationsJson.containsKey(CHILD_INSTANCES)
-                || instanceRelationsJson.containsKey(SUCCEEDING_TITLES)
-                || instanceRelationsJson.containsKey(PRECEDING_TITLES)) {
-            makeRelationsFromIdentifiers(client, instanceId, instanceRelationsJson.getJsonArray(PARENT_INSTANCES), TypeOfRelation.TO_PARENT).onComplete(parents -> {
-                    makeRelationsFromIdentifiers(client, instanceId, instanceRelationsJson.getJsonArray(CHILD_INSTANCES), TypeOfRelation.TO_CHILD).onComplete (children -> {
-                        makeRelationsFromIdentifiers(client, instanceId, instanceRelationsJson.getJsonArray(SUCCEEDING_TITLES), TypeOfRelation.TO_PRECEDING).onComplete(succeedingTitles -> {
-                            makeRelationsFromIdentifiers(client, instanceId, instanceRelationsJson.getJsonArray(PRECEDING_TITLES), TypeOfRelation.TO_SUCCEEDING).onComplete(precedingTitles -> {
+        if (irs.instanceRelationsJson.containsKey(PARENT_INSTANCES)
+                || irs.instanceRelationsJson.containsKey(CHILD_INSTANCES)
+                || irs.instanceRelationsJson.containsKey(SUCCEEDING_TITLES)
+                || irs.instanceRelationsJson.containsKey(PRECEDING_TITLES)) {
+            makeRelationsFromIdentifiers(client, instanceId, irs.instanceRelationsJson.getJsonArray(PARENT_INSTANCES), TypeOfRelation.TO_PARENT).onComplete(parents -> {
+                    makeRelationsFromIdentifiers(client, instanceId, irs.instanceRelationsJson.getJsonArray(CHILD_INSTANCES), TypeOfRelation.TO_CHILD).onComplete (children -> {
+                        makeRelationsFromIdentifiers(client, instanceId, irs.instanceRelationsJson.getJsonArray(SUCCEEDING_TITLES), TypeOfRelation.TO_PRECEDING).onComplete(succeedingTitles -> {
+                            makeRelationsFromIdentifiers(client, instanceId, irs.instanceRelationsJson.getJsonArray(PRECEDING_TITLES), TypeOfRelation.TO_SUCCEEDING).onComplete(precedingTitles -> {
                                 StringBuilder errorMessages = new StringBuilder();
                                 if (parents.succeeded()) {
                                     if (parents.result() != null) {
-                                        this.parentRelations = parents.result();
+                                        irs.parentRelations = parents.result();
                                     }
                                 } else {
                                     errorMessages.append(LF + "There was a problem looking up or creating Instance IDs to build parent relationships:" + LF + "  " + parents.cause().getMessage());
                                 }
                                 if (children.succeeded()) {
                                     if (children.result() != null) {
-                                        this.childRelations = children.result();
+                                        irs.childRelations = children.result();
                                     }
                                 } else {
                                     errorMessages.append(LF + "There was a problem looking up or creating Instance IDs to build child relationships:" + LF + "  " + children.cause().getMessage());
                                 }
                                 if (succeedingTitles.succeeded()) {
                                     if (succeedingTitles.result() != null) {
-                                        this.succeedingTitles = succeedingTitles.result();
+                                        irs.succeedingTitles = succeedingTitles.result();
                                     }
                                 } else {
                                     errorMessages.append(LF + "There was a problem looking up or creating Instance IDs to build succeeding titles links:" + LF + "  " + succeedingTitles.cause().getMessage());
                                 }
                                 if (precedingTitles.succeeded()) {
                                     if (precedingTitles.result() != null) {
-                                        this.precedingTitles = precedingTitles.result();
+                                        irs.precedingTitles = precedingTitles.result();
                                     }
                                 } else {
                                     errorMessages.append(LF + "There was a problem looking up or creating Instance IDs to build preceding titles links:" + LF + "  " + precedingTitles.cause().getMessage());
@@ -255,7 +291,7 @@ public class InstanceRelationsController extends JsonRepresentation {
                         failedProvisionalInstance.logError("Missing required properties for creating required provisional instance", 422);
                         relation.setProvisionalInstance(failedProvisionalInstance);
                         relation.logError("Referenced parent Instance not found and required provisional Instance info is missing; cannot create relation to non-existing Instance [" + hrid + "], got:" + InstanceRelationsController.LF + relatedObject.encodePrettily(), 422);
-                        relation.fail();
+                        relation.fail(); // mark relation failed but don't fail the promise.
                     } else {
                         relation.setProvisionalInstance(provisionalInstance);
                     }
@@ -315,9 +351,9 @@ public class InstanceRelationsController extends JsonRepresentation {
             for (Object o : existingRelations) {
                 InstanceRelationship relationship = InstanceRelationship.makeRelationshipFromJsonRecord(instanceId, (JsonObject) o);
                 if (relationship.isRelationToChild()) {
-                    childRelations.add(relationship);
+                    irs.childRelations.add(relationship);
                 } else {
-                    parentRelations.add(relationship);
+                    irs.parentRelations.add(relationship);
                 }
             }
         }
@@ -326,9 +362,36 @@ public class InstanceRelationsController extends JsonRepresentation {
             for (Object o : existingTitles) {
                 InstanceTitleSuccession relation = InstanceTitleSuccession.makeInstanceTitleSuccessionFromJsonRecord(instanceId, (JsonObject) o);
                 if (relation.isSucceedingTitle()) {
-                    succeedingTitles.add(relation);
+                    irs.succeedingTitles.add(relation);
                 } else {
-                    precedingTitles.add(relation);
+                    irs.precedingTitles.add(relation);
+                }
+            }
+        }
+    }
+
+    /**
+     * Checks if requested/incoming Instance relations already exists, marks them for creation if they don't
+     * and checks if existing Instance relations came in with the request, marks them for deletion if they did not.
+     * @param updatingRecordSet
+     * @param existingRecordSet
+     */
+    public static void prepareIncomingInstanceRelations(InventoryRecordSet updatingRecordSet, InventoryRecordSet existingRecordSet) {
+        if (updatingRecordSet != null) {
+            for (InstanceToInstanceRelation incomingRelation : updatingRecordSet.getInstanceRelationsController().getInstanceToInstanceRelations()) {
+                if (existingRecordSet != null) {
+                    if (existingRecordSet.getInstanceRelationsController().hasThisRelation(incomingRelation)) {
+                        incomingRelation.skip();
+                    }
+                }
+            }
+        }
+        if (existingRecordSet != null) {
+            for (InstanceToInstanceRelation existingRelation : existingRecordSet.getInstanceRelationsController().getInstanceToInstanceRelations()) {
+                if (!updatingRecordSet.getInstanceRelationsController().hasThisRelation(existingRelation)) {
+                    existingRelation.setTransition(InventoryRecord.Transaction.DELETE);
+                } else {
+                    existingRelation.setTransition(InventoryRecord.Transaction.NONE);
                 }
             }
         }
@@ -417,13 +480,13 @@ public class InstanceRelationsController extends JsonRepresentation {
         json.put(CHILD_INSTANCES, children);
 
         JsonArray nextTitles = new JsonArray();
-        for (InstanceToInstanceRelation succeeding : succeedingTitles) {
+        for (InstanceToInstanceRelation succeeding : irs.succeedingTitles) {
             nextTitles.add(succeeding.asJson());
         }
         json.put(SUCCEEDING_TITLES,nextTitles);
 
         JsonArray previousTitles = new JsonArray();
-        for (InstanceToInstanceRelation preceding : precedingTitles) {
+        for (InstanceToInstanceRelation preceding : irs.precedingTitles) {
             previousTitles.add(preceding.asJson());
         }
         json.put(PRECEDING_TITLES,previousTitles);
@@ -442,33 +505,33 @@ public class InstanceRelationsController extends JsonRepresentation {
     }
 
     public List<InstanceToInstanceRelation> getParentRelations() {
-        return parentRelations;
+        return irs.parentRelations;
     }
 
     public List<InstanceToInstanceRelation> getChildRelations() {
-        return childRelations;
+        return irs.childRelations;
     }
 
     public List<InstanceToInstanceRelation> getRelationships() {
         List<InstanceToInstanceRelation> all = new ArrayList<>();
-        if (parentRelations != null) all.addAll(parentRelations);
-        if (childRelations != null) all.addAll(childRelations);
+        if (irs.parentRelations != null) all.addAll(irs.parentRelations);
+        if (irs.childRelations != null) all.addAll(irs.childRelations);
         return all;
     }
 
     public List<InstanceToInstanceRelation> getTitleSuccessions() {
         List<InstanceToInstanceRelation> all = new ArrayList<>();
-        if (precedingTitles != null) all.addAll(precedingTitles);
-        if (succeedingTitles != null) all.addAll(succeedingTitles);
+        if (irs.precedingTitles != null) all.addAll(irs.precedingTitles);
+        if (irs.succeedingTitles != null) all.addAll(irs.succeedingTitles);
         return all;
     }
 
     public List<InstanceToInstanceRelation> getInstanceToInstanceRelations() {
         List<InstanceToInstanceRelation> all = new ArrayList<>();
-        if (parentRelations != null) all.addAll(parentRelations);
-        if (childRelations != null) all.addAll(childRelations);
-        if (precedingTitles != null) all.addAll(precedingTitles);
-        if (succeedingTitles != null) all.addAll(succeedingTitles);
+        if (irs.parentRelations != null) all.addAll(irs.parentRelations);
+        if (irs.childRelations != null) all.addAll(irs.childRelations);
+        if (irs.precedingTitles != null) all.addAll(irs.precedingTitles);
+        if (irs.succeedingTitles != null) all.addAll(irs.succeedingTitles);
         return all;
     }
 

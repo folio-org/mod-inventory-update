@@ -31,12 +31,21 @@ Instance in storage and then move them over to the incoming Instance. The IDs (U
 holdings records and items will be preserved in this process, thus avoiding breaking any external UUID based references
 to these records.
 
-The Inventory Record Set, that is PUT to the end point, may contain relations to other Instances, like the kind of
-relationships that tie multipart monographs together or relations pointing to preceding or succeeding titles. Based on a
-comparison with the set of relationships that may be registered for the Instance in storage already, relationships will
-be created and/or deleted (updating relationships is obsolete). If an upsert request comes in with a relation to an
-Instance that doesn't already exist in storage, a provisional Instance will be created, provided that the request
-contains sufficient data as required for creating the provisional Instance - like any mandatory Instance properties.
+The Inventory Record Set, that is PUT to the end point, may contain relations to other Instances, for example the kind
+of relationships that tie multipart monographs together or relations pointing to preceding or succeeding titles. Based
+on a comparison with the set of relationships that may be registered for the Instance in storage already, relationships
+will be created and/or deleted (updating relationships is obsolete).
+
+If an upsert request comes in with a relation to an Instance that doesn't already exist in storage, a provisional
+Instance will be created, provided that the request contains sufficient data as required for creating the provisional
+Instance - like any mandatory Instance properties.
+
+Only existing relationships that are explicitly omitted in the request will be deleted. Say "Instance 2" declares
+"Instance 1" as its parent. Conversely, that means "Instance 1" has "Instance 2" as its child. If "Instance 1" is later
+updated, without declaring any child relationships, then existing child relationships (ie to "Instance 2")
+would be retained. To actually delete the relation to Instance 2, the update of Instance 1 must include an empty list of
+child relations (or a list of child relations without this particular relation in it); this is considered an explicit
+omission of existing relations with the intent to delete.
 
 The API supports DELETE requests, which would delete the Instance with all of its associated holdings records and items
 and any relations it might have to other Instances.

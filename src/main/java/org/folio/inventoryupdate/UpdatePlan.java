@@ -395,42 +395,25 @@ public abstract class UpdatePlan {
 
 
     public JsonObject getUpdateStats () {
-
-        JsonObject stats = new JsonObject();
-        String outcomeStats = "{ \"" + Outcome.COMPLETED + "\": 0, \"" + Outcome.FAILED + "\": 0, \"" + Outcome.SKIPPED + "\": 0, \"" + Outcome.PENDING + "\": 0 }";
-        String transactionStats = "{ \""+ Transaction.CREATE + "\": " + outcomeStats + ", \""
-                                        + Transaction.UPDATE + "\": " + outcomeStats + ", \""
-                                        + Transaction.DELETE + "\": " + outcomeStats + " }";
-
-        stats.put(Entity.INSTANCE.toString(), new JsonObject(transactionStats));
-        stats.put(Entity.HOLDINGS_RECORD.toString(), new JsonObject(transactionStats));
-        stats.put(Entity.ITEM.toString(), new JsonObject(transactionStats));
+        UpdateMetrics metrics = new UpdateMetrics();
 
         if (gotUpdatingRecordSet()) {
-          JsonObject instance = stats.getJsonObject(Entity.INSTANCE.toString());
-          JsonObject instanceOutcomes = instance.getJsonObject(getUpdatingInstance().getTransaction().toString());
-          instanceOutcomes.put(getUpdatingInstance().getOutcome().toString(), instanceOutcomes.getInteger(getUpdatingInstance().getOutcome().toString())+1);
-
+          metrics.entity(Entity.INSTANCE).transaction(getUpdatingInstance().getTransaction()).outcomes.increment(getUpdatingInstance().getOutcome());
           List<InventoryRecord> holdingsRecordsAndItemsInUpdatingSet = Stream.of(
                   updatingSet.getHoldingsRecords(),
                   updatingSet.getItems())
                   .flatMap(Collection::stream).collect(Collectors.toList());
 
           for (InventoryRecord record : holdingsRecordsAndItemsInUpdatingSet) {
-              JsonObject entity = stats.getJsonObject(record.entityType().toString());
-              JsonObject outcomes = entity.getJsonObject(record.getTransaction().toString());
-              outcomes.put(record.getOutcome().toString(), outcomes.getInteger(record.getOutcome().toString())+1);
+              metrics.entity(record.entityType()).transaction(record.getTransaction()).outcomes.increment(record.getOutcome());
           }
-
-          updatingSet.getInstanceRelationsController().writeToStats(stats);
+          updatingSet.getInstanceRelationsController().writeToStats(metrics);
         }
 
         if (foundExistingRecordSet()) {
           if (existingSet.getInstance().isDeleting()) {
               InventoryRecord record = existingSet.getInstance();
-              JsonObject entity = stats.getJsonObject(record.entityType().toString());
-              JsonObject outcomes = entity.getJsonObject(record.getTransaction().toString());
-              outcomes.put(record.getOutcome().toString(), outcomes.getInteger(record.getOutcome().toString())+1);            
+              metrics.entity(record.entityType()).transaction(record.getTransaction()).outcomes.increment(record.getOutcome());
           }
           List<InventoryRecord> holdingsRecordsAndItemsInExistingSet = Stream.of(
               existingSet.getHoldingsRecords(),
@@ -439,14 +422,12 @@ public abstract class UpdatePlan {
 
           for (InventoryRecord record : holdingsRecordsAndItemsInExistingSet) {
               if (record.isDeleting()) {
-                  JsonObject entity = stats.getJsonObject(record.entityType().toString());
-                  JsonObject outcomes = entity.getJsonObject(record.getTransaction().toString());
-                  outcomes.put(record.getOutcome().toString(), outcomes.getInteger(record.getOutcome().toString())+1);
+                  metrics.entity(record.entityType()).transaction(record.getTransaction()).outcomes.increment(record.getOutcome());
               }
           }
-          existingSet.getInstanceRelationsController().writeToStats(stats);
+          existingSet.getInstanceRelationsController().writeToStats(metrics);
         }
-        return stats;
+        return metrics.asJson();
     }
 
     public boolean hasErrors () {

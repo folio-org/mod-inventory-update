@@ -10,6 +10,7 @@ import io.vertx.core.json.JsonObject;
 import org.folio.inventoryupdate.HridQuery;
 import org.folio.inventoryupdate.InventoryQuery;
 import org.folio.inventoryupdate.InventoryStorage;
+import org.folio.inventoryupdate.UpdateMetrics;
 import org.folio.okapi.common.OkapiClient;
 
 import java.util.ArrayList;
@@ -522,39 +523,17 @@ public class InstanceRelationsController extends JsonRepresentation {
         ).flatMap(Collection::stream).collect(Collectors.toList());
     }
 
-    public void writeToStats(JsonObject stats) {
-//todo: add deletes
-        String outcomeStats = "{ \"" + InventoryRecord.Outcome.COMPLETED + "\": 0, \"" + InventoryRecord.Outcome.FAILED + "\": 0, \"" + InventoryRecord.Outcome.SKIPPED + "\": 0, \"" + InventoryRecord.Outcome.PENDING + "\": 0 }";
-
-        String transactionsStats =
-                "{ \""+ InventoryRecord.Transaction.CREATE + "\": " + outcomeStats + ", \""
-                      + InventoryRecord.Transaction.DELETE + "\": " + outcomeStats + ", \""
-                      + "PROVISIONAL_INSTANCE" + "\": " + outcomeStats + " }";
-
-        if (hasInstanceRelationships()) {
-            if (!stats.containsKey(InventoryRecord.Entity.INSTANCE_RELATIONSHIP.toString())) {
-                stats.put(InventoryRecord.Entity.INSTANCE_RELATIONSHIP.toString(), new JsonObject(transactionsStats));
-            }
-        }
-        if (hasTitleSuccessions()) {
-            if (!stats.containsKey(InventoryRecord.Entity.INSTANCE_TITLE_SUCCESSION.toString())) {
-                stats.put(InventoryRecord.Entity.INSTANCE_TITLE_SUCCESSION.toString(), new JsonObject(transactionsStats));
-            }
-        }
-
+    public void writeToStats(UpdateMetrics metrics) {
         for (InstanceToInstanceRelation record : getInstanceToInstanceRelations()) {
-            JsonObject entityStats;
-            entityStats = stats.getJsonObject(record.entityType().toString());
             if (!record.getTransaction().equals(InventoryRecord.Transaction.NONE)) {
-                JsonObject outcomes = entityStats.getJsonObject(record.getTransaction().toString());
-                outcomes.put(record.getOutcome().toString(), outcomes.getInteger(record.getOutcome().toString()) + 1);
+                metrics.entity(record.entityType).transaction(record.transaction).outcomes.increment(record.getOutcome());
                 if (record.requiresProvisionalInstanceToBeCreated()) {
-                    Instance instance = record.getProvisionalInstance();
-                    JsonObject provisionalInstanceStats = entityStats.getJsonObject("PROVISIONAL_INSTANCE");
-                    provisionalInstanceStats.put(instance.getOutcome().toString(), provisionalInstanceStats.getInteger(instance.getOutcome().toString()) + 1);
+                    Instance provisionalInstance = record.getProvisionalInstance();
+                    ((UpdateMetrics.InstanceRelationsMetrics) metrics.entity(record.entityType)).provisionalInstanceMetrics.increment(provisionalInstance.getOutcome());
                 }
             }
         }
+
     }
 
     @Override

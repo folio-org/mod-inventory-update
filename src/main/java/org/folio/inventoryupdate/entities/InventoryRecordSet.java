@@ -32,10 +32,10 @@ public class InventoryRecordSet extends JsonRepresentation {
     // Controller handles planning and update logic for instance-to-instance relations
     private InstanceRelationsController instanceRelationsController;
     // Instance relations properties that the controller access directly
-    public List<InstanceToInstanceRelation> parentRelations = new ArrayList<>();
-    public List<InstanceToInstanceRelation> childRelations = new ArrayList<>();
-    public List<InstanceToInstanceRelation> succeedingTitles = new ArrayList<>();
-    public List<InstanceToInstanceRelation> precedingTitles = new ArrayList<>();
+    public List<InstanceToInstanceRelation> parentRelations = null;
+    public List<InstanceToInstanceRelation> childRelations = null;
+    public List<InstanceToInstanceRelation> succeedingTitles = null;
+    public List<InstanceToInstanceRelation> precedingTitles = null;
     public JsonObject instanceRelationsJson = new JsonObject();
 
 

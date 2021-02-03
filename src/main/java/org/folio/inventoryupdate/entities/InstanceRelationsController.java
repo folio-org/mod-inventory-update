@@ -21,7 +21,6 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static org.folio.inventoryupdate.entities.InstanceRelationship.INSTANCE_RELATIONSHIP_TYPE_ID;
-import static org.folio.inventoryupdate.entities.InstanceToInstanceRelation.PROVISIONAL_INSTANCE;
 import static org.folio.inventoryupdate.entities.InventoryRecordSet.HRID;
 import static org.folio.inventoryupdate.entities.InstanceToInstanceRelation.InstanceRelationsClass;
 
@@ -118,12 +117,38 @@ public class InstanceRelationsController extends JsonRepresentation {
         return false;
     }
 
-    public boolean hasInstanceRelationships () {
-        return getRelationships().size()>0;
+    /**
+     * A relation is considered omitted if the list it would be in exists but the relation is not in the list.
+     *
+     * Can be used to signal that relations of a given type should be deleted from the Instance by providing an
+     * empty list of that type. When no such list is provided, on the other hand, then existing relations of that type
+     * should be retained.
+     *
+     * @param relation
+     * @return
+     */
+    public boolean isThisRelationOmitted(InstanceToInstanceRelation relation) {
+        switch (relation.instanceRelationClass) {
+            case TO_PARENT:
+                return isThisRelationOmitted(irs.parentRelations, relation);
+            case TO_CHILD:
+                return isThisRelationOmitted(irs.childRelations, relation);
+            case TO_PRECEDING:
+                return isThisRelationOmitted(irs.precedingTitles, relation);
+            case TO_SUCCEEDING:
+                return isThisRelationOmitted(irs.succeedingTitles, relation);
+        }
+        return false;
     }
 
-    public boolean hasTitleSuccessions () {
-        return getTitleSuccessions().size()>0;
+    /**
+     * A relations is considered omitted from the list if the list exists (is not null) but the relation is not in it.
+     * @param list
+     * @param relation
+     * @return
+     */
+    private boolean isThisRelationOmitted(List<InstanceToInstanceRelation> list, InstanceToInstanceRelation relation) {
+        return (list == null ? false : !list.contains(relation));
     }
 
     /**
@@ -350,8 +375,10 @@ public class InstanceRelationsController extends JsonRepresentation {
             for (Object o : existingRelations) {
                 InstanceRelationship relationship = InstanceRelationship.makeRelationshipFromJsonRecord(instanceId, (JsonObject) o);
                 if (relationship.isRelationToChild()) {
+                    if (irs.childRelations == null) irs.childRelations = new ArrayList<>();
                     irs.childRelations.add(relationship);
                 } else {
+                    if (irs.parentRelations == null) irs.parentRelations = new ArrayList<>();
                     irs.parentRelations.add(relationship);
                 }
             }
@@ -361,8 +388,10 @@ public class InstanceRelationsController extends JsonRepresentation {
             for (Object o : existingTitles) {
                 InstanceTitleSuccession relation = InstanceTitleSuccession.makeInstanceTitleSuccessionFromJsonRecord(instanceId, (JsonObject) o);
                 if (relation.isSucceedingTitle()) {
+                    if (irs.succeedingTitles == null) irs.succeedingTitles = new ArrayList<>();
                     irs.succeedingTitles.add(relation);
                 } else {
+                    if (irs.precedingTitles == null) irs.precedingTitles = new ArrayList<>();
                     irs.precedingTitles.add(relation);
                 }
             }
@@ -387,7 +416,7 @@ public class InstanceRelationsController extends JsonRepresentation {
         }
         if (existingRecordSet != null) {
             for (InstanceToInstanceRelation existingRelation : existingRecordSet.getInstanceRelationsController().getInstanceToInstanceRelations()) {
-                if (!updatingRecordSet.getInstanceRelationsController().hasThisRelation(existingRelation)) {
+                if (updatingRecordSet.getInstanceRelationsController().isThisRelationOmitted(existingRelation)) {
                     existingRelation.setTransition(InventoryRecord.Transaction.DELETE);
                 } else {
                     existingRelation.setTransition(InventoryRecord.Transaction.NONE);
@@ -465,11 +494,6 @@ public class InstanceRelationsController extends JsonRepresentation {
     @Override
     public JsonObject asJson() {
         JsonObject json = new JsonObject();
-        json.put(PARENT_INSTANCES, new JsonArray());
-        json.put(CHILD_INSTANCES, new JsonArray());
-        json.put(SUCCEEDING_TITLES, new JsonArray());
-        json.put(PRECEDING_TITLES, new JsonArray());
-
         for (InstanceToInstanceRelation relation : getInstanceToInstanceRelations()) {
             JsonObject relationJson = new JsonObject(relation.asJsonString());
             if (relation.hasPreparedProvisionalInstance()) {
@@ -477,15 +501,19 @@ public class InstanceRelationsController extends JsonRepresentation {
             }
             switch (relation.instanceRelationClass) {
                 case TO_PARENT:
+                    if (!json.containsKey(PARENT_INSTANCES)) json.put(PARENT_INSTANCES, new JsonArray());
                     json.getJsonArray(PARENT_INSTANCES).add(relationJson);
                     break;
                 case TO_CHILD:
+                    if (!json.containsKey(CHILD_INSTANCES)) json.put(CHILD_INSTANCES, new JsonArray());
                     json.getJsonArray(CHILD_INSTANCES).add(relationJson);
                     break;
                 case TO_PRECEDING:
+                    if (!json.containsKey(PRECEDING_TITLES)) json.put(PRECEDING_TITLES, new JsonArray());
                     json.getJsonArray(PRECEDING_TITLES).add(relationJson);
                     break;
                 case TO_SUCCEEDING:
+                    if (!json.containsKey(SUCCEEDING_TITLES)) json.put(SUCCEEDING_TITLES, new JsonArray());
                     json.getJsonArray(SUCCEEDING_TITLES).add(relationJson);
                     break;
             }
@@ -503,26 +531,12 @@ public class InstanceRelationsController extends JsonRepresentation {
         return null;
     }
 
-    public List<InstanceToInstanceRelation> getRelationships() {
-        return Stream.of(
-                irs.parentRelations,
-                irs.childRelations
-        ).flatMap(Collection::stream).collect(Collectors.toList());
-    }
-
-    public List<InstanceToInstanceRelation> getTitleSuccessions() {
-        return Stream.of(
-                irs.precedingTitles,
-                irs.succeedingTitles
-        ).flatMap(Collection::stream).collect(Collectors.toList());
-    }
-
     public List<InstanceToInstanceRelation> getInstanceToInstanceRelations() {
         return Stream.of(
-                irs.parentRelations,
-                irs.childRelations,
-                irs.precedingTitles,
-                irs.succeedingTitles
+                irs.parentRelations == null ? new ArrayList<InstanceToInstanceRelation>() : irs.parentRelations,
+                irs.childRelations == null ? new ArrayList<InstanceToInstanceRelation>() : irs.childRelations,
+                irs.precedingTitles == null ? new ArrayList<InstanceToInstanceRelation>() : irs.precedingTitles,
+                irs.succeedingTitles == null ? new ArrayList<InstanceToInstanceRelation>() : irs.succeedingTitles
         ).flatMap(Collection::stream).collect(Collectors.toList());
     }
 
@@ -536,7 +550,6 @@ public class InstanceRelationsController extends JsonRepresentation {
                 }
             }
         }
-
     }
 
     @Override

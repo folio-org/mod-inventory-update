@@ -42,4 +42,6 @@ public abstract class InstanceToInstanceRelation extends InventoryRecord {
         return provisionalInstance;
     }
 
+    public abstract boolean equals (Object o);
+
 }

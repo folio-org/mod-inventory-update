@@ -8,6 +8,14 @@
       "description": "The Instance, the bibliographic part, of this Inventory record set",
       "$ref": "instance-with-hrid.json"
     },
+    "holdingsRecords": {
+      "type": "array",
+      "description": "Collection of holdings of the Instance, each holdings record with embedded items",
+      "items": {
+        "type": "object",
+        "$ref": "holdings-record-with-hrid.json"
+      }
+    },
     "instanceRelations": {
       "description": "Object holding information of different types of Instance-to-Instance relationships to create",
       "parentInstances": {
@@ -182,14 +190,6 @@
             }
           }
         }
-      }
-    },
-    "holdingsRecords": {
-      "type": "array",
-      "description": "Collection of holdings of the Instance, each holdings record with embedded items",
-      "items": {
-        "type": "object",
-        "$ref": "holdings-record-with-hrid.json"
       }
     }
   },

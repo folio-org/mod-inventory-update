@@ -21,6 +21,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static org.folio.inventoryupdate.entities.InstanceRelationship.INSTANCE_RELATIONSHIP_TYPE_ID;
+import static org.folio.inventoryupdate.entities.InstanceToInstanceRelation.PROVISIONAL_INSTANCE;
 import static org.folio.inventoryupdate.entities.InventoryRecordSet.HRID;
 import static org.folio.inventoryupdate.entities.InstanceToInstanceRelation.InstanceRelationsClass;
 
@@ -470,20 +471,22 @@ public class InstanceRelationsController extends JsonRepresentation {
         json.put(PRECEDING_TITLES, new JsonArray());
 
         for (InstanceToInstanceRelation relation : getInstanceToInstanceRelations()) {
-            logger.info("Relation: " + relation);
-            logger.info("type of relation: " + relation.instanceRelationClass);
+            JsonObject relationJson = new JsonObject(relation.asJsonString());
+            if (relation.hasPreparedProvisionalInstance()) {
+                relationJson.put("CREATE_PROVISIONAL_INSTANCE", relation.getProvisionalInstance().asJson());
+            }
             switch (relation.instanceRelationClass) {
                 case TO_PARENT:
-                    json.getJsonArray(PARENT_INSTANCES).add(relation.asJson());
+                    json.getJsonArray(PARENT_INSTANCES).add(relationJson);
                     break;
                 case TO_CHILD:
-                    json.getJsonArray(CHILD_INSTANCES).add(relation.asJson());
+                    json.getJsonArray(CHILD_INSTANCES).add(relationJson);
                     break;
                 case TO_PRECEDING:
-                    json.getJsonArray(PRECEDING_TITLES).add(relation.asJson());
+                    json.getJsonArray(PRECEDING_TITLES).add(relationJson);
                     break;
                 case TO_SUCCEEDING:
-                    json.getJsonArray(SUCCEEDING_TITLES).add(relation.asJson());
+                    json.getJsonArray(SUCCEEDING_TITLES).add(relationJson);
                     break;
             }
         }

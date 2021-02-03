@@ -24,7 +24,7 @@
           "type": "object",
           "description": "Reports the number of operations performed on Instance records by transaction type and outcome",
           "properties": {
-            "CREATE": {
+            "CREATED": {
               "type": "object",
               "description": "Reports the number of Instance create operations by outcome",
               "properties": {
@@ -46,7 +46,7 @@
                 }
               }
             },
-            "UPDATE": {
+            "UPDATED": {
               "type": "object",
               "description": "Reports the number of Instance update operations by outcome",
               "properties": {
@@ -68,7 +68,7 @@
                 }
               }
             },
-            "DELETE": {
+            "DELETED": {
               "type": "object",
               "description": "Reports the number of Instance delete operations by outcome",
               "properties": {
@@ -92,11 +92,11 @@
             }
           }
         },
-        "HOLDINGSRECORD": {
+        "HOLDINGS_RECORD": {
           "type": "object",
           "description": "Reports the number of operations performed on holdings records by transaction type and outcome",
           "properties": {
-            "CREATE": {
+            "CREATED": {
               "type": "object",
               "description": "Reports the number of HoldingsRecord create operations by outcome",
               "properties": {
@@ -118,7 +118,7 @@
                 }
               }
             },
-            "UPDATE": {
+            "UPDATED": {
               "type": "object",
               "description": "Reports the number of HoldingsRecord update operations by outcome",
               "properties": {
@@ -140,7 +140,7 @@
                 }
               }
             },
-            "DELETE": {
+            "DELETED": {
               "type": "object",
               "description": "Reports the number of HoldingsRecord delete operations by outcome",
               "properties": {
@@ -168,7 +168,7 @@
           "type": "object",
           "description": "Reports the number of operations performed on Items by transaction type and outcome",
           "properties": {
-            "CREATE": {
+            "CREATED": {
               "type": "object",
               "description": "Reports the number of Item create operations by outcome",
               "properties": {
@@ -190,7 +190,7 @@
                 }
               }
             },
-            "UPDATE": {
+            "UPDATED": {
               "type": "object",
               "description": "Reports the number of Item update operations by outcome",
               "properties": {
@@ -212,7 +212,7 @@
                 }
               }
             },
-            "DELETE": {
+            "DELETED": {
               "type": "object",
               "description": "Reports the number of Item delete operations by outcome",
               "properties": {
@@ -231,6 +231,106 @@
                 "PENDING": {
                   "type": "integer",
                   "description": "Number of Item delete operations not completed (should always be 0)"
+                }
+              }
+            }
+          }
+        },
+        "INSTANCE_RELATIONSHIP": {
+          "type": "object",
+          "description": "Reports the number of operations performed for the Instance's parent-child relationships",
+          "properties": {
+            "CREATED": {
+              "type": "object",
+              "description": "Reports the number of relationship create operations by outcome",
+              "properties": {
+                "COMPLETED": {
+                  "type": "integer",
+                  "description": "Number of successfully completed relationship create operations"
+                },
+                "FAILED": {
+                  "type": "integer",
+                  "description": "Number of failed relationship create operations"
+                },
+                "SKIPPED": {
+                  "type": "integer",
+                  "description": "Number of relationship create operations that were skipped"
+                },
+                "PENDING": {
+                  "type": "integer",
+                  "description": "Number of Item relationship operations not completed (should always be 0)"
+                }
+              }
+            },
+            "DELETED": {
+              "type": "object",
+              "description": "Reports the number of relationship delete operations by outcome",
+              "properties": {
+                "COMPLETED": {
+                  "type": "integer",
+                  "description": "Number of successfully completed relationship delete operations"
+                },
+                "FAILED": {
+                  "type": "integer",
+                  "description": "Number of failed relationship delete operations"
+                },
+                "SKIPPED": {
+                  "type": "integer",
+                  "description": "Number of relationship delete operations that were skipped"
+                },
+                "PENDING": {
+                  "type": "integer",
+                  "description": "Number of relationship delete operations not completed (should always be 0)"
+                }
+              }
+            }
+          }
+        },
+        "INSTANCE_TITLE_SUCCESSION": {
+          "type": "object",
+          "description": "Reports the number of operations performed for the Instance's parent-child relationships",
+          "properties": {
+            "CREATED": {
+              "type": "object",
+              "description": "Reports the number of title succession create operations by outcome",
+              "properties": {
+                "COMPLETED": {
+                  "type": "integer",
+                  "description": "Number of successfully completed title succession create operations"
+                },
+                "FAILED": {
+                  "type": "integer",
+                  "description": "Number of failed title succession create operations"
+                },
+                "SKIPPED": {
+                  "type": "integer",
+                  "description": "Number of title succession create operations that were skipped"
+                },
+                "PENDING": {
+                  "type": "integer",
+                  "description": "Number of title succession create operations not completed (should always be 0)"
+                }
+              }
+            },
+            "DELETED": {
+              "type": "object",
+              "description": "Reports the number of title succession delete operations by outcome",
+              "properties": {
+                "COMPLETED": {
+                  "type": "integer",
+                  "description": "Number of successfully completed title succession delete operations"
+                },
+                "FAILED": {
+                  "type": "integer",
+                  "description": "Number of failed title succession delete operations"
+                },
+                "SKIPPED": {
+                  "type": "integer",
+                  "description": "Number of title succession delete operations that were skipped"
+                },
+                "PENDING": {
+                  "type": "integer",
+                  "description": "Number of title succession delete operations not completed (should always be 0)"
                 }
               }
             }

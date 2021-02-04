@@ -24,21 +24,14 @@ public class FakeInventoryStorage {
   public static final String ITEM_STORAGE_PATH = "/item-storage/items";
   public static final String LOCATION_STORAGE_PATH = "/locations";
 
-  // Property keys, JSON responses
-  public static final String HOLDINGS_RECORDS = "holdingsRecords";
-  public static final String ITEMS = "items";
-  public static final String INSTANCE_RELATIONSHIPS = "instanceRelationships";
-  public static final String PRECEDING_SUCCEEDING_TITLES = "precedingSucceedingTitles";
-  public static final String LOCATIONS = "locations";
-
   public InstanceStorage instanceStorage = new InstanceStorage();
 
   private final Logger logger = LoggerFactory.getLogger("fake-inventory-storage");
 
   public FakeInventoryStorage (Vertx vertx, TestContext testContext, Async async) {
     Router router = Router.router(vertx);
-    router.get(INSTANCE_STORAGE_PATH).handler(instanceStorage::getInstancesByQuery);
-    router.get(INSTANCE_STORAGE_PATH +"/:id").handler(instanceStorage::getInstanceById);
+    router.get(INSTANCE_STORAGE_PATH).handler(instanceStorage::getRecordsByQuery);
+    router.get(INSTANCE_STORAGE_PATH +"/:id").handler(instanceStorage::getRecordById);
     router.post("/*").handler(BodyHandler.create());
     router.post(INSTANCE_STORAGE_PATH).handler(instanceStorage::createInstance);
     router.put("/*").handler(BodyHandler.create());

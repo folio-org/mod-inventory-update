@@ -2,6 +2,7 @@ package org.folio.inventoryupdate.test;
 
 import io.vertx.core.impl.logging.Logger;
 import io.vertx.core.impl.logging.LoggerFactory;
+import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.RoutingContext;
 
@@ -11,10 +12,18 @@ import java.net.URLEncoder;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.stream.Stream;
 
 public abstract class RecordStorage {
     public final static String TOTAL_RECORDS = "totalRecords";
+    // Property keys, JSON responses
+    public final static String INSTANCES = "instances";
+    public static final String HOLDINGS_RECORDS = "holdingsRecords";
+    public static final String ITEMS = "items";
+    public static final String INSTANCE_RELATIONSHIPS = "instanceRelationships";
+    public static final String PRECEDING_SUCCEEDING_TITLES = "precedingSucceedingTitles";
+    public static final String LOCATIONS = "locations";
+
+    protected String resultSetName = null;
 
     protected final Map<String,InventoryRecord> records = new HashMap<>();
     private final Logger logger = LoggerFactory.getLogger("fake-inventory-storage");
@@ -46,15 +55,39 @@ public abstract class RecordStorage {
         return 204;
     }
 
-    public Collection<InventoryRecord> getRecords () {
+    protected Collection<InventoryRecord> getRecords () {
         return records.values();
     }
 
-    public Stream<InventoryRecord> getRecordStream () {
-        return getRecords().stream();
+    /**
+     * Inventory Storage handler
+     * @param routingContext
+     */
+    public void getRecordsByQuery(RoutingContext routingContext) {
+        final String query = decode(routingContext.request().getParam("query"));
+
+        routingContext.request().endHandler(res -> {
+            respond(routingContext, buildJsonRecordsResponseByQuery(query), 200);
+        });
+
+        routingContext.request().exceptionHandler(res -> {
+            respondWithMessage(routingContext, res);
+        });
     }
 
-    public InventoryRecord getRecord (String id) {
+    private JsonObject buildJsonRecordsResponseByQuery(String query) {
+        JsonObject response = new JsonObject();
+        JsonArray jsonRecords = new JsonArray();
+        getRecords().forEach( record -> {
+            if (record.match(query)) {
+                jsonRecords.add(record.getJson());
+            }});
+        response.put(getResultSetName(), jsonRecords);
+        response.put(TOTAL_RECORDS, jsonRecords.size());
+        return response;
+    }
+
+    private InventoryRecord getRecord (String id) {
         return records.get(id);
     }
 
@@ -74,6 +107,19 @@ public abstract class RecordStorage {
             return "";
         }
     }
+
+    protected void getRecordById(RoutingContext routingContext) {
+        final String id = routingContext.pathParam("id");
+        InventoryRecord record = getRecord(id);
+
+        routingContext.request().endHandler(res -> {
+            respond(routingContext, record.getJson(), 200);
+        });
+        routingContext.request().exceptionHandler(res -> {
+            respondWithMessage(routingContext, res);
+        });
+    }
+
 
     /**
      * Respond with JSON and status code
@@ -108,5 +154,6 @@ public abstract class RecordStorage {
         routingContext.response().end(res.getMessage());
     }
 
+    public abstract String getResultSetName();
 
 }

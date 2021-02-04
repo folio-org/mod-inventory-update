@@ -11,27 +11,26 @@ import io.vertx.ext.unit.TestContext;
  *
  * Validates that the fake storage API behaves as expected for testing the instance match service.
  */
-public class FakeInventoryStorageValidator {
+public class FakeInstanceStorageValidator {
 
-  public static void validateStorage(FakeInventoryStorage storage, TestContext context) {
-    validateGetByQuery(storage, context);
-    validatePost(storage, context);
-    validatePut(storage, context);
+  public static void validateStorage(TestContext context) {
+    validateGetByQuery(context);
+    validatePost(context);
+    validatePut(context);
   }
 
     /**
    * Tests fake storage GET method
-   * @param storage
    * @param testContext
    */
-  private static void validateGetByQuery (FakeInventoryStorage storage, TestContext testContext) {
+  private static void validateGetByQuery (TestContext testContext) {
 
     String bodyAsString;
     Response response1;
 
     RestAssured.port = FakeInventoryStorage.PORT_INVENTORY_STORAGE;
     response1 = RestAssured.given()
-      .get(FakeInventoryStorage.URL_INSTANCES+"?query="+ FakeInventoryStorage.encode("title==\"Initial Instance\""))
+      .get(FakeInventoryStorage.INSTANCE_STORAGE_PATH +"?query="+ FakeInventoryStorage.encode("title==\"Initial Instance\""))
       .then()
       .log().ifValidationFails()
       .statusCode(200).extract().response();
@@ -45,10 +44,9 @@ public class FakeInventoryStorageValidator {
 
   /**
    * Tests fake storage POST method
-   * @param storage
    * @param testContext
    */
-  private static void validatePost (FakeInventoryStorage storage, TestContext testContext) {
+  private static void validatePost (TestContext testContext) {
 
     String bodyAsString1;
     Response response1;
@@ -56,7 +54,7 @@ public class FakeInventoryStorageValidator {
 
     response1 = RestAssured.given()
       .body(newInstance.toString())
-      .post(FakeInventoryStorage.URL_INSTANCES)
+      .post(FakeInventoryStorage.INSTANCE_STORAGE_PATH)
       .then()
       .log().ifValidationFails()
       .statusCode(201).extract().response();
@@ -71,7 +69,7 @@ public class FakeInventoryStorageValidator {
     Response response2;
     RestAssured.port = FakeInventoryStorage.PORT_INVENTORY_STORAGE;
     response2 = RestAssured.given()
-      .get(FakeInventoryStorage.URL_INSTANCES+"/"+instanceResponse.getString("id"))
+      .get(FakeInventoryStorage.INSTANCE_STORAGE_PATH +"/"+instanceResponse.getString("id"))
       .then()
       .log().ifValidationFails()
       .statusCode(200).extract().response();
@@ -85,17 +83,16 @@ public class FakeInventoryStorageValidator {
 
   /**
    * Test fake storage PUT method
-   * @param storage
    * @param testContext
    */
-  private static void validatePut(FakeInventoryStorage storage, TestContext testContext) {
+  private static void validatePut(TestContext testContext) {
 
     // Find existing instance
     String bodyAsString1;
     Response response1;
     RestAssured.port = FakeInventoryStorage.PORT_INVENTORY_STORAGE;
     response1 = RestAssured.given()
-      .get(FakeInventoryStorage.URL_INSTANCES+"?query="+ FakeInventoryStorage.encode("title==\"Initial Instance\""))
+      .get(FakeInventoryStorage.INSTANCE_STORAGE_PATH +"?query="+ FakeInventoryStorage.encode("title==\"Initial Instance\""))
       .then()
       .log().ifValidationFails()
       .statusCode(200).extract().response();
@@ -110,7 +107,7 @@ public class FakeInventoryStorageValidator {
     // Update existing instance with PUT
     RestAssured.given()
       .body(existingInstance.toString())
-      .put(FakeInventoryStorage.URL_INSTANCES+"/"+existingInstance.getString("id"))
+      .put(FakeInventoryStorage.INSTANCE_STORAGE_PATH +"/"+existingInstance.getString("id"))
       .then()
       .log().ifValidationFails()
       .statusCode(204).extract().response();
@@ -120,7 +117,7 @@ public class FakeInventoryStorageValidator {
     Response response2;
     RestAssured.port = FakeInventoryStorage.PORT_INVENTORY_STORAGE;
     response2 = RestAssured.given()
-      .get(FakeInventoryStorage.URL_INSTANCES+"/"+existingInstance.getString("id"))
+      .get(FakeInventoryStorage.INSTANCE_STORAGE_PATH +"/"+existingInstance.getString("id"))
       .then()
       .log().ifValidationFails()
       .statusCode(200).extract().response();

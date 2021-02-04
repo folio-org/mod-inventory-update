@@ -2,74 +2,43 @@ package org.folio.inventoryupdate.test;
 
 import io.vertx.core.json.JsonObject;
 
-public class Instance {
-  private String id;
-  private String title;
-  private String hrid;
-  private String instanceTypeId;
-  private String matchKey;
-  private JsonObject instanceJson = new JsonObject();
+public class Instance extends InventoryRecord {
+
+  public static String TITLE = "title";
+  public static String INSTANCE_TYPE_ID = "instanceTypeId";
+  public static String MATCH_KEY = "matchKey";
+  public static String HRID = "hrid";
+
+  public Instance (JsonObject record) {
+    super(record);
+  }
 
   public Instance () {
-  }
-
-  public Instance (JsonObject instanceJson) {
-    this.instanceJson = instanceJson;
-  }
-
-  public Instance setId (String id) {
-    this.id = id;
-    instanceJson.put("id", id);
-    return this;
-  }
-
-  public String getId () {
-    return id;
+    super();
   }
 
   public Instance setTitle (String title) {
-    this.title = title;
-    instanceJson.put("title", title);
+    recordJson.put(TITLE, title);
     return this;
-  }
-
-  public String getTitle () {
-    return title;
   }
 
   public Instance setInstanceTypeId (String instanceTypeId) {
-    this.instanceTypeId = instanceTypeId;
-    instanceJson.put("instanceTypeId", instanceTypeId);
+    recordJson.put(INSTANCE_TYPE_ID, instanceTypeId);
     return this;
-  }
-
-  public String getInstanceTypeId() {
-    return instanceTypeId;
   }
 
   public Instance setMatchKey (String matchKey) {
-    this.matchKey = matchKey;
-    instanceJson.put("matchKey", this.matchKey);
-    System.out.println(instanceJson.encodePrettily());
+    recordJson.put(MATCH_KEY, matchKey);
     return this;
   }
 
-  public String getMatchKey() {
-    return matchKey;
-  }
-
   public Instance setHrid (String hrid) {
-    this.hrid = hrid;
-    instanceJson.put("hrid", hrid);
+    recordJson.put(HRID, hrid);
     return this;
   }
 
   public String getHrid () {
-    return hrid;
-  }
-
-  public JsonObject getJson() {
-    return instanceJson;
+    return recordJson.getString(HRID);
   }
 
   public boolean match(String query) {
@@ -81,7 +50,7 @@ public class Instance {
     String value = queryParts.length > 1 ?  queryParts[1].replace("\"", "") : "";
     System.out.println("key: "+key);
     System.out.println("value: "+value);
-    System.out.println("instance.getString(key): " + instanceJson.getString(key));
-    return (instanceJson.getString(key) != null && instanceJson.getString(key).equals(value));
+    System.out.println("instance.getString(key): " + recordJson.getString(key));
+    return (recordJson.getString(key) != null && recordJson.getString(key).equals(value));
   }
 }

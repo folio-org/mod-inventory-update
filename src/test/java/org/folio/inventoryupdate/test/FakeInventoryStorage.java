@@ -25,6 +25,7 @@ public class FakeInventoryStorage {
   public static final String LOCATION_STORAGE_PATH = "/locations";
 
   public InstanceStorage instanceStorage = new InstanceStorage();
+  public PrecedingSucceedingStorage precedingSucceedingStorage = new PrecedingSucceedingStorage();
 
   private final Logger logger = LoggerFactory.getLogger("fake-inventory-storage");
 
@@ -32,12 +33,13 @@ public class FakeInventoryStorage {
     Router router = Router.router(vertx);
     router.get(INSTANCE_STORAGE_PATH).handler(instanceStorage::getRecordsByQuery);
     router.get(INSTANCE_STORAGE_PATH +"/:id").handler(instanceStorage::getRecordById);
+    router.get(PRECEDING_SUCCEEDING_TITLE_STORAGE_PATH).handler(precedingSucceedingStorage::getRecordsByQuery);
+    router.get(PRECEDING_SUCCEEDING_TITLE_STORAGE_PATH + "/:id").handler(precedingSucceedingStorage::getRecordById);
     router.post("/*").handler(BodyHandler.create());
     router.post(INSTANCE_STORAGE_PATH).handler(instanceStorage::createInstance);
+    router.post(PRECEDING_SUCCEEDING_TITLE_STORAGE_PATH).handler(precedingSucceedingStorage::createPrecedingSucceedingTitle);
     router.put("/*").handler(BodyHandler.create());
     router.put(INSTANCE_STORAGE_PATH +"/:id").handler(instanceStorage::updateInstance);
-
-    initializeInstanceStorage();
 
     HttpServerOptions so = new HttpServerOptions().setHandle100ContinueAutomatically(true);
     vertx.createHttpServer(so)
@@ -51,32 +53,6 @@ public class FakeInventoryStorage {
           async.complete();
         }
       );
-  }
-
-  private void initializeInstanceStorage() {
-    Instance instance = (Instance) new Instance().setInstanceTypeId("123").setTitle("Initial Instance").setHrid("1");
-    MatchKey matchKey = new MatchKey(instance.getJson());
-    instance.setMatchKey(matchKey.getKey());
-    logger.info("Initializing fake storage with matchKey " + matchKey.getKey());
-    instanceStorage.insert(instance);
-  }
-
-
-  public static String decode (String string) {
-    try {
-      return URLDecoder.decode(string, "UTF-8");
-    } catch (UnsupportedEncodingException uee) {
-      return "";
-    }
-
-  }
-
-  public static String encode (String string) {
-    try {
-      return URLEncoder.encode(string, "UTF-8");
-    } catch (UnsupportedEncodingException uee) {
-      return "";
-    }
   }
 
 }

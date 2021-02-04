@@ -31,7 +31,7 @@ public class InventoryUpdateTestSuite {
   private final Header OKAPI_URL_HEADER = new Header("X-Okapi-Url", "http://localhost:"
       + FakeInventoryStorage.PORT_INVENTORY_STORAGE);
 
-  private FakeInventoryStorage inventoryStorage;
+  private FakeInventoryStorage fakeInventoryStorage;
 
   public InventoryUpdateTestSuite() {}
 
@@ -42,21 +42,33 @@ public class InventoryUpdateTestSuite {
     // Register the testContext exception handler to catch assertThat
     vertx.exceptionHandler(testContext.exceptionHandler());
 
-    setUpMatch(testContext, testContext.async());
+    deployService(testContext, testContext.async());
   }
 
-  private void setUpMatch(TestContext testContext, Async async) {
+  private void deployService(TestContext testContext, Async async) {
     System.setProperty("port", String.valueOf(PORT_INVENTORY_UPDATE));
     vertx.deployVerticle(MainVerticle.class.getName(), new DeploymentOptions(),
       r -> {
         testContext.assertTrue(r.succeeded());
-        inventoryStorage = new FakeInventoryStorage(vertx, testContext, async);
+        fakeInventoryStorage = new FakeInventoryStorage(vertx, testContext, async);
+        initializeStorages();
       });
   }
 
+  public void initializeStorages() {
+    Instance instance = new Instance().setInstanceTypeId("123").setTitle("Initial Instance").setHrid("1");
+    MatchKey matchKey = new MatchKey(instance.getJson());
+    instance.setMatchKey(matchKey.getKey());
+    fakeInventoryStorage.instanceStorage.insert(instance);
+    fakeInventoryStorage.instanceStorage.setFakeStorage(fakeInventoryStorage);
+    fakeInventoryStorage.precedingSucceedingStorage.setFakeStorage(fakeInventoryStorage);
+  }
+
+
   @Test
   public void testFakeInventoryStorage(TestContext testContext) {
-    FakeInstanceStorageValidator.validateStorage(testContext);
+    StorageValidatorInstances.validateStorage(testContext);
+    StorageValidatorPrecedingSucceeding.validateStorage(testContext);
   }
 
   /**
@@ -73,7 +85,7 @@ public class InventoryUpdateTestSuite {
     instance.setMatchKey(matchKey.getKey());
     Response instancesBeforePut =
       RestAssured.given()
-        .get(FakeInventoryStorage.INSTANCE_STORAGE_PATH +"?query="+ FakeInventoryStorage
+        .get(FakeInventoryStorage.INSTANCE_STORAGE_PATH +"?query="+ RecordStorage
             .encode("matchKey==\"" + matchKey.getKey() + "\""))
         .then()
         .log().ifValidationFails()
@@ -98,7 +110,7 @@ public class InventoryUpdateTestSuite {
     Response instancesAfterPut =
       RestAssured.given()
         .get(FakeInventoryStorage.INSTANCE_STORAGE_PATH +"?query="
-            + FakeInventoryStorage.encode("matchKey==\"" + matchKey.getKey() + "\""))
+            + RecordStorage.encode("matchKey==\"" + matchKey.getKey() + "\""))
         .then()
         .log().ifValidationFails()
         .statusCode(200).extract().response();
@@ -125,7 +137,7 @@ public class InventoryUpdateTestSuite {
     InventoryRecordSet recordSet = new InventoryRecordSet(instance);
     Response instancesBeforePut =
             RestAssured.given()
-                    .get(FakeInventoryStorage.INSTANCE_STORAGE_PATH +"?query="+ FakeInventoryStorage
+                    .get(FakeInventoryStorage.INSTANCE_STORAGE_PATH +"?query="+ RecordStorage
                             .encode("matchKey==\"" + matchKey.getKey() + "\""))
                     .then()
                     .log().ifValidationFails()
@@ -150,7 +162,7 @@ public class InventoryUpdateTestSuite {
     Response instancesAfterPut =
             RestAssured.given()
                     .get(FakeInventoryStorage.INSTANCE_STORAGE_PATH +"?query="
-                            + FakeInventoryStorage.encode("matchKey==\"" + matchKey.getKey() + "\""))
+                            + RecordStorage.encode("matchKey==\"" + matchKey.getKey() + "\""))
                     .then()
                     .log().ifValidationFails()
                     .statusCode(200).extract().response();
@@ -175,7 +187,7 @@ public class InventoryUpdateTestSuite {
     MatchKey matchKey = new MatchKey(instance.getJson());
     Response instancesBeforePut =
       RestAssured.given()
-        .get(FakeInventoryStorage.INSTANCE_STORAGE_PATH +"?query="+ FakeInventoryStorage
+        .get(FakeInventoryStorage.INSTANCE_STORAGE_PATH +"?query="+ RecordStorage
             .encode("matchKey==\"" + matchKey.getKey() + "\""))
         .then()
         .log().ifValidationFails()
@@ -205,7 +217,7 @@ public class InventoryUpdateTestSuite {
     Response instancesAfterPut =
       RestAssured.given()
         .get(FakeInventoryStorage.INSTANCE_STORAGE_PATH +"?query="
-            + FakeInventoryStorage.encode("matchKey==\"" + matchKey.getKey() + "\""))
+            + RecordStorage.encode("matchKey==\"" + matchKey.getKey() + "\""))
         .then()
         .log().ifValidationFails()
         .statusCode(200).extract().response();
@@ -234,7 +246,7 @@ public class InventoryUpdateTestSuite {
         .setHrid("2");
     Response instancesBeforePut =
       RestAssured.given()
-        .get(FakeInventoryStorage.INSTANCE_STORAGE_PATH +"?query="+ FakeInventoryStorage
+        .get(FakeInventoryStorage.INSTANCE_STORAGE_PATH +"?query="+ RecordStorage
             .encode("hrid==\"" + instance.getHrid() + "\""))
         .then()
         .log().ifValidationFails()
@@ -259,7 +271,7 @@ public class InventoryUpdateTestSuite {
     Response instancesAfterPut =
       RestAssured.given()
         .get(FakeInventoryStorage.INSTANCE_STORAGE_PATH +"?query="
-            + FakeInventoryStorage.encode("hrid==\"" + instance.getHrid() + "\""))
+            + RecordStorage.encode("hrid==\"" + instance.getHrid() + "\""))
         .then()
         .log().ifValidationFails()
         .statusCode(200).extract().response();
@@ -284,7 +296,7 @@ public class InventoryUpdateTestSuite {
         .setHrid("1");
     Response instancesBeforePut =
       RestAssured.given()
-        .get(FakeInventoryStorage.INSTANCE_STORAGE_PATH +"?query="+ FakeInventoryStorage
+        .get(FakeInventoryStorage.INSTANCE_STORAGE_PATH +"?query="+ RecordStorage
             .encode("hrid==\"" + instance.getHrid() + "\""))
         .then()
         .log().ifValidationFails()
@@ -314,7 +326,7 @@ public class InventoryUpdateTestSuite {
     Response instancesAfterPut =
       RestAssured.given()
         .get(FakeInventoryStorage.INSTANCE_STORAGE_PATH +"?query="
-            + FakeInventoryStorage.encode("hrid==\"" + instance.getHrid() + "\""))
+            + RecordStorage.encode("hrid==\"" + instance.getHrid() + "\""))
         .then()
         .log().ifValidationFails()
         .statusCode(200).extract().response();

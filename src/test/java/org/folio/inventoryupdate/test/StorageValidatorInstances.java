@@ -11,7 +11,7 @@ import io.vertx.ext.unit.TestContext;
  *
  * Validates that the fake storage API behaves as expected for testing the instance match service.
  */
-public class FakeInstanceStorageValidator {
+public class StorageValidatorInstances {
 
   public static void validateStorage(TestContext context) {
     validateGetByQuery(context);
@@ -30,7 +30,7 @@ public class FakeInstanceStorageValidator {
 
     RestAssured.port = FakeInventoryStorage.PORT_INVENTORY_STORAGE;
     response1 = RestAssured.given()
-      .get(FakeInventoryStorage.INSTANCE_STORAGE_PATH +"?query="+ FakeInventoryStorage.encode("title==\"Initial Instance\""))
+      .get(FakeInventoryStorage.INSTANCE_STORAGE_PATH +"?query="+ RecordStorage.encode("title==\"Initial Instance\""))
       .then()
       .log().ifValidationFails()
       .statusCode(200).extract().response();
@@ -92,7 +92,7 @@ public class FakeInstanceStorageValidator {
     Response response1;
     RestAssured.port = FakeInventoryStorage.PORT_INVENTORY_STORAGE;
     response1 = RestAssured.given()
-      .get(FakeInventoryStorage.INSTANCE_STORAGE_PATH +"?query="+ FakeInventoryStorage.encode("title==\"Initial Instance\""))
+      .get(FakeInventoryStorage.INSTANCE_STORAGE_PATH +"?query="+ RecordStorage.encode("title==\"Initial Instance\""))
       .then()
       .log().ifValidationFails()
       .statusCode(200).extract().response();

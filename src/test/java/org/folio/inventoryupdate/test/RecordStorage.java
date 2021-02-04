@@ -23,10 +23,15 @@ public abstract class RecordStorage {
     public static final String PRECEDING_SUCCEEDING_TITLES = "precedingSucceedingTitles";
     public static final String LOCATIONS = "locations";
 
+    protected FakeInventoryStorage fakeStorage;
     protected String resultSetName = null;
 
     protected final Map<String,InventoryRecord> records = new HashMap<>();
     private final Logger logger = LoggerFactory.getLogger("fake-inventory-storage");
+
+    public void setFakeStorage (FakeInventoryStorage fakeStorage) {
+        this.fakeStorage = fakeStorage;
+    }
 
     public int insert (InventoryRecord record) {
         if (!record.hasId()) {

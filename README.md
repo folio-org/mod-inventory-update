@@ -36,16 +36,29 @@ of relationships that tie multipart monographs together or relations pointing to
 on a comparison with the set of relationships that may be registered for the Instance in storage already, relationships
 will be created and/or deleted (updating relationships is obsolete).
 
+#### Provisional Instances created when related Instance doesn't exist yet
+
 If an upsert request comes in with a relation to an Instance that doesn't already exist in storage, a provisional
 Instance will be created, provided that the request contains sufficient data as required for creating the provisional
 Instance - like any mandatory Instance properties.
 
-Only existing relationships that are explicitly omitted in the request will be deleted. Say "Instance 2" declares
-"Instance 1" as its parent. Conversely, that means "Instance 1" has "Instance 2" as its child. If "Instance 1" is later
-updated, without declaring any child relationships, then existing child relationships (ie to "Instance 2")
-would be retained. To actually delete the relation to "Instance 2", the update of "Instance 1" must include an empty
-list of child relations (or a list of child relations without this particular relation in it); this is considered an
-explicit omission of existing relations with the intent to delete.
+#### Deletion of Instance-to-Instance relations
+
+Only existing relationships that are explicitly omitted in the request will be deleted. This is to say that special care
+needs to be taken here, since a relation between two Instances will appear as a relation on either Instance.
+
+Say "Instance A" is the parent (or preceding) Instance and "Instance B" is the child (or succeeding) Instance. "Instance
+A" will thus have a child relation, which is the exact same relation as "Instance B"'s parent relation.
+
+However, some clients may only report relations in one direction. For example, "Instance B" references its parent but "
+Instance A" has no mention of its child. Just because "Instance A" doesn't reference its child doesn't mean that there
+should be no child relation or that the relation should be deleted.
+
+The API thus distinguishes between a request with no relations mentioned and a request with an empty list of relations.
+With the former request no action will be taken regarding relations, whereas the latter is considered and explicit
+omission of a given type of relations that should trigger a delete of such relations if they exist.
+
+#### Instance DELETE requests
 
 The API supports DELETE requests, which would delete the Instance with all of its associated holdings records and items
 and any relations it might have to other Instances.

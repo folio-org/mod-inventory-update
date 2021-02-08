@@ -23,7 +23,7 @@ public class HoldingsStorage extends RecordStorage {
 
     @Override
     public String getResultSetName() {
-        return "holdingsRecords";
+        return HOLDINGS_RECORDS;
     }
 
     @Override

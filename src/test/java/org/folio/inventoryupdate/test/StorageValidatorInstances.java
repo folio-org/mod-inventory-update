@@ -8,6 +8,7 @@ import org.folio.inventoryupdate.test.fakestorage.RecordStorage;
 import org.folio.inventoryupdate.test.fakestorage.entitites.TestHoldingsRecord;
 import org.folio.inventoryupdate.test.fakestorage.entitites.TestInstance;
 import org.folio.inventoryupdate.test.fakestorage.entitites.TestInstanceRelationship;
+import org.folio.inventoryupdate.test.fakestorage.entitites.TestInstanceTitleSuccession;
 import org.junit.Test;
 
 import static org.folio.inventoryupdate.test.fakestorage.FakeInventoryStorage.*;
@@ -25,6 +26,7 @@ public class StorageValidatorInstances  {
     validateCanDeleteInstanceById(testContext);
     cannotDeleteInstanceWithHoldings(testContext);
     cannotDeleteInstanceWithInstanceRelations(testContext);
+    // cannotDeleteInstanceWithTitleSuccession(testContext);
   }
 
   protected void validatePostAndGetById(TestContext testContext) {
@@ -83,7 +85,23 @@ public class StorageValidatorInstances  {
                     .setSubInstanceId(childId)
                     .setSuperInstanceId(parentId).getJson(), 201);
     FakeInventoryStorage.delete(INSTANCE_STORAGE_PATH, parentId, 400);
+  }
 
+  protected void cannotDeleteInstanceWithTitleSuccession (TestContext testContext) {
+    JsonObject responseOnPOSTSucceeding = FakeInventoryStorage.post(
+            INSTANCE_STORAGE_PATH,
+            new TestInstance().setTitle("Succeeding title").setInstanceTypeId("12345").getJson(), 201);
+    String succeedingId = responseOnPOSTSucceeding.getString("id");
+    JsonObject responseOnPOSTPreceding = FakeInventoryStorage.post(
+            INSTANCE_STORAGE_PATH,
+            new TestInstance().setTitle("Preceding title").setInstanceTypeId("12345").getJson(), 201);
+    String precedingId = responseOnPOSTPreceding.getString("id");
+    JsonObject responseOnPOSTSuccession = FakeInventoryStorage.post(
+            PRECEDING_SUCCEEDING_TITLE_STORAGE_PATH,
+            new TestInstanceTitleSuccession()
+                    .setSucceedingInstanceId(succeedingId)
+                    .setPrecedingInstanceId(precedingId).getJson(), 201);
+    FakeInventoryStorage.delete(INSTANCE_STORAGE_PATH, precedingId , 400);
   }
 
 }

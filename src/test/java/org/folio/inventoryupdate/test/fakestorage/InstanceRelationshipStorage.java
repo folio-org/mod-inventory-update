@@ -10,7 +10,7 @@ public class InstanceRelationshipStorage extends RecordStorage {
 
     @Override
     public String getResultSetName() {
-        return "instanceRelationships";
+        return INSTANCE_RELATIONSHIPS;
     }
 
     @Override
@@ -26,10 +26,7 @@ public class InstanceRelationshipStorage extends RecordStorage {
     }
 
     public void updateRecord(RoutingContext routingContext) {
-        JsonObject recordJson = new JsonObject(routingContext.getBodyAsString());
-        String id = routingContext.pathParam("id");
-        int code = update(id, new TestInstanceRelationship(recordJson));
-        respond(routingContext, code);
+        // not needed
     }
 
 }

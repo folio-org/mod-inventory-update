@@ -82,13 +82,15 @@ public class InventoryUpdateTestSuite {
     new StorageValidatorInstances().validateStorage(testContext);
     new StorageValidatorHoldingsRecords().validateStorage(testContext);
     new StorageValidatorItems().validateStorage(testContext);
+    new StorageValidatorPrecedingSucceeding().validateStorage(testContext);
+    new StorageValidatorInstanceRelationships().validateStorage(testContext);
   }
 
   /**
    * Tests API /instance-storage-match/instances
    * @param testContext
    */
-  //@Test
+  @Test
   public void testPushOfNewInstanceWillCreateNewInstanceForMatchKey (TestContext testContext) {
     populateStoragesWithInitialRecords();
     if (logger.isDebugEnabled()) {
@@ -143,7 +145,7 @@ public class InventoryUpdateTestSuite {
    * Tests API /shared-inventory-upsert-matchkey
    * @param testContext
    */
-  //@Test
+  @Test
   public void testUpsertByMatchKeyWillCreateNewInstanceForMatchKey (TestContext testContext) {
     populateStoragesWithInitialRecords();
     RestAssured.port = FakeInventoryStorage.PORT_INVENTORY_STORAGE;
@@ -197,7 +199,7 @@ public class InventoryUpdateTestSuite {
    * Tests API /shared-inventory-upsert-matchkey/instances
    * @param testContext
    */
-  //@Test
+  @Test
   public void testPushOfExistingInstanceWillUpdateExistingInstanceForMatchKey (TestContext testContext) {
     populateStoragesWithInitialRecords();
     RestAssured.port = FakeInventoryStorage.PORT_INVENTORY_STORAGE;
@@ -257,7 +259,7 @@ public class InventoryUpdateTestSuite {
    * Tests API /instance-storage-match/instances
    * @param testContext
    */
-  //@Test
+  @Test
   public void testPushOfNewInstanceWillCreateNewInstanceForHrid (TestContext testContext) {
     createInstanceWithHrid1();
     RestAssured.port = FakeInventoryStorage.PORT_INVENTORY_STORAGE;
@@ -306,7 +308,7 @@ public class InventoryUpdateTestSuite {
    * Tests API /instance-storage-match/instances
    * @param testContext
    */
-  //@Test
+  @Test
   public void testPushOfExistingInstanceWillUpdateExistingInstanceForHrid (TestContext testContext) {
     createInstanceWithHrid1();
     if (logger.isDebugEnabled()) {

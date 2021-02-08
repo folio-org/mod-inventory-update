@@ -11,6 +11,10 @@ public class TestInstanceTitleSuccession extends InventoryRecord {
         super(record);
     }
 
+    public TestInstanceTitleSuccession() {
+        super();
+    }
+
     public String getPrecedingInstanceId () {
         return recordJson.getString(PRECEDING_INSTANCE_ID);
     }

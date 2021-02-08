@@ -9,7 +9,7 @@ public class ItemStorage extends RecordStorage {
 
     @Override
     protected String getResultSetName() {
-        return "items";
+        return ITEMS;
     }
 
     @Override

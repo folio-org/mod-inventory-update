@@ -2,37 +2,37 @@ package org.folio.inventoryupdate.test;
 
 import io.vertx.core.json.JsonObject;
 
-public class Instance extends InventoryRecord {
+public class TestInstance extends InventoryRecord {
 
   public static String TITLE = "title";
   public static String INSTANCE_TYPE_ID = "instanceTypeId";
   public static String MATCH_KEY = "matchKey";
   public static String HRID = "hrid";
 
-  public Instance (JsonObject record) {
+  public TestInstance(JsonObject record) {
     super(record);
   }
 
-  public Instance () {
+  public TestInstance() {
     super();
   }
 
-  public Instance setTitle (String title) {
+  public TestInstance setTitle (String title) {
     recordJson.put(TITLE, title);
     return this;
   }
 
-  public Instance setInstanceTypeId (String instanceTypeId) {
+  public TestInstance setInstanceTypeId (String instanceTypeId) {
     recordJson.put(INSTANCE_TYPE_ID, instanceTypeId);
     return this;
   }
 
-  public Instance setMatchKey (String matchKey) {
+  public TestInstance setMatchKey (String matchKey) {
     recordJson.put(MATCH_KEY, matchKey);
     return this;
   }
 
-  public Instance setHrid (String hrid) {
+  public TestInstance setHrid (String hrid) {
     recordJson.put(HRID, hrid);
     return this;
   }
@@ -41,6 +41,7 @@ public class Instance extends InventoryRecord {
     return recordJson.getString(HRID);
   }
 
+  /*
   public boolean match(String query) {
     String trimmed = query.replace("(","").replace(")", "");
     String[] queryParts = trimmed.split("==");
@@ -53,4 +54,5 @@ public class Instance extends InventoryRecord {
     System.out.println("instance.getString(key): " + recordJson.getString(key));
     return (recordJson.getString(key) != null && recordJson.getString(key).equals(value));
   }
+   */
 }

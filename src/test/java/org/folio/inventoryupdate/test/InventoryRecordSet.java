@@ -4,9 +4,9 @@ import io.vertx.core.json.JsonObject;
 
 public class InventoryRecordSet {
 
-    private Instance instance;
+    private TestInstance instance;
 
-    public InventoryRecordSet(Instance instance) {
+    public InventoryRecordSet(TestInstance instance) {
         this.instance = instance;
     }
 

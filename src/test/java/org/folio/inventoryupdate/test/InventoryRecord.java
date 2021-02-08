@@ -1,5 +1,6 @@
 package org.folio.inventoryupdate.test;
 
+import io.vertx.core.impl.logging.Logger;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.RoutingContext;
 
@@ -9,6 +10,8 @@ public abstract class InventoryRecord {
 
     public static String ID = "id";
     protected JsonObject recordJson;
+
+    private Logger logger = io.vertx.core.impl.logging.LoggerFactory.getLogger("InventoryRecord");
 
     public InventoryRecord() {
         recordJson = new JsonObject();
@@ -43,13 +46,17 @@ public abstract class InventoryRecord {
     protected boolean match(String query) {
         String trimmed = query.replace("(","").replace(")", "");
         String[] queryParts = trimmed.split("==");
-        System.out.println("query: " +query);
-        System.out.println("queryParts[0]: " + queryParts[0]);
+        logger.debug("query: " +query);
+        logger.debug("queryParts[0]: " + queryParts[0]);
         String key = queryParts[0];
         String value = queryParts.length > 1 ?  queryParts[1].replace("\"", "") : "";
-        System.out.println("key: "+key);
-        System.out.println("value: "+value);
-        System.out.println("instance.getString(key): " + recordJson.getString(key));
+        logger.debug("key: "+key);
+        logger.debug("value: "+value);
+        logger.debug("recordJson.getString(key): " + recordJson.getString(key));
+        if (logger.isDebugEnabled()) {
+            logger.debug("Query parameter [" + value + "] matches record property [" + key + "("+ recordJson.getString(key)+")] ?: "
+                    +(recordJson.getString(key) != null && recordJson.getString(key).equals(value)));
+        }
         return (recordJson.getString(key) != null && recordJson.getString(key).equals(value));
     }
 

@@ -33,6 +33,9 @@ public abstract class RecordStorage {
         this.fakeStorage = fakeStorage;
     }
 
+    protected abstract void createRecord (RoutingContext routingContext);
+    protected abstract void updateRecord (RoutingContext routingContext);
+
     public int insert (InventoryRecord record) {
         if (!record.hasId()) {
             record.generateId();

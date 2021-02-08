@@ -3,12 +3,12 @@ package org.folio.inventoryupdate.test;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.RoutingContext;
 
-public class InstanceStorage extends RecordStorage {
+public class HoldingsStorage extends RecordStorage {
 
     @Override
     protected void createRecord(RoutingContext routingContext) {
         JsonObject recordJson = new JsonObject(routingContext.getBodyAsString());
-        int code = insert(new TestInstance(recordJson));
+        int code = insert(new TestHoldingsRecord(recordJson));
         respond(routingContext, recordJson, code);
     }
 
@@ -16,12 +16,13 @@ public class InstanceStorage extends RecordStorage {
     protected void updateRecord(RoutingContext routingContext) {
         JsonObject recordJson = new JsonObject(routingContext.getBodyAsString());
         String id = routingContext.pathParam("id");
-        int code = update(id, new TestInstance(recordJson));
+        int code = update(id, new TestHoldingsRecord(recordJson));
         respond(routingContext, code);
     }
 
+    @Override
     public String getResultSetName() {
-        return INSTANCES;
+        return "holdingsRecords";
     }
 
 }

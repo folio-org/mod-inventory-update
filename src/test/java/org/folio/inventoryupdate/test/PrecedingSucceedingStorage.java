@@ -5,22 +5,30 @@ import io.vertx.ext.web.RoutingContext;
 
 public class PrecedingSucceedingStorage extends RecordStorage {
 
+
+    @Override
+    protected void updateRecord(RoutingContext routingContext) {
+        // not needed
+    }
+
     public String getResultSetName () {
         return PRECEDING_SUCCEEDING_TITLES;
     }
-    public void createPrecedingSucceedingTitle(RoutingContext routingContext) {
+
+    @Override
+    public void createRecord(RoutingContext routingContext) {
         JsonObject recordJson = new JsonObject(routingContext.getBodyAsString());
         fakeStorage.instanceStorage.getRecords();
-        InstanceTitleSuccession titleSuccession = new InstanceTitleSuccession(recordJson);
+        TestInstanceTitleSuccession titleSuccession = new TestInstanceTitleSuccession(recordJson);
         if (validateCreate(titleSuccession)) {
-            int code = insert(new InstanceTitleSuccession(recordJson));
+            int code = insert(new TestInstanceTitleSuccession(recordJson));
             respond(routingContext, recordJson, code);
         } else {
-            respondWithMessage(routingContext, new Throwable("Could not create title succession because referenced Instance does not exists"));
+            respondWithMessage(routingContext, new Throwable("Could not create title succession because referenced TestInstance does not exists"));
         }
     }
 
-    public boolean validateCreate (InstanceTitleSuccession titleSuccession) {
+    public boolean validateCreate (TestInstanceTitleSuccession titleSuccession) {
         if (fakeStorage.instanceStorage.records.get(titleSuccession.getPrecedingInstanceId()) != null
            && fakeStorage.instanceStorage.records.get(titleSuccession.getSucceedingInstanceId()) != null) {
             return true;

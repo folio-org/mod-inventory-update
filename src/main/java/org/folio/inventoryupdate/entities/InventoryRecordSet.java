@@ -43,15 +43,16 @@ public class InventoryRecordSet extends JsonRepresentation {
         if (inventoryRecordSet != null) {
             sourceJson = new JsonObject(inventoryRecordSet.toString());
             JsonObject instanceJson = inventoryRecordSet.getJsonObject(INSTANCE);
-            JsonArray holdings = inventoryRecordSet.getJsonArray(HOLDINGS_RECORDS);
             anInstance = new Instance(instanceJson);
-            registerHoldingsRecordsAndItems (holdings);
+            JsonArray holdings = inventoryRecordSet.getJsonArray(HOLDINGS_RECORDS);
+            registerHoldingsRecordsAndItems(holdings);
             instanceRelationsController = new InstanceRelationsController(this);
         }
     }
 
     public static boolean isValidInventoryRecordSet(JsonObject inventoryRecordSet) {
-        if (inventoryRecordSet != null && inventoryRecordSet.containsKey(INSTANCE)) return true;
+        if (inventoryRecordSet != null && inventoryRecordSet.containsKey(INSTANCE)
+            && (inventoryRecordSet.getValue(INSTANCE) instanceof JsonObject)) return true;
         return false;
     }
 

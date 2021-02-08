@@ -3,25 +3,25 @@ package org.folio.inventoryupdate.test;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.RoutingContext;
 
-public class InstanceStorage extends RecordStorage {
+public class InstanceRelationshipStorage extends RecordStorage {
+
 
     @Override
-    protected void createRecord(RoutingContext routingContext) {
+    public String getResultSetName() {
+        return "instanceRelationships";
+    }
+
+    public void createRecord(RoutingContext routingContext) {
         JsonObject recordJson = new JsonObject(routingContext.getBodyAsString());
-        int code = insert(new TestInstance(recordJson));
+        int code = insert(new TestInstanceRelationship(recordJson));
         respond(routingContext, recordJson, code);
     }
 
-    @Override
-    protected void updateRecord(RoutingContext routingContext) {
+    public void updateRecord(RoutingContext routingContext) {
         JsonObject recordJson = new JsonObject(routingContext.getBodyAsString());
         String id = routingContext.pathParam("id");
-        int code = update(id, new TestInstance(recordJson));
+        int code = update(id, new TestInstanceRelationship(recordJson));
         respond(routingContext, code);
-    }
-
-    public String getResultSetName() {
-        return INSTANCES;
     }
 
 }

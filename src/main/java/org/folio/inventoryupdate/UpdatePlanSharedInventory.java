@@ -57,6 +57,7 @@ public class UpdatePlanSharedInventory extends UpdatePlan {
                     getUpdatingRecordSet().modifyInstance(mergedInstance);
                   }
                 }
+                logger.debug("Mapping locations to institutions");
                 mapLocationsToInstitutions(okapiClient).onComplete( handler -> {
                     if (handler.succeeded()) {
                         logger.debug("got institutions map: " + locationsToInstitutionsMap.toString());

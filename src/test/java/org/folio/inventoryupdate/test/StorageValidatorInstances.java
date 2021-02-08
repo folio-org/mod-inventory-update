@@ -1,132 +1,43 @@
 package org.folio.inventoryupdate.test;
 
-import com.jayway.restassured.RestAssured;
-import com.jayway.restassured.response.Response;
-
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.unit.TestContext;
+
+import static org.folio.inventoryupdate.test.FakeInventoryStorage.*;
 
 
 /**
  *
  * Validates that the fake storage API behaves as expected for testing the instance match service.
  */
-public class StorageValidatorInstances {
+public class StorageValidatorInstances  {
 
-  public static void validateStorage(TestContext context) {
-    validateGetByQuery(context);
-    validatePost(context);
-    validatePut(context);
+  protected void validateStorage(TestContext testContext, FakeInventoryStorage fakeInventoryStorage) {
+    validatePostAndGetById(testContext);
+    validateGetByQueryAndPut(testContext);
   }
 
-    /**
-   * Tests fake storage GET method
-   * @param testContext
-   */
-  private static void validateGetByQuery (TestContext testContext) {
-
-    String bodyAsString;
-    Response response1;
-
-    RestAssured.port = FakeInventoryStorage.PORT_INVENTORY_STORAGE;
-    response1 = RestAssured.given()
-      .get(FakeInventoryStorage.INSTANCE_STORAGE_PATH +"?query="+ RecordStorage.encode("title==\"Initial Instance\""))
-      .then()
-      .log().ifValidationFails()
-      .statusCode(200).extract().response();
-
-    bodyAsString = response1.getBody().asString();
-    JsonObject responseJson1 = new JsonObject(bodyAsString);
-
-    testContext.assertEquals(responseJson1.getInteger("totalRecords"), 1,
-                             "Number of instance records expected: 1" );
+  protected void validatePostAndGetById(TestContext testContext) {
+    JsonObject responseOnPOST = FakeInventoryStorage.post(
+            INSTANCE_STORAGE_PATH,
+            new TestInstance().setTitle("New TestInstance").setInstanceTypeId("12345").getJson());
+    testContext.assertEquals(responseOnPOST.getString("title"), "New TestInstance");
+    JsonObject responseOnGET = FakeInventoryStorage.getRecordById(INSTANCE_STORAGE_PATH, responseOnPOST.getString("id"));
+    testContext.assertEquals(responseOnGET.getString("title"), "New TestInstance");
   }
 
-  /**
-   * Tests fake storage POST method
-   * @param testContext
-   */
-  private static void validatePost (TestContext testContext) {
-
-    String bodyAsString1;
-    Response response1;
-    JsonObject newInstance = new Instance().setTitle("New Instance").setInstanceTypeId("12345").getJson();
-
-    response1 = RestAssured.given()
-      .body(newInstance.toString())
-      .post(FakeInventoryStorage.INSTANCE_STORAGE_PATH)
-      .then()
-      .log().ifValidationFails()
-      .statusCode(201).extract().response();
-
-    bodyAsString1 = response1.getBody().asString();
-    JsonObject instanceResponse = new JsonObject(bodyAsString1);
-
-    testContext.assertEquals(instanceResponse.getString("title"), "New Instance");
-
-    // Fetch new instance by ID to validate POST
-    String bodyAsString2;
-    Response response2;
-    RestAssured.port = FakeInventoryStorage.PORT_INVENTORY_STORAGE;
-    response2 = RestAssured.given()
-      .get(FakeInventoryStorage.INSTANCE_STORAGE_PATH +"/"+instanceResponse.getString("id"))
-      .then()
-      .log().ifValidationFails()
-      .statusCode(200).extract().response();
-
-    bodyAsString2 = response2.getBody().asString();
-    JsonObject instance = new JsonObject(bodyAsString2);
-
-    testContext.assertEquals(instance.getString("title"), "New Instance");
-
+  protected void validateGetByQueryAndPut(TestContext testContext) {
+    JsonObject responseJson = FakeInventoryStorage.getRecordsByQuery(
+            INSTANCE_STORAGE_PATH,
+            "query="+ RecordStorage.encode("title==\"New TestInstance\""));;
+    testContext.assertEquals(
+            responseJson.getInteger("totalRecords"), 1,"Number of " + RESULT_SET_INSTANCES + " expected: 1" );
+    JsonObject existingRecord = responseJson.getJsonArray(RESULT_SET_INSTANCES).getJsonObject(0);
+    existingRecord.put("instanceTypeId", "456");
+    FakeInventoryStorage.put(INSTANCE_STORAGE_PATH, existingRecord);
+    JsonObject record = FakeInventoryStorage.getRecordById(INSTANCE_STORAGE_PATH, existingRecord.getString("id"));
+    testContext.assertEquals(record.getString("instanceTypeId"), "456");
   }
 
-  /**
-   * Test fake storage PUT method
-   * @param testContext
-   */
-  private static void validatePut(TestContext testContext) {
-
-    // Find existing instance
-    String bodyAsString1;
-    Response response1;
-    RestAssured.port = FakeInventoryStorage.PORT_INVENTORY_STORAGE;
-    response1 = RestAssured.given()
-      .get(FakeInventoryStorage.INSTANCE_STORAGE_PATH +"?query="+ RecordStorage.encode("title==\"Initial Instance\""))
-      .then()
-      .log().ifValidationFails()
-      .statusCode(200).extract().response();
-    bodyAsString1 = response1.getBody().asString();
-    JsonObject responseJson1 = new JsonObject(bodyAsString1);
-
-    JsonObject existingInstance = responseJson1.getJsonArray("instances").getJsonObject(0);
-
-    // Update property
-    existingInstance.put("instanceTypeId", "456");
-
-    // Update existing instance with PUT
-    RestAssured.given()
-      .body(existingInstance.toString())
-      .put(FakeInventoryStorage.INSTANCE_STORAGE_PATH +"/"+existingInstance.getString("id"))
-      .then()
-      .log().ifValidationFails()
-      .statusCode(204).extract().response();
-
-    // Fetch instance by ID to validate PUT with updated property
-    String bodyAsString2;
-    Response response2;
-    RestAssured.port = FakeInventoryStorage.PORT_INVENTORY_STORAGE;
-    response2 = RestAssured.given()
-      .get(FakeInventoryStorage.INSTANCE_STORAGE_PATH +"/"+existingInstance.getString("id"))
-      .then()
-      .log().ifValidationFails()
-      .statusCode(200).extract().response();
-
-    bodyAsString2 = response2.getBody().asString();
-    JsonObject instance = new JsonObject(bodyAsString2);
-
-    testContext.assertEquals(instance.getString("instanceTypeId"), "456");
-
-  }
 
 }

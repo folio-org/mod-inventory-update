@@ -17,25 +17,18 @@ public class PrecedingSucceedingStorage extends RecordStorage {
     }
 
     @Override
-    public void createRecord(RoutingContext routingContext) {
-        JsonObject recordJson = new JsonObject(routingContext.getBodyAsString());
-        fakeStorage.instanceStorage.getRecords();
-        TestInstanceTitleSuccession titleSuccession = new TestInstanceTitleSuccession(recordJson);
-        if (validateCreate(titleSuccession)) {
-            int code = insert(new TestInstanceTitleSuccession(recordJson));
-            respond(routingContext, recordJson, code);
-        } else {
-            respondWithMessage(routingContext, new Throwable("Could not create title succession because referenced TestInstance does not exists"));
-        }
+    protected void declareDependencies() {
+        fakeStorage.instanceStorage.acceptDependant(this, TestInstanceTitleSuccession.SUCCEEDING_INSTANCE_ID);
+        fakeStorage.instanceStorage.acceptDependant(this, TestInstanceTitleSuccession.PRECEDING_INSTANCE_ID);
     }
 
-    public boolean validateCreate (TestInstanceTitleSuccession titleSuccession) {
-        if (fakeStorage.instanceStorage.records.get(titleSuccession.getPrecedingInstanceId()) != null
-           && fakeStorage.instanceStorage.records.get(titleSuccession.getSucceedingInstanceId()) != null) {
-            return true;
-        } else {
-            return false;
-        }
+    @Override
+    public void createRecord(RoutingContext routingContext) {
+        JsonObject recordJson = new JsonObject(routingContext.getBodyAsString());
+        TestInstanceTitleSuccession titleSuccession = new TestInstanceTitleSuccession(recordJson);
+        int code = insert(new TestInstanceTitleSuccession(recordJson));
+        respond(routingContext, recordJson, code);
     }
+
 
 }

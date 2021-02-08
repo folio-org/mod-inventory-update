@@ -10,9 +10,7 @@ import org.folio.inventoryupdate.test.fakestorage.entitites.InventoryRecord;
 import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
 import java.net.URLEncoder;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 
 public abstract class RecordStorage {
     public final static String TOTAL_RECORDS = "totalRecords";
@@ -24,19 +22,24 @@ public abstract class RecordStorage {
     public static final String PRECEDING_SUCCEEDING_TITLES = "precedingSucceedingTitles";
     public static final String LOCATIONS = "locations";
 
+    List<ForeignKey> dependentEntities = new ArrayList<>();
+    List<ForeignKey> masterEntities = new ArrayList<>();
+
     protected FakeInventoryStorage fakeStorage;
     protected String resultSetName = null;
 
     protected final Map<String, InventoryRecord> records = new HashMap<>();
     private final Logger logger = LoggerFactory.getLogger("fake-inventory-storage");
 
-    public void setFakeStorage (FakeInventoryStorage fakeStorage) {
+    public void attachToFakeStorage(FakeInventoryStorage fakeStorage) {
         this.fakeStorage = fakeStorage;
+        declareDependencies();
     }
 
-    protected abstract void createRecord (RoutingContext routingContext);
-    protected abstract void updateRecord (RoutingContext routingContext);
+    // PROPERTY NAME OF THE OBJECT THAT API RESULTS ARE RETURNED IN, IMPLEMENTED PER STORAGE ENTITY
+    protected abstract String getResultSetName();
 
+    // INTERNAL DATABASE OPERATIONS - insert() IS DECLARED PUBLIC SO THE TEST SUITE CAN INITIALIZE DATA OUTSIDE THE API.
     public int insert (InventoryRecord record) {
         if (!record.hasId()) {
             record.generateId();
@@ -45,11 +48,26 @@ public abstract class RecordStorage {
             logger.error("Fake record storage already contains a record with id " + record.getId() + ", cannot create " + record.getJson().encodePrettily());
             return 400;
         }
+        logger.debug("Checking foreign keys");
+        logger.debug("Got " + masterEntities.size() + " foreign keys");
+        for (ForeignKey fk : masterEntities) {
+            if (! record.getJson().containsKey(fk.getFkPropertyName())) {
+                logger.error("Foreign key violation, record must contain " + fk.getFkPropertyName());
+                return 400;
+            }
+            if (!fk.getMasterStorage().hasId(record.getJson().getString(fk.getFkPropertyName()))) {
+                logger.error("Foreign key violation " + fk.getFkPropertyName() + " not found in "+ fk.getMasterStorage().getResultSetName() + ", cannot create " + record.getJson().encodePrettily());
+                return 400;
+            } else {
+                logger.debug("Found " + record.getJson().getString(fk.getFkPropertyName()) + " in " + fk.getMasterStorage().getResultSetName());
+            }
+
+        }
         records.put(record.getId(), record);
         return 201;
     }
 
-    public int update (String id, InventoryRecord record) {
+    protected int update (String id, InventoryRecord record) {
         if (!record.hasId()) {
             record.setId(id);
         } else if (!id.equals(record.getId())) {
@@ -64,12 +82,71 @@ public abstract class RecordStorage {
         return 204;
     }
 
-    public Collection<InventoryRecord> getRecords () {
+    protected int delete (String id) {
+        if (!records.containsKey(id)) {
+            logger.error("Record " + id + "not found, cannot delete");
+            return 404;
+        }
+        logger.debug("Dependent entities: " + dependentEntities.size());
+        for (ForeignKey fk : dependentEntities) {
+            logger.debug("Deleting. Checking dependent " + fk.getDependentStorage().getResultSetName());
+            logger.debug("Looking at property " + fk.getFkPropertyName());
+            if (fk.getDependentStorage().hasValue(fk.getFkPropertyName(), id)) {
+               logger.error("Foreign key violation " + records.get(id).getJson().toString() + " has a dependent record in " + fk.getDependentStorage().getResultSetName());
+               return 400;
+            }
+        }
+        records.remove(id);
+        return 200;
+    }
+
+    protected Collection<InventoryRecord> getRecords () {
         return records.values();
     }
 
+    private InventoryRecord getRecord (String id) {
+        return records.get(id);
+    }
+
+    // FOREIGN KEY HANDLING
+    protected boolean hasId (String id) {
+        return records.containsKey(id);
+    }
+
     /**
-     * Inventory Storage handler
+     * Checks if this storage has a record where this property (presumably a foreign key property) has this value
+     * @param fkPropertyName
+     * @param value
+     * @return
+     */
+    protected boolean hasValue (String fkPropertyName, String value) {
+        for (InventoryRecord record : records.values()) {
+            logger.debug("Checking " + record.getJson().toString() + " for value " + value);
+            if (record.getJson().containsKey(fkPropertyName) && record.getJson().getString(fkPropertyName).equals(value)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+       // USED BY A DEPENDENT ENTITY TO SET UP ITS FOREIGN KEYS BY CALLS to acceptDependant()
+    protected abstract void declareDependencies();
+
+       // METHOD ON THE PRIMARY KEY ENTITY TO REGISTER DEPENDENT ENTITIES
+    protected void acceptDependant(RecordStorage dependentEntity, String foreignKeyPropertyName) {
+        ForeignKey fk = new ForeignKey(dependentEntity, foreignKeyPropertyName, this);
+        dependentEntities.add(fk);
+        dependentEntity.setMasterEntity(fk);
+    }
+
+    protected void setMasterEntity (ForeignKey fk) {
+        masterEntities.add(fk);
+    }
+
+    // API REQUEST HANDLERS
+
+    /**
+     * Handles GET request with query parameter
      * @param routingContext
      */
     public void getRecordsByQuery(RoutingContext routingContext) {
@@ -84,39 +161,10 @@ public abstract class RecordStorage {
         });
     }
 
-    private JsonObject buildJsonRecordsResponseByQuery(String query) {
-        JsonObject response = new JsonObject();
-        JsonArray jsonRecords = new JsonArray();
-        getRecords().forEach( record -> {
-            if (record.match(query)) {
-                jsonRecords.add(record.getJson());
-            }});
-        response.put(getResultSetName(), jsonRecords);
-        response.put(TOTAL_RECORDS, jsonRecords.size());
-        return response;
-    }
-
-    private InventoryRecord getRecord (String id) {
-        return records.get(id);
-    }
-
-    public static String decode (String string) {
-        try {
-            return URLDecoder.decode(string, "UTF-8");
-        } catch (UnsupportedEncodingException uee) {
-            return "";
-        }
-
-    }
-
-    public static String encode (String string) {
-        try {
-            return URLEncoder.encode(string, "UTF-8");
-        } catch (UnsupportedEncodingException uee) {
-            return "";
-        }
-    }
-
+    /**
+     * Handles GET by ID
+     * @param routingContext
+     */
     protected void getRecordById(RoutingContext routingContext) {
         final String id = routingContext.pathParam("id");
         InventoryRecord record = getRecord(id);
@@ -129,6 +177,51 @@ public abstract class RecordStorage {
         });
     }
 
+    /**
+     * Handles DELETE
+     * @param routingContext
+     */
+    protected void deleteRecord (RoutingContext routingContext) {
+        final String id = routingContext.pathParam("id");
+        int code = delete(id);
+
+        routingContext.request().endHandler(res -> {
+            respond(routingContext, new JsonObject(), code);
+        });
+        routingContext.request().exceptionHandler(res -> {
+            respondWithMessage(routingContext, res);
+        });
+
+    }
+
+    // API REQUEST HANDLERS TO BE IMPLEMENTED PER STORAGE ENTITY
+
+    /**
+     * Handles POST
+     * @param routingContext
+     */
+    protected abstract void createRecord (RoutingContext routingContext);
+
+    /**
+     * Handles PUT
+     * @param routingContext
+     */
+    protected abstract void updateRecord (RoutingContext routingContext);
+
+
+    // HELPERS FOR RESPONSE PROCESSING
+
+    private JsonObject buildJsonRecordsResponseByQuery(String query) {
+        JsonObject response = new JsonObject();
+        JsonArray jsonRecords = new JsonArray();
+        getRecords().forEach( record -> {
+            if (record.match(query)) {
+                jsonRecords.add(record.getJson());
+            }});
+        response.put(getResultSetName(), jsonRecords);
+        response.put(TOTAL_RECORDS, jsonRecords.size());
+        return response;
+    }
 
     /**
      * Respond with JSON and status code
@@ -163,6 +256,28 @@ public abstract class RecordStorage {
         routingContext.response().end(res.getMessage());
     }
 
-    public abstract String getResultSetName();
+
+    // UTILS
+
+    public static String decode (String string) {
+        try {
+            return URLDecoder.decode(string, "UTF-8");
+        } catch (UnsupportedEncodingException uee) {
+            return "";
+        }
+
+    }
+
+    public static String encode (String string) {
+        try {
+            return URLEncoder.encode(string, "UTF-8");
+        } catch (UnsupportedEncodingException uee) {
+            return "";
+        }
+    }
+
+    public void logRecords (Logger logger) {
+        records.values().stream().forEach(record -> logger.debug(record.getJson().encodePrettily()));
+    }
 
 }

@@ -6,7 +6,6 @@ public class TestInstanceTitleSuccession extends InventoryRecord {
 
     public static final String PRECEDING_INSTANCE_ID = "precedingInstanceId";
     public static final String SUCCEEDING_INSTANCE_ID = "succeedingInstanceId";
-    private String instanceId;
 
     public TestInstanceTitleSuccession(JsonObject record) {
         super(record);

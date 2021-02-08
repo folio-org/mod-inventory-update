@@ -25,4 +25,9 @@ public class InstanceStorage extends RecordStorage {
         return INSTANCES;
     }
 
+    @Override
+    protected void declareDependencies() {
+        // Instances has none in fake storage
+    }
+
 }

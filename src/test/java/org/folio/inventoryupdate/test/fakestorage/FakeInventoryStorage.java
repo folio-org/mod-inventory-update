@@ -1,15 +1,8 @@
-package org.folio.inventoryupdate.test;
-
-import java.io.UnsupportedEncodingException;
-import java.net.URLDecoder;
-import java.net.URLEncoder;
+package org.folio.inventoryupdate.test.fakestorage;
 
 import com.jayway.restassured.RestAssured;
 import com.jayway.restassured.response.Response;
-import io.vertx.core.impl.logging.Logger;
-import io.vertx.core.impl.logging.LoggerFactory;
 import io.vertx.core.json.JsonObject;
-import org.folio.inventoryupdate.MatchKey;
 
 import io.vertx.core.Vertx;
 import io.vertx.core.http.HttpServerOptions;

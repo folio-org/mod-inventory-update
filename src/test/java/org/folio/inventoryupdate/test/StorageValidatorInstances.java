@@ -2,8 +2,11 @@ package org.folio.inventoryupdate.test;
 
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.unit.TestContext;
+import org.folio.inventoryupdate.test.fakestorage.FakeInventoryStorage;
+import org.folio.inventoryupdate.test.fakestorage.RecordStorage;
+import org.folio.inventoryupdate.test.fakestorage.entitites.TestInstance;
 
-import static org.folio.inventoryupdate.test.FakeInventoryStorage.*;
+import static org.folio.inventoryupdate.test.fakestorage.FakeInventoryStorage.*;
 
 
 /**

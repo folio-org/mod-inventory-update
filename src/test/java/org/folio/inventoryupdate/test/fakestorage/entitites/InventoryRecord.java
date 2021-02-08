@@ -1,8 +1,7 @@
-package org.folio.inventoryupdate.test;
+package org.folio.inventoryupdate.test.fakestorage.entitites;
 
 import io.vertx.core.impl.logging.Logger;
 import io.vertx.core.json.JsonObject;
-import io.vertx.ext.web.RoutingContext;
 
 import java.util.UUID;
 
@@ -43,7 +42,7 @@ public abstract class InventoryRecord {
         return recordJson.getString(ID);
     }
 
-    protected boolean match(String query) {
+    public boolean match(String query) {
         String trimmed = query.replace("(","").replace(")", "");
         String[] queryParts = trimmed.split("==");
         logger.debug("query: " +query);

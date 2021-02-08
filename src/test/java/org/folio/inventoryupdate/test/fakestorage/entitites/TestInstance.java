@@ -1,4 +1,4 @@
-package org.folio.inventoryupdate.test;
+package org.folio.inventoryupdate.test.fakestorage.entitites;
 
 import io.vertx.core.json.JsonObject;
 

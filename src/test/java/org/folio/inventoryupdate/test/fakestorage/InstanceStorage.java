@@ -1,7 +1,8 @@
-package org.folio.inventoryupdate.test;
+package org.folio.inventoryupdate.test.fakestorage;
 
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.RoutingContext;
+import org.folio.inventoryupdate.test.fakestorage.entitites.TestInstance;
 
 public class InstanceStorage extends RecordStorage {
 

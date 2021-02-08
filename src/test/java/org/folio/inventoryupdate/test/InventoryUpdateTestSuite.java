@@ -3,6 +3,10 @@ package org.folio.inventoryupdate.test;
 import io.vertx.core.impl.logging.Logger;
 import org.folio.inventoryupdate.MainVerticle;
 import org.folio.inventoryupdate.MatchKey;
+import org.folio.inventoryupdate.test.fakestorage.FakeInventoryStorage;
+import org.folio.inventoryupdate.test.fakestorage.RecordStorage;
+import org.folio.inventoryupdate.test.fakestorage.entitites.InventoryRecordSet;
+import org.folio.inventoryupdate.test.fakestorage.entitites.TestInstance;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -85,7 +89,11 @@ public class InventoryUpdateTestSuite {
   @Test
   public void testPushOfNewInstanceWillCreateNewInstanceForMatchKey (TestContext testContext) {
     populateStoragesWithInitialRecords();
-    fakeInventoryStorage.instanceStorage.getRecords().stream().forEach(record -> { logger.info(record.recordJson.toString());});
+    if (logger.isDebugEnabled()) {
+      fakeInventoryStorage.instanceStorage.getRecords().stream().forEach(record -> {
+        logger.debug(record.getJson().encodePrettily());
+      });
+    }
     RestAssured.port = FakeInventoryStorage.PORT_INVENTORY_STORAGE;
     TestInstance instance = new TestInstance()
         .setTitle("New title")
@@ -115,8 +123,6 @@ public class InventoryUpdateTestSuite {
             .then()
             .log().ifValidationFails()
             .statusCode(200).extract().response();
-
-    fakeInventoryStorage.instanceStorage.getRecords().stream().forEach(record -> { logger.info(record.recordJson.toString());});
 
     RestAssured.port = FakeInventoryStorage.PORT_INVENTORY_STORAGE;
     Response instancesAfterPut =
@@ -303,7 +309,9 @@ public class InventoryUpdateTestSuite {
   @Test
   public void testPushOfExistingInstanceWillUpdateExistingInstanceForHrid (TestContext testContext) {
     createInstanceWithHrid1();
-    fakeInventoryStorage.instanceStorage.getRecords().stream().forEach(record -> logger.debug(record.recordJson.encodePrettily()));
+    if (logger.isDebugEnabled()) {
+      fakeInventoryStorage.instanceStorage.getRecords().stream().forEach(record -> logger.debug(record.getJson().encodePrettily()));
+    }
     RestAssured.port = FakeInventoryStorage.PORT_INVENTORY_STORAGE;
     JsonObject inventoryRecordSet = new JsonObject();
     TestInstance instance = new TestInstance()

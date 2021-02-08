@@ -1,10 +1,11 @@
-package org.folio.inventoryupdate.test;
+package org.folio.inventoryupdate.test.fakestorage;
 
 import io.vertx.core.impl.logging.Logger;
 import io.vertx.core.impl.logging.LoggerFactory;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.RoutingContext;
+import org.folio.inventoryupdate.test.fakestorage.entitites.InventoryRecord;
 
 import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
@@ -26,7 +27,7 @@ public abstract class RecordStorage {
     protected FakeInventoryStorage fakeStorage;
     protected String resultSetName = null;
 
-    protected final Map<String,InventoryRecord> records = new HashMap<>();
+    protected final Map<String, InventoryRecord> records = new HashMap<>();
     private final Logger logger = LoggerFactory.getLogger("fake-inventory-storage");
 
     public void setFakeStorage (FakeInventoryStorage fakeStorage) {
@@ -63,7 +64,7 @@ public abstract class RecordStorage {
         return 204;
     }
 
-    protected Collection<InventoryRecord> getRecords () {
+    public Collection<InventoryRecord> getRecords () {
         return records.values();
     }
 

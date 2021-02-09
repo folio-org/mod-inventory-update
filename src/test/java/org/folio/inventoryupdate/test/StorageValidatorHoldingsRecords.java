@@ -4,8 +4,8 @@ import io.vertx.core.json.JsonObject;
 import io.vertx.ext.unit.TestContext;
 import org.folio.inventoryupdate.test.fakestorage.FakeInventoryStorage;
 import org.folio.inventoryupdate.test.fakestorage.RecordStorage;
-import org.folio.inventoryupdate.test.fakestorage.entitites.TestHoldingsRecord;
-import org.folio.inventoryupdate.test.fakestorage.entitites.TestInstance;
+import org.folio.inventoryupdate.test.fakestorage.entitites.InputHoldingsRecord;
+import org.folio.inventoryupdate.test.fakestorage.entitites.InputInstance;
 
 import static org.folio.inventoryupdate.test.fakestorage.FakeInventoryStorage.*;
 
@@ -13,7 +13,7 @@ public class StorageValidatorHoldingsRecords {
 
     private static String FIRST_CALL_NUMBER = "TEST_CN_1";
     private static String SECOND_CALL_NUMBER = "TEST_CN_2";
-    private static String INSTANCE_TITLE = "New TestInstance";
+    private static String INSTANCE_TITLE = "New InputInstance";
     private static String NON_EXISTING_INSTANCE_ID = "456";
     private String existingInstanceId;
 
@@ -28,14 +28,14 @@ public class StorageValidatorHoldingsRecords {
     protected void createInstance (TestContext testContext) {
         JsonObject responseOnPOST = FakeInventoryStorage.post(
                 INSTANCE_STORAGE_PATH,
-                new TestInstance().setTitle(INSTANCE_TITLE).setInstanceTypeId("123").getJson());
+                new InputInstance().setTitle(INSTANCE_TITLE).setInstanceTypeId("123").getJson());
         existingInstanceId = responseOnPOST.getString("id");
     }
 
     protected void validatePostAndGetById(TestContext testContext) {
         JsonObject responseOnPOST = FakeInventoryStorage.post(
                 HOLDINGS_STORAGE_PATH,
-                new TestHoldingsRecord().setInstanceId(existingInstanceId).setCallNumber(FIRST_CALL_NUMBER).getJson());
+                new InputHoldingsRecord().setInstanceId(existingInstanceId).setCallNumber(FIRST_CALL_NUMBER).getJson());
         testContext.assertEquals(responseOnPOST.getString("callNumber"), FIRST_CALL_NUMBER);
         JsonObject responseOnGET = FakeInventoryStorage.getRecordById(HOLDINGS_STORAGE_PATH, responseOnPOST.getString("id"));
         testContext.assertEquals(responseOnGET.getString("callNumber"), FIRST_CALL_NUMBER);
@@ -57,7 +57,7 @@ public class StorageValidatorHoldingsRecords {
     protected void validateCanDeleteHoldingsRecordById (TestContext testContext) {
         JsonObject responseOnPOST = FakeInventoryStorage.post(
                 HOLDINGS_STORAGE_PATH,
-                new TestHoldingsRecord().setCallNumber("TEST-CN").setInstanceId(existingInstanceId).getJson());
+                new InputHoldingsRecord().setCallNumber("TEST-CN").setInstanceId(existingInstanceId).getJson());
         testContext.assertEquals(responseOnPOST.getString("callNumber"), "TEST-CN");
         FakeInventoryStorage.delete(HOLDINGS_STORAGE_PATH, responseOnPOST.getString("id"),200);
     }
@@ -65,7 +65,7 @@ public class StorageValidatorHoldingsRecords {
     protected void validateCannotPostWithBadInstanceId (TestContext testContext) {
         JsonObject responseOnPOST = FakeInventoryStorage.post(
                 HOLDINGS_STORAGE_PATH,
-                new TestHoldingsRecord().setInstanceId(NON_EXISTING_INSTANCE_ID).setCallNumber(FIRST_CALL_NUMBER).getJson(),
+                new InputHoldingsRecord().setInstanceId(NON_EXISTING_INSTANCE_ID).setCallNumber(FIRST_CALL_NUMBER).getJson(),
                 400);
         JsonObject responseJson = FakeInventoryStorage.getRecordsByQuery(
                 HOLDINGS_STORAGE_PATH,

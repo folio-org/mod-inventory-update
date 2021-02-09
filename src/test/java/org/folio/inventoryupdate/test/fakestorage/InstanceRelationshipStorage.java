@@ -2,7 +2,7 @@ package org.folio.inventoryupdate.test.fakestorage;
 
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.RoutingContext;
-import org.folio.inventoryupdate.test.fakestorage.entitites.TestInstanceRelationship;
+import org.folio.inventoryupdate.test.fakestorage.entitites.InputInstanceRelationship;
 
 
 public class InstanceRelationshipStorage extends RecordStorage {
@@ -15,13 +15,13 @@ public class InstanceRelationshipStorage extends RecordStorage {
 
     @Override
     protected void declareDependencies() {
-        fakeStorage.instanceStorage.acceptDependant(this, TestInstanceRelationship.SUB_INSTANCE_ID);
-        fakeStorage.instanceStorage.acceptDependant(this, TestInstanceRelationship.SUPER_INSTANCE_ID);
+        fakeStorage.instanceStorage.acceptDependant(this, InputInstanceRelationship.SUB_INSTANCE_ID);
+        fakeStorage.instanceStorage.acceptDependant(this, InputInstanceRelationship.SUPER_INSTANCE_ID);
     }
 
     public void createRecord(RoutingContext routingContext) {
         JsonObject recordJson = new JsonObject(routingContext.getBodyAsString());
-        int code = insert(new TestInstanceRelationship(recordJson));
+        int code = insert(new InputInstanceRelationship(recordJson));
         respond(routingContext, recordJson, code);
     }
 

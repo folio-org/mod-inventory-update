@@ -65,14 +65,14 @@ public class InventoryUpdateTestSuite {
   }
 
   public void populateStoragesWithInitialRecords() {
-    TestInstance instance = new TestInstance().setInstanceTypeId("123").setTitle("Initial TestInstance").setHrid("1");
+    InputInstance instance = new InputInstance().setInstanceTypeId("123").setTitle("Initial InputInstance").setHrid("1");
     MatchKey matchKey = new MatchKey(instance.getJson());
     instance.setMatchKey(matchKey.getKey());
     fakeInventoryStorage.instanceStorage.insert(instance);
   }
 
   public void createInitialInstanceWithHrid1() {
-    TestInstance instance = new TestInstance().setInstanceTypeId("123").setTitle("Initial TestInstance").setHrid("1");
+    InputInstance instance = new InputInstance().setInstanceTypeId("123").setTitle("Initial InputInstance").setHrid("1");
     fakeInventoryStorage.instanceStorage.insert(instance);
   }
 
@@ -98,7 +98,7 @@ public class InventoryUpdateTestSuite {
       fakeInventoryStorage.instanceStorage.logRecords(logger);
     }
     RestAssured.port = FakeInventoryStorage.PORT_INVENTORY_STORAGE;
-    TestInstance instance = new TestInstance()
+    InputInstance instance = new InputInstance()
             .setTitle("New title")
             .setInstanceTypeId("12345");
     MatchKey matchKey = new MatchKey(instance.getJson());
@@ -150,7 +150,7 @@ public class InventoryUpdateTestSuite {
   public void testUpsertByMatchKeyWillCreateNewInstanceForMatchKey (TestContext testContext) {
     populateStoragesWithInitialRecords();
     RestAssured.port = FakeInventoryStorage.PORT_INVENTORY_STORAGE;
-    TestInstance instance = new TestInstance()
+    InputInstance instance = new InputInstance()
             .setTitle("New title")
             .setInstanceTypeId("12345");
     MatchKey matchKey = new MatchKey(instance.getJson());
@@ -197,14 +197,14 @@ public class InventoryUpdateTestSuite {
   }
 
   /**
-   * Tests API /shared-inventory-upsert-matchkey/instances
+   * Tests API /shared-inventory-upsert-matchkey
    * @param testContext
    */
   @Test
   public void testPushOfExistingInstanceWillUpdateExistingInstanceForMatchKey (TestContext testContext) {
     populateStoragesWithInitialRecords();
     RestAssured.port = FakeInventoryStorage.PORT_INVENTORY_STORAGE;
-    TestInstance instance = new TestInstance().setTitle("Initial TestInstance").setInstanceTypeId("12345");
+    InputInstance instance = new InputInstance().setTitle("Initial InputInstance").setInstanceTypeId("12345");
     MatchKey matchKey = new MatchKey(instance.getJson());
     InventoryRecordSet inventoryRecordSet = new InventoryRecordSet(instance);
 
@@ -264,7 +264,7 @@ public class InventoryUpdateTestSuite {
   public void testUpsertWithNewInstanceWillCreateNewInstanceForHrid(TestContext testContext) {
     createInitialInstanceWithHrid1();
     RestAssured.port = FakeInventoryStorage.PORT_INVENTORY_STORAGE;
-    TestInstance instance = new TestInstance().setTitle("New title").setInstanceTypeId("12345").setHrid("2");
+    InputInstance instance = new InputInstance().setTitle("New title").setInstanceTypeId("12345").setHrid("2");
     InventoryRecordSet inventoryRecordSet = new InventoryRecordSet(instance);
     Response instancesBeforePut =
             RestAssured.given()
@@ -315,7 +315,7 @@ public class InventoryUpdateTestSuite {
     RestAssured.port = FakeInventoryStorage.PORT_INVENTORY_STORAGE;
     String instanceHrid = "1";
     JsonObject inventoryRecordSet = new JsonObject();
-    inventoryRecordSet.put("instance", new TestInstance().setTitle("Initial TestInstance")
+    inventoryRecordSet.put("instance", new InputInstance().setTitle("Initial InputInstance")
             .setInstanceTypeId("12345").setHrid(instanceHrid).getJson());
 
     Response instancesBeforeUpsert =
@@ -373,15 +373,15 @@ public class InventoryUpdateTestSuite {
     String instanceHrid = "1";
     JsonObject inventoryRecordSet = new JsonObject()
             .put("instance",
-               new TestInstance().setTitle("Initial TestInstance").setInstanceTypeId("12345").setHrid(instanceHrid).getJson())
+               new InputInstance().setTitle("Initial InputInstance").setInstanceTypeId("12345").setHrid(instanceHrid).getJson())
             .put("holdingsRecords", new JsonArray()
-              .add(new TestHoldingsRecord().setHrid("HOL-001").setCallNumber("test-cn-1").getJson()
+              .add(new InputHoldingsRecord().setHrid("HOL-001").setCallNumber("test-cn-1").getJson()
                       .put("items", new JsonArray()
-                        .add(new TestItem().setHrid("ITM-001").setBarcode("BC-001").getJson())
-                        .add(new TestItem().setHrid("ITM-002").setBarcode("BC-002").getJson())))
-              .add(new TestHoldingsRecord().setHrid("HOL-002").setCallNumber("test-cn-2").getJson()
+                        .add(new InputItem().setHrid("ITM-001").setBarcode("BC-001").getJson())
+                        .add(new InputItem().setHrid("ITM-002").setBarcode("BC-002").getJson())))
+              .add(new InputHoldingsRecord().setHrid("HOL-002").setCallNumber("test-cn-2").getJson()
                       .put("items", new JsonArray()
-                        .add(new TestItem().setHrid("ITM-003").setBarcode("BC-003").getJson()))));
+                        .add(new InputItem().setHrid("ITM-003").setBarcode("BC-003").getJson()))));
 
     // PUT InventoryRecordSet
     RestAssured.port = PORT_INVENTORY_UPDATE;
@@ -429,15 +429,15 @@ public class InventoryUpdateTestSuite {
     String instanceHrid = "1";
     JsonObject inventoryRecordSet = new JsonObject()
             .put("instance",
-                    new TestInstance().setTitle("Initial TestInstance").setInstanceTypeId("12345").setHrid(instanceHrid).getJson())
+                    new InputInstance().setTitle("Initial InputInstance").setInstanceTypeId("12345").setHrid(instanceHrid).getJson())
             .put("holdingsRecords", new JsonArray()
-                    .add(new TestHoldingsRecord().setHrid("HOL-001").setCallNumber("test-cn-1").getJson()
+                    .add(new InputHoldingsRecord().setHrid("HOL-001").setCallNumber("test-cn-1").getJson()
                             .put("items", new JsonArray()
-                                    .add(new TestItem().setHrid("ITM-001").setBarcode("BC-001").getJson())
-                                    .add(new TestItem().setHrid("ITM-002").setBarcode("BC-002").getJson())))
-                    .add(new TestHoldingsRecord().setHrid("HOL-002").setCallNumber("test-cn-2").getJson()
+                                    .add(new InputItem().setHrid("ITM-001").setBarcode("BC-001").getJson())
+                                    .add(new InputItem().setHrid("ITM-002").setBarcode("BC-002").getJson())))
+                    .add(new InputHoldingsRecord().setHrid("HOL-002").setCallNumber("test-cn-2").getJson()
                             .put("items", new JsonArray()
-                                    .add(new TestItem().setHrid("ITM-003").setBarcode("BC-003").getJson()))));
+                                    .add(new InputItem().setHrid("ITM-003").setBarcode("BC-003").getJson()))));
     // PUT InventoryRecordSet
     RestAssured.port = PORT_INVENTORY_UPDATE;
     Response upsertResponse =
@@ -456,11 +456,11 @@ public class InventoryUpdateTestSuite {
     // Leave out one holdings record
     inventoryRecordSet = new JsonObject()
             .put("instance",
-                    new TestInstance().setTitle("Initial TestInstance").setInstanceTypeId("12345").setHrid(instanceHrid).getJson())
+                    new InputInstance().setTitle("Initial InputInstance").setInstanceTypeId("12345").setHrid(instanceHrid).getJson())
             .put("holdingsRecords", new JsonArray()
-                    .add(new TestHoldingsRecord().setHrid("HOL-002").setCallNumber("test-cn-2").getJson()
+                    .add(new InputHoldingsRecord().setHrid("HOL-002").setCallNumber("test-cn-2").getJson()
                             .put("items", new JsonArray()
-                                    .add(new TestItem().setHrid("ITM-003").setBarcode("BC-003").getJson()))));
+                                    .add(new InputItem().setHrid("ITM-003").setBarcode("BC-003").getJson()))));
 
     // PUT InventoryRecordSet again
     RestAssured.port = PORT_INVENTORY_UPDATE;
@@ -514,16 +514,16 @@ public class InventoryUpdateTestSuite {
     String instanceHrid = "1";
     JsonObject inventoryRecordSet = new JsonObject()
             .put("instance",
-                    new TestInstance().setTitle("Parent TestInstance").setInstanceTypeId("12345").setHrid(instanceHrid).getJson());
+                    new InputInstance().setTitle("Parent InputInstance").setInstanceTypeId("12345").setHrid(instanceHrid).getJson());
 
     // CREATE CHILD
     String childHrid = "2";
     JsonObject childRecordSet = new JsonObject()
             .put("instance",
-                    new TestInstance().setTitle("Child TestInstance").setInstanceTypeId("12345").setHrid(childHrid).getJson())
+                    new InputInstance().setTitle("Child InputInstance").setInstanceTypeId("12345").setHrid(childHrid).getJson())
             .put("instanceRelations", new JsonObject()
               .put("parentInstances", new JsonArray()
-                .add(new TestInstanceRelationship().setInstanceIdentifierHrid(instanceHrid).getJson())));
+                .add(new InputInstanceRelationship().setInstanceIdentifierHrid(instanceHrid).getJson())));
 
     // PUT PARENT InventoryRecordSet
     RestAssured.port = PORT_INVENTORY_UPDATE;

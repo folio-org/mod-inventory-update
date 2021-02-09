@@ -1,13 +1,12 @@
 package org.folio.inventoryupdate.test.fakestorage.entitites;
 
 import io.vertx.core.json.JsonObject;
-import org.folio.inventoryupdate.test.fakestorage.entitites.TestInstance;
 
 public class InventoryRecordSet {
 
-    private TestInstance instance;
+    private InputInstance instance;
 
-    public InventoryRecordSet(TestInstance instance) {
+    public InventoryRecordSet(InputInstance instance) {
         this.instance = instance;
     }
 

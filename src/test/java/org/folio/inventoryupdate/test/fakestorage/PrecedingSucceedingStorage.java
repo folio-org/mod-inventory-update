@@ -2,7 +2,7 @@ package org.folio.inventoryupdate.test.fakestorage;
 
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.RoutingContext;
-import org.folio.inventoryupdate.test.fakestorage.entitites.TestInstanceTitleSuccession;
+import org.folio.inventoryupdate.test.fakestorage.entitites.InputInstanceTitleSuccession;
 
 public class PrecedingSucceedingStorage extends RecordStorage {
 
@@ -18,15 +18,15 @@ public class PrecedingSucceedingStorage extends RecordStorage {
 
     @Override
     protected void declareDependencies() {
-        fakeStorage.instanceStorage.acceptDependant(this, TestInstanceTitleSuccession.SUCCEEDING_INSTANCE_ID);
-        fakeStorage.instanceStorage.acceptDependant(this, TestInstanceTitleSuccession.PRECEDING_INSTANCE_ID);
+        fakeStorage.instanceStorage.acceptDependant(this, InputInstanceTitleSuccession.SUCCEEDING_INSTANCE_ID);
+        fakeStorage.instanceStorage.acceptDependant(this, InputInstanceTitleSuccession.PRECEDING_INSTANCE_ID);
     }
 
     @Override
     public void createRecord(RoutingContext routingContext) {
         JsonObject recordJson = new JsonObject(routingContext.getBodyAsString());
-        TestInstanceTitleSuccession titleSuccession = new TestInstanceTitleSuccession(recordJson);
-        int code = insert(new TestInstanceTitleSuccession(recordJson));
+        InputInstanceTitleSuccession titleSuccession = new InputInstanceTitleSuccession(recordJson);
+        int code = insert(new InputInstanceTitleSuccession(recordJson));
         respond(routingContext, recordJson, code);
     }
 

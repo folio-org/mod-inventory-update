@@ -2,37 +2,37 @@ package org.folio.inventoryupdate.test.fakestorage.entitites;
 
 import io.vertx.core.json.JsonObject;
 
-public class TestInstance extends InventoryRecord {
+public class InputInstance extends InventoryRecord {
 
   public static String TITLE = "title";
   public static String INSTANCE_TYPE_ID = "instanceTypeId";
   public static String MATCH_KEY = "matchKey";
   public static String HRID = "hrid";
 
-  public TestInstance(JsonObject record) {
+  public InputInstance(JsonObject record) {
     super(record);
   }
 
-  public TestInstance() {
+  public InputInstance() {
     super();
   }
 
-  public TestInstance setTitle (String title) {
+  public InputInstance setTitle (String title) {
     recordJson.put(TITLE, title);
     return this;
   }
 
-  public TestInstance setInstanceTypeId (String instanceTypeId) {
+  public InputInstance setInstanceTypeId (String instanceTypeId) {
     recordJson.put(INSTANCE_TYPE_ID, instanceTypeId);
     return this;
   }
 
-  public TestInstance setMatchKey (String matchKey) {
+  public InputInstance setMatchKey (String matchKey) {
     recordJson.put(MATCH_KEY, matchKey);
     return this;
   }
 
-  public TestInstance setHrid (String hrid) {
+  public InputInstance setHrid (String hrid) {
     recordJson.put(HRID, hrid);
     return this;
   }

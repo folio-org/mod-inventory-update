@@ -10,7 +10,6 @@ import io.vertx.core.impl.logging.Logger;
 import io.vertx.core.impl.logging.LoggerFactory;
 import org.folio.inventoryupdate.entities.*;
 import org.folio.inventoryupdate.entities.InventoryRecord.Entity;
-import org.folio.inventoryupdate.entities.InventoryRecord.Outcome;
 import org.folio.inventoryupdate.entities.InventoryRecord.Transaction;
 import org.folio.okapi.common.OkapiClient;
 
@@ -76,6 +75,7 @@ public abstract class UpdatePlan {
     public abstract Future<Void> planInventoryUpdates (OkapiClient client);
 
     public abstract Future<Void> doInventoryUpdates (OkapiClient client);
+    public abstract RequestValidation validateIncomingRecordSet (JsonObject inventoryRecordSet);
 
     protected Future<Void> lookupExistingRecordSet (OkapiClient okapiClient, InventoryQuery instanceQuery) {
         Promise<Void> promise = Promise.promise();

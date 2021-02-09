@@ -180,6 +180,7 @@ public class InventoryStorage {
                               inventoryRecordSet.getJsonObject(InstanceRelationsController.INSTANCE_RELATIONS)
                                       .getJsonArray(InstanceRelationsController.EXISTING_PRECEDING_SUCCEEDING_TITLES).size() + " preceding/succeeding titles");
                     }
+                  } else {
                     //TODO: handle error
                     logger.error("Lookup of existing instance preceding/succeeding titles failed. Continuing even so.");
                   }

@@ -45,41 +45,46 @@ public class UpdatePlanAllHRIDs extends UpdatePlan {
     @Override
     public Future<Void> planInventoryUpdates (OkapiClient okapiClient) {
         Promise<Void> promisedPlan = Promise.promise();
-        // compose with look-up of instance relationships
-        lookupExistingRecordSet(okapiClient, instanceQuery).onComplete( lookup -> {
-            if (lookup.succeeded()) {
-                // Plan instance update
-                if (isDeletion) {
-                  if (foundExistingRecordSet()) {
-                      getExistingInstance().setTransition(Transaction.DELETE);
-                      for (HoldingsRecord holdings : getExistingInstance().getHoldingsRecords()) {
-                          holdings.setTransition(Transaction.DELETE);
-                          for (Item item : holdings.getItems()) {
-                              item.setTransition(Transaction.DELETE);
-                          }
-                      }
-                      getExistingRecordSet().prepareAllInstanceRelationsForDeletion();
-                  }
-                  promisedPlan.complete();
-                } else {
-                  prepareTheUpdatingInstance();
-                  // Plan holdings/items updates
-                  if (foundExistingRecordSet()) {
-                      prepareUpdatesDeletesAndLocalMoves();
-                  }
-                  Future<Void> relationsFuture = getUpdatingRecordSet().prepareIncomingInstanceRelationRecords(okapiClient, getUpdatingInstance().getUUID());
-                  Future<Void> prepareNewRecordsAndImportsFuture = prepareNewRecordsAndImports(okapiClient);
-                  CompositeFuture.join(relationsFuture, prepareNewRecordsAndImportsFuture).onComplete( done -> {
-                     if (done.succeeded()) {
-                         getUpdatingRecordSet().getInstanceRelationsController().prepareIncomingInstanceRelations(updatingSet, existingSet);
-                         promisedPlan.complete();
-                     } else {
-                         promisedPlan.fail("There was a problem fetching existing relations, holdings and/or items from storage:" + LF + "  " + done.cause().getMessage());
-                     }
-                  });
+        RequestValidation validation = validateIncomingRecordSet(updatingSet.getSourceJson());
+        if (validation.passed()) {
+            // compose with look-up of instance relationships
+            lookupExistingRecordSet(okapiClient, instanceQuery).onComplete(lookup -> {
+                if (lookup.succeeded()) {
+                    // Plan instance update
+                    if (isDeletion) {
+                        if (foundExistingRecordSet()) {
+                            getExistingInstance().setTransition(Transaction.DELETE);
+                            for (HoldingsRecord holdings : getExistingInstance().getHoldingsRecords()) {
+                                holdings.setTransition(Transaction.DELETE);
+                                for (Item item : holdings.getItems()) {
+                                    item.setTransition(Transaction.DELETE);
+                                }
+                            }
+                            getExistingRecordSet().prepareAllInstanceRelationsForDeletion();
+                        }
+                        promisedPlan.complete();
+                    } else {
+                        prepareTheUpdatingInstance();
+                        // Plan holdings/items updates
+                        if (foundExistingRecordSet()) {
+                            prepareUpdatesDeletesAndLocalMoves();
+                        }
+                        Future<Void> relationsFuture = getUpdatingRecordSet().prepareIncomingInstanceRelationRecords(okapiClient, getUpdatingInstance().getUUID());
+                        Future<Void> prepareNewRecordsAndImportsFuture = prepareNewRecordsAndImports(okapiClient);
+                        CompositeFuture.join(relationsFuture, prepareNewRecordsAndImportsFuture).onComplete(done -> {
+                            if (done.succeeded()) {
+                                getUpdatingRecordSet().getInstanceRelationsController().prepareIncomingInstanceRelations(updatingSet, existingSet);
+                                promisedPlan.complete();
+                            } else {
+                                promisedPlan.fail("There was a problem fetching existing relations, holdings and/or items from storage:" + LF + "  " + done.cause().getMessage());
+                            }
+                        });
+                    }
                 }
-            }
-        });
+            });
+        } else {
+            promisedPlan.fail("Request did not provide a valid record set: " + validation.toString());
+        }
         return promisedPlan.future();
     }
 
@@ -125,6 +130,34 @@ public class UpdatePlanAllHRIDs extends UpdatePlan {
         return promise.future();
     }
 
+    @Override
+    public RequestValidation validateIncomingRecordSet(JsonObject inventoryRecordSet) {
+        RequestValidation validationErrors = new RequestValidation();
+        if (inventoryRecordSet.containsKey("holdingsRecords")) {
+            inventoryRecordSet.getJsonArray("holdingsRecords")
+                    .stream()
+                    .map( rec -> (JsonObject) rec)
+                    .forEach( record -> {
+                        if (!record.containsKey("hrid")) {
+                            logger.error("Holdings Records must have a HRID to be processed by this API");
+                            validationErrors.registerError("Holdings Records must have a HRID to be processed by this API, received: " + record.encodePrettily());
+                        }
+                        if (record.containsKey("items")) {
+                            record.getJsonArray("items")
+                                    .stream()
+                                    .map(item -> (JsonObject) item)
+                                    .forEach(item -> {
+                                        if (!item.containsKey("hrid")) {
+                                            logger.error("Items must have a HRID to be processed by this API");
+                                            validationErrors.registerError("Items must have a HRID to be processed by this API, received: " + item.encodePrettily());
+                                        }
+                                    });
+                        }
+                    });
+        }
+        return validationErrors;
+    }
+
     public Future<JsonObject> handleInstanceRelationCreatesIfAny (OkapiClient okapiClient) {
         if (!isDeletion) {
             return getUpdatingRecordSet().getInstanceRelationsController().handleInstanceRelationCreatesIfAny(okapiClient);
@@ -145,7 +178,6 @@ public class UpdatePlanAllHRIDs extends UpdatePlan {
      * Find records that have disappeared and mark them for deletion.
      */
     private void prepareUpdatesDeletesAndLocalMoves() {
-
         for (HoldingsRecord existingHoldingsRecord : getExistingInstance().getHoldingsRecords()) {
             HoldingsRecord incomingHoldingsRecord = getUpdatingInstance().getHoldingsRecordByHRID(existingHoldingsRecord.getHRID());
             // HoldingsRecord gone, mark for deletion and check for existing items to delete with it

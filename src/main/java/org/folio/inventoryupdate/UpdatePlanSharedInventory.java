@@ -267,4 +267,9 @@ public class UpdatePlanSharedInventory extends UpdatePlan {
         return promise.future();
     }
 
+    @Override
+    public RequestValidation validateIncomingRecordSet(JsonObject inventoryRecordSet) {
+        return new RequestValidation();
+    }
+
 }

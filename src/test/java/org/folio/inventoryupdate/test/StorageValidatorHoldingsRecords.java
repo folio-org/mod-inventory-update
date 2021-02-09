@@ -44,7 +44,7 @@ public class StorageValidatorHoldingsRecords {
     protected void validateGetByQueryAndPut(TestContext testContext) {
         JsonObject responseJson = FakeInventoryStorage.getRecordsByQuery(
                 HOLDINGS_STORAGE_PATH,
-                "query="+ RecordStorage.encode("instanceId==\""+ existingInstanceId +"\""));;
+                "query="+ RecordStorage.encode("instanceId==\""+ existingInstanceId +"\""));
         testContext.assertEquals(
                 responseJson.getInteger("totalRecords"), 1,"Number of " + RESULT_SET_HOLDINGS_RECORDS + " expected: 1" );
         JsonObject existingRecord = responseJson.getJsonArray(RESULT_SET_HOLDINGS_RECORDS).getJsonObject(0);

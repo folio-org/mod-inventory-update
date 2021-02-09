@@ -149,11 +149,11 @@ public abstract class RecordStorage {
      * Handles GET request with query parameter
      * @param routingContext
      */
-    public void getRecordsByQuery(RoutingContext routingContext) {
-        final String query = decode(routingContext.request().getParam("query"));
-
+    public void getRecords(RoutingContext routingContext) {
+        final String optionalQuery = routingContext.request().getParam("query") != null ?
+                decode(routingContext.request().getParam("query")) : null;
         routingContext.request().endHandler(res -> {
-            respond(routingContext, buildJsonRecordsResponseByQuery(query), 200);
+            respond(routingContext, buildJsonRecordsResponse(optionalQuery), 200);
         });
 
         routingContext.request().exceptionHandler(res -> {
@@ -211,11 +211,11 @@ public abstract class RecordStorage {
 
     // HELPERS FOR RESPONSE PROCESSING
 
-    private JsonObject buildJsonRecordsResponseByQuery(String query) {
+    private JsonObject buildJsonRecordsResponse(String optionalQuery) {
         JsonObject response = new JsonObject();
         JsonArray jsonRecords = new JsonArray();
         getRecords().forEach( record -> {
-            if (record.match(query)) {
+            if (optionalQuery == null || record.match(optionalQuery)) {
                 jsonRecords.add(record.getJson());
             }});
         response.put(getResultSetName(), jsonRecords);

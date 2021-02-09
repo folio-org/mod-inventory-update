@@ -38,15 +38,15 @@ public class FakeInventoryStorage {
         precedingSucceedingStorage.attachToFakeStorage(this);
 
         Router router = Router.router(vertx);
-        router.get(INSTANCE_STORAGE_PATH).handler(instanceStorage::getRecordsByQuery);
+        router.get(INSTANCE_STORAGE_PATH).handler(instanceStorage::getRecords);
         router.get(INSTANCE_STORAGE_PATH + "/:id").handler(instanceStorage::getRecordById);
-        router.get(HOLDINGS_STORAGE_PATH).handler(holdingsStorage::getRecordsByQuery);
+        router.get(HOLDINGS_STORAGE_PATH).handler(holdingsStorage::getRecords);
         router.get(HOLDINGS_STORAGE_PATH + "/:id").handler(holdingsStorage::getRecordById);
-        router.get(ITEM_STORAGE_PATH).handler(itemStorage::getRecordsByQuery);
+        router.get(ITEM_STORAGE_PATH).handler(itemStorage::getRecords);
         router.get(ITEM_STORAGE_PATH + "/:id").handler(itemStorage::getRecordById);
-        router.get(INSTANCE_RELATIONSHIP_STORAGE_PATH).handler(instanceRelationshipStorage::getRecordsByQuery);
+        router.get(INSTANCE_RELATIONSHIP_STORAGE_PATH).handler(instanceRelationshipStorage::getRecords);
         router.get(INSTANCE_RELATIONSHIP_STORAGE_PATH + "/:id").handler(instanceRelationshipStorage::getRecordById);
-        router.get(PRECEDING_SUCCEEDING_TITLE_STORAGE_PATH).handler(precedingSucceedingStorage::getRecordsByQuery);
+        router.get(PRECEDING_SUCCEEDING_TITLE_STORAGE_PATH).handler(precedingSucceedingStorage::getRecords);
         router.get(PRECEDING_SUCCEEDING_TITLE_STORAGE_PATH + "/:id").handler(precedingSucceedingStorage::getRecordById);
         router.post("/*").handler(BodyHandler.create());
         router.post(INSTANCE_STORAGE_PATH).handler(instanceStorage::createRecord);

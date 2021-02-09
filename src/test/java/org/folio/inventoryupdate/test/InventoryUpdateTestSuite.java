@@ -19,7 +19,6 @@ import com.jayway.restassured.response.Response;
 import io.vertx.core.DeploymentOptions;
 import io.vertx.core.Vertx;
 import io.vertx.core.json.JsonObject;
-import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.unit.Async;
 import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
@@ -28,22 +27,16 @@ import io.vertx.ext.unit.junit.VertxUnitRunner;
 @RunWith(VertxUnitRunner.class)
 public class InventoryUpdateTestSuite {
 
-  static {
-    System.setProperty(LoggerFactory.LOGGER_DELEGATE_FACTORY_CLASS_NAME,
-            "io.vertx.core.logging.Log4jLogDelegateFactory");
-  }
   Vertx vertx;
-  private final int PORT_INVENTORY_UPDATE = 9031;
-  private final Header OKAPI_URL_HEADER = new Header("X-Okapi-Url", "http://localhost:"
+  private static final int PORT_INVENTORY_UPDATE = 9031;
+  private static final Header OKAPI_URL_HEADER = new Header("X-Okapi-Url", "http://localhost:"
           + FakeInventoryStorage.PORT_INVENTORY_STORAGE);
 
   private FakeInventoryStorage fakeInventoryStorage;
 
   private final Logger logger = io.vertx.core.impl.logging.LoggerFactory.getLogger("InventoryUpdateTestSuite");
 
-  public InventoryUpdateTestSuite() {
-
-  }
+  public InventoryUpdateTestSuite() {}
 
   @Before
   public void setUp(TestContext testContext) {
@@ -88,7 +81,7 @@ public class InventoryUpdateTestSuite {
   }
 
   /**
-   * Tests API /instance-storage-match/instances
+   * Tests API /shared-inventory-upsert-matchkey
    * @param testContext
    */
   @Test
@@ -98,44 +91,19 @@ public class InventoryUpdateTestSuite {
       fakeInventoryStorage.instanceStorage.logRecords(logger);
     }
     RestAssured.port = FakeInventoryStorage.PORT_INVENTORY_STORAGE;
-    InputInstance instance = new InputInstance()
-            .setTitle("New title")
-            .setInstanceTypeId("12345");
+    InputInstance instance = new InputInstance().setTitle("New title").setInstanceTypeId("12345");
     MatchKey matchKey = new MatchKey(instance.getJson());
     instance.setMatchKey(matchKey.getKey());
     InventoryRecordSet inventoryRecordSet = new InventoryRecordSet(instance);
-    Response instancesBeforePut =
-            RestAssured.given()
-                    .get(FakeInventoryStorage.INSTANCE_STORAGE_PATH +"?query="+ RecordStorage
-                            .encode("matchKey==\"" + matchKey.getKey() + "\""))
-                    .then()
-                    .log().ifValidationFails()
-                    .statusCode(200).extract().response();
-    String bodyAsStringBeforePut = instancesBeforePut.getBody().asString();
-    JsonObject instancesBeforePutJson = new JsonObject(bodyAsStringBeforePut);
+
+    JsonObject instancesBeforePutJson = getFromStorage(FakeInventoryStorage.INSTANCE_STORAGE_PATH, "matchKey==\"" + matchKey.getKey() + "\"");
 
     testContext.assertEquals(instancesBeforePutJson.getInteger("totalRecords"), 0,
             "Number of instance records for query by matchKey 'new_title___(etc)' before PUT expected: 0" );
 
-    RestAssured.port = PORT_INVENTORY_UPDATE;
-    RestAssured.given()
-            .body(inventoryRecordSet.getJson().toString())
-            .header("Content-type","application/json")
-            .header(OKAPI_URL_HEADER)
-            .put(MainVerticle.SHARED_INVENTORY_UPSERT_MATCHKEY_PATH)
-            .then()
-            .log().ifValidationFails()
-            .statusCode(200).extract().response();
+    inventoryRecordSetPUT(MainVerticle.SHARED_INVENTORY_UPSERT_MATCHKEY_PATH, inventoryRecordSet.getJson());
 
-    RestAssured.port = FakeInventoryStorage.PORT_INVENTORY_STORAGE;
-    Response instancesAfterPut =
-            RestAssured.given()
-                    .get(FakeInventoryStorage.INSTANCE_STORAGE_PATH +"?query=matchKey==\"" + matchKey.getKey() + "\"")
-                    .then()
-                    .log().ifValidationFails()
-                    .statusCode(200).extract().response();
-    String bodyAsStringAfterPut = instancesAfterPut.getBody().asString();
-    JsonObject instancesAfterPutJson = new JsonObject(bodyAsStringAfterPut);
+    JsonObject instancesAfterPutJson = getFromStorage(FakeInventoryStorage.INSTANCE_STORAGE_PATH, "matchKey==\"" + matchKey.getKey() + "\"");
 
     testContext.assertEquals(instancesAfterPutJson.getInteger("totalRecords"), 1,
             "Number of instance records for query by matchKey 'new_title' after PUT expected: 1" );
@@ -157,39 +125,14 @@ public class InventoryUpdateTestSuite {
     instance.setMatchKey(matchKey.getKey());
     InventoryRecordSet recordSet = new InventoryRecordSet(instance);
 
-    Response instancesBeforePut =
-            RestAssured.given()
-                    .get(FakeInventoryStorage.INSTANCE_STORAGE_PATH +"?query="+ RecordStorage
-                            .encode("matchKey==\"" + matchKey.getKey() + "\""))
-                    .then()
-                    .log().ifValidationFails()
-                    .statusCode(200).extract().response();
-    String bodyAsStringBeforePut = instancesBeforePut.getBody().asString();
-    JsonObject instancesBeforePutJson = new JsonObject(bodyAsStringBeforePut);
+    JsonObject instancesBeforePutJson = getFromStorage(FakeInventoryStorage.INSTANCE_STORAGE_PATH, "matchKey==\"" + matchKey.getKey() + "\"");
 
     testContext.assertEquals(instancesBeforePutJson.getInteger("totalRecords"), 0,
             "Number of instance records for query by matchKey 'new_title___(etc)' before PUT expected: 0" );
 
-    RestAssured.port = PORT_INVENTORY_UPDATE;
-    RestAssured.given()
-            .body(recordSet.getJson().toString())
-            .header("Content-type","application/json")
-            .header(OKAPI_URL_HEADER)
-            .put(MainVerticle.SHARED_INVENTORY_UPSERT_MATCHKEY_PATH)
-            .then()
-            .log().ifValidationFails()
-            .statusCode(200).extract().response();
+    inventoryRecordSetPUT(MainVerticle.SHARED_INVENTORY_UPSERT_MATCHKEY_PATH, recordSet.getJson());
 
-    RestAssured.port = FakeInventoryStorage.PORT_INVENTORY_STORAGE;
-    Response instancesAfterPut =
-            RestAssured.given()
-                    .get(FakeInventoryStorage.INSTANCE_STORAGE_PATH +"?query="
-                            + RecordStorage.encode("matchKey==\"" + matchKey.getKey() + "\""))
-                    .then()
-                    .log().ifValidationFails()
-                    .statusCode(200).extract().response();
-    String bodyAsStringAfterPut = instancesAfterPut.getBody().asString();
-    JsonObject instancesAfterPutJson = new JsonObject(bodyAsStringAfterPut);
+    JsonObject instancesAfterPutJson = getFromStorage(FakeInventoryStorage.INSTANCE_STORAGE_PATH, "matchKey==\"" + matchKey.getKey() + "\"");
 
     testContext.assertEquals(instancesAfterPutJson.getInteger("totalRecords"), 1,
             "Number of instance records for query by matchKey 'new_title' after PUT expected: 1" );
@@ -208,49 +151,27 @@ public class InventoryUpdateTestSuite {
     MatchKey matchKey = new MatchKey(instance.getJson());
     InventoryRecordSet inventoryRecordSet = new InventoryRecordSet(instance);
 
-    Response instancesBeforePut =
-            RestAssured.given()
-                    .get(FakeInventoryStorage.INSTANCE_STORAGE_PATH +"?query="+ RecordStorage
-                            .encode("matchKey==\"" + matchKey.getKey() + "\""))
-                    .then()
-                    .log().ifValidationFails()
-                    .statusCode(200).extract().response();
-    String bodyAsStringBeforePut = instancesBeforePut.getBody().asString();
-    JsonObject instancesBeforePutJson = new JsonObject(bodyAsStringBeforePut);
+    JsonObject instancesBeforePutJson = getFromStorage(FakeInventoryStorage.INSTANCE_STORAGE_PATH,"matchKey==\"" + matchKey.getKey() + "\"");
 
     testContext.assertEquals(instancesBeforePutJson.getInteger("totalRecords"), 1,
             "Number of instance records for query by matchKey 'initial instance' before PUT expected: 1" );
 
     String instanceTypeIdBefore = instancesBeforePutJson.getJsonArray("instances")
             .getJsonObject(0).getString("instanceTypeId");
+
     testContext.assertEquals(instanceTypeIdBefore,"123",
             "Expected instanceTypeId to be '123' before PUT");
 
-    RestAssured.port = PORT_INVENTORY_UPDATE;
-    RestAssured.given()
-            .body(inventoryRecordSet.getJson().toString())
-            .header("Content-type","application/json")
-            .header(OKAPI_URL_HEADER)
-            .put(MainVerticle.SHARED_INVENTORY_UPSERT_MATCHKEY_PATH)
-            .then()
-            .log().ifValidationFails()
-            .statusCode(200).extract().response();
+    inventoryRecordSetPUT(MainVerticle.SHARED_INVENTORY_UPSERT_MATCHKEY_PATH,inventoryRecordSet.getJson());
 
-    RestAssured.port = FakeInventoryStorage.PORT_INVENTORY_STORAGE;
-    Response instancesAfterPut =
-            RestAssured.given()
-                    .get(FakeInventoryStorage.INSTANCE_STORAGE_PATH +"?query="
-                            + RecordStorage.encode("matchKey==\"" + matchKey.getKey() + "\""))
-                    .then()
-                    .log().ifValidationFails()
-                    .statusCode(200).extract().response();
-    String bodyAsStringAfterPut = instancesAfterPut.getBody().asString();
-    JsonObject instancesAfterPutJson = new JsonObject(bodyAsStringAfterPut);
+    JsonObject instancesAfterPutJson = getFromStorage(FakeInventoryStorage.INSTANCE_STORAGE_PATH,"matchKey==\"" + matchKey.getKey() + "\"");
 
     testContext.assertEquals(instancesAfterPutJson.getInteger("totalRecords"), 1,
             "Number of instance records for query by matchKey 'initial instance' after PUT expected: 1" );
+
     String instanceTypeIdAfter = instancesAfterPutJson.getJsonArray("instances")
             .getJsonObject(0).getString("instanceTypeId");
+
     testContext.assertEquals(instanceTypeIdAfter,"12345",
             "Expected instanceTypeId to be '12345' after PUT");
 
@@ -261,47 +182,23 @@ public class InventoryUpdateTestSuite {
    * @param testContext
    */
   @Test
-  public void testUpsertWithNewInstanceWillCreateNewInstanceForHrid(TestContext testContext) {
+  public void testUpsertWithNewInstanceByHrid(TestContext testContext) {
     createInitialInstanceWithHrid1();
     RestAssured.port = FakeInventoryStorage.PORT_INVENTORY_STORAGE;
     InputInstance instance = new InputInstance().setTitle("New title").setInstanceTypeId("12345").setHrid("2");
     InventoryRecordSet inventoryRecordSet = new InventoryRecordSet(instance);
-    Response instancesBeforePut =
-            RestAssured.given()
-                    .get(FakeInventoryStorage.INSTANCE_STORAGE_PATH +"?query="+ RecordStorage
-                            .encode("hrid==\"" + instance.getHrid() + "\""))
-                    .then()
-                    .log().ifValidationFails()
-                    .statusCode(200).extract().response();
-    String bodyAsStringBeforePut = instancesBeforePut.getBody().asString();
-    JsonObject instancesBeforePutJson = new JsonObject(bodyAsStringBeforePut);
+
+    JsonObject instancesBeforePutJson = getFromStorage(FakeInventoryStorage.INSTANCE_STORAGE_PATH, "hrid==\"" + instance.getHrid() + "\"");
 
     testContext.assertEquals(instancesBeforePutJson.getInteger("totalRecords"), 0,
-            "Number of instance records for query by hrid '2' before PUT expected: 0" );
+            "Before upserting with new Instance, number of Instance with that HRID expected to be 0" );
 
-    RestAssured.port = PORT_INVENTORY_UPDATE;
-    RestAssured.given()
-            .body(inventoryRecordSet.getJson().toString())
-            .header("Content-type","application/json")
-            .header(OKAPI_URL_HEADER)
-            .put(MainVerticle.INVENTORY_UPSERT_HRID_PATH)
-            .then()
-            .log().ifValidationFails()
-            .statusCode(200).extract().response();
+    inventoryRecordSetPUT(MainVerticle.INVENTORY_UPSERT_HRID_PATH, inventoryRecordSet.getJson());
 
-    RestAssured.port = FakeInventoryStorage.PORT_INVENTORY_STORAGE;
-    Response instancesAfterPut =
-            RestAssured.given()
-                    .get(FakeInventoryStorage.INSTANCE_STORAGE_PATH +"?query="
-                            + RecordStorage.encode("hrid==\"" + instance.getHrid() + "\""))
-                    .then()
-                    .log().ifValidationFails()
-                    .statusCode(200).extract().response();
-    String bodyAsStringAfterPut = instancesAfterPut.getBody().asString();
-    JsonObject instancesAfterPutJson = new JsonObject(bodyAsStringAfterPut);
+    JsonObject instancesAfterPutJson = getFromStorage(FakeInventoryStorage.INSTANCE_STORAGE_PATH,"hrid==\"" + instance.getHrid() + "\"");
 
     testContext.assertEquals(instancesAfterPutJson.getInteger("totalRecords"), 1,
-            "Number of instance records for query by hrid '2' after PUT expected: 1" );
+            "After upserting with new Instance, number of Instances with that HRID expected to be 1" );
 
   }
 
@@ -310,7 +207,7 @@ public class InventoryUpdateTestSuite {
    * @param testContext
    */
   @Test
-  public void testUpsertOfExistingInstanceWillUpdateExistingInstanceForHrid (TestContext testContext) {
+  public void testUpsertOfExistingInstanceByHrid (TestContext testContext) {
     createInitialInstanceWithHrid1();
     RestAssured.port = FakeInventoryStorage.PORT_INVENTORY_STORAGE;
     String instanceHrid = "1";
@@ -318,56 +215,38 @@ public class InventoryUpdateTestSuite {
     inventoryRecordSet.put("instance", new InputInstance().setTitle("Initial InputInstance")
             .setInstanceTypeId("12345").setHrid(instanceHrid).getJson());
 
-    Response instancesBeforeUpsert =
-            RestAssured.given()
-                    .get(FakeInventoryStorage.INSTANCE_STORAGE_PATH +"?query="+ RecordStorage
-                            .encode("hrid==\"" + instanceHrid + "\""))
-                    .then()
-                    .log().ifValidationFails()
-                    .statusCode(200).extract().response();
-    String bodyAsStringBeforePut = instancesBeforeUpsert.getBody().asString();
-    JsonObject instancesBeforePutJson = new JsonObject(bodyAsStringBeforePut);
+    JsonObject instancesBeforePutJson = getFromStorage(FakeInventoryStorage.INSTANCE_STORAGE_PATH, "hrid==\"" + instanceHrid + "\"");
 
     testContext.assertEquals(instancesBeforePutJson.getInteger("totalRecords"), 1,
-            "Number of instance records for query by hrid '1' before PUT expected: 1" );
+            "Before upsert of existing Instance, number of Instances with that HRID expected to be [1]" );
 
     String instanceTypeIdBefore = instancesBeforePutJson.getJsonArray("instances")
             .getJsonObject(0).getString("instanceTypeId");
+
     testContext.assertEquals(instanceTypeIdBefore,"123",
-            "Expected instanceTypeId to be '123' before PUT");
+            "Before upsert of existing Instance, the instanceTypeId expected to be [123]");
 
-    // PUT InventoryRecordSet
-    RestAssured.port = PORT_INVENTORY_UPDATE;
-    RestAssured.given()
-            .body(inventoryRecordSet.toString())
-            .header("Content-type","application/json")
-            .header(OKAPI_URL_HEADER)
-            .put(MainVerticle.INVENTORY_UPSERT_HRID_PATH)
-            .then()
-            .log().ifValidationFails()
-            .statusCode(200).extract().response();
+    inventoryRecordSetPUT(MainVerticle.INVENTORY_UPSERT_HRID_PATH, inventoryRecordSet);
 
-    RestAssured.port = FakeInventoryStorage.PORT_INVENTORY_STORAGE;
-    Response instancesAfterUpsert =
-            RestAssured.given()
-                    .get(FakeInventoryStorage.INSTANCE_STORAGE_PATH +"?query="
-                            + RecordStorage.encode("hrid==\"" + instanceHrid + "\""))
-                    .then()
-                    .log().ifValidationFails()
-                    .statusCode(200).extract().response();
-    String bodyAsStringAfterPut = instancesAfterUpsert.getBody().asString();
-    JsonObject instancesAfterUpsertJson = new JsonObject(bodyAsStringAfterPut);
+    JsonObject instancesAfterUpsertJson = getFromStorage(FakeInventoryStorage.INSTANCE_STORAGE_PATH, "hrid==\"" + instanceHrid + "\"");
 
     testContext.assertEquals(instancesAfterUpsertJson.getInteger("totalRecords"), 1,
-            "Number of instance records for query by hrid '1' after PUT expected: 1 " + instancesAfterUpsertJson.encodePrettily() );
+            "After upsert of existing Instance, number of Instances with that HRID still expected to be [1]" + instancesAfterUpsertJson.encodePrettily() );
+
     JsonObject instanceResponse = instancesAfterUpsertJson.getJsonArray("instances").getJsonObject(0);
+
     String instanceTypeIdAfter = instanceResponse.getString("instanceTypeId");
+
     testContext.assertEquals(instanceTypeIdAfter,"12345",
-            "Expected instanceTypeId to be '12345' after upsert by HRID");
+            "After upsert of existing Instance, the instanceTypeId expected to have changed to [12345]");
   }
 
+  /**
+   * Tests API /inventory-upsert-hrid
+   * @param testContext
+   */
   @Test
-  public void testRecordSetWithHoldingsAndItemsToCreate(TestContext testContext) {
+  public void testCreationOfHoldingsAndItemsByHrid(TestContext testContext) {
     RestAssured.port = FakeInventoryStorage.PORT_INVENTORY_STORAGE;
 
     String instanceHrid = "1";
@@ -383,48 +262,34 @@ public class InventoryUpdateTestSuite {
                       .put("items", new JsonArray()
                         .add(new InputItem().setHrid("ITM-003").setBarcode("BC-003").getJson()))));
 
-    // PUT InventoryRecordSet
-    RestAssured.port = PORT_INVENTORY_UPDATE;
-    Response upsertResponse =
-            RestAssured.given()
-                    .body(inventoryRecordSet.toString())
-                    .header("Content-type","application/json")
-                    .header(OKAPI_URL_HEADER)
-                    .put(MainVerticle.INVENTORY_UPSERT_HRID_PATH)
-                    .then()
-                    .log().ifValidationFails()
-                    .statusCode(200).extract().response();
-    JsonObject upsertResponseJson = new JsonObject(upsertResponse.getBody().asString());
-    logger.debug("UpsertResponse: " + upsertResponseJson.encodePrettily());
+    JsonObject upsertResponseJson = inventoryRecordSetPUT(MainVerticle.INVENTORY_UPSERT_HRID_PATH, inventoryRecordSet);
+
     String instanceId = upsertResponseJson.getJsonObject("instance").getString("id");
 
     testContext.assertEquals(getMetric(upsertResponseJson, "HOLDINGS_RECORD", "CREATED" , "COMPLETED"), 2,
-            "Metrics should report two holdings records successfully created " + upsertResponseJson.encodePrettily());
+            "Upsert metrics response should report [2] holdings records successfully created " + upsertResponseJson.encodePrettily());
 
     testContext.assertEquals(getMetric(upsertResponseJson, "ITEM", "CREATED" , "COMPLETED"), 3,
-            "Metrics should report three items successfully created " + upsertResponseJson.encodePrettily());
+            "Upsert metrics response should report [3] items successfully created " + upsertResponseJson.encodePrettily());
 
-    RestAssured.port = FakeInventoryStorage.PORT_INVENTORY_STORAGE;
-    Response holdingsAfterUpsert =
-            RestAssured.given()
-                    .get(FakeInventoryStorage.HOLDINGS_STORAGE_PATH +"?query="
-                            + RecordStorage.encode("instanceId==\"" + instanceId + "\""))
-                    .then()
-                    .log().ifValidationFails()
-                    .statusCode(200).extract().response();
-    String bodyAsStringAfterPut = holdingsAfterUpsert.getBody().asString();
-    JsonObject holdingsAfterUpsertJson = new JsonObject(bodyAsStringAfterPut);
+    JsonObject storedHoldings = getFromStorage(FakeInventoryStorage.HOLDINGS_STORAGE_PATH, "instanceId==\"" + instanceId + "\"");
 
-    logger.debug("Holdings after upsert 2: " + holdingsAfterUpsertJson.encodePrettily());
+    testContext.assertEquals(storedHoldings.getInteger("totalRecords"), 2,
+            "After upsert the number of holdings records for instance " + instanceId + " expected to be [2] " + storedHoldings.encodePrettily() );
 
-    testContext.assertEquals(holdingsAfterUpsertJson.getInteger("totalRecords"), 2,
-            "Number of holdings records for query by instanceId " + instanceId + " after upsert expected: 2 " + holdingsAfterUpsertJson.encodePrettily() );
+    JsonObject storedItems = getFromStorage(FakeInventoryStorage.ITEM_STORAGE_PATH, null);
+
+    testContext.assertEquals(storedItems.getInteger("totalRecords"), 3,
+            "After upsert the total number of items expected to be [3] " + storedHoldings.encodePrettily() );
+
   }
 
-
-
+  /**
+   * Tests API /inventory-upsert-hrid
+   * @param testContext
+   */
   @Test
-  public void testDeletionOfSelectHoldingsAndItems(TestContext testContext) {
+  public void testDeletionOfHoldingsAndItemsByHrid(TestContext testContext) {
     RestAssured.port = FakeInventoryStorage.PORT_INVENTORY_STORAGE;
     String instanceHrid = "1";
     JsonObject inventoryRecordSet = new JsonObject()
@@ -438,19 +303,9 @@ public class InventoryUpdateTestSuite {
                     .add(new InputHoldingsRecord().setHrid("HOL-002").setCallNumber("test-cn-2").getJson()
                             .put("items", new JsonArray()
                                     .add(new InputItem().setHrid("ITM-003").setBarcode("BC-003").getJson()))));
-    // PUT InventoryRecordSet
-    RestAssured.port = PORT_INVENTORY_UPDATE;
-    Response upsertResponse =
-            RestAssured.given()
-                    .body(inventoryRecordSet.toString())
-                    .header("Content-type","application/json")
-                    .header(OKAPI_URL_HEADER)
-                    .put(MainVerticle.INVENTORY_UPSERT_HRID_PATH)
-                    .then()
-                    .log().ifValidationFails()
-                    .statusCode(200).extract().response();
-    JsonObject upsertResponseJson = new JsonObject(upsertResponse.getBody().asString());
-    logger.debug("UpsertResponse: " + upsertResponseJson.encodePrettily());
+
+    JsonObject upsertResponseJson = inventoryRecordSetPUT(MainVerticle.INVENTORY_UPSERT_HRID_PATH, inventoryRecordSet);
+
     String instanceId = upsertResponseJson.getJsonObject("instance").getString("id");
 
     // Leave out one holdings record
@@ -462,50 +317,30 @@ public class InventoryUpdateTestSuite {
                             .put("items", new JsonArray()
                                     .add(new InputItem().setHrid("ITM-003").setBarcode("BC-003").getJson()))));
 
-    // PUT InventoryRecordSet again
-    RestAssured.port = PORT_INVENTORY_UPDATE;
-    upsertResponse =
-            RestAssured.given()
-                    .body(inventoryRecordSet.toString())
-                    .header("Content-type","application/json")
-                    .header(OKAPI_URL_HEADER)
-                    .put(MainVerticle.INVENTORY_UPSERT_HRID_PATH)
-                    .then()
-                    .log().ifValidationFails()
-                    .statusCode(200).extract().response();
-    upsertResponseJson = new JsonObject(upsertResponse.getBody().asString());
-    logger.debug("UpsertResponse 2: " + upsertResponseJson.encodePrettily());
+    upsertResponseJson =  inventoryRecordSetPUT(MainVerticle.INVENTORY_UPSERT_HRID_PATH, inventoryRecordSet);
 
     testContext.assertEquals(getMetric(upsertResponseJson, "HOLDINGS_RECORD", "DELETED" , "COMPLETED"), 1,
-            "Metrics should report one (1) holdings record successfully deleted " + upsertResponseJson.encodePrettily());
+            "After upsert with one holdings record removed from set, metrics should report [1] holdings record successfully deleted " + upsertResponseJson.encodePrettily());
 
     testContext.assertEquals(getMetric(upsertResponseJson, "ITEM", "DELETED" , "COMPLETED"), 2,
-            "Metrics should report two items successfully deleted " + upsertResponseJson.encodePrettily());
+            "After upsert with one holdings record removed from set, metrics should report [2] items successfully deleted " + upsertResponseJson.encodePrettily());
 
-    RestAssured.port = FakeInventoryStorage.PORT_INVENTORY_STORAGE;
-    Response holdingsAfterUpsert =
-            RestAssured.given()
-                    .get(FakeInventoryStorage.HOLDINGS_STORAGE_PATH +"?query="
-                            + RecordStorage.encode("instanceId==\"" + instanceId + "\""))
-                    .then()
-                    .log().ifValidationFails()
-                    .statusCode(200).extract().response();
-    String bodyAsStringAfterPut = holdingsAfterUpsert.getBody().asString();
-    JsonObject holdingsAfterUpsertJson = new JsonObject(bodyAsStringAfterPut);
+    JsonObject holdingsAfterUpsertJson = getFromStorage(FakeInventoryStorage.HOLDINGS_STORAGE_PATH, "instanceId==\"" + instanceId + "\"");
 
-    RestAssured.port = FakeInventoryStorage.PORT_INVENTORY_STORAGE;
-    Response itemsAfterUpsert =
-            RestAssured.given()
-                    .get(FakeInventoryStorage.HOLDINGS_STORAGE_PATH)
-                    .then()
-                    .log().ifValidationFails()
-                    .statusCode(200).extract().response();
-    JsonObject itemsAfterUpsertJson = new JsonObject(itemsAfterUpsert.getBody().asString());
+    testContext.assertEquals(holdingsAfterUpsertJson.getInteger("totalRecords"), 1,
+            "After upsert with one holdings record removed from set, number of holdings records left for the Instance expected to be [1] " + holdingsAfterUpsertJson.encodePrettily());
+
+    JsonObject itemsAfterUpsertJson = getFromStorage(FakeInventoryStorage.ITEM_STORAGE_PATH, null);
 
     testContext.assertEquals(itemsAfterUpsertJson.getInteger("totalRecords"), 1,
-            "Number of item records after upsert expected: 1 " + itemsAfterUpsertJson.encodePrettily() );
+            "After upsert with one holdings record removed from set, the total number of item records expected to be [1] " + itemsAfterUpsertJson.encodePrettily() );
   }
 
+
+  /**
+   * Tests API /inventory-upsert-hrid
+   * @param testContext
+   */
   @Test
   public void testRecordSetWithParentInstanceRelation(TestContext testContext) {
     RestAssured.port = FakeInventoryStorage.PORT_INVENTORY_STORAGE;
@@ -525,51 +360,19 @@ public class InventoryUpdateTestSuite {
               .put("parentInstances", new JsonArray()
                 .add(new InputInstanceRelationship().setInstanceIdentifierHrid(instanceHrid).getJson())));
 
-    // PUT PARENT InventoryRecordSet
-    RestAssured.port = PORT_INVENTORY_UPDATE;
-    Response upsertResponse =
-            RestAssured.given()
-                    .body(inventoryRecordSet.toString())
-                    .header("Content-type","application/json")
-                    .header(OKAPI_URL_HEADER)
-                    .put(MainVerticle.INVENTORY_UPSERT_HRID_PATH)
-                    .then()
-                    .log().ifValidationFails()
-                    .statusCode(200).extract().response();
-    JsonObject upsertResponseJson = new JsonObject(upsertResponse.getBody().asString());
-    logger.debug("UpsertResponse: " + upsertResponseJson.encodePrettily());
+    JsonObject upsertResponseJson = inventoryRecordSetPUT(MainVerticle.INVENTORY_UPSERT_HRID_PATH, inventoryRecordSet);
+
     String instanceId = upsertResponseJson.getJsonObject("instance").getString("id");
 
-    // PUT CHILD InventoryRecordSet
-    RestAssured.port = PORT_INVENTORY_UPDATE;
-    Response childResponse =
-            RestAssured.given()
-                    .body(childRecordSet.toString())
-                    .header("Content-type","application/json")
-                    .header(OKAPI_URL_HEADER)
-                    .put(MainVerticle.INVENTORY_UPSERT_HRID_PATH)
-                    .then()
-                    .log().ifValidationFails()
-                    .statusCode(200).extract().response();
-    JsonObject childResponseJson = new JsonObject(childResponse.getBody().asString());
-    logger.debug("childResponse: " + childResponseJson.encodePrettily());
+    JsonObject childResponseJson = inventoryRecordSetPUT(MainVerticle.INVENTORY_UPSERT_HRID_PATH, childRecordSet);
 
     testContext.assertEquals(getMetric(childResponseJson, "INSTANCE_RELATIONSHIP", "CREATED" , "COMPLETED"), 1,
-            "Metrics should report one (1) instance relationship successfully created " + childResponseJson.encodePrettily());
+            "After upsert of new Instance with parent relation, metrics should report [1] instance relationship successfully created " + childResponseJson.encodePrettily());
 
-    RestAssured.port = FakeInventoryStorage.PORT_INVENTORY_STORAGE;
-    Response relationshipsAfterUpsert =
-            RestAssured.given()
-                    .get(FakeInventoryStorage.INSTANCE_RELATIONSHIP_STORAGE_PATH)
-                    .then()
-                    .log().ifValidationFails()
-                    .statusCode(200).extract().response();
-    JsonObject relationshipsAfterUpsertJson = new JsonObject(relationshipsAfterUpsert.getBody().asString());
-
-    logger.debug("Relationships after creating child Instance: " + relationshipsAfterUpsertJson.encodePrettily());
+    JsonObject relationshipsAfterUpsertJson = getFromStorage(FakeInventoryStorage.INSTANCE_RELATIONSHIP_STORAGE_PATH, null);
 
     testContext.assertEquals(relationshipsAfterUpsertJson.getInteger("totalRecords"), 1,
-            "Number of holdings records for query by instanceId " + instanceId + " after upsert expected: 2 " + relationshipsAfterUpsertJson.encodePrettily() );
+            "After upsert of new Instance with parent relation, the total number of relationship records expected to be [1] " + relationshipsAfterUpsertJson.encodePrettily() );
   }
 
   @After
@@ -578,6 +381,30 @@ public class InventoryUpdateTestSuite {
     vertx.close(context.asyncAssertSuccess(res -> {
       async.complete();
     }));
+  }
+
+  private JsonObject inventoryRecordSetPUT (String apiPath, JsonObject inventoryRecordSet) {
+    RestAssured.port = PORT_INVENTORY_UPDATE;
+    Response response = RestAssured.given()
+            .body(inventoryRecordSet.toString())
+            .header("Content-type","application/json")
+            .header(OKAPI_URL_HEADER)
+            .put(apiPath)
+            .then()
+            .log().ifValidationFails()
+            .statusCode(200).extract().response();
+    return new JsonObject(response.getBody().asString());
+  }
+
+  private JsonObject getFromStorage (String apiPath, String query) {
+    RestAssured.port = FakeInventoryStorage.PORT_INVENTORY_STORAGE;
+    Response response =
+            RestAssured.given()
+                    .get(apiPath + (query == null ? "" : "?query=" + RecordStorage.encode(query)))
+                    .then()
+                    .log().ifValidationFails()
+                    .statusCode(200).extract().response();
+    return new JsonObject(response.getBody().asString());
   }
 
   private int getMetric (JsonObject upsertResponse, String entity, String transaction, String outcome) {

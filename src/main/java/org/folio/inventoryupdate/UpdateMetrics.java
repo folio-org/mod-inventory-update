@@ -22,9 +22,10 @@ public class UpdateMetrics {
                 return instanceRelationship;
             case INSTANCE_TITLE_SUCCESSION:
                 return titleSuccession;
+            default:
+                return null;
 
         }
-        return null;
     }
 
     public JsonObject asJson() {
@@ -54,8 +55,9 @@ public class UpdateMetrics {
                     return updated;
                 case DELETE:
                     return deleted;
+                default:
+                    return null;
             }
-            return null;
         }
 
         public boolean touched () {
@@ -81,8 +83,9 @@ public class UpdateMetrics {
     }
 
     public class InstanceRelationsMetrics extends EntityMetrics {
-        public ProvisionalInstanceMetrics provisionalInstanceMetrics = new ProvisionalInstanceMetrics();
+        public final ProvisionalInstanceMetrics provisionalInstanceMetrics = new ProvisionalInstanceMetrics();
 
+        @Override
         public JsonObject asJson () {
             JsonObject metrics = new JsonObject();
             metrics.put("CREATED", created.asJson());
@@ -102,7 +105,7 @@ public class UpdateMetrics {
         private int failed = 0;
         private int skipped = 0;
         private int pending = 0;
-        public boolean touched = false;
+        protected boolean touched = false;
 
         public void increment(InventoryRecord.Outcome outcome) {
             touched = true;
@@ -119,6 +122,8 @@ public class UpdateMetrics {
                 case PENDING:
                     pending++;
                     break;
+                default:
+                    // no op
             }
         }
 

@@ -44,7 +44,9 @@ public class InstanceTitleSuccession extends InstanceToInstanceRelation {
     }
 
     @Override
-    public void skipDependants() {}
+    public void skipDependants() {
+        // relations have no dependants
+    }
 
     @Override
     public boolean equals (Object o) {

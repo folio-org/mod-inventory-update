@@ -51,15 +51,15 @@ public abstract class RecordStorage {
         logger.debug("Checking foreign keys");
         logger.debug("Got " + masterEntities.size() + " foreign keys");
         for (ForeignKey fk : masterEntities) {
-            if (! record.getJson().containsKey(fk.getFkPropertyName())) {
-                logger.error("Foreign key violation, record must contain " + fk.getFkPropertyName());
+            if (! record.getJson().containsKey(fk.getDependentPropertyName())) {
+                logger.error("Foreign key violation, record must contain " + fk.getDependentPropertyName());
                 return 400;
             }
-            if (!fk.getMasterStorage().hasId(record.getJson().getString(fk.getFkPropertyName()))) {
-                logger.error("Foreign key violation " + fk.getFkPropertyName() + " not found in "+ fk.getMasterStorage().getResultSetName() + ", cannot create " + record.getJson().encodePrettily());
+            if (!fk.getMasterStorage().hasId(record.getJson().getString(fk.getDependentPropertyName()))) {
+                logger.error("Foreign key violation " + fk.getDependentPropertyName() + " not found in "+ fk.getMasterStorage().getResultSetName() + ", cannot create " + record.getJson().encodePrettily());
                 return 400;
             } else {
-                logger.debug("Found " + record.getJson().getString(fk.getFkPropertyName()) + " in " + fk.getMasterStorage().getResultSetName());
+                logger.debug("Found " + record.getJson().getString(fk.getDependentPropertyName()) + " in " + fk.getMasterStorage().getResultSetName());
             }
 
         }
@@ -90,8 +90,8 @@ public abstract class RecordStorage {
         logger.debug("Dependent entities: " + dependentEntities.size());
         for (ForeignKey fk : dependentEntities) {
             logger.debug("Deleting. Checking dependent " + fk.getDependentStorage().getResultSetName());
-            logger.debug("Looking at property " + fk.getFkPropertyName());
-            if (fk.getDependentStorage().hasValue(fk.getFkPropertyName(), id)) {
+            logger.debug("Looking at property " + fk.getDependentPropertyName());
+            if (fk.getDependentStorage().hasValue(fk.getDependentPropertyName(), id)) {
                logger.error("Foreign key violation " + records.get(id).getJson().toString() + " has a dependent record in " + fk.getDependentStorage().getResultSetName());
                return 400;
             }
@@ -133,8 +133,8 @@ public abstract class RecordStorage {
     protected abstract void declareDependencies();
 
        // METHOD ON THE PRIMARY KEY ENTITY TO REGISTER DEPENDENT ENTITIES
-    protected void acceptDependant(RecordStorage dependentEntity, String foreignKeyPropertyName) {
-        ForeignKey fk = new ForeignKey(dependentEntity, foreignKeyPropertyName, this);
+    protected void acceptDependant(RecordStorage dependentEntity, String dependentPropertyName) {
+        ForeignKey fk = new ForeignKey(dependentEntity, dependentPropertyName, this);
         dependentEntities.add(fk);
         dependentEntity.setMasterEntity(fk);
     }
@@ -280,4 +280,29 @@ public abstract class RecordStorage {
         records.values().stream().forEach(record -> logger.debug(record.getJson().encodePrettily()));
     }
 
+    public static class ForeignKey {
+
+        private RecordStorage dependentStorage;
+        private String dependentPropertyName;
+        private RecordStorage masterStorage;
+
+        public ForeignKey (RecordStorage dependentStorage, String dependentPropertyName, RecordStorage masterStorage) {
+            this.dependentStorage = dependentStorage;
+            this.dependentPropertyName = dependentPropertyName;
+            this.masterStorage = masterStorage;
+        }
+
+        public RecordStorage getDependentStorage() {
+            return dependentStorage;
+        }
+
+        public String getDependentPropertyName() {
+            return dependentPropertyName;
+        }
+
+        public RecordStorage getMasterStorage() {
+            return masterStorage;
+        }
+
+    }
 }

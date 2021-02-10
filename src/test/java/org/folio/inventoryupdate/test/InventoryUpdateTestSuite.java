@@ -57,7 +57,7 @@ public class InventoryUpdateTestSuite {
             });
   }
 
-  public void populateStoragesWithInitialRecords() {
+  public void createInitialInstanceWithMatchKey() {
     InputInstance instance = new InputInstance().setInstanceTypeId("123").setTitle("Initial InputInstance").setHrid("1");
     MatchKey matchKey = new MatchKey(instance.getJson());
     instance.setMatchKey(matchKey.getKey());
@@ -69,10 +69,9 @@ public class InventoryUpdateTestSuite {
     fakeInventoryStorage.instanceStorage.insert(instance);
   }
 
-
   @Test
   public void testFakeInventoryStorage(TestContext testContext) {
-    populateStoragesWithInitialRecords();
+    createInitialInstanceWithMatchKey();
     new StorageValidatorInstances().validateStorage(testContext);
     new StorageValidatorHoldingsRecords().validateStorage(testContext);
     new StorageValidatorItems().validateStorage(testContext);
@@ -85,38 +84,8 @@ public class InventoryUpdateTestSuite {
    * @param testContext
    */
   @Test
-  public void testPushOfNewInstanceWillCreateNewInstanceForMatchKey (TestContext testContext) {
-    populateStoragesWithInitialRecords();
-    if (logger.isDebugEnabled()) {
-      fakeInventoryStorage.instanceStorage.logRecords(logger);
-    }
-    RestAssured.port = FakeInventoryStorage.PORT_INVENTORY_STORAGE;
-    InputInstance instance = new InputInstance().setTitle("New title").setInstanceTypeId("12345");
-    MatchKey matchKey = new MatchKey(instance.getJson());
-    instance.setMatchKey(matchKey.getKey());
-    InventoryRecordSet inventoryRecordSet = new InventoryRecordSet(instance);
-
-    JsonObject instancesBeforePutJson = getFromStorage(FakeInventoryStorage.INSTANCE_STORAGE_PATH, "matchKey==\"" + matchKey.getKey() + "\"");
-
-    testContext.assertEquals(instancesBeforePutJson.getInteger("totalRecords"), 0,
-            "Number of instance records for query by matchKey 'new_title___(etc)' before PUT expected: 0" );
-
-    inventoryRecordSetPUT(MainVerticle.SHARED_INVENTORY_UPSERT_MATCHKEY_PATH, inventoryRecordSet.getJson());
-
-    JsonObject instancesAfterPutJson = getFromStorage(FakeInventoryStorage.INSTANCE_STORAGE_PATH, "matchKey==\"" + matchKey.getKey() + "\"");
-
-    testContext.assertEquals(instancesAfterPutJson.getInteger("totalRecords"), 1,
-            "Number of instance records for query by matchKey 'new_title' after PUT expected: 1" );
-
-  }
-
-  /**
-   * Tests API /shared-inventory-upsert-matchkey
-   * @param testContext
-   */
-  @Test
-  public void testUpsertByMatchKeyWillCreateNewInstanceForMatchKey (TestContext testContext) {
-    populateStoragesWithInitialRecords();
+  public void testUpsertByMatchKeyWillCreateNewInstance (TestContext testContext) {
+    createInitialInstanceWithMatchKey();
     RestAssured.port = FakeInventoryStorage.PORT_INVENTORY_STORAGE;
     InputInstance instance = new InputInstance()
             .setTitle("New title")
@@ -142,8 +111,8 @@ public class InventoryUpdateTestSuite {
    * @param testContext
    */
   @Test
-  public void testPushOfExistingInstanceWillUpdateExistingInstanceForMatchKey (TestContext testContext) {
-    populateStoragesWithInitialRecords();
+  public void testUpsertByMatchKeyWillUpdateExistingInstance (TestContext testContext) {
+    createInitialInstanceWithMatchKey();
     RestAssured.port = FakeInventoryStorage.PORT_INVENTORY_STORAGE;
     InputInstance instance = new InputInstance().setTitle("Initial InputInstance").setInstanceTypeId("12345");
     MatchKey matchKey = new MatchKey(instance.getJson());
@@ -173,7 +142,7 @@ public class InventoryUpdateTestSuite {
    * @param testContext
    */
   @Test
-  public void testUpsertWithNewInstanceByHrid(TestContext testContext) {
+  public void testUpsertByHridWillCreateNewInstance(TestContext testContext) {
     createInitialInstanceWithHrid1();
     RestAssured.port = FakeInventoryStorage.PORT_INVENTORY_STORAGE;
     InputInstance instance = new InputInstance().setTitle("New title").setInstanceTypeId("12345").setHrid("2");
@@ -181,13 +150,13 @@ public class InventoryUpdateTestSuite {
 
     JsonObject instancesBeforePutJson = getFromStorage(FakeInventoryStorage.INSTANCE_STORAGE_PATH, "hrid==\"" + instance.getHrid() + "\"");
     testContext.assertEquals(instancesBeforePutJson.getInteger("totalRecords"), 0,
-            "Before upserting with new Instance, number of Instance with that HRID expected to be 0" );
+            "Before upserting with new Instance, the number of Instances with that HRID should be [0]" );
 
     inventoryRecordSetPUT(MainVerticle.INVENTORY_UPSERT_HRID_PATH, inventoryRecordSet.getJson());
 
     JsonObject instancesAfterPutJson = getFromStorage(FakeInventoryStorage.INSTANCE_STORAGE_PATH,"hrid==\"" + instance.getHrid() + "\"");
     testContext.assertEquals(instancesAfterPutJson.getInteger("totalRecords"), 1,
-            "After upserting with new Instance, number of Instances with that HRID expected to be 1" );
+            "After upserting with new Instance, the number of Instances with that HRID should be [1]" );
 
   }
 
@@ -196,31 +165,31 @@ public class InventoryUpdateTestSuite {
    * @param testContext
    */
   @Test
-  public void testUpsertOfExistingInstanceByHrid (TestContext testContext) {
+  public void testUpsertByHridWillUpdateExistingInstance (TestContext testContext) {
     createInitialInstanceWithHrid1();
     RestAssured.port = FakeInventoryStorage.PORT_INVENTORY_STORAGE;
     String instanceHrid = "1";
     JsonObject inventoryRecordSet = new JsonObject();
-    inventoryRecordSet.put("instance", new InputInstance().setTitle("Initial InputInstance")
-            .setInstanceTypeId("12345").setHrid(instanceHrid).getJson());
+    inventoryRecordSet.put("instance", new InputInstance()
+            .setTitle("Initial InputInstance").setInstanceTypeId("12345").setHrid(instanceHrid).getJson());
 
     JsonObject instancesBeforePutJson = getFromStorage(FakeInventoryStorage.INSTANCE_STORAGE_PATH, "hrid==\"" + instanceHrid + "\"");
     testContext.assertEquals(instancesBeforePutJson.getInteger("totalRecords"), 1,
-            "Before upsert of existing Instance, number of Instances with that HRID expected to be [1]" );
-    String instanceTypeIdBefore = instancesBeforePutJson.getJsonArray("instances")
-            .getJsonObject(0).getString("instanceTypeId");
+            "Before upsert of existing Instance, the number of Instances with that HRID should be [1]" );
+    String instanceTypeIdBefore = instancesBeforePutJson
+            .getJsonArray("instances").getJsonObject(0).getString("instanceTypeId");
     testContext.assertEquals(instanceTypeIdBefore,"123",
-            "Before upsert of existing Instance, the instanceTypeId expected to be [123]");
+            "Before upsert of existing Instance, the instanceTypeId should be [123]");
 
     inventoryRecordSetPUT(MainVerticle.INVENTORY_UPSERT_HRID_PATH, inventoryRecordSet);
 
     JsonObject instancesAfterUpsertJson = getFromStorage(FakeInventoryStorage.INSTANCE_STORAGE_PATH, "hrid==\"" + instanceHrid + "\"");
     testContext.assertEquals(instancesAfterUpsertJson.getInteger("totalRecords"), 1,
-            "After upsert of existing Instance, number of Instances with that HRID still expected to be [1]" + instancesAfterUpsertJson.encodePrettily() );
+            "After upsert of existing Instance, number of Instances with that HRID should still be [1]" + instancesAfterUpsertJson.encodePrettily() );
     JsonObject instanceResponse = instancesAfterUpsertJson.getJsonArray("instances").getJsonObject(0);
     String instanceTypeIdAfter = instanceResponse.getString("instanceTypeId");
     testContext.assertEquals(instanceTypeIdAfter,"12345",
-            "After upsert of existing Instance, the instanceTypeId expected to have changed to [12345]");
+            "After upsert of existing Instance, the instanceTypeId should have changed to [12345]");
   }
 
   /**
@@ -228,7 +197,7 @@ public class InventoryUpdateTestSuite {
    * @param testContext
    */
   @Test
-  public void testCreationOfHoldingsAndItemsByHrid(TestContext testContext) {
+  public void testUpsertByHridWillCreationHoldingsAndItems(TestContext testContext) {
     RestAssured.port = FakeInventoryStorage.PORT_INVENTORY_STORAGE;
 
     String instanceHrid = "1";
@@ -253,10 +222,10 @@ public class InventoryUpdateTestSuite {
             "Upsert metrics response should report [3] items successfully created " + upsertResponseJson.encodePrettily());
     JsonObject storedHoldings = getFromStorage(FakeInventoryStorage.HOLDINGS_STORAGE_PATH, "instanceId==\"" + instanceId + "\"");
     testContext.assertEquals(storedHoldings.getInteger("totalRecords"), 2,
-            "After upsert the number of holdings records for instance " + instanceId + " expected to be [2] " + storedHoldings.encodePrettily() );
+            "After upsert the number of holdings records for instance " + instanceId + " should be [2] " + storedHoldings.encodePrettily() );
     JsonObject storedItems = getFromStorage(FakeInventoryStorage.ITEM_STORAGE_PATH, null);
     testContext.assertEquals(storedItems.getInteger("totalRecords"), 3,
-            "After upsert the total number of items expected to be [3] " + storedHoldings.encodePrettily() );
+            "After upsert the total number of items should be [3] " + storedHoldings.encodePrettily() );
 
   }
 
@@ -265,7 +234,7 @@ public class InventoryUpdateTestSuite {
    * @param testContext
    */
   @Test
-  public void testDeletionOfHoldingsAndItemsByHrid(TestContext testContext) {
+  public void testUpsertByHridWillDeleteSomeHoldingsAndItems(TestContext testContext) {
     RestAssured.port = FakeInventoryStorage.PORT_INVENTORY_STORAGE;
     String instanceHrid = "1";
     JsonObject inventoryRecordSet = new JsonObject()
@@ -300,10 +269,10 @@ public class InventoryUpdateTestSuite {
             "After upsert with one holdings record removed from set, metrics should report [2] items successfully deleted " + upsertResponseJson.encodePrettily());
     JsonObject holdingsAfterUpsertJson = getFromStorage(FakeInventoryStorage.HOLDINGS_STORAGE_PATH, "instanceId==\"" + instanceId + "\"");
     testContext.assertEquals(holdingsAfterUpsertJson.getInteger("totalRecords"), 1,
-            "After upsert with one holdings record removed from set, number of holdings records left for the Instance expected to be [1] " + holdingsAfterUpsertJson.encodePrettily());
+            "After upsert with one holdings record removed from set, number of holdings records left for the Instance should be [1] " + holdingsAfterUpsertJson.encodePrettily());
     JsonObject itemsAfterUpsertJson = getFromStorage(FakeInventoryStorage.ITEM_STORAGE_PATH, null);
     testContext.assertEquals(itemsAfterUpsertJson.getInteger("totalRecords"), 1,
-            "After upsert with one holdings record removed from set, the total number of item records expected to be [1] " + itemsAfterUpsertJson.encodePrettily() );
+            "After upsert with one holdings record removed from set, the total number of item records should be [1] " + itemsAfterUpsertJson.encodePrettily() );
   }
 
   /**
@@ -311,7 +280,7 @@ public class InventoryUpdateTestSuite {
    * @param testContext
    */
   @Test
-  public void testRecordSetWithParentInstanceRelation(TestContext testContext) {
+  public void testUpsertByHridWillCreateParentInstanceRelation(TestContext testContext) {
 
     // CREATE PARENT TO-BE
     String instanceHrid = "1";
@@ -336,11 +305,11 @@ public class InventoryUpdateTestSuite {
             "After upsert of new Instance with parent relation, metrics should report [1] instance relationship successfully created " + childResponseJson.encodePrettily());
     JsonObject relationshipsAfterUpsertJson = getFromStorage(FakeInventoryStorage.INSTANCE_RELATIONSHIP_STORAGE_PATH, null);
     testContext.assertEquals(relationshipsAfterUpsertJson.getInteger("totalRecords"), 1,
-            "After upsert of new Instance with parent relation, the total number of relationship records expected to be [1] " + relationshipsAfterUpsertJson.encodePrettily() );
+            "After upsert of new Instance with parent relation, the total number of relationship records should be [1] " + relationshipsAfterUpsertJson.encodePrettily() );
   }
 
   @Test
-  public void testDeleteOfParentInstanceRelation (TestContext testContext) {
+  public void testUpsertByHridWillNotDeleteThenDeleteParentInstanceRelation (TestContext testContext) {
     // CREATE PARENT TO-BE
     String instanceHrid = "1";
     JsonObject upsertResponseJson = upsertByHrid(
@@ -376,6 +345,11 @@ public class InventoryUpdateTestSuite {
 
     testContext.assertEquals(getMetric(childResponseJson, "INSTANCE_RELATIONSHIP", "DELETED", "COMPLETED"), 1,
             "After upsert of new Instance with empty parent list, metrics should report [1] instance relationship successfully deleted " + childResponseJson.encodePrettily());
+
+  }
+
+  @Test
+  public void testUpsertByHridPrecedingSucceeding (TestContext testContext) {
 
   }
 

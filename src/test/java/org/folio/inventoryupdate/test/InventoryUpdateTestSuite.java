@@ -1,6 +1,7 @@
 package org.folio.inventoryupdate.test;
 
 import io.vertx.core.impl.logging.Logger;
+import io.vertx.core.json.Json;
 import io.vertx.core.json.JsonArray;
 import org.folio.inventoryupdate.MainVerticle;
 import org.folio.inventoryupdate.MatchKey;
@@ -594,7 +595,7 @@ public class InventoryUpdateTestSuite {
    @Test
   public void deleteByHridWillDeleteInstanceRelationsHoldingsItems (TestContext testContext) {
      String instanceHrid = "1";
-     JsonObject inventoryRecordSet = new JsonObject()
+     JsonObject upsertResponseJson = upsertByHrid(new JsonObject()
              .put("instance",
                      new InputInstance().setTitle("Initial InputInstance").setInstanceTypeId("12345").setHrid(instanceHrid).getJson())
              .put("holdingsRecords", new JsonArray()
@@ -604,9 +605,8 @@ public class InventoryUpdateTestSuite {
                                      .add(new InputItem().setHrid("ITM-002").setBarcode("BC-002").getJson())))
                      .add(new InputHoldingsRecord().setHrid("HOL-002").setCallNumber("test-cn-2").getJson()
                              .put("items", new JsonArray()
-                                     .add(new InputItem().setHrid("ITM-003").setBarcode("BC-003").getJson()))));
+                                     .add(new InputItem().setHrid("ITM-003").setBarcode("BC-003").getJson())))));
 
-     JsonObject upsertResponseJson = upsertByHrid(inventoryRecordSet);
      String instanceId = upsertResponseJson.getJsonObject("instance").getString("id");
 
      testContext.assertEquals(getMetric(upsertResponseJson, "HOLDINGS_RECORD", "CREATED" , "COMPLETED"), 2,
@@ -641,6 +641,23 @@ public class InventoryUpdateTestSuite {
     //TODO
   }
 
+  @Test
+  public void upsertByHridWithMissingHridsWillBeRejected (TestContext testContext) {
+    String instanceHrid = "1";
+    Response upsertResponse = upsertByHrid(422, new JsonObject()
+            .put("instance",
+                    new InputInstance().setTitle("Initial InputInstance").setInstanceTypeId("12345").setHrid(instanceHrid).getJson())
+            .put("holdingsRecords", new JsonArray()
+                    .add(new InputHoldingsRecord().setHrid("HOL-001").setCallNumber("test-cn-1").getJson()
+                            .put("items", new JsonArray()
+                                    .add(new InputItem().setBarcode("BC-001").getJson())
+                                    .add(new InputItem().setHrid("ITM-002").setBarcode("BC-002").getJson())))
+                    .add(new InputHoldingsRecord().setHrid("HOL-002").setCallNumber("test-cn-2").getJson()
+                            .put("items", new JsonArray()
+                                    .add(new InputItem().setBarcode("BC-003").getJson())))));
+
+  }
+
   @After
   public void tearDown(TestContext context) {
     Async async = context.async();
@@ -657,21 +674,28 @@ public class InventoryUpdateTestSuite {
     return putJsonObject(MainVerticle.INVENTORY_UPSERT_HRID_PATH, inventoryRecordSet);
   }
 
+  private Response upsertByHrid (int expectedStatusCode, JsonObject inventoryRecordSet) {
+    return putJsonObject(MainVerticle.INVENTORY_UPSERT_HRID_PATH, inventoryRecordSet, expectedStatusCode);
+  }
+
   private JsonObject putToInstanceMatch (JsonObject instance) {
     return putJsonObject(MainVerticle.INSTANCE_MATCH_PATH, instance);
   }
 
-  private JsonObject putJsonObject(String apiPath, JsonObject requestJson) {
+  private Response putJsonObject(String apiPath, JsonObject requestJson, int expectedStatusCode) {
     RestAssured.port = PORT_INVENTORY_UPDATE;
-    Response response = RestAssured.given()
+    return RestAssured.given()
             .body(requestJson.toString())
             .header("Content-type","application/json")
             .header(OKAPI_URL_HEADER)
             .put(apiPath)
             .then()
             .log().ifValidationFails()
-            .statusCode(200).extract().response();
-    return new JsonObject(response.getBody().asString());
+            .statusCode(expectedStatusCode).extract().response();
+  }
+
+  private JsonObject putJsonObject(String apiPath, JsonObject requestJson) {
+    return new JsonObject(putJsonObject(apiPath, requestJson, 200).getBody().asString());
   }
 
   private JsonObject delete(String apiPath, JsonObject requestJson) {

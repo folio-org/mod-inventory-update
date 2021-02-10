@@ -703,6 +703,26 @@ public class InventoryUpdateTestSuite {
 
   }
 
+  @Test
+  public void upsertByHridWillHaveErrorsWithWrongHoldingsLocation (TestContext testContext) {
+    String instanceHrid = "1";
+    // fail if response status code is not 422
+    Response upsertResponse = upsertByHrid(422, new JsonObject()
+            .put("instance",
+                    new InputInstance().setTitle("Initial InputInstance").setInstanceTypeId("12345").setHrid(instanceHrid).getJson())
+            .put("holdingsRecords", new JsonArray()
+                    .add(new InputHoldingsRecord().setHrid("HOL-001").setPermanentLocationId(LOCATION_ID).setCallNumber("test-cn-1").getJson()
+                            .put("items", new JsonArray()
+                                    .add(new InputItem().setHrid("ITM-001").setBarcode("BC-001").getJson())
+                                    .add(new InputItem().setHrid("ITM-002").setBarcode("BC-002").getJson())))
+                    .add(new InputHoldingsRecord().setHrid("HOL-002").setPermanentLocationId("BAD_LOCATION").setCallNumber("test-cn-2").getJson()
+                            .put("items", new JsonArray()
+                                    .add(new InputItem().setHrid("ITM-003").setBarcode("BC-003").getJson())))));
+
+    testContext.assertTrue(new JsonObject(upsertResponse.getBody().asString()).containsKey("errors"),
+            "After upsert with holdings record with bad location id, the response should contain error reports");
+  }
+
   @After
   public void tearDown(TestContext context) {
     Async async = context.async();

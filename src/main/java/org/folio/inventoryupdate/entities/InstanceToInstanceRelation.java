@@ -1,11 +1,5 @@
 package org.folio.inventoryupdate.entities;
 
-import io.vertx.core.json.JsonObject;
-
-import java.util.UUID;
-
-import static org.folio.inventoryupdate.entities.InventoryRecordSet.HRID;
-
 public abstract class InstanceToInstanceRelation extends InventoryRecord {
     public static final String PROVISIONAL_INSTANCE = "provisionalInstance";
     private boolean needsProvisionalInstance = false;

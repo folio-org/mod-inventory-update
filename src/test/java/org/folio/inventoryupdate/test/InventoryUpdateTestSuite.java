@@ -273,32 +273,44 @@ public class InventoryUpdateTestSuite {
    * @param testContext
    */
   @Test
-  public void upsertByHridWillCreateParentInstanceRelation(TestContext testContext) {
+  public void upsertByHridWillCreateParentAndChildRelations(TestContext testContext) {
 
-    // CREATE PARENT TO-BE
     String instanceHrid = "1";
-    JsonObject inventoryRecordSet = new JsonObject()
-            .put("instance",
-                    new InputInstance().setTitle("Parent InputInstance").setInstanceTypeId("12345").setHrid(instanceHrid).getJson());
-
-    // CREATE CHILD
     String childHrid = "2";
-    JsonObject childRecordSet = new JsonObject()
+    String grandParentHrid = "3";
+
+    upsertByHrid(new JsonObject()
+            .put("instance",
+                    new InputInstance().setTitle("Parent InputInstance").setInstanceTypeId("12345").setHrid(instanceHrid).getJson()));
+
+    JsonObject childResponseJson = upsertByHrid(new JsonObject()
             .put("instance",
                     new InputInstance().setTitle("Child InputInstance").setInstanceTypeId("12345").setHrid(childHrid).getJson())
             .put("instanceRelations", new JsonObject()
-              .put("parentInstances", new JsonArray()
-                .add(new InputInstanceRelationship().setInstanceIdentifierHrid(instanceHrid).getJson())));
-
-    JsonObject upsertResponseJson = upsertByHrid(inventoryRecordSet);
-    String instanceId = upsertResponseJson.getJsonObject("instance").getString("id");
-    JsonObject childResponseJson = upsertByHrid(childRecordSet);
+                    .put("parentInstances", new JsonArray()
+                            .add(new InputInstanceRelationship().setInstanceIdentifierHrid(instanceHrid).getJson()))));
 
     testContext.assertEquals(getMetric(childResponseJson, "INSTANCE_RELATIONSHIP", "CREATED" , "COMPLETED"), 1,
             "After upsert of new Instance with parent relation, metrics should report [1] instance relationship successfully created " + childResponseJson.encodePrettily());
     JsonObject relationshipsAfterUpsertJson = getFromStorage(FakeInventoryStorage.INSTANCE_RELATIONSHIP_STORAGE_PATH, null);
     testContext.assertEquals(relationshipsAfterUpsertJson.getInteger("totalRecords"), 1,
             "After upsert of new Instance with parent relation, the total number of relationship records should be [1] " + relationshipsAfterUpsertJson.encodePrettily() );
+
+    JsonObject grandParentResponseJson = upsertByHrid(new JsonObject()
+            .put("instance",
+                    new InputInstance().setTitle("Child InputInstance").setInstanceTypeId("12345").setHrid(grandParentHrid).getJson())
+            .put("instanceRelations", new JsonObject()
+                    .put("childInstances", new JsonArray()
+                            .add(new InputInstanceRelationship().setInstanceIdentifierHrid(instanceHrid).getJson()))));
+
+    testContext.assertEquals(getMetric(grandParentResponseJson, "INSTANCE_RELATIONSHIP", "CREATED" , "COMPLETED"), 1,
+            "After upsert of new Instance with child relation, metrics should report [1] instance relationship successfully created " + grandParentResponseJson.encodePrettily());
+
+    JsonObject relationshipsAfterGrandParent = getFromStorage(FakeInventoryStorage.INSTANCE_RELATIONSHIP_STORAGE_PATH, null);
+
+    testContext.assertEquals(relationshipsAfterGrandParent.getInteger("totalRecords"), 2,
+            "After upsert of Instance with parent and Instance with child relation, the total number of relationship records should be [2] " + relationshipsAfterGrandParent.encodePrettily() );
+
   }
 
   @Test
@@ -306,7 +318,7 @@ public class InventoryUpdateTestSuite {
 
     // PARENT INSTANCE TO-BE
     String instanceHrid = "1";
-    JsonObject upsertResponseJson = upsertByHrid(
+    upsertByHrid(
             new JsonObject()
             .put("instance",
                     new InputInstance().setTitle("Parent InputInstance").setInstanceTypeId("12345").setHrid(instanceHrid).getJson()));
@@ -378,7 +390,7 @@ public class InventoryUpdateTestSuite {
   }
 
   @Test
-  public void upsertsByHridWillNotDeleteThenWillDeleteTitleSuccession (TestContext testContext) {
+  public void upsertsByHridWillNotDeleteThenWillDeleteSucceeding (TestContext testContext) {
 
     JsonObject upsertResponseJson1 = upsertByHrid(
             new JsonObject()
@@ -420,8 +432,6 @@ public class InventoryUpdateTestSuite {
     testContext.assertEquals(titleSuccessions.getInteger("totalRecords"), 0,
             "After two upserts -- with and without title successions -- the number of title successions should be [0] " + titleSuccessions.encodePrettily() );
   }
-
-
 
 
   @After

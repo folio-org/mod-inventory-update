@@ -261,7 +261,7 @@ public class InventoryUpdateTestSuite {
   @Test
   public void upsertByHridWillCreateHoldingsAndItems(TestContext testContext) {
     String instanceHrid = "1";
-    JsonObject inventoryRecordSet = new JsonObject()
+    JsonObject upsertResponseJson = upsertByHrid(new JsonObject()
             .put("instance",
                new InputInstance().setTitle("Initial InputInstance").setInstanceTypeId("12345").setHrid(instanceHrid).getJson())
             .put("holdingsRecords", new JsonArray()
@@ -271,9 +271,8 @@ public class InventoryUpdateTestSuite {
                         .add(new InputItem().setHrid("ITM-002").setBarcode("BC-002").getJson())))
               .add(new InputHoldingsRecord().setHrid("HOL-002").setPermanentLocationId(LOCATION_ID).setCallNumber("test-cn-2").getJson()
                       .put("items", new JsonArray()
-                        .add(new InputItem().setHrid("ITM-003").setBarcode("BC-003").getJson()))));
+                        .add(new InputItem().setHrid("ITM-003").setBarcode("BC-003").getJson())))));
 
-    JsonObject upsertResponseJson = upsertByHrid(inventoryRecordSet);
     String instanceId = upsertResponseJson.getJsonObject("instance").getString("id");
 
     testContext.assertEquals(getMetric(upsertResponseJson, "HOLDINGS_RECORD", "CREATED" , "COMPLETED"), 2,
@@ -291,7 +290,46 @@ public class InventoryUpdateTestSuite {
 
   @Test
   public void upsertByHridWillUpdateHoldingsAndItems (TestContext testContext) {
-    //TODO
+    String instanceHrid = "1";
+    JsonObject upsertResponseJson = upsertByHrid(new JsonObject()
+            .put("instance",
+                    new InputInstance().setTitle("Initial InputInstance").setInstanceTypeId("12345").setHrid(instanceHrid).getJson())
+            .put("holdingsRecords", new JsonArray()
+                    .add(new InputHoldingsRecord().setHrid("HOL-001").setPermanentLocationId(LOCATION_ID).setCallNumber("test-cn-1").getJson()
+                            .put("items", new JsonArray()
+                                    .add(new InputItem().setHrid("ITM-001").setBarcode("BC-001").getJson())
+                                    .add(new InputItem().setHrid("ITM-002").setBarcode("BC-002").getJson())))
+                    .add(new InputHoldingsRecord().setHrid("HOL-002").setPermanentLocationId(LOCATION_ID).setCallNumber("test-cn-2").getJson()
+                            .put("items", new JsonArray()
+                                    .add(new InputItem().setHrid("ITM-003").setBarcode("BC-003").getJson())))));
+
+    testContext.assertEquals(getMetric(upsertResponseJson, "HOLDINGS_RECORD", "CREATED" , "COMPLETED"), 2,
+            "Upsert metrics response should report [2] holdings records successfully created " + upsertResponseJson.encodePrettily());
+    testContext.assertEquals(getMetric(upsertResponseJson, "ITEM", "CREATED" , "COMPLETED"), 3,
+            "Upsert metrics response should report [3] items successfully created " + upsertResponseJson.encodePrettily());
+
+    upsertResponseJson = upsertByHrid(new JsonObject()
+            .put("instance",
+                    new InputInstance().setTitle("Initial InputInstance").setInstanceTypeId("12345").setHrid(instanceHrid).getJson())
+            .put("holdingsRecords", new JsonArray()
+                    .add(new InputHoldingsRecord().setHrid("HOL-001").setPermanentLocationId(LOCATION_ID).setCallNumber("updated-1").getJson()
+                            .put("items", new JsonArray()
+                                    .add(new InputItem().setHrid("ITM-001").setBarcode("updated").getJson())
+                                    .add(new InputItem().setHrid("ITM-002").setBarcode("updated").getJson())))
+                    .add(new InputHoldingsRecord().setHrid("HOL-002").setPermanentLocationId(LOCATION_ID).setCallNumber("updated-2").getJson()
+                            .put("items", new JsonArray()
+                                    .add(new InputItem().setHrid("ITM-003").setBarcode("updated").getJson())))));
+
+    testContext.assertEquals(getMetric(upsertResponseJson, "HOLDINGS_RECORD", "UPDATED" , "COMPLETED"), 2,
+            "Upsert metrics response should report [2] holdings records successfully updated " + upsertResponseJson.encodePrettily());
+    testContext.assertEquals(getMetric(upsertResponseJson, "ITEM", "UPDATED" , "COMPLETED"), 3,
+            "Upsert metrics response should report [3] items successfully updated " + upsertResponseJson.encodePrettily());
+
+    getFromStorage(FakeInventoryStorage.ITEM_STORAGE_PATH,null).getJsonArray("items").stream().forEach(item -> {
+      testContext.assertEquals(((JsonObject)item).getString("barcode"), "updated",
+              "The barcode of all items should be updated to 'updated' after upsert of existing record set with holdings and items");
+    });
+
   }
 
   /**

@@ -1,5 +1,7 @@
 package org.folio.inventoryupdate.entities;
 
+import io.vertx.core.impl.logging.Logger;
+import io.vertx.core.impl.logging.LoggerFactory;
 import io.vertx.core.json.JsonObject;
 
 public class InstanceTitleSuccession extends InstanceToInstanceRelation {
@@ -7,24 +9,25 @@ public class InstanceTitleSuccession extends InstanceToInstanceRelation {
     public static final String ID = "id";
     public static final String PRECEDING_INSTANCE_ID = "precedingInstanceId";
     public static final String SUCCEEDING_INSTANCE_ID = "succeedingInstanceId";
-    private String instanceId;
+    protected static final Logger logger = LoggerFactory.getLogger("inventory-update");
 
     public static InstanceTitleSuccession makeInstanceTitleSuccessionFromJsonRecord(String instanceId, JsonObject precedingSucceedingJson) {
         InstanceTitleSuccession titleSuccession = new InstanceTitleSuccession();
         titleSuccession.jsonRecord = precedingSucceedingJson;
         titleSuccession.entityType = Entity.INSTANCE_TITLE_SUCCESSION;
-        titleSuccession.instanceId = instanceId;
-        titleSuccession.setInstanceRelationsClass(titleSuccession.isSucceedingTitle() ? InstanceRelationsClass.TO_SUCCEEDING : InstanceRelationsClass.TO_PRECEDING);
+        titleSuccession.setInstanceRelationsClass(
+                titleSuccession.jsonRecord.getString(PRECEDING_INSTANCE_ID).equals(instanceId) ?
+                        InstanceRelationsClass.TO_SUCCEEDING : InstanceRelationsClass.TO_PRECEDING);
         return titleSuccession;
     }
 
-    public static InstanceTitleSuccession makeInstanceTitleSuccession(String precedingInstanceId, String succeedingInstanceId) {
+    public static InstanceTitleSuccession makeInstanceTitleSuccession(String instanceId, String precedingInstanceId, String succeedingInstanceId) {
         InstanceTitleSuccession instanceTitleSuccession = new InstanceTitleSuccession();
         instanceTitleSuccession.jsonRecord = new JsonObject();
         instanceTitleSuccession.jsonRecord.put(SUCCEEDING_INSTANCE_ID, succeedingInstanceId);
         instanceTitleSuccession.jsonRecord.put(PRECEDING_INSTANCE_ID, precedingInstanceId);
         instanceTitleSuccession.entityType = Entity.INSTANCE_TITLE_SUCCESSION;
-        instanceTitleSuccession.setInstanceRelationsClass(instanceTitleSuccession.isSucceedingTitle() ? InstanceRelationsClass.TO_SUCCEEDING : InstanceRelationsClass.TO_PRECEDING);
+        instanceTitleSuccession.setInstanceRelationsClass( instanceId.equals(precedingInstanceId) ? InstanceRelationsClass.TO_SUCCEEDING : InstanceRelationsClass.TO_PRECEDING);
         return instanceTitleSuccession;
     }
 
@@ -37,11 +40,7 @@ public class InstanceTitleSuccession extends InstanceToInstanceRelation {
     }
 
     public boolean isSucceedingTitle () {
-        return getPrecedingInstanceId().equals(instanceId);
-    }
-
-    public boolean isPrecedingTitle() {
-        return getSucceedingInstanceId().equals(instanceId);
+        return instanceRelationClass.equals(InstanceRelationsClass.TO_SUCCEEDING);
     }
 
     @Override

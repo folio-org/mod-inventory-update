@@ -45,9 +45,14 @@ public class InstanceRelationsController extends JsonRepresentation {
     public static final String SOURCE = "source";
     // EOF JSON property keys
 
+    boolean cameInWithEmptyParentIdentifierList = false;
+    boolean cameInWithEmptyChildIdentifierList = false;
+    boolean cameInWithEmptySucceedingTitlesList = false;
+    boolean cameInWithEmptyPrecedingTitlesList = false;
+
     public static final String LF = System.lineSeparator();
     InventoryRecordSet irs;
-    protected final Logger logger = LoggerFactory.getLogger("inventory-update");
+    protected static final Logger logger = LoggerFactory.getLogger("inventory-update");
 
     public InstanceRelationsController(InventoryRecordSet inventoryRecordSet) {
         this.irs = inventoryRecordSet;
@@ -57,6 +62,10 @@ public class InstanceRelationsController extends JsonRepresentation {
         }
         if (hasRelationshipIdentifiers(irs.sourceJson)) {
             irs.instanceRelationsJson = irs.sourceJson.getJsonObject(InstanceRelationsController.INSTANCE_RELATIONS);
+            cameInWithEmptyParentIdentifierList = irs.instanceRelationsJson.containsKey(PARENT_INSTANCES) && irs.instanceRelationsJson.getJsonArray(PARENT_INSTANCES).isEmpty();
+            cameInWithEmptyChildIdentifierList = irs.instanceRelationsJson.containsKey(CHILD_INSTANCES) && irs.instanceRelationsJson.getJsonArray(CHILD_INSTANCES).isEmpty();
+            cameInWithEmptyPrecedingTitlesList = irs.instanceRelationsJson.containsKey(PRECEDING_TITLES) && irs.instanceRelationsJson.getJsonArray(PRECEDING_TITLES).isEmpty();
+            cameInWithEmptySucceedingTitlesList = irs.instanceRelationsJson.containsKey(SUCCEEDING_TITLES) && irs.instanceRelationsJson.getJsonArray(SUCCEEDING_TITLES).isEmpty();
             logger.debug("InventoryRecordSet initialized with incoming instance relationships JSON (relations to be built.");
         }
     }
@@ -130,13 +139,13 @@ public class InstanceRelationsController extends JsonRepresentation {
     public boolean isThisRelationOmitted(InstanceToInstanceRelation relation) {
         switch (relation.instanceRelationClass) {
             case TO_PARENT:
-                return isThisRelationOmitted(irs.parentRelations, relation);
+                return (cameInWithEmptyParentIdentifierList || isThisRelationOmitted(irs.parentRelations, relation));
             case TO_CHILD:
-                return isThisRelationOmitted(irs.childRelations, relation);
+                return (cameInWithEmptyChildIdentifierList || isThisRelationOmitted(irs.childRelations, relation));
             case TO_PRECEDING:
-                return isThisRelationOmitted(irs.precedingTitles, relation);
+                return (cameInWithEmptyPrecedingTitlesList || isThisRelationOmitted(irs.precedingTitles, relation));
             case TO_SUCCEEDING:
-                return isThisRelationOmitted(irs.succeedingTitles, relation);
+                return (cameInWithEmptySucceedingTitlesList || isThisRelationOmitted(irs.succeedingTitles, relation));
         }
         return false;
     }
@@ -162,8 +171,8 @@ public class InstanceRelationsController extends JsonRepresentation {
         if (hasRelationshipIdentifiers(irs.sourceJson)) {
             makeRelationsFromIdentifiers(client, instanceId, irs.instanceRelationsJson.getJsonArray(PARENT_INSTANCES), InstanceRelationsClass.TO_PARENT).onComplete(parents -> {
                     makeRelationsFromIdentifiers(client, instanceId, irs.instanceRelationsJson.getJsonArray(CHILD_INSTANCES), InstanceRelationsClass.TO_CHILD).onComplete (children -> {
-                        makeRelationsFromIdentifiers(client, instanceId, irs.instanceRelationsJson.getJsonArray(SUCCEEDING_TITLES), InstanceRelationsClass.TO_PRECEDING).onComplete(succeedingTitles -> {
-                            makeRelationsFromIdentifiers(client, instanceId, irs.instanceRelationsJson.getJsonArray(PRECEDING_TITLES), InstanceRelationsClass.TO_SUCCEEDING).onComplete(precedingTitles -> {
+                        makeRelationsFromIdentifiers(client, instanceId, irs.instanceRelationsJson.getJsonArray(SUCCEEDING_TITLES), InstanceRelationsClass.TO_SUCCEEDING).onComplete(succeedingTitles -> {
+                            makeRelationsFromIdentifiers(client, instanceId, irs.instanceRelationsJson.getJsonArray(PRECEDING_TITLES), InstanceRelationsClass.TO_PRECEDING).onComplete(precedingTitles -> {
                                 StringBuilder errorMessages = new StringBuilder();
                                 if (parents.succeeded()) {
                                     if (parents.result() != null) {
@@ -292,12 +301,16 @@ public class InstanceRelationsController extends JsonRepresentation {
                                 relatedObject.getString(INSTANCE_RELATIONSHIP_TYPE_ID));
                         break;
                     case TO_PRECEDING:
+                        logger.debug("Creating preceding");
                         relation = InstanceTitleSuccession.makeInstanceTitleSuccession(
-                                relateToThisId, instanceId);
+                                instanceId, relateToThisId, instanceId);
+                        logger.debug("Relation class: " + relation.instanceRelationClass);
                         break;
                     case TO_SUCCEEDING:
+                        logger.debug("Creating succeeding");
                         relation = InstanceTitleSuccession.makeInstanceTitleSuccession(
-                                instanceId, relateToThisId);
+                                instanceId, instanceId, relateToThisId);
+                        logger.debug("Relation class: " + relation.instanceRelationClass);
                         break;
                 }
                 relation.setTransition(InventoryRecord.Transaction.CREATE);
@@ -404,7 +417,7 @@ public class InstanceRelationsController extends JsonRepresentation {
      * @param updatingRecordSet
      * @param existingRecordSet
      */
-    public static void prepareIncomingInstanceRelations(InventoryRecordSet updatingRecordSet, InventoryRecordSet existingRecordSet) {
+    public void prepareIncomingInstanceRelations(InventoryRecordSet updatingRecordSet, InventoryRecordSet existingRecordSet) {
         if (updatingRecordSet != null) {
             for (InstanceToInstanceRelation incomingRelation : updatingRecordSet.getInstanceRelationsController().getInstanceToInstanceRelations()) {
                 if (existingRecordSet != null) {

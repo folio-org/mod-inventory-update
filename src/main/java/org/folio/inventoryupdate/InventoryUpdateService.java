@@ -46,7 +46,6 @@ public class InventoryUpdateService {
         MatchKey matchKey = new MatchKey(incomingSet.getInstance().asJson());
         InventoryQuery instanceByMatchKeyQuery = new MatchQuery(matchKey.getKey());
         incomingSet.getInstance().asJson().put("matchKey", matchKey.getKey());
-        incomingSet.getInstance().asJson().put("indexTitle", matchKey.getKey());
 
         UpdatePlan updatePlan = new UpdatePlanSharedInventory(incomingSet, instanceByMatchKeyQuery);
         runPlan(updatePlan, routingCtx);

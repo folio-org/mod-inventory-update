@@ -80,6 +80,58 @@ public class InventoryUpdateTestSuite {
   }
 
   /**
+   * Tests API /instance-storage-match/instances
+   * @param testContext
+   */
+  @Test
+  public void testPutNewInstanceWillCreateNewInstance (TestContext testContext) {
+    createInitialInstanceWithMatchKey();
+    InputInstance instance = new InputInstance()
+            .setTitle("New title")
+            .setInstanceTypeId("12345");
+    MatchKey matchKey = new MatchKey(instance.getJson());
+    instance.setMatchKey(matchKey.getKey());
+    JsonObject instancesBeforePutJson = getFromStorage(FakeInventoryStorage.INSTANCE_STORAGE_PATH, "matchKey==\"" + matchKey.getKey() + "\"");
+    testContext.assertEquals(instancesBeforePutJson.getInteger("totalRecords"), 0,
+            "Number of instance records for query by matchKey 'new_title___(etc)' before PUT expected: 0" );
+
+    putToInstanceMatch(instance.getJson());
+
+    JsonObject instancesAfterPutJson = getFromStorage(FakeInventoryStorage.INSTANCE_STORAGE_PATH, "matchKey==\"" + matchKey.getKey() + "\"");
+    testContext.assertEquals(instancesAfterPutJson.getInteger("totalRecords"), 1,
+            "Number of instance records for query by matchKey 'new_title' after PUT expected: 1" );
+
+  }
+
+  /**
+   * Tests API /instance-storage-match/instances
+   * @param testContext
+   */
+  @Test
+  public void testPutExistingInstanceWillUpdateExistingInstance (TestContext testContext) {
+    createInitialInstanceWithMatchKey();
+    InputInstance instance = new InputInstance().setTitle("Initial InputInstance").setInstanceTypeId("12345");
+    MatchKey matchKey = new MatchKey(instance.getJson());
+
+    JsonObject instancesBeforePutJson = getFromStorage(FakeInventoryStorage.INSTANCE_STORAGE_PATH,"matchKey==\"" + matchKey.getKey() + "\"");
+    testContext.assertEquals(instancesBeforePutJson.getInteger("totalRecords"), 1,
+            "Number of instance records for query by matchKey 'initial instance' before PUT expected: 1" );
+    String instanceTypeIdBefore = instancesBeforePutJson.getJsonArray("instances")
+            .getJsonObject(0).getString("instanceTypeId");
+    testContext.assertEquals(instanceTypeIdBefore,"123",
+            "Expected instanceTypeId to be '123' before PUT");
+
+    putToInstanceMatch(instance.getJson());
+
+    JsonObject instancesAfterPutJson = getFromStorage(FakeInventoryStorage.INSTANCE_STORAGE_PATH,"matchKey==\"" + matchKey.getKey() + "\"");
+    testContext.assertEquals(instancesAfterPutJson.getInteger("totalRecords"), 1,
+            "Number of instance records for query by matchKey 'initial instance' after PUT expected: 1" );
+    String instanceTypeIdAfter = instancesAfterPutJson.getJsonArray("instances")
+            .getJsonObject(0).getString("instanceTypeId");
+    testContext.assertEquals(instanceTypeIdAfter,"12345","Expected instanceTypeId to be '12345' after PUT");
+  }
+
+  /**
    * Tests API /shared-inventory-upsert-matchkey
    * @param testContext
    */
@@ -227,6 +279,11 @@ public class InventoryUpdateTestSuite {
     testContext.assertEquals(storedItems.getInteger("totalRecords"), 3,
             "After upsert the total number of items should be [3] " + storedHoldings.encodePrettily() );
 
+  }
+
+  @Test
+  public void upsertByHridWillUpdateHoldingsAndItems (TestContext testContext) {
+    //TODO
   }
 
   /**
@@ -553,17 +610,21 @@ public class InventoryUpdateTestSuite {
   }
 
   private JsonObject upsertByMatchKey(JsonObject inventoryRecordSet) {
-    return putInventoryRecordSet(MainVerticle.SHARED_INVENTORY_UPSERT_MATCHKEY_PATH, inventoryRecordSet);
+    return putJsonObject(MainVerticle.SHARED_INVENTORY_UPSERT_MATCHKEY_PATH, inventoryRecordSet);
   }
 
   private JsonObject upsertByHrid (JsonObject inventoryRecordSet) {
-    return putInventoryRecordSet(MainVerticle.INVENTORY_UPSERT_HRID_PATH, inventoryRecordSet);
+    return putJsonObject(MainVerticle.INVENTORY_UPSERT_HRID_PATH, inventoryRecordSet);
   }
 
-  private JsonObject putInventoryRecordSet(String apiPath, JsonObject inventoryRecordSet) {
+  private JsonObject putToInstanceMatch (JsonObject instance) {
+    return putJsonObject(MainVerticle.INSTANCE_MATCH_PATH, instance);
+  }
+
+  private JsonObject putJsonObject(String apiPath, JsonObject requestJson) {
     RestAssured.port = PORT_INVENTORY_UPDATE;
     Response response = RestAssured.given()
-            .body(inventoryRecordSet.toString())
+            .body(requestJson.toString())
             .header("Content-type","application/json")
             .header(OKAPI_URL_HEADER)
             .put(apiPath)

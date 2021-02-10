@@ -42,9 +42,9 @@ public class UpdateMetrics {
     }
 
     public abstract class EntityMetrics {
-        public TransactionMetrics created = new TransactionMetrics();
-        public TransactionMetrics updated = new TransactionMetrics();
-        public TransactionMetrics deleted = new TransactionMetrics();
+        protected final TransactionMetrics created = new TransactionMetrics();
+        protected final TransactionMetrics updated = new TransactionMetrics();
+        protected final TransactionMetrics deleted = new TransactionMetrics();
 
         public TransactionMetrics transaction(InventoryRecord.Transaction transaction) {
             switch (transaction) {
@@ -71,13 +71,13 @@ public class UpdateMetrics {
         }
     }
 
-    public class InstanceMetrics extends EntityMetrics {
+    private class InstanceMetrics extends EntityMetrics {
     }
 
-    public class HoldingsRecordMetrics extends EntityMetrics {
+    private class HoldingsRecordMetrics extends EntityMetrics {
     }
 
-    public class ItemMetrics extends EntityMetrics {
+    private class ItemMetrics extends EntityMetrics {
     }
 
     public class InstanceRelationsMetrics extends EntityMetrics {
@@ -98,10 +98,10 @@ public class UpdateMetrics {
     }
 
     public class OutcomesMetrics {
-        public int completed = 0;
-        public int failed = 0;
-        public int skipped = 0;
-        public int pending = 0;
+        private int completed = 0;
+        private int failed = 0;
+        private int skipped = 0;
+        private int pending = 0;
         public boolean touched = false;
 
         public void increment(InventoryRecord.Outcome outcome) {
@@ -133,7 +133,7 @@ public class UpdateMetrics {
     }
 
     public class TransactionMetrics {
-        public OutcomesMetrics outcomes = new OutcomesMetrics();
+        public final OutcomesMetrics outcomes = new OutcomesMetrics();
 
         public boolean touched () {
             return outcomes.touched;

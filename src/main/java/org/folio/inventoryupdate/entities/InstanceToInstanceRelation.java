@@ -44,4 +44,5 @@ public abstract class InstanceToInstanceRelation extends InventoryRecord {
 
     public abstract boolean equals (Object o);
 
+    public abstract int hashCode ();
 }

@@ -31,6 +31,7 @@ public class UpdatePlanAllHRIDs extends UpdatePlan {
      */
     public UpdatePlanAllHRIDs (InventoryQuery existingInstanceQuery) {
       super(null, existingInstanceQuery);
+        logger.debug("This is a deletion");
       this.isDeletion = true;
     }
 
@@ -45,9 +46,8 @@ public class UpdatePlanAllHRIDs extends UpdatePlan {
     @Override
     public Future<Void> planInventoryUpdates (OkapiClient okapiClient) {
         Promise<Void> promisedPlan = Promise.promise();
-        RequestValidation validation = validateIncomingRecordSet(updatingSet.getSourceJson());
+        RequestValidation validation = validateIncomingRecordSet(isDeletion ? new JsonObject() : updatingSet.getSourceJson());
         if (validation.passed()) {
-            // compose with look-up of instance relationships
             lookupExistingRecordSet(okapiClient, instanceQuery).onComplete(lookup -> {
                 if (lookup.succeeded()) {
                     // Plan instance update
@@ -133,6 +133,7 @@ public class UpdatePlanAllHRIDs extends UpdatePlan {
     @Override
     public RequestValidation validateIncomingRecordSet(JsonObject inventoryRecordSet) {
         RequestValidation validationErrors = new RequestValidation();
+        if (isDeletion) return validationErrors;
         if (inventoryRecordSet.containsKey("holdingsRecords")) {
             inventoryRecordSet.getJsonArray("holdingsRecords")
                     .stream()

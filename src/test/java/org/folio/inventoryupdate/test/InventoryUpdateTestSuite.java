@@ -593,8 +593,48 @@ public class InventoryUpdateTestSuite {
 
    @Test
   public void deleteByHridWillDeleteInstanceRelationsHoldingsItems (TestContext testContext) {
-    //TODO
-  }
+     String instanceHrid = "1";
+     JsonObject inventoryRecordSet = new JsonObject()
+             .put("instance",
+                     new InputInstance().setTitle("Initial InputInstance").setInstanceTypeId("12345").setHrid(instanceHrid).getJson())
+             .put("holdingsRecords", new JsonArray()
+                     .add(new InputHoldingsRecord().setHrid("HOL-001").setCallNumber("test-cn-1").getJson()
+                             .put("items", new JsonArray()
+                                     .add(new InputItem().setHrid("ITM-001").setBarcode("BC-001").getJson())
+                                     .add(new InputItem().setHrid("ITM-002").setBarcode("BC-002").getJson())))
+                     .add(new InputHoldingsRecord().setHrid("HOL-002").setCallNumber("test-cn-2").getJson()
+                             .put("items", new JsonArray()
+                                     .add(new InputItem().setHrid("ITM-003").setBarcode("BC-003").getJson()))));
+
+     JsonObject upsertResponseJson = upsertByHrid(inventoryRecordSet);
+     String instanceId = upsertResponseJson.getJsonObject("instance").getString("id");
+
+     testContext.assertEquals(getMetric(upsertResponseJson, "HOLDINGS_RECORD", "CREATED" , "COMPLETED"), 2,
+             "Upsert metrics response should report [2] holdings records successfully created " + upsertResponseJson.encodePrettily());
+     testContext.assertEquals(getMetric(upsertResponseJson, "ITEM", "CREATED" , "COMPLETED"), 3,
+             "Upsert metrics response should report [3] items successfully created " + upsertResponseJson.encodePrettily());
+     JsonObject storedHoldings = getFromStorage(FakeInventoryStorage.HOLDINGS_STORAGE_PATH, "instanceId==\"" + instanceId + "\"");
+     testContext.assertEquals(storedHoldings.getInteger("totalRecords"), 2,
+             "After upsert the number of holdings records for instance " + instanceId + " should be [2] " + storedHoldings.encodePrettily() );
+     JsonObject storedItems = getFromStorage(FakeInventoryStorage.ITEM_STORAGE_PATH, null);
+     testContext.assertEquals(storedItems.getInteger("totalRecords"), 3,
+             "After upsert the total number of items should be [3] " + storedHoldings.encodePrettily() );
+
+     JsonObject deleteSignal = new JsonObject().put("hrid",instanceHrid);
+
+     JsonObject deleteResponse = delete(MainVerticle.INVENTORY_UPSERT_HRID_PATH,deleteSignal);
+     testContext.assertEquals(getMetric(deleteResponse, "HOLDINGS_RECORD", "DELETED" , "COMPLETED"), 2,
+             "Upsert metrics response should report [2] holdings records successfully deleted " + deleteResponse.encodePrettily());
+     testContext.assertEquals(getMetric(deleteResponse, "ITEM", "DELETED" , "COMPLETED"), 3,
+             "Delete metrics response should report [3] items successfully deleted " + deleteResponse.encodePrettily());
+     storedHoldings = getFromStorage(FakeInventoryStorage.HOLDINGS_STORAGE_PATH, "instanceId==\"" + instanceId + "\"");
+     testContext.assertEquals(storedHoldings.getInteger("totalRecords"), 0,
+             "After delete the number of holdings records for instance " + instanceId + " should be [0] " + storedHoldings.encodePrettily() );
+     storedItems = getFromStorage(FakeInventoryStorage.ITEM_STORAGE_PATH, null);
+     testContext.assertEquals(storedItems.getInteger("totalRecords"), 0,
+             "After delete the total number of items should be [3] " + storedHoldings.encodePrettily() );
+
+   }
 
   @Test
   public void upsertByHridWillMoveHoldingsAndItems (TestContext testContext) {
@@ -628,6 +668,19 @@ public class InventoryUpdateTestSuite {
             .header("Content-type","application/json")
             .header(OKAPI_URL_HEADER)
             .put(apiPath)
+            .then()
+            .log().ifValidationFails()
+            .statusCode(200).extract().response();
+    return new JsonObject(response.getBody().asString());
+  }
+
+  private JsonObject delete(String apiPath, JsonObject requestJson) {
+    RestAssured.port = PORT_INVENTORY_UPDATE;
+    Response response = RestAssured.given()
+            .body(requestJson.toString())
+            .header("Content-type","application/json")
+            .header(OKAPI_URL_HEADER)
+            .delete(apiPath)
             .then()
             .log().ifValidationFails()
             .statusCode(200).extract().response();

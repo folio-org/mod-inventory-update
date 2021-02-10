@@ -154,8 +154,14 @@ public class InventoryUpdateTestSuite {
     JsonObject instancesAfterPutJson = getFromStorage(FakeInventoryStorage.INSTANCE_STORAGE_PATH,"hrid==\"" + instance.getHrid() + "\"");
     testContext.assertEquals(instancesAfterPutJson.getInteger("totalRecords"), 1,
             "After upserting with new Instance, the number of Instances with that HRID should be [1]" );
-
   }
+
+  @Test
+  public void upsertByHridWillGraciouslyFailWithMissingInstanceTitle (TestContext testContext) {
+    //TODO
+  }
+
+
 
   /**
    * Tests API /inventory-upsert-hrid
@@ -228,7 +234,7 @@ public class InventoryUpdateTestSuite {
    * @param testContext
    */
   @Test
-  public void upsertByHridWillDeleteCertainHoldingsAndItems(TestContext testContext) {
+  public void upsertByHridWillDeleteSelectHoldingsAndItems(TestContext testContext) {
     String instanceHrid = "1";
     JsonObject inventoryRecordSet = new JsonObject()
             .put("instance",
@@ -355,7 +361,48 @@ public class InventoryUpdateTestSuite {
   }
 
   @Test
-  public void upsertByHridWillCreatePrecedingSucceedingTitleRelation (TestContext testContext) {
+  public void upsertsByHridWillNotDeleteThenWillDeleteChildInstanceRelation (TestContext testContext) {
+
+    // CHILD INSTANCE TO-BE
+    String instanceHrid = "1";
+    upsertByHrid(
+            new JsonObject()
+                    .put("instance",
+                            new InputInstance().setTitle("Child InputInstance").setInstanceTypeId("12345").setHrid(instanceHrid).getJson()));
+    // PARENT INSTANCE
+    String parentHrid = "2";
+    JsonObject parentResponseJson = upsertByHrid(new JsonObject()
+            .put("instance",
+                    new InputInstance().setTitle("Parent InputInstance").setInstanceTypeId("12345").setHrid(parentHrid).getJson())
+            .put("instanceRelations", new JsonObject()
+                    .put("childInstances", new JsonArray()
+                            .add(new InputInstanceRelationship().setInstanceIdentifierHrid(instanceHrid).getJson()))));
+
+    testContext.assertEquals(getMetric(parentResponseJson, "INSTANCE_RELATIONSHIP", "CREATED" , "COMPLETED"), 1,
+            "After upsert of Instance with child relation, metrics should report [1] instance relationship successfully created " + parentResponseJson.encodePrettily());
+
+    // POST child Instance again with no parent list
+    parentResponseJson = upsertByHrid(new JsonObject()
+            .put("instance",
+                    new InputInstance().setTitle("Parent InputInstance").setInstanceTypeId("12345").setHrid(parentHrid).getJson())
+            .put("instanceRelations", new JsonObject()));
+    testContext.assertNull(parentResponseJson.getJsonObject("metrics").getJsonObject("INSTANCE_RELATIONSHIP"),
+            "After upsert with no child list, metrics should not report any instance relations updates " + parentResponseJson.encodePrettily());
+
+    // POST child Instance again with empty parent list.
+    parentResponseJson = upsertByHrid(new JsonObject()
+            .put("instance",
+                    new InputInstance().setTitle("Parent InputInstance").setInstanceTypeId("12345").setHrid(parentHrid).getJson())
+            .put("instanceRelations", new JsonObject()
+                    .put("childInstances", new JsonArray())));
+
+    testContext.assertEquals(getMetric(parentResponseJson, "INSTANCE_RELATIONSHIP", "DELETED", "COMPLETED"), 1,
+            "After upsert with empty child list, metrics should report [1] instance relationship successfully deleted " + parentResponseJson.encodePrettily());
+
+  }
+
+  @Test
+  public void upsertByHridWillCreatePrecedingAndSucceedingTitleRelations (TestContext testContext) {
 
     upsertByHrid(
       new JsonObject()
@@ -392,7 +439,7 @@ public class InventoryUpdateTestSuite {
   @Test
   public void upsertsByHridWillNotDeleteThenWillDeleteSucceeding (TestContext testContext) {
 
-    JsonObject upsertResponseJson1 = upsertByHrid(
+    upsertByHrid(
             new JsonObject()
                     .put("instance",
                             new InputInstance().setTitle("A title").setInstanceTypeId("123").setHrid("002").getJson()));
@@ -433,6 +480,69 @@ public class InventoryUpdateTestSuite {
             "After two upserts -- with and without title successions -- the number of title successions should be [0] " + titleSuccessions.encodePrettily() );
   }
 
+  @Test
+  public void upsertsByHridWillNotDeleteThenWillDeletePreceding (TestContext testContext) {
+
+    upsertByHrid(
+            new JsonObject()
+                    .put("instance",
+                            new InputInstance().setTitle("A title").setInstanceTypeId("123").setHrid("001").getJson()));
+
+    JsonObject upsertResponseJson2 = upsertByHrid(
+            new JsonObject()
+                    .put("instance",
+                            new InputInstance().setTitle("A succeeding title").setInstanceTypeId("123").setHrid("002").getJson())
+                    .put("instanceRelations", new JsonObject()
+                            .put("precedingTitles", new JsonArray()
+                                    .add(new InputInstanceTitleSuccession().setInstanceIdentifierHrid("001").getJson()))));
+
+    testContext.assertEquals(getMetric(upsertResponseJson2, "INSTANCE_TITLE_SUCCESSION", "CREATED", "COMPLETED"), 1,
+            "After upsert of succeeding title, metrics should report [1] instance title successions successfully created " + upsertResponseJson2.encodePrettily());
+
+    // POST succeeding title again with no preceding titles list
+    upsertResponseJson2 = upsertByHrid(
+            new JsonObject()
+                    .put("instance",
+                            new InputInstance().setTitle("A succeeding title").setInstanceTypeId("123").setHrid("002").getJson())
+                    .put("instanceRelations", new JsonObject()));
+    testContext.assertNull(upsertResponseJson2.getJsonObject("metrics").getJsonObject("INSTANCE_TITLE_SUCCESSION"),
+            "After upsert with no preceding titles list, metrics should not report any instance title succession updates " + upsertResponseJson2.encodePrettily());
+
+    // POST succeeding title again with empty preceding titles list.
+    upsertResponseJson2 = upsertByHrid(
+            new JsonObject()
+                    .put("instance",
+                            new InputInstance().setTitle("A preceding title").setInstanceTypeId("123").setHrid("002").getJson())
+                    .put("instanceRelations", new JsonObject()
+                            .put("precedingTitles", new JsonArray())));
+
+    testContext.assertEquals(getMetric(upsertResponseJson2, "INSTANCE_TITLE_SUCCESSION", "DELETED", "COMPLETED"), 1,
+            "After upsert with empty precedingTitles list, metrics should report [1] instance title successions successfully deleted " + upsertResponseJson2.encodePrettily());
+
+    JsonObject titleSuccessions = getFromStorage(FakeInventoryStorage.PRECEDING_SUCCEEDING_TITLE_STORAGE_PATH,null);
+    testContext.assertEquals(titleSuccessions.getInteger("totalRecords"), 0,
+            "After two upserts -- with and without title successions -- the number of title successions should be [0] " + titleSuccessions.encodePrettily() );
+  }
+
+  @Test
+  public void upsertByHridWillCreateProvisionalInstanceIfNeededForRelation (TestContext testContext) {
+    //TODO
+  }
+
+  @Test
+  public void upsertByHridWillGraciouslyFailToCreateRelationWithoutProvisionalInstance (TestContext testContext) {
+    //TODO
+  }
+
+   @Test
+  public void deleteByHridWillDeleteInstanceRelationsHoldingsItems (TestContext testContext) {
+    //TODO
+  }
+
+  @Test
+  public void upsertByHridWillMoveHoldingsAndItems (TestContext testContext) {
+    //TODO
+  }
 
   @After
   public void tearDown(TestContext context) {
@@ -479,7 +589,7 @@ public class InventoryUpdateTestSuite {
     if (upsertResponse.containsKey("metrics")
             && upsertResponse.getJsonObject("metrics").containsKey(entity)
             && upsertResponse.getJsonObject("metrics").getJsonObject(entity).containsKey(transaction)
-            && upsertResponse.getJsonObject("metrics").getJsonObject(entity).getJsonObject(transaction).containsKey(outcome)) {
+            && upsertResponse.getJsonObject("metrics").getJsonObject(entity).getJsonObject(transaction). containsKey(outcome)) {
       return upsertResponse.getJsonObject("metrics").getJsonObject(entity).getJsonObject(transaction).getInteger(outcome);
     } else {
       return -1;

@@ -44,19 +44,27 @@ public abstract class InventoryRecord {
 
     public boolean match(String query) {
         String trimmed = query.replace("(","").replace(")", "");
-        String[] queryParts = trimmed.split("==");
-        logger.debug("query: " +query);
-        logger.debug("queryParts[0]: " + queryParts[0]);
-        String key = queryParts[0];
-        String value = queryParts.length > 1 ?  queryParts[1].replace("\"", "") : "";
-        logger.debug("key: "+key);
-        logger.debug("value: "+value);
-        logger.debug("recordJson.getString(key): " + recordJson.getString(key));
-        if (logger.isDebugEnabled()) {
-            logger.debug("Query parameter [" + value + "] matches record property [" + key + "("+ recordJson.getString(key)+")] ?: "
-                    +(recordJson.getString(key) != null && recordJson.getString(key).equals(value)));
+        String[] orSections = trimmed.split(" or ");
+        logger.debug("orSections: " + (orSections.length>1 ? orSections[0] + ", " + orSections[1] : orSections[0]));
+
+        for (int i=0; i<orSections.length; i++) {
+            String[] queryParts = orSections[i].split("==");
+            logger.debug("query: " +query);
+            logger.debug("queryParts[0]: " + queryParts[0]);
+            String key = queryParts[0];
+            String value = queryParts.length > 1 ?  queryParts[1].replace("\"", "") : "";
+            logger.debug("key: "+key);
+            logger.debug("value: "+value);
+            logger.debug("recordJson.getString(key): " + recordJson.getString(key));
+            if (logger.isDebugEnabled()) {
+                logger.debug("Query parameter [" + value + "] matches record property [" + key + "("+ recordJson.getString(key)+")] ?: "
+                        +(recordJson.getString(key) != null && recordJson.getString(key).equals(value)));
+            }
+            if  (recordJson.getString(key) != null && recordJson.getString(key).equals(value)) {
+                return true;
+            }
         }
-        return (recordJson.getString(key) != null && recordJson.getString(key).equals(value));
+        return false;
     }
 
 }

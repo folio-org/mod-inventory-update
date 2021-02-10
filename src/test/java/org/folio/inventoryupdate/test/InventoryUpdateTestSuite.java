@@ -126,14 +126,12 @@ public class InventoryUpdateTestSuite {
     InventoryRecordSet recordSet = new InventoryRecordSet(instance);
 
     JsonObject instancesBeforePutJson = getFromStorage(FakeInventoryStorage.INSTANCE_STORAGE_PATH, "matchKey==\"" + matchKey.getKey() + "\"");
-
     testContext.assertEquals(instancesBeforePutJson.getInteger("totalRecords"), 0,
             "Number of instance records for query by matchKey 'new_title___(etc)' before PUT expected: 0" );
 
     inventoryRecordSetPUT(MainVerticle.SHARED_INVENTORY_UPSERT_MATCHKEY_PATH, recordSet.getJson());
 
     JsonObject instancesAfterPutJson = getFromStorage(FakeInventoryStorage.INSTANCE_STORAGE_PATH, "matchKey==\"" + matchKey.getKey() + "\"");
-
     testContext.assertEquals(instancesAfterPutJson.getInteger("totalRecords"), 1,
             "Number of instance records for query by matchKey 'new_title' after PUT expected: 1" );
 
@@ -152,28 +150,21 @@ public class InventoryUpdateTestSuite {
     InventoryRecordSet inventoryRecordSet = new InventoryRecordSet(instance);
 
     JsonObject instancesBeforePutJson = getFromStorage(FakeInventoryStorage.INSTANCE_STORAGE_PATH,"matchKey==\"" + matchKey.getKey() + "\"");
-
     testContext.assertEquals(instancesBeforePutJson.getInteger("totalRecords"), 1,
             "Number of instance records for query by matchKey 'initial instance' before PUT expected: 1" );
-
     String instanceTypeIdBefore = instancesBeforePutJson.getJsonArray("instances")
             .getJsonObject(0).getString("instanceTypeId");
-
     testContext.assertEquals(instanceTypeIdBefore,"123",
             "Expected instanceTypeId to be '123' before PUT");
 
     inventoryRecordSetPUT(MainVerticle.SHARED_INVENTORY_UPSERT_MATCHKEY_PATH,inventoryRecordSet.getJson());
 
     JsonObject instancesAfterPutJson = getFromStorage(FakeInventoryStorage.INSTANCE_STORAGE_PATH,"matchKey==\"" + matchKey.getKey() + "\"");
-
     testContext.assertEquals(instancesAfterPutJson.getInteger("totalRecords"), 1,
             "Number of instance records for query by matchKey 'initial instance' after PUT expected: 1" );
-
     String instanceTypeIdAfter = instancesAfterPutJson.getJsonArray("instances")
             .getJsonObject(0).getString("instanceTypeId");
-
-    testContext.assertEquals(instanceTypeIdAfter,"12345",
-            "Expected instanceTypeId to be '12345' after PUT");
+    testContext.assertEquals(instanceTypeIdAfter,"12345","Expected instanceTypeId to be '12345' after PUT");
 
   }
 
@@ -189,14 +180,12 @@ public class InventoryUpdateTestSuite {
     InventoryRecordSet inventoryRecordSet = new InventoryRecordSet(instance);
 
     JsonObject instancesBeforePutJson = getFromStorage(FakeInventoryStorage.INSTANCE_STORAGE_PATH, "hrid==\"" + instance.getHrid() + "\"");
-
     testContext.assertEquals(instancesBeforePutJson.getInteger("totalRecords"), 0,
             "Before upserting with new Instance, number of Instance with that HRID expected to be 0" );
 
     inventoryRecordSetPUT(MainVerticle.INVENTORY_UPSERT_HRID_PATH, inventoryRecordSet.getJson());
 
     JsonObject instancesAfterPutJson = getFromStorage(FakeInventoryStorage.INSTANCE_STORAGE_PATH,"hrid==\"" + instance.getHrid() + "\"");
-
     testContext.assertEquals(instancesAfterPutJson.getInteger("totalRecords"), 1,
             "After upserting with new Instance, number of Instances with that HRID expected to be 1" );
 
@@ -216,27 +205,20 @@ public class InventoryUpdateTestSuite {
             .setInstanceTypeId("12345").setHrid(instanceHrid).getJson());
 
     JsonObject instancesBeforePutJson = getFromStorage(FakeInventoryStorage.INSTANCE_STORAGE_PATH, "hrid==\"" + instanceHrid + "\"");
-
     testContext.assertEquals(instancesBeforePutJson.getInteger("totalRecords"), 1,
             "Before upsert of existing Instance, number of Instances with that HRID expected to be [1]" );
-
     String instanceTypeIdBefore = instancesBeforePutJson.getJsonArray("instances")
             .getJsonObject(0).getString("instanceTypeId");
-
     testContext.assertEquals(instanceTypeIdBefore,"123",
             "Before upsert of existing Instance, the instanceTypeId expected to be [123]");
 
     inventoryRecordSetPUT(MainVerticle.INVENTORY_UPSERT_HRID_PATH, inventoryRecordSet);
 
     JsonObject instancesAfterUpsertJson = getFromStorage(FakeInventoryStorage.INSTANCE_STORAGE_PATH, "hrid==\"" + instanceHrid + "\"");
-
     testContext.assertEquals(instancesAfterUpsertJson.getInteger("totalRecords"), 1,
             "After upsert of existing Instance, number of Instances with that HRID still expected to be [1]" + instancesAfterUpsertJson.encodePrettily() );
-
     JsonObject instanceResponse = instancesAfterUpsertJson.getJsonArray("instances").getJsonObject(0);
-
     String instanceTypeIdAfter = instanceResponse.getString("instanceTypeId");
-
     testContext.assertEquals(instanceTypeIdAfter,"12345",
             "After upsert of existing Instance, the instanceTypeId expected to have changed to [12345]");
   }
@@ -263,22 +245,16 @@ public class InventoryUpdateTestSuite {
                         .add(new InputItem().setHrid("ITM-003").setBarcode("BC-003").getJson()))));
 
     JsonObject upsertResponseJson = inventoryRecordSetPUT(MainVerticle.INVENTORY_UPSERT_HRID_PATH, inventoryRecordSet);
-
     String instanceId = upsertResponseJson.getJsonObject("instance").getString("id");
 
     testContext.assertEquals(getMetric(upsertResponseJson, "HOLDINGS_RECORD", "CREATED" , "COMPLETED"), 2,
             "Upsert metrics response should report [2] holdings records successfully created " + upsertResponseJson.encodePrettily());
-
     testContext.assertEquals(getMetric(upsertResponseJson, "ITEM", "CREATED" , "COMPLETED"), 3,
             "Upsert metrics response should report [3] items successfully created " + upsertResponseJson.encodePrettily());
-
     JsonObject storedHoldings = getFromStorage(FakeInventoryStorage.HOLDINGS_STORAGE_PATH, "instanceId==\"" + instanceId + "\"");
-
     testContext.assertEquals(storedHoldings.getInteger("totalRecords"), 2,
             "After upsert the number of holdings records for instance " + instanceId + " expected to be [2] " + storedHoldings.encodePrettily() );
-
     JsonObject storedItems = getFromStorage(FakeInventoryStorage.ITEM_STORAGE_PATH, null);
-
     testContext.assertEquals(storedItems.getInteger("totalRecords"), 3,
             "After upsert the total number of items expected to be [3] " + storedHoldings.encodePrettily() );
 
@@ -305,7 +281,6 @@ public class InventoryUpdateTestSuite {
                                     .add(new InputItem().setHrid("ITM-003").setBarcode("BC-003").getJson()))));
 
     JsonObject upsertResponseJson = inventoryRecordSetPUT(MainVerticle.INVENTORY_UPSERT_HRID_PATH, inventoryRecordSet);
-
     String instanceId = upsertResponseJson.getJsonObject("instance").getString("id");
 
     // Leave out one holdings record
@@ -321,21 +296,15 @@ public class InventoryUpdateTestSuite {
 
     testContext.assertEquals(getMetric(upsertResponseJson, "HOLDINGS_RECORD", "DELETED" , "COMPLETED"), 1,
             "After upsert with one holdings record removed from set, metrics should report [1] holdings record successfully deleted " + upsertResponseJson.encodePrettily());
-
     testContext.assertEquals(getMetric(upsertResponseJson, "ITEM", "DELETED" , "COMPLETED"), 2,
             "After upsert with one holdings record removed from set, metrics should report [2] items successfully deleted " + upsertResponseJson.encodePrettily());
-
     JsonObject holdingsAfterUpsertJson = getFromStorage(FakeInventoryStorage.HOLDINGS_STORAGE_PATH, "instanceId==\"" + instanceId + "\"");
-
     testContext.assertEquals(holdingsAfterUpsertJson.getInteger("totalRecords"), 1,
             "After upsert with one holdings record removed from set, number of holdings records left for the Instance expected to be [1] " + holdingsAfterUpsertJson.encodePrettily());
-
     JsonObject itemsAfterUpsertJson = getFromStorage(FakeInventoryStorage.ITEM_STORAGE_PATH, null);
-
     testContext.assertEquals(itemsAfterUpsertJson.getInteger("totalRecords"), 1,
             "After upsert with one holdings record removed from set, the total number of item records expected to be [1] " + itemsAfterUpsertJson.encodePrettily() );
   }
-
 
   /**
    * Tests API /inventory-upsert-hrid
@@ -343,7 +312,6 @@ public class InventoryUpdateTestSuite {
    */
   @Test
   public void testRecordSetWithParentInstanceRelation(TestContext testContext) {
-    RestAssured.port = FakeInventoryStorage.PORT_INVENTORY_STORAGE;
 
     // CREATE PARENT TO-BE
     String instanceHrid = "1";
@@ -361,18 +329,54 @@ public class InventoryUpdateTestSuite {
                 .add(new InputInstanceRelationship().setInstanceIdentifierHrid(instanceHrid).getJson())));
 
     JsonObject upsertResponseJson = inventoryRecordSetPUT(MainVerticle.INVENTORY_UPSERT_HRID_PATH, inventoryRecordSet);
-
     String instanceId = upsertResponseJson.getJsonObject("instance").getString("id");
-
     JsonObject childResponseJson = inventoryRecordSetPUT(MainVerticle.INVENTORY_UPSERT_HRID_PATH, childRecordSet);
 
     testContext.assertEquals(getMetric(childResponseJson, "INSTANCE_RELATIONSHIP", "CREATED" , "COMPLETED"), 1,
             "After upsert of new Instance with parent relation, metrics should report [1] instance relationship successfully created " + childResponseJson.encodePrettily());
-
     JsonObject relationshipsAfterUpsertJson = getFromStorage(FakeInventoryStorage.INSTANCE_RELATIONSHIP_STORAGE_PATH, null);
-
     testContext.assertEquals(relationshipsAfterUpsertJson.getInteger("totalRecords"), 1,
             "After upsert of new Instance with parent relation, the total number of relationship records expected to be [1] " + relationshipsAfterUpsertJson.encodePrettily() );
+  }
+
+  @Test
+  public void testDeleteOfParentInstanceRelation (TestContext testContext) {
+    // CREATE PARENT TO-BE
+    String instanceHrid = "1";
+    JsonObject upsertResponseJson = upsertByHrid(
+            new JsonObject()
+            .put("instance",
+                    new InputInstance().setTitle("Parent InputInstance").setInstanceTypeId("12345").setHrid(instanceHrid).getJson()));
+    // CREATE CHILD
+    String childHrid = "2";
+    JsonObject childResponseJson = upsertByHrid(new JsonObject()
+            .put("instance",
+                    new InputInstance().setTitle("Child InputInstance").setInstanceTypeId("12345").setHrid(childHrid).getJson())
+            .put("instanceRelations", new JsonObject()
+                    .put("parentInstances", new JsonArray()
+                            .add(new InputInstanceRelationship().setInstanceIdentifierHrid(instanceHrid).getJson()))));
+
+    testContext.assertEquals(getMetric(childResponseJson, "INSTANCE_RELATIONSHIP", "CREATED" , "COMPLETED"), 1,
+            "After upsert of new Instance with parent relation, metrics should report [1] instance relationship successfully created " + childResponseJson.encodePrettily());
+
+    // POST child Instance again with no parent list
+    childResponseJson = upsertByHrid(new JsonObject()
+            .put("instance",
+                    new InputInstance().setTitle("Child InputInstance").setInstanceTypeId("12345").setHrid(childHrid).getJson())
+            .put("instanceRelations", new JsonObject()));
+    testContext.assertNull(childResponseJson.getJsonObject("metrics").getJsonObject("INSTANCE_RELATIONSHIP"),
+            "After upsert of new Instance with no parent list, metrics should not report any instance relations updates " + childResponseJson.encodePrettily());
+
+    // POST child Instance again with empty parent list.
+    childResponseJson = upsertByHrid(new JsonObject()
+            .put("instance",
+                    new InputInstance().setTitle("Child InputInstance").setInstanceTypeId("12345").setHrid(childHrid).getJson())
+            .put("instanceRelations", new JsonObject()
+                    .put("parentInstances", new JsonArray())));
+
+    testContext.assertEquals(getMetric(childResponseJson, "INSTANCE_RELATIONSHIP", "DELETED", "COMPLETED"), 1,
+            "After upsert of new Instance with empty parent list, metrics should report [1] instance relationship successfully deleted " + childResponseJson.encodePrettily());
+
   }
 
   @After
@@ -381,6 +385,10 @@ public class InventoryUpdateTestSuite {
     vertx.close(context.asyncAssertSuccess(res -> {
       async.complete();
     }));
+  }
+
+  private JsonObject upsertByHrid (JsonObject inventoryRecordSet) {
+    return inventoryRecordSetPUT(MainVerticle.INVENTORY_UPSERT_HRID_PATH, inventoryRecordSet);
   }
 
   private JsonObject inventoryRecordSetPUT (String apiPath, JsonObject inventoryRecordSet) {

@@ -149,7 +149,7 @@ public class InventoryUpdateTestSuite {
     testContext.assertEquals(instancesBeforePutJson.getInteger("totalRecords"), 0,
             "Before upserting with new Instance, the number of Instances with that HRID should be [0]" );
 
-    upsertByMatchKey(inventoryRecordSet.getJson());
+    upsertByHrid(inventoryRecordSet.getJson());
 
     JsonObject instancesAfterPutJson = getFromStorage(FakeInventoryStorage.INSTANCE_STORAGE_PATH,"hrid==\"" + instance.getHrid() + "\"");
     testContext.assertEquals(instancesAfterPutJson.getInteger("totalRecords"), 1,
@@ -193,7 +193,7 @@ public class InventoryUpdateTestSuite {
    * @param testContext
    */
   @Test
-  public void upsertByHridWillCreationHoldingsAndItems(TestContext testContext) {
+  public void upsertByHridWillCreateHoldingsAndItems(TestContext testContext) {
     String instanceHrid = "1";
     JsonObject inventoryRecordSet = new JsonObject()
             .put("instance",
@@ -228,7 +228,7 @@ public class InventoryUpdateTestSuite {
    * @param testContext
    */
   @Test
-  public void upsertByHridWillDeleteSomeHoldingsAndItems(TestContext testContext) {
+  public void upsertByHridWillDeleteCertainHoldingsAndItems(TestContext testContext) {
     String instanceHrid = "1";
     JsonObject inventoryRecordSet = new JsonObject()
             .put("instance",
@@ -343,7 +343,7 @@ public class InventoryUpdateTestSuite {
   }
 
   @Test
-  public void upsertByHridPrecedingSucceeding (TestContext testContext) {
+  public void upsertByHridWillCreatePrecedingSucceedingTitleRelation (TestContext testContext) {
 
     upsertByHrid(
       new JsonObject()
@@ -420,6 +420,9 @@ public class InventoryUpdateTestSuite {
     testContext.assertEquals(titleSuccessions.getInteger("totalRecords"), 0,
             "After two upserts -- with and without title successions -- the number of title successions should be [0] " + titleSuccessions.encodePrettily() );
   }
+
+
+
 
   @After
   public void tearDown(TestContext context) {

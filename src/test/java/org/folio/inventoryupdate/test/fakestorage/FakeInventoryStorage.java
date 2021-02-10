@@ -24,6 +24,7 @@ public class FakeInventoryStorage {
     public static final String RESULT_SET_HOLDINGS_RECORDS = "holdingsRecords";
     public static final String RESULT_SET_ITEMS = "items";
 
+    public LocationStorage locationStorage = new LocationStorage();
     public InstanceStorage instanceStorage = new InstanceStorage();
     public HoldingsStorage holdingsStorage = new HoldingsStorage();
     public ItemStorage itemStorage = new ItemStorage();
@@ -31,6 +32,7 @@ public class FakeInventoryStorage {
     public PrecedingSucceedingStorage precedingSucceedingStorage = new PrecedingSucceedingStorage();
 
     public FakeInventoryStorage(Vertx vertx, TestContext testContext, Async async) {
+        locationStorage.attachToFakeStorage(this);
         instanceStorage.attachToFakeStorage(this);
         holdingsStorage.attachToFakeStorage(this);
         itemStorage.attachToFakeStorage(this);

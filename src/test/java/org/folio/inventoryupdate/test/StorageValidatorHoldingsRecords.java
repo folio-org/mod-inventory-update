@@ -6,6 +6,7 @@ import org.folio.inventoryupdate.test.fakestorage.FakeInventoryStorage;
 import org.folio.inventoryupdate.test.fakestorage.RecordStorage;
 import org.folio.inventoryupdate.test.fakestorage.entitites.InputHoldingsRecord;
 import org.folio.inventoryupdate.test.fakestorage.entitites.InputInstance;
+import org.folio.inventoryupdate.test.fakestorage.entitites.InputLocation;
 
 import static org.folio.inventoryupdate.test.fakestorage.FakeInventoryStorage.*;
 
@@ -18,14 +19,14 @@ public class StorageValidatorHoldingsRecords {
     private String existingInstanceId;
 
     protected void validateStorage(TestContext testContext) {
-        createInstance(testContext);
+        createDependencies(testContext);
         validatePostAndGetById(testContext);
         validateGetByQueryAndPut(testContext);
         validateCannotPostWithBadInstanceId(testContext);
         validateCanDeleteHoldingsRecordById(testContext);
     }
 
-    protected void createInstance (TestContext testContext) {
+    protected void createDependencies(TestContext testContext) {
         JsonObject responseOnPOST = FakeInventoryStorage.post(
                 INSTANCE_STORAGE_PATH,
                 new InputInstance().setTitle(INSTANCE_TITLE).setInstanceTypeId("123").getJson());
@@ -35,7 +36,7 @@ public class StorageValidatorHoldingsRecords {
     protected void validatePostAndGetById(TestContext testContext) {
         JsonObject responseOnPOST = FakeInventoryStorage.post(
                 HOLDINGS_STORAGE_PATH,
-                new InputHoldingsRecord().setInstanceId(existingInstanceId).setCallNumber(FIRST_CALL_NUMBER).getJson());
+                new InputHoldingsRecord().setInstanceId(existingInstanceId).setPermanentLocationId(InventoryUpdateTestSuite.LOCATION_ID).setCallNumber(FIRST_CALL_NUMBER).getJson());
         testContext.assertEquals(responseOnPOST.getString("callNumber"), FIRST_CALL_NUMBER);
         JsonObject responseOnGET = FakeInventoryStorage.getRecordById(HOLDINGS_STORAGE_PATH, responseOnPOST.getString("id"));
         testContext.assertEquals(responseOnGET.getString("callNumber"), FIRST_CALL_NUMBER);
@@ -57,7 +58,7 @@ public class StorageValidatorHoldingsRecords {
     protected void validateCanDeleteHoldingsRecordById (TestContext testContext) {
         JsonObject responseOnPOST = FakeInventoryStorage.post(
                 HOLDINGS_STORAGE_PATH,
-                new InputHoldingsRecord().setCallNumber("TEST-CN").setInstanceId(existingInstanceId).getJson());
+                new InputHoldingsRecord().setPermanentLocationId(InventoryUpdateTestSuite.LOCATION_ID).setCallNumber("TEST-CN").setInstanceId(existingInstanceId).getJson());
         testContext.assertEquals(responseOnPOST.getString("callNumber"), "TEST-CN");
         FakeInventoryStorage.delete(HOLDINGS_STORAGE_PATH, responseOnPOST.getString("id"),200);
     }
@@ -65,7 +66,7 @@ public class StorageValidatorHoldingsRecords {
     protected void validateCannotPostWithBadInstanceId (TestContext testContext) {
         JsonObject responseOnPOST = FakeInventoryStorage.post(
                 HOLDINGS_STORAGE_PATH,
-                new InputHoldingsRecord().setInstanceId(NON_EXISTING_INSTANCE_ID).setCallNumber(FIRST_CALL_NUMBER).getJson(),
+                new InputHoldingsRecord().setInstanceId(NON_EXISTING_INSTANCE_ID).setPermanentLocationId(InventoryUpdateTestSuite.LOCATION_ID).setCallNumber(FIRST_CALL_NUMBER).getJson(),
                 400);
         JsonObject responseJson = FakeInventoryStorage.getRecordsByQuery(
                 HOLDINGS_STORAGE_PATH,
@@ -75,5 +76,17 @@ public class StorageValidatorHoldingsRecords {
 
     }
 
+    protected void validateCannotPostWithBadLocationId (TestContext testContext) {
+        JsonObject responseOnPOST = FakeInventoryStorage.post(
+                HOLDINGS_STORAGE_PATH,
+                new InputHoldingsRecord().setInstanceId(existingInstanceId).setPermanentLocationId("BAD_LOCATION").setCallNumber(FIRST_CALL_NUMBER).getJson(),
+                400);
+        JsonObject responseJson = FakeInventoryStorage.getRecordsByQuery(
+                HOLDINGS_STORAGE_PATH,
+                "query="+ RecordStorage.encode("permanentLocationId==\""+ "BAD_LOCATION" +"\""));;
+        testContext.assertEquals(
+                responseJson.getInteger("totalRecords"), 0,"Number of " + RESULT_SET_HOLDINGS_RECORDS + " expected for bad location ID " + NON_EXISTING_INSTANCE_ID + ": 0" );
+
+    }
 
 }

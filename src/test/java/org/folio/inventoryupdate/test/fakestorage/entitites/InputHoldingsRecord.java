@@ -7,6 +7,7 @@ public class InputHoldingsRecord extends InventoryRecord {
     public static String HRID = "hrid";
     public static String CALL_NUMBER = "callNumber";
     public static String INSTANCE_ID = "instanceId";
+    public static String PERMANENT_LOCATION_ID = "permanentLocationId";
 
 
     public InputHoldingsRecord(JsonObject record) {
@@ -24,6 +25,11 @@ public class InputHoldingsRecord extends InventoryRecord {
 
     public InputHoldingsRecord setHrid (String hrid) {
         recordJson.put(HRID,hrid);
+        return this;
+    }
+
+    public InputHoldingsRecord setPermanentLocationId (String permanentLocationId) {
+        recordJson.put(PERMANENT_LOCATION_ID, permanentLocationId);
         return this;
     }
 

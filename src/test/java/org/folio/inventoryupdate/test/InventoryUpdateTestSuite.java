@@ -34,6 +34,8 @@ public class InventoryUpdateTestSuite {
           + FakeInventoryStorage.PORT_INVENTORY_STORAGE);
 
   private FakeInventoryStorage fakeInventoryStorage;
+  public static final String LOCATION_ID = "LOC1";
+  public static final String INSTITUTION_ID = "INST1";
 
   private final Logger logger = io.vertx.core.impl.logging.LoggerFactory.getLogger("InventoryUpdateTestSuite");
 
@@ -55,9 +57,14 @@ public class InventoryUpdateTestSuite {
             r -> {
               testContext.assertTrue(r.succeeded());
               fakeInventoryStorage = new FakeInventoryStorage(vertx, testContext, async);
+              createReferenceRecords();
             });
   }
 
+  public void createReferenceRecords () {
+    InputLocation location = new InputLocation().setId(LOCATION_ID).setInstitutionId(INSTITUTION_ID);
+    fakeInventoryStorage.locationStorage.insert(location);
+  }
   public void createInitialInstanceWithMatchKey() {
     InputInstance instance = new InputInstance().setInstanceTypeId("123").setTitle("Initial InputInstance").setHrid("1");
     MatchKey matchKey = new MatchKey(instance.getJson());
@@ -258,11 +265,11 @@ public class InventoryUpdateTestSuite {
             .put("instance",
                new InputInstance().setTitle("Initial InputInstance").setInstanceTypeId("12345").setHrid(instanceHrid).getJson())
             .put("holdingsRecords", new JsonArray()
-              .add(new InputHoldingsRecord().setHrid("HOL-001").setCallNumber("test-cn-1").getJson()
+              .add(new InputHoldingsRecord().setHrid("HOL-001").setPermanentLocationId(LOCATION_ID).setCallNumber("test-cn-1").getJson()
                       .put("items", new JsonArray()
                         .add(new InputItem().setHrid("ITM-001").setBarcode("BC-001").getJson())
                         .add(new InputItem().setHrid("ITM-002").setBarcode("BC-002").getJson())))
-              .add(new InputHoldingsRecord().setHrid("HOL-002").setCallNumber("test-cn-2").getJson()
+              .add(new InputHoldingsRecord().setHrid("HOL-002").setPermanentLocationId(LOCATION_ID).setCallNumber("test-cn-2").getJson()
                       .put("items", new JsonArray()
                         .add(new InputItem().setHrid("ITM-003").setBarcode("BC-003").getJson()))));
 
@@ -298,11 +305,11 @@ public class InventoryUpdateTestSuite {
             .put("instance",
                     new InputInstance().setTitle("Initial InputInstance").setInstanceTypeId("12345").setHrid(instanceHrid).getJson())
             .put("holdingsRecords", new JsonArray()
-                    .add(new InputHoldingsRecord().setHrid("HOL-001").setCallNumber("test-cn-1").getJson()
+                    .add(new InputHoldingsRecord().setHrid("HOL-001").setPermanentLocationId(LOCATION_ID).setCallNumber("test-cn-1").getJson()
                             .put("items", new JsonArray()
                                     .add(new InputItem().setHrid("ITM-001").setBarcode("BC-001").getJson())
                                     .add(new InputItem().setHrid("ITM-002").setBarcode("BC-002").getJson())))
-                    .add(new InputHoldingsRecord().setHrid("HOL-002").setCallNumber("test-cn-2").getJson()
+                    .add(new InputHoldingsRecord().setHrid("HOL-002").setPermanentLocationId(LOCATION_ID).setCallNumber("test-cn-2").getJson()
                             .put("items", new JsonArray()
                                     .add(new InputItem().setHrid("ITM-003").setBarcode("BC-003").getJson()))));
 
@@ -314,7 +321,7 @@ public class InventoryUpdateTestSuite {
             .put("instance",
                     new InputInstance().setTitle("Initial InputInstance").setInstanceTypeId("12345").setHrid(instanceHrid).getJson())
             .put("holdingsRecords", new JsonArray()
-                    .add(new InputHoldingsRecord().setHrid("HOL-002").setCallNumber("test-cn-2").getJson()
+                    .add(new InputHoldingsRecord().setHrid("HOL-002").setPermanentLocationId(LOCATION_ID).setCallNumber("test-cn-2").getJson()
                             .put("items", new JsonArray()
                                     .add(new InputItem().setHrid("ITM-003").setBarcode("BC-003").getJson()))));
 
@@ -599,11 +606,11 @@ public class InventoryUpdateTestSuite {
              .put("instance",
                      new InputInstance().setTitle("Initial InputInstance").setInstanceTypeId("12345").setHrid(instanceHrid).getJson())
              .put("holdingsRecords", new JsonArray()
-                     .add(new InputHoldingsRecord().setHrid("HOL-001").setCallNumber("test-cn-1").getJson()
+                     .add(new InputHoldingsRecord().setHrid("HOL-001").setPermanentLocationId(LOCATION_ID).setCallNumber("test-cn-1").getJson()
                              .put("items", new JsonArray()
                                      .add(new InputItem().setHrid("ITM-001").setBarcode("BC-001").getJson())
                                      .add(new InputItem().setHrid("ITM-002").setBarcode("BC-002").getJson())))
-                     .add(new InputHoldingsRecord().setHrid("HOL-002").setCallNumber("test-cn-2").getJson()
+                     .add(new InputHoldingsRecord().setHrid("HOL-002").setPermanentLocationId(LOCATION_ID).setCallNumber("test-cn-2").getJson()
                              .put("items", new JsonArray()
                                      .add(new InputItem().setHrid("ITM-003").setBarcode("BC-003").getJson())))));
 
@@ -648,11 +655,11 @@ public class InventoryUpdateTestSuite {
             .put("instance",
                     new InputInstance().setTitle("Initial InputInstance").setInstanceTypeId("12345").setHrid(instanceHrid).getJson())
             .put("holdingsRecords", new JsonArray()
-                    .add(new InputHoldingsRecord().setHrid("HOL-001").setCallNumber("test-cn-1").getJson()
+                    .add(new InputHoldingsRecord().setHrid("HOL-001").setPermanentLocationId(LOCATION_ID).setCallNumber("test-cn-1").getJson()
                             .put("items", new JsonArray()
                                     .add(new InputItem().setBarcode("BC-001").getJson())
                                     .add(new InputItem().setHrid("ITM-002").setBarcode("BC-002").getJson())))
-                    .add(new InputHoldingsRecord().setHrid("HOL-002").setCallNumber("test-cn-2").getJson()
+                    .add(new InputHoldingsRecord().setHrid("HOL-002").setPermanentLocationId(LOCATION_ID).setCallNumber("test-cn-2").getJson()
                             .put("items", new JsonArray()
                                     .add(new InputItem().setBarcode("BC-003").getJson())))));
 

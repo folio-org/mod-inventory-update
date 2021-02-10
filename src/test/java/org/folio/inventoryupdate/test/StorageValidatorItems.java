@@ -28,7 +28,7 @@ public class StorageValidatorItems {
         String existingInstanceId = responseOnInstancePOST.getString("id");
         JsonObject responseOnHoldingsPOST = FakeInventoryStorage.post(
                 HOLDINGS_STORAGE_PATH,
-                new InputHoldingsRecord().setCallNumber("CN-FOR-ITEM-TEST").setInstanceId(existingInstanceId).getJson());
+                new InputHoldingsRecord().setPermanentLocationId(InventoryUpdateTestSuite.LOCATION_ID).setCallNumber("CN-FOR-ITEM-TEST").setInstanceId(existingInstanceId).getJson());
         existingHoldingsRecordId = responseOnHoldingsPOST.getString("id");
     }
 

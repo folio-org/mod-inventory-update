@@ -19,6 +19,7 @@ import static org.folio.inventoryupdate.test.fakestorage.FakeInventoryStorage.*;
 public class StorageValidatorInstances  {
 
   protected void validateStorage(TestContext testContext) {
+
     validatePostAndGetById(testContext);
     validateGetByQueryAndPut(testContext);
     validateCanDeleteInstanceById(testContext);
@@ -64,7 +65,7 @@ public class StorageValidatorInstances  {
     String instanceId = responseOnPOST.getString("id");
     JsonObject responseOnHoldingsPOST = FakeInventoryStorage.post(
             HOLDINGS_STORAGE_PATH,
-            new InputHoldingsRecord().setCallNumber("Test holdings").setInstanceId(instanceId).getJson(), 201);
+            new InputHoldingsRecord().setCallNumber("Test holdings").setPermanentLocationId(InventoryUpdateTestSuite.LOCATION_ID).setInstanceId(instanceId).getJson(), 201);
     FakeInventoryStorage.delete(INSTANCE_STORAGE_PATH, instanceId, 400);
   }
 

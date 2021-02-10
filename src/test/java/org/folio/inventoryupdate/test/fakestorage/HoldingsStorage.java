@@ -29,6 +29,7 @@ public class HoldingsStorage extends RecordStorage {
     @Override
     protected void declareDependencies() {
         fakeStorage.instanceStorage.acceptDependant(this, "instanceId");
+        fakeStorage.locationStorage.acceptDependant(this, "permanentLocationId");
     }
 
 }

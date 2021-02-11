@@ -873,7 +873,37 @@ public class InventoryUpdateTestSuite {
 
   @Test
   public void upsertByHridWillGraciouslyFailToCreateRelationWithoutProvisionalInstance (TestContext testContext) {
-    //TODO
+    String childHrid = "002";
+    String parentHrid = "001";
+
+    Response childResponse = upsertByHrid(422, new JsonObject()
+            .put("instance",
+                    new InputInstance().setTitle("Child InputInstance").setInstanceTypeId("12345").setHrid(childHrid).getJson())
+            .put("instanceRelations", new JsonObject()
+                    .put("parentInstances", new JsonArray()
+                            .add(new InputInstanceRelationship().setInstanceIdentifierHrid(parentHrid).getJson()))));
+
+    JsonObject responseJson = new JsonObject(childResponse.getBody().asString());
+    testContext.assertEquals(getMetric(responseJson, "INSTANCE_RELATIONSHIP", "CREATED", "FAILED"), 1,
+            "Upsert metrics response should report [1] relation creation failure due to missing provisional instance  " + responseJson.encodePrettily());
+
+    childResponse = upsertByHrid(422, new JsonObject()
+            .put("instance",
+                    new InputInstance().setTitle("Child InputInstance").setInstanceTypeId("12345").setHrid(childHrid).getJson())
+            .put("instanceRelations", new JsonObject()
+                    .put("parentInstances", new JsonArray()
+                            .add(new InputInstanceRelationship().setInstanceIdentifierHrid(parentHrid)
+                                    .setProvisionalInstance(
+                                            new InputInstance()
+                                                    .setSource("MARC")
+                                                    .setInstanceTypeId("12345").getJson()).getJson()))));
+
+    responseJson = new JsonObject(childResponse.getBody().asString());
+    testContext.assertEquals(getMetric(responseJson, "INSTANCE_RELATIONSHIP", "CREATED", "FAILED"), 1,
+            "Upsert metrics response should report [1] relation creation failure due to missing mandatory properties in provisional instance  " + responseJson.encodePrettily());
+    testContext.assertEquals(getMetric(responseJson, "INSTANCE_RELATIONSHIP", "PROVISIONAL_INSTANCE", "FAILED"), 1,
+            "Upsert metrics response should report [1] provisional Instance creation failure due to missing mandatory properties in provisional instance  " + responseJson.encodePrettily());
+
   }
 
   @Test

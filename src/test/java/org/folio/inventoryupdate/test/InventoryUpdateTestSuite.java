@@ -1158,19 +1158,55 @@ public class InventoryUpdateTestSuite {
   public void testSendingNonJson (TestContext testContext) {
     RestAssured.port = PORT_INVENTORY_UPDATE;
     RestAssured.given()
-        .body("bad request body")
-        .header("Content-type","application/json")
-        .header(OKAPI_URL_HEADER)
-        .put(MainVerticle.INVENTORY_UPSERT_HRID_PATH)
-        .then()
-        .log().ifValidationFails()
-        .statusCode(400).extract().response();
+            .body("bad request body")
+            .header("Content-type","application/json")
+            .header(OKAPI_URL_HEADER)
+            .put(MainVerticle.INVENTORY_UPSERT_HRID_PATH)
+            .then()
+            .log().ifValidationFails()
+            .statusCode(400).extract().response();
 
     RestAssured.given()
             .body(new JsonObject().toString())
             .header("Content-type","text/plain")
             .header(OKAPI_URL_HEADER)
             .put(MainVerticle.INVENTORY_UPSERT_HRID_PATH)
+            .then()
+            .log().ifValidationFails()
+            .statusCode(400).extract().response();
+
+    RestAssured.given()
+            .body(new JsonObject().toString())
+            .header("Content-type","text/plain")
+            .header(OKAPI_URL_HEADER)
+            .delete(MainVerticle.INVENTORY_UPSERT_HRID_PATH)
+            .then()
+            .log().ifValidationFails()
+            .statusCode(400).extract().response();
+
+    RestAssured.given()
+            .body(new JsonObject().toString())
+            .header("Content-type","text/plain")
+            .header(OKAPI_URL_HEADER)
+            .put(MainVerticle.SHARED_INVENTORY_UPSERT_MATCHKEY_PATH)
+            .then()
+            .log().ifValidationFails()
+            .statusCode(400).extract().response();
+
+    RestAssured.given()
+            .body(new JsonObject().toString())
+            .header("Content-type","text/plain")
+            .header(OKAPI_URL_HEADER)
+            .delete(MainVerticle.SHARED_INVENTORY_UPSERT_MATCHKEY_PATH)
+            .then()
+            .log().ifValidationFails()
+            .statusCode(400).extract().response();
+
+    RestAssured.given()
+            .body(new JsonObject().toString())
+            .header("Content-type","text/plain")
+            .header(OKAPI_URL_HEADER)
+            .put(MainVerticle.INSTANCE_MATCH_PATH)
             .then()
             .log().ifValidationFails()
             .statusCode(400).extract().response();

@@ -24,6 +24,8 @@ import io.vertx.ext.unit.Async;
 import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
 
+import java.util.Arrays;
+
 
 @RunWith(VertxUnitRunner.class)
 public class InventoryUpdateTestSuite {
@@ -510,6 +512,10 @@ public class InventoryUpdateTestSuite {
 
   }
 
+  /**
+   * Tests API /inventory-upsert-hrid
+   * @param testContext
+   */
   @Test
   public void upsertsByHridWillNotDeleteThenWillDeleteParentInstanceRelation (TestContext testContext) {
 
@@ -551,6 +557,77 @@ public class InventoryUpdateTestSuite {
 
   }
 
+
+  /**
+   * Tests API /inventory-upsert-hrid
+   * @param testContext
+   */
+  @Test
+  public void upsertsByHridWillDeleteRemovedRelations (TestContext testContext) {
+
+    // PARENT INSTANCE 1
+    String parent1Hrid = "1";
+    String parent2Hrid = "2";
+    String child1Hrid = "3";
+    String child2Hrid = "4";
+    String preceding1Hrid = "5";
+    String preceding2Hrid = "6";
+    String succeeding1Hrid = "7";
+    String succeeding2Hrid = "8";
+    for (String hrid : Arrays.asList(parent1Hrid, parent2Hrid, child1Hrid, child2Hrid, preceding1Hrid, preceding2Hrid, succeeding1Hrid, succeeding2Hrid)) {
+      upsertByHrid(new JsonObject().put("instance",
+              new InputInstance().setTitle("InputInstance "+hrid).setInstanceTypeId("12345").setHrid(hrid).getJson()));
+    }
+
+    JsonObject firstResponseJson = upsertByHrid(new JsonObject()
+            .put("instance",
+                    new InputInstance().setTitle("InputInstance with 8 relations").setInstanceTypeId("12345").setHrid("MAIN-INSTANCE").getJson())
+            .put("instanceRelations", new JsonObject()
+                    .put("parentInstances", new JsonArray()
+                      .add(new InputInstanceRelationship().setInstanceIdentifierHrid(parent1Hrid).setInstanceRelationshipTypeId("multipart").getJson())
+                      .add(new InputInstanceRelationship().setInstanceIdentifierHrid(parent2Hrid).setInstanceRelationshipTypeId("multipart").getJson()))
+                    .put("childInstances", new JsonArray()
+                      .add(new InputInstanceRelationship().setInstanceIdentifierHrid(child1Hrid).setInstanceRelationshipTypeId("multipart").getJson())
+                      .add(new InputInstanceRelationship().setInstanceIdentifierHrid(child2Hrid).setInstanceRelationshipTypeId("multipart").getJson()))
+                    .put("precedingTitles", new JsonArray()
+                      .add(new InputInstanceTitleSuccession().setInstanceIdentifierHrid(preceding1Hrid).getJson())
+                      .add(new InputInstanceTitleSuccession().setInstanceIdentifierHrid(preceding2Hrid).getJson()))
+                    .put("succeedingTitles", new JsonArray()
+                      .add(new InputInstanceTitleSuccession().setInstanceIdentifierHrid(succeeding1Hrid).getJson())
+                      .add(new InputInstanceTitleSuccession().setInstanceIdentifierHrid(succeeding2Hrid).getJson()))));
+
+    testContext.assertEquals(getMetric(firstResponseJson, "INSTANCE_RELATIONSHIP", "CREATED" , "COMPLETED"), 4,
+            "After upsert of Instance with multiple relations, metrics should report [4] instance relationship successfully created " + firstResponseJson.encodePrettily());
+
+    testContext.assertEquals(getMetric(firstResponseJson, "INSTANCE_TITLE_SUCCESSION", "CREATED" , "COMPLETED"), 4,
+            "After upsert of Instance with multiple relations, metrics should report [4] instance title successions successfully created " + firstResponseJson.encodePrettily());
+
+    JsonObject secondResponseJson = upsertByHrid(new JsonObject()
+            .put("instance",
+                    new InputInstance().setTitle("InputInstance with 8 relations").setInstanceTypeId("12345").setHrid("MAIN-INSTANCE").getJson())
+            .put("instanceRelations", new JsonObject()
+                    .put("parentInstances", new JsonArray()
+                            .add(new InputInstanceRelationship().setInstanceIdentifierHrid(parent2Hrid).setInstanceRelationshipTypeId("multipart").getJson()))
+                    .put("childInstances", new JsonArray()
+                            .add(new InputInstanceRelationship().setInstanceIdentifierHrid(child2Hrid).setInstanceRelationshipTypeId("multipart").getJson()))
+                    .put("precedingTitles", new JsonArray()
+                            .add(new InputInstanceTitleSuccession().setInstanceIdentifierHrid(preceding2Hrid).getJson()))
+                    .put("succeedingTitles", new JsonArray()
+                            .add(new InputInstanceTitleSuccession().setInstanceIdentifierHrid(succeeding2Hrid).getJson()))));
+
+    testContext.assertEquals(getMetric(secondResponseJson, "INSTANCE_RELATIONSHIP", "DELETED" , "COMPLETED"), 2,
+            "After upsert of Instance with some relations removed, metrics should report [2] instance relationship successfully deleted " + firstResponseJson.encodePrettily());
+    testContext.assertEquals(getMetric(secondResponseJson, "INSTANCE_TITLE_SUCCESSION", "DELETED" , "COMPLETED"), 2,
+            "After upsert of Instance with some relations removed, metrics should report [2] instance title successions successfully deleted " + firstResponseJson.encodePrettily());
+
+
+  }
+
+
+  /**
+   * Tests API /inventory-upsert-hrid
+   * @param testContext
+   */
   @Test
   public void upsertsByHridWillNotDeleteThenWillDeleteChildInstanceRelation (TestContext testContext) {
 

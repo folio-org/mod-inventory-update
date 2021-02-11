@@ -65,7 +65,7 @@ public class StorageValidatorInstances  {
     String instanceId = responseOnPOST.getString("id");
     JsonObject responseOnHoldingsPOST = FakeInventoryStorage.post(
             HOLDINGS_STORAGE_PATH,
-            new InputHoldingsRecord().setCallNumber("Test holdings").setPermanentLocationId(InventoryUpdateTestSuite.LOCATION_ID).setInstanceId(instanceId).getJson(), 201);
+            new InputHoldingsRecord().setCallNumber("Test holdings").setPermanentLocationId(InventoryUpdateTestSuite.LOCATION_ID_1).setInstanceId(instanceId).getJson(), 201);
     FakeInventoryStorage.delete(INSTANCE_STORAGE_PATH, instanceId, 400);
   }
 

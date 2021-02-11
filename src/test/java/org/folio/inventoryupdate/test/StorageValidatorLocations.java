@@ -21,10 +21,10 @@ public class StorageValidatorLocations {
     protected void validatePostAndGetById(TestContext testContext) {
         JsonObject responseOnPOST = FakeInventoryStorage.post(
                 LOCATION_STORAGE_PATH,
-                new InputLocation().setId("LOC2").setInstitutionId("INST2").setName("Test Location").getJson());
-        testContext.assertEquals(responseOnPOST.getString("id"), "LOC2");
+                new InputLocation().setId("LOC3").setInstitutionId("INST3").setName("Test Location").getJson());
+        testContext.assertEquals(responseOnPOST.getString("id"), "LOC3");
         JsonObject responseOnGET = FakeInventoryStorage.getRecordById(LOCATION_STORAGE_PATH, responseOnPOST.getString("id"));
-        testContext.assertEquals(responseOnGET.getString("institutionId"), "INST2");
+        testContext.assertEquals(responseOnGET.getString("institutionId"), "INST3");
     }
 /*
     protected void validateGetByQueryAndPut(TestContext testContext) {

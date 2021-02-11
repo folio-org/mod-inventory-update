@@ -975,8 +975,7 @@ public class InventoryUpdateTestSuite {
                             .put("items", new JsonArray()
                                     .add(new InputItem().setHrid("ITM-003").setBarcode("BC-003").getJson()))));
 
-    String instanceId2 = inventoryRecordSet2.getJsonObject("instance").getString("id");
-    JsonObject secondResponse = upsertByHrid(inventoryRecordSet2);
+    upsertByHrid(inventoryRecordSet2);
 
     storedHoldings = getFromStorage(FakeInventoryStorage.HOLDINGS_STORAGE_PATH, "instanceId==\"" + instanceId1 + "\"");
     testContext.assertEquals(storedHoldings.getInteger("totalRecords"), 0,
@@ -985,6 +984,25 @@ public class InventoryUpdateTestSuite {
     storedHoldings = getFromStorage(FakeInventoryStorage.HOLDINGS_STORAGE_PATH, "hrid==\"HOL-001\" or hrid==\"HOL-002\"");
     testContext.assertEquals(storedHoldings.getInteger("totalRecords"), 2,
             "After move of holdings they should still exist, count should be [2] " + storedHoldings.encodePrettily() );
+
+    JsonObject inventoryRecordSet3 = new JsonObject()
+            .put("instance",
+                    new InputInstance().setTitle("Initial InputInstance").setInstanceTypeId("12345").setHrid(instanceHrid1).getJson())
+            .put("holdingsRecords", new JsonArray()
+                    .add(new InputHoldingsRecord().setHrid("HOL-003").setPermanentLocationId(LOCATION_ID).setCallNumber("test-cn-3").getJson()
+                            .put("items", new JsonArray()
+                                    .add(new InputItem().setHrid("ITM-003").setBarcode("BC-003").getJson()))));
+
+    JsonObject thirdResponse = upsertByHrid(inventoryRecordSet3);
+    testContext.assertEquals(getMetric(thirdResponse, "HOLDINGS_RECORD", "CREATED" , "COMPLETED"), 1,
+            "Third update should report [1] holdings record successfully created  " + thirdResponse.encodePrettily());
+    testContext.assertEquals(getMetric(thirdResponse, "ITEM", "UPDATED" , "COMPLETED"), 1,
+            "Third update should report [1] item successfully updated (moved)  " + thirdResponse.encodePrettily());
+
+    JsonObject storedItems = getFromStorage(FakeInventoryStorage.ITEM_STORAGE_PATH, null);
+    testContext.assertEquals(storedItems.getInteger("totalRecords"), 3,
+            "After two moves of holdings/items there should still be [3] items total in storage " + storedItems.encodePrettily() );
+
 
   }
 

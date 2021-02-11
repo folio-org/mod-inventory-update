@@ -80,6 +80,7 @@ public class InventoryUpdateTestSuite {
   @Test
   public void testFakeInventoryStorage(TestContext testContext) {
     createInitialInstanceWithMatchKey();
+    new StorageValidatorLocations().validateStorage(testContext);
     new StorageValidatorInstances().validateStorage(testContext);
     new StorageValidatorHoldingsRecords().validateStorage(testContext);
     new StorageValidatorItems().validateStorage(testContext);
@@ -194,6 +195,93 @@ public class InventoryUpdateTestSuite {
     testContext.assertEquals(instanceTypeIdAfter,"12345","Expected instanceTypeId to be '12345' after PUT");
 
   }
+
+  /**
+   * Tests API /shared-inventory-upsert-matchkey
+   * @param testContext
+   */
+  @Test
+  public void upsertByMatchKeyWillCreateHoldingsAndItems(TestContext testContext) {
+    String instanceHrid = "1";
+    JsonObject upsertResponseJson = upsertByMatchKey(new JsonObject()
+            .put("instance",
+                    new InputInstance().setTitle("Initial InputInstance").setInstanceTypeId("12345").setHrid(instanceHrid).getJson())
+            .put("holdingsRecords", new JsonArray()
+                    .add(new InputHoldingsRecord().setHrid("HOL-001").setPermanentLocationId(LOCATION_ID).setCallNumber("test-cn-1").getJson()
+                            .put("items", new JsonArray()
+                                    .add(new InputItem().setHrid("ITM-001").setBarcode("BC-001").getJson())
+                                    .add(new InputItem().setHrid("ITM-002").setBarcode("BC-002").getJson())))
+                    .add(new InputHoldingsRecord().setHrid("HOL-002").setPermanentLocationId(LOCATION_ID).setCallNumber("test-cn-2").getJson()
+                            .put("items", new JsonArray()
+                                    .add(new InputItem().setHrid("ITM-003").setBarcode("BC-003").getJson())))));
+
+    String instanceId = upsertResponseJson.getJsonObject("instance").getString("id");
+
+    testContext.assertEquals(getMetric(upsertResponseJson, "HOLDINGS_RECORD", "CREATED" , "COMPLETED"), 2,
+            "Upsert metrics response should report [2] holdings records successfully created " + upsertResponseJson.encodePrettily());
+    testContext.assertEquals(getMetric(upsertResponseJson, "ITEM", "CREATED" , "COMPLETED"), 3,
+            "Upsert metrics response should report [3] items successfully created " + upsertResponseJson.encodePrettily());
+    JsonObject storedHoldings = getFromStorage(FakeInventoryStorage.HOLDINGS_STORAGE_PATH, "instanceId==\"" + instanceId + "\"");
+    testContext.assertEquals(storedHoldings.getInteger("totalRecords"), 2,
+            "After upsert the number of holdings records for instance " + instanceId + " should be [2] " + storedHoldings.encodePrettily() );
+    JsonObject storedItems = getFromStorage(FakeInventoryStorage.ITEM_STORAGE_PATH, null);
+    testContext.assertEquals(storedItems.getInteger("totalRecords"), 3,
+            "After upsert the total number of items should be [3] " + storedHoldings.encodePrettily() );
+
+  }
+
+  /**
+   * Tests API /shared-inventory-upsert-matchkey
+   * @param testContext
+   */
+  @Test
+  public void upsertByMatchKeyWillUpdateHoldingsAndItems (TestContext testContext) {
+    String instanceHrid = "1";
+    JsonObject upsertResponseJson = upsertByMatchKey(new JsonObject()
+            .put("instance",
+                    new InputInstance().setTitle("Initial InputInstance").setInstanceTypeId("12345").setHrid(instanceHrid).getJson())
+            .put("holdingsRecords", new JsonArray()
+                    .add(new InputHoldingsRecord().setHrid("HOL-001").setPermanentLocationId(LOCATION_ID).setCallNumber("test-cn-1").getJson()
+                            .put("items", new JsonArray()
+                                    .add(new InputItem().setHrid("ITM-001").setBarcode("BC-001").getJson())
+                                    .add(new InputItem().setHrid("ITM-002").setBarcode("BC-002").getJson())))
+                    .add(new InputHoldingsRecord().setHrid("HOL-002").setPermanentLocationId(LOCATION_ID).setCallNumber("test-cn-2").getJson()
+                            .put("items", new JsonArray()
+                                    .add(new InputItem().setHrid("ITM-003").setBarcode("BC-003").getJson())))));
+
+    testContext.assertEquals(getMetric(upsertResponseJson, "HOLDINGS_RECORD", "CREATED" , "COMPLETED"), 2,
+            "Upsert metrics response should report [2] holdings records successfully created " + upsertResponseJson.encodePrettily());
+    testContext.assertEquals(getMetric(upsertResponseJson, "ITEM", "CREATED" , "COMPLETED"), 3,
+            "Upsert metrics response should report [3] items successfully created " + upsertResponseJson.encodePrettily());
+
+    upsertResponseJson = upsertByMatchKey(new JsonObject()
+            .put("instance",
+                    new InputInstance().setTitle("Initial InputInstance").setInstanceTypeId("12345").setHrid(instanceHrid).getJson())
+            .put("holdingsRecords", new JsonArray()
+                    .add(new InputHoldingsRecord().setHrid("HOL-001").setPermanentLocationId(LOCATION_ID).setCallNumber("updated-1").getJson()
+                            .put("items", new JsonArray()
+                                    .add(new InputItem().setHrid("ITM-001").setBarcode("updated").getJson())
+                                    .add(new InputItem().setHrid("ITM-002").setBarcode("updated").getJson())))
+                    .add(new InputHoldingsRecord().setHrid("HOL-002").setPermanentLocationId(LOCATION_ID).setCallNumber("updated-2").getJson()
+                            .put("items", new JsonArray()
+                                    .add(new InputItem().setHrid("ITM-003").setBarcode("updated").getJson())))));
+
+    testContext.assertEquals(getMetric(upsertResponseJson, "HOLDINGS_RECORD", "DELETED" , "COMPLETED"), 2,
+            "Upsert metrics response should report [2] holdings records successfully deleted " + upsertResponseJson.encodePrettily());
+    testContext.assertEquals(getMetric(upsertResponseJson, "HOLDINGS_RECORD", "CREATED" , "COMPLETED"), 2,
+            "Upsert metrics response should report [2] holdings records successfully created " + upsertResponseJson.encodePrettily());
+    testContext.assertEquals(getMetric(upsertResponseJson, "ITEM", "DELETED" , "COMPLETED"), 3,
+            "Upsert metrics response should report [3] items successfully deleted " + upsertResponseJson.encodePrettily());
+    testContext.assertEquals(getMetric(upsertResponseJson, "ITEM", "CREATED" , "COMPLETED"), 3,
+            "Upsert metrics response should report [3] items successfully created " + upsertResponseJson.encodePrettily());
+
+    getFromStorage(FakeInventoryStorage.ITEM_STORAGE_PATH,null).getJsonArray("items").stream().forEach(item -> {
+      testContext.assertEquals(((JsonObject)item).getString("barcode"), "updated",
+              "The barcode of all items should be updated to 'updated' after upsert of existing record set with holdings and items");
+    });
+
+  }
+
 
   /**
    * Tests API /inventory-upsert-hrid
@@ -643,7 +731,7 @@ public class InventoryUpdateTestSuite {
                                                     .setTitle("Provisional Instance")
                                                     .setSource("MARC")
                                                     .setInstanceTypeId("12345").getJson()).getJson()))));
-    logger.debug("Response on upsert with provisional instance: " + childResponseJson.encodePrettily());
+
     testContext.assertEquals(getMetric(childResponseJson, "INSTANCE_RELATIONSHIP", "CREATED", "COMPLETED"), 1,
             "Upsert metrics response should report [1] instance relationship successfully created " + childResponseJson.encodePrettily());
     testContext.assertEquals(getMetric(childResponseJson, "INSTANCE_RELATIONSHIP", "PROVISIONAL_INSTANCE", "COMPLETED"), 1,
@@ -837,7 +925,6 @@ public class InventoryUpdateTestSuite {
   }
 
   private int getMetric (JsonObject upsertResponse, String entity, String transaction, String outcome) {
-    logger.debug("Checking " + entity + " " + transaction + " " + outcome);
     if (upsertResponse.containsKey("metrics")
             && upsertResponse.getJsonObject("metrics").containsKey(entity)
             && upsertResponse.getJsonObject("metrics").getJsonObject(entity).containsKey(transaction)

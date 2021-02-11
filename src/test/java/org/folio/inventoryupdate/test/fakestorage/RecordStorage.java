@@ -29,7 +29,7 @@ public abstract class RecordStorage {
     protected String resultSetName = null;
 
     protected final Map<String, InventoryRecord> records = new HashMap<>();
-    private final Logger logger = LoggerFactory.getLogger("fake-inventory-storage");
+    protected final Logger logger = LoggerFactory.getLogger("fake-inventory-storage");
 
     public void attachToFakeStorage(FakeInventoryStorage fakeStorage) {
         this.fakeStorage = fakeStorage;

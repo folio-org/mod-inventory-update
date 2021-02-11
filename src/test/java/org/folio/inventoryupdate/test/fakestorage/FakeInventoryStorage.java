@@ -40,6 +40,8 @@ public class FakeInventoryStorage {
         precedingSucceedingStorage.attachToFakeStorage(this);
 
         Router router = Router.router(vertx);
+        router.get(LOCATION_STORAGE_PATH).handler(locationStorage::getRecords);
+        router.get(LOCATION_STORAGE_PATH + "/:id").handler(locationStorage::getRecordById);
         router.get(INSTANCE_STORAGE_PATH).handler(instanceStorage::getRecords);
         router.get(INSTANCE_STORAGE_PATH + "/:id").handler(instanceStorage::getRecordById);
         router.get(HOLDINGS_STORAGE_PATH).handler(holdingsStorage::getRecords);
@@ -51,15 +53,18 @@ public class FakeInventoryStorage {
         router.get(PRECEDING_SUCCEEDING_TITLE_STORAGE_PATH).handler(precedingSucceedingStorage::getRecords);
         router.get(PRECEDING_SUCCEEDING_TITLE_STORAGE_PATH + "/:id").handler(precedingSucceedingStorage::getRecordById);
         router.post("/*").handler(BodyHandler.create());
+        router.post(LOCATION_STORAGE_PATH).handler(locationStorage::createRecord);
         router.post(INSTANCE_STORAGE_PATH).handler(instanceStorage::createRecord);
         router.post(HOLDINGS_STORAGE_PATH).handler(holdingsStorage::createRecord);
         router.post(ITEM_STORAGE_PATH).handler(itemStorage::createRecord);
         router.post(INSTANCE_RELATIONSHIP_STORAGE_PATH).handler(instanceRelationshipStorage::createRecord);
         router.post(PRECEDING_SUCCEEDING_TITLE_STORAGE_PATH).handler(precedingSucceedingStorage::createRecord);
         router.put("/*").handler(BodyHandler.create());
+        router.put(LOCATION_STORAGE_PATH + "/:id").handler(locationStorage::updateRecord);
         router.put(INSTANCE_STORAGE_PATH + "/:id").handler(instanceStorage::updateRecord);
         router.put(HOLDINGS_STORAGE_PATH + "/:id").handler(holdingsStorage::updateRecord);
         router.put(ITEM_STORAGE_PATH + "/:id").handler(itemStorage::updateRecord);
+        router.delete(LOCATION_STORAGE_PATH + "/:id").handler(locationStorage::deleteRecord);
         router.delete(INSTANCE_STORAGE_PATH + "/:id").handler(instanceStorage::deleteRecord);
         router.delete(HOLDINGS_STORAGE_PATH + "/:id").handler(holdingsStorage::deleteRecord);
         router.delete(ITEM_STORAGE_PATH + "/:id").handler(itemStorage::deleteRecord);

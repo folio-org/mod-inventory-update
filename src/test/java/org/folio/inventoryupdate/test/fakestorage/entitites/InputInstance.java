@@ -1,5 +1,6 @@
 package org.folio.inventoryupdate.test.fakestorage.entitites;
 
+import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 
 public class InputInstance extends InventoryRecord {
@@ -9,6 +10,7 @@ public class InputInstance extends InventoryRecord {
   public static String MATCH_KEY = "matchKey";
   public static String HRID = "hrid";
   public static String SOURCE = "source";
+  public static String IDENTIFIERS = "identifiers";
 
   public InputInstance(JsonObject record) {
     super(record);
@@ -47,18 +49,9 @@ public class InputInstance extends InventoryRecord {
     return recordJson.getString(HRID);
   }
 
-  /*
-  public boolean match(String query) {
-    String trimmed = query.replace("(","").replace(")", "");
-    String[] queryParts = trimmed.split("==");
-    System.out.println("query: " +query);
-    System.out.println("queryParts[0]: " + queryParts[0]);
-    String key = queryParts[0];
-    String value = queryParts.length > 1 ?  queryParts[1].replace("\"", "") : "";
-    System.out.println("key: "+key);
-    System.out.println("value: "+value);
-    System.out.println("instance.getString(key): " + recordJson.getString(key));
-    return (recordJson.getString(key) != null && recordJson.getString(key).equals(value));
+  public InputInstance setIdentifiers (JsonArray identifiers) {
+    recordJson.put(IDENTIFIERS, identifiers);
+    return this;
   }
-   */
+
 }

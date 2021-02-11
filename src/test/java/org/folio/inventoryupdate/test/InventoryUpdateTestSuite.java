@@ -284,6 +284,59 @@ public class InventoryUpdateTestSuite {
 
   }
 
+  @Test
+  public void deleteSharedInstanceWillDeleteHoldingsItems (TestContext testContext) {
+
+    String instanceHrid = "002";
+    JsonObject upsertResponseJson = upsertByMatchKey(new JsonObject()
+            .put("instance",
+                    new InputInstance().setTitle("Initial InputInstance")
+                            .setInstanceTypeId("12345")
+                            .setHrid(instanceHrid)
+                            .setIdentifiers(new JsonArray().add(new JsonObject().put("identifierTypeId","iti-000").put("value","999"))).getJson())
+            .put("holdingsRecords", new JsonArray()
+                    .add(new InputHoldingsRecord().setHrid("HOL-001").setPermanentLocationId(LOCATION_ID).setCallNumber("test-cn-1").getJson()
+                            .put("items", new JsonArray()
+                                    .add(new InputItem().setHrid("ITM-001").setBarcode("BC-001").getJson())
+                                    .add(new InputItem().setHrid("ITM-002").setBarcode("BC-002").getJson())))
+                    .add(new InputHoldingsRecord().setHrid("HOL-002").setPermanentLocationId(LOCATION_ID).setCallNumber("test-cn-2").getJson()
+                            .put("items", new JsonArray()
+                                    .add(new InputItem().setHrid("ITM-003").setBarcode("BC-003").getJson())))));
+
+    String instanceId = upsertResponseJson.getJsonObject("instance").getString("id");
+
+    testContext.assertEquals(getMetric(upsertResponseJson, "HOLDINGS_RECORD", "CREATED" , "COMPLETED"), 2,
+            "Upsert metrics response should report [2] holdings records successfully created " + upsertResponseJson.encodePrettily());
+    testContext.assertEquals(getMetric(upsertResponseJson, "ITEM", "CREATED" , "COMPLETED"), 3,
+            "Upsert metrics response should report [3] items successfully created " + upsertResponseJson.encodePrettily());
+
+    JsonObject storedHoldings = getFromStorage(FakeInventoryStorage.HOLDINGS_STORAGE_PATH, "instanceId==\"" + instanceId + "\"");
+    testContext.assertEquals(storedHoldings.getInteger("totalRecords"), 2,
+            "After upsert the number of holdings records for instance " + instanceId + " should be [2] " + storedHoldings.encodePrettily() );
+    JsonObject storedItems = getFromStorage(FakeInventoryStorage.ITEM_STORAGE_PATH, null);
+    testContext.assertEquals(storedItems.getInteger("totalRecords"), 3,
+            "After upsert the total number of items should be [3] " + storedItems.encodePrettily() );
+
+    JsonObject deleteSignal = new JsonObject()
+            .put("institutionId",INSTITUTION_ID)
+            .put("oaiIdentifier","oai:999")
+            .put("identifierTypeId", "iti-000");
+
+    JsonObject deleteResponse = delete(MainVerticle.SHARED_INVENTORY_UPSERT_MATCHKEY_PATH,deleteSignal);
+    testContext.assertEquals(getMetric(deleteResponse, "HOLDINGS_RECORD", "DELETED" , "COMPLETED"), 2,
+            "Upsert metrics response should report [2] holdings records successfully deleted " + deleteResponse.encodePrettily());
+    testContext.assertEquals(getMetric(deleteResponse, "ITEM", "DELETED" , "COMPLETED"), 3,
+            "Delete metrics response should report [3] items successfully deleted " + deleteResponse.encodePrettily());
+
+    storedHoldings = getFromStorage(FakeInventoryStorage.HOLDINGS_STORAGE_PATH, "instanceId==\"" + instanceId + "\"");
+    testContext.assertEquals(storedHoldings.getInteger("totalRecords"), 0,
+            "After delete the number of holdings records for instance " + instanceId + " should be [0] " + storedHoldings.encodePrettily() );
+    storedItems = getFromStorage(FakeInventoryStorage.ITEM_STORAGE_PATH, null);
+    testContext.assertEquals(storedItems.getInteger("totalRecords"), 0,
+            "After delete the total number of items should be [3] " + storedItems.encodePrettily() );
+
+  }
+
 
   /**
    * Tests API /inventory-upsert-hrid
@@ -823,7 +876,7 @@ public class InventoryUpdateTestSuite {
     //TODO
   }
 
-   @Test
+  @Test
   public void deleteByHridWillDeleteInstanceRelationsHoldingsItems (TestContext testContext) {
      // Create succeeding title
      upsertByHrid(

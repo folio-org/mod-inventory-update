@@ -48,6 +48,9 @@ public abstract class InventoryRecord {
         logger.debug("orSections: " + (orSections.length>1 ? orSections[0] + ", " + orSections[1] : orSections[0]));
 
         for (int i=0; i<orSections.length; i++) {
+            if (orSections[i].contains("@identifierTypeId")) {
+                return matchIdentifierQuery(orSections[i]);
+            }
             String[] queryParts = orSections[i].split("==");
             logger.debug("query: " +query);
             logger.debug("queryParts[0]: " + queryParts[0]);
@@ -56,12 +59,29 @@ public abstract class InventoryRecord {
             logger.debug("key: "+key);
             logger.debug("value: "+value);
             logger.debug("recordJson.getString(key): " + recordJson.getString(key));
-            if (logger.isDebugEnabled()) {
-                logger.debug("Query parameter [" + value + "] matches record property [" + key + "("+ recordJson.getString(key)+")] ?: "
+            logger.debug("Query parameter [" + value + "] matches record property [" + key + "("+ recordJson.getString(key)+")] ?: "
                         +(recordJson.getString(key) != null && recordJson.getString(key).equals(value)));
-            }
             if  (recordJson.getString(key) != null && recordJson.getString(key).equals(value)) {
                 return true;
+            }
+        }
+        return false;
+    }
+
+    public boolean matchIdentifierQuery (String identifierQuery) {
+        String[] sections = identifierQuery.split(" ");
+        String[] typeCriterion = sections[1].split("=");
+        String identifierType = typeCriterion[2].replace("\"","");
+        String value = sections[2].replace("\"","");
+        logger.debug("Identifier query received, identifierType: [" + identifierType + "], value: [" + value + "]");
+        if (recordJson.containsKey("identifiers")) {
+            for (Object o : recordJson.getJsonArray("identifiers")) {
+               JsonObject identifier = (JsonObject) o;
+               if (identifier.getString("identifierTypeId").equals(identifierType)
+                       &&
+                   identifier.getString("value").equals(value)) {
+                   return true;
+               }
             }
         }
         return false;

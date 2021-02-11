@@ -430,11 +430,6 @@ public abstract class UpdatePlan {
         return metrics.asJson();
     }
 
-    public boolean hasErrors () {
-        // todo: account for deletes (no updating set)
-        return getUpdatingRecordSet().hasErrors();
-    }
-
     public JsonArray getErrors () {
         // todo: combine error sets?
         return isDeletion ? getExistingRecordSet().getErrors() : getUpdatingRecordSet().getErrors();

@@ -718,9 +718,16 @@ public class InventoryUpdateTestSuite {
                     .add(new InputHoldingsRecord().setHrid("HOL-002").setPermanentLocationId("BAD_LOCATION").setCallNumber("test-cn-2").getJson()
                             .put("items", new JsonArray()
                                     .add(new InputItem().setHrid("ITM-003").setBarcode("BC-003").getJson())))));
-
-    testContext.assertTrue(new JsonObject(upsertResponse.getBody().asString()).containsKey("errors"),
+    JsonObject upsertResponseJson = new JsonObject(upsertResponse.getBody().asString());
+    testContext.assertTrue(upsertResponseJson.containsKey("errors"),
             "After upsert with holdings record with bad location id, the response should contain error reports");
+    testContext.assertEquals(getMetric(upsertResponseJson, "HOLDINGS_RECORD", "CREATED" , "FAILED"), 1,
+            "Upsert metrics response should report [1] holdings records update failure for wrong location ID " + upsertResponseJson.encodePrettily());
+  }
+
+  @Test
+  public void upsertByHridWillReturnErrorResponseOnMissingInstanceInRequestBody (TestContext testContext) {
+    upsertByHrid(400, new JsonObject().put("invalid", "No Instance here"));
   }
 
   @After

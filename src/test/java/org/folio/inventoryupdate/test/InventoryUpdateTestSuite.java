@@ -288,8 +288,12 @@ public class InventoryUpdateTestSuite {
 
   }
 
+  /**
+   * Tests API /shared-inventory-upsert-matchkey
+   * @param testContext
+   */
   @Test
-  public void deleteSharedInstanceWillDeleteSelectHoldingsItems (TestContext testContext) {
+  public void testSharedInstanceUpsertAndDeleteByTwoInstitutions (TestContext testContext) {
 
     final String identifierTypeId1 = "iti-001";
     final String identifierValue1 = "111";

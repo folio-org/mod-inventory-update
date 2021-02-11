@@ -8,6 +8,7 @@ public class InputInstance extends InventoryRecord {
   public static String INSTANCE_TYPE_ID = "instanceTypeId";
   public static String MATCH_KEY = "matchKey";
   public static String HRID = "hrid";
+  public static String SOURCE = "source";
 
   public InputInstance(JsonObject record) {
     super(record);
@@ -24,6 +25,11 @@ public class InputInstance extends InventoryRecord {
 
   public InputInstance setInstanceTypeId (String instanceTypeId) {
     recordJson.put(INSTANCE_TYPE_ID, instanceTypeId);
+    return this;
+  }
+
+  public InputInstance setSource (String source) {
+    recordJson.put(SOURCE, source);
     return this;
   }
 

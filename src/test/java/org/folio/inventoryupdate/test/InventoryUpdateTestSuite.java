@@ -629,7 +629,28 @@ public class InventoryUpdateTestSuite {
 
   @Test
   public void upsertByHridWillCreateProvisionalInstanceIfNeededForRelation (TestContext testContext) {
-    //TODO
+    String childHrid = "002";
+    String parentHrid = "001";
+
+    JsonObject childResponseJson = upsertByHrid(new JsonObject()
+            .put("instance",
+                    new InputInstance().setTitle("Child InputInstance").setInstanceTypeId("12345").setHrid(childHrid).getJson())
+            .put("instanceRelations", new JsonObject()
+                    .put("parentInstances", new JsonArray()
+                            .add(new InputInstanceRelationship().setInstanceIdentifierHrid(parentHrid)
+                                    .setProvisionalInstance(
+                                            new InputInstance()
+                                                    .setTitle("Provisional Instance")
+                                                    .setSource("MARC")
+                                                    .setInstanceTypeId("12345").getJson()).getJson()))));
+    logger.debug("Response on upsert with provisional instance: " + childResponseJson.encodePrettily());
+    testContext.assertEquals(getMetric(childResponseJson, "INSTANCE_RELATIONSHIP", "CREATED", "COMPLETED"), 1,
+            "Upsert metrics response should report [1] instance relationship successfully created " + childResponseJson.encodePrettily());
+    testContext.assertEquals(getMetric(childResponseJson, "INSTANCE_RELATIONSHIP", "PROVISIONAL_INSTANCE", "COMPLETED"), 1,
+            "Upsert metrics response should report [1] provisional instance successfully created " + childResponseJson.encodePrettily());
+    JsonObject instancesAfterUpsertJson = getFromStorage(FakeInventoryStorage.INSTANCE_STORAGE_PATH, null);
+    testContext.assertEquals(instancesAfterUpsertJson.getInteger("totalRecords"), 2,
+            "After upsert with provisional instance the total number of instances should be [2] " + instancesAfterUpsertJson.encodePrettily() );
   }
 
   @Test
@@ -708,7 +729,7 @@ public class InventoryUpdateTestSuite {
   }
 
   @Test
-  public void upsertByHridWithMissingHridsWillBeRejected (TestContext testContext) {
+  public void upsertByHridWithMissingHridWillBeRejected (TestContext testContext) {
     String instanceHrid = "1";
     Response upsertResponse = upsertByHrid(422, new JsonObject()
             .put("instance",

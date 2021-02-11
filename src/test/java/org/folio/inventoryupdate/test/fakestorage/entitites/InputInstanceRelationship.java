@@ -8,6 +8,7 @@ public class InputInstanceRelationship extends InventoryRecord {
     public static final String SUPER_INSTANCE_ID = "superInstanceId";
 
     public static final String INSTANCE_IDENTIFIER = "instanceIdentifier";
+    public static final String PROVISIONAL_INSTANCE = "provisionalInstance";
 
     public InputInstanceRelationship(JsonObject record) {
         super(record);
@@ -29,6 +30,11 @@ public class InputInstanceRelationship extends InventoryRecord {
 
     public InputInstanceRelationship setInstanceIdentifierHrid(String hrid) {
         recordJson.put(INSTANCE_IDENTIFIER, new JsonObject().put("hrid", hrid));
+        return this;
+    }
+
+    public InputInstanceRelationship setProvisionalInstance (JsonObject instanceJson) {
+        recordJson.put(PROVISIONAL_INSTANCE, instanceJson);
         return this;
     }
 

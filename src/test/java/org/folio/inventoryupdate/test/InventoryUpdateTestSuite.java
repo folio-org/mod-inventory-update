@@ -1,6 +1,7 @@
 package org.folio.inventoryupdate.test;
 
 import io.vertx.core.impl.logging.Logger;
+import io.vertx.core.json.Json;
 import io.vertx.core.json.JsonArray;
 import org.folio.inventoryupdate.MainVerticle;
 import org.folio.inventoryupdate.MatchKey;
@@ -412,8 +413,6 @@ public class InventoryUpdateTestSuite {
   public void upsertByHridWillGraciouslyFailWithMissingInstanceTitle (TestContext testContext) {
     //TODO
   }
-
-
 
   /**
    * Tests API /inventory-upsert-hrid
@@ -1147,6 +1146,38 @@ public class InventoryUpdateTestSuite {
     upsertByHrid(400, new JsonObject().put("invalid", "No Instance here"));
   }
 
+  @Test
+  public void testInvalidApiPath (TestContext testContext) {
+    JsonObject inventoryRecordSet = new JsonObject();
+    inventoryRecordSet.put("instance", new InputInstance()
+            .setTitle("Initial InputInstance").setInstanceTypeId("12345").getJson());
+    putJsonObject(MainVerticle.SHARED_INVENTORY_UPSERT_MATCHKEY_PATH + "/invalid",inventoryRecordSet,404);
+  }
+
+  @Test
+  public void testSendingNonJson (TestContext testContext) {
+    RestAssured.port = PORT_INVENTORY_UPDATE;
+    RestAssured.given()
+        .body("bad request body")
+        .header("Content-type","application/json")
+        .header(OKAPI_URL_HEADER)
+        .put(MainVerticle.INVENTORY_UPSERT_HRID_PATH)
+        .then()
+        .log().ifValidationFails()
+        .statusCode(400).extract().response();
+
+    RestAssured.given()
+            .body(new JsonObject().toString())
+            .header("Content-type","text/plain")
+            .header(OKAPI_URL_HEADER)
+            .put(MainVerticle.INVENTORY_UPSERT_HRID_PATH)
+            .then()
+            .log().ifValidationFails()
+            .statusCode(400).extract().response();
+
+  }
+
+
   @After
   public void tearDown(TestContext context) {
     Async async = context.async();
@@ -1222,7 +1253,6 @@ public class InventoryUpdateTestSuite {
     return new JsonObject(response.getBody().asString());
 
   }
-
 
   private int getMetric (JsonObject upsertResponse, String entity, String transaction, String outcome) {
     if (upsertResponse.containsKey("metrics")

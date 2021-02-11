@@ -943,11 +943,53 @@ public class InventoryUpdateTestSuite {
 
   @Test
   public void upsertByHridWillMoveHoldingsAndItems (TestContext testContext) {
-    //TODO
+    String instanceHrid1 = "1";
+    JsonObject inventoryRecordSet1 = new JsonObject()
+            .put("instance",
+                    new InputInstance().setTitle("Initial InputInstance").setInstanceTypeId("12345").setHrid(instanceHrid1).getJson())
+            .put("holdingsRecords", new JsonArray()
+                    .add(new InputHoldingsRecord().setHrid("HOL-001").setPermanentLocationId(LOCATION_ID).setCallNumber("test-cn-1").getJson()
+                            .put("items", new JsonArray()
+                                    .add(new InputItem().setHrid("ITM-001").setBarcode("BC-001").getJson())
+                                    .add(new InputItem().setHrid("ITM-002").setBarcode("BC-002").getJson())))
+                    .add(new InputHoldingsRecord().setHrid("HOL-002").setPermanentLocationId(LOCATION_ID).setCallNumber("test-cn-2").getJson()
+                            .put("items", new JsonArray()
+                                    .add(new InputItem().setHrid("ITM-003").setBarcode("BC-003").getJson()))));
+
+    JsonObject firstResponse = upsertByHrid(inventoryRecordSet1);
+    String instanceId1 = firstResponse.getJsonObject("instance").getString("id");
+    JsonObject storedHoldings = getFromStorage(FakeInventoryStorage.HOLDINGS_STORAGE_PATH, "instanceId==\"" + instanceId1 + "\"");
+    testContext.assertEquals(storedHoldings.getInteger("totalRecords"), 2,
+            "After upsert the number of holdings records for instance " + instanceId1 + " should be [2] " + storedHoldings.encodePrettily() );
+
+    String instanceHrid2 = "2";
+    JsonObject inventoryRecordSet2 = new JsonObject()
+            .put("instance",
+                    new InputInstance().setTitle("InputInstance 2").setInstanceTypeId("12345").setHrid(instanceHrid2).getJson())
+            .put("holdingsRecords", new JsonArray()
+                    .add(new InputHoldingsRecord().setHrid("HOL-001").setPermanentLocationId(LOCATION_ID).setCallNumber("test-cn-1").getJson()
+                            .put("items", new JsonArray()
+                                    .add(new InputItem().setHrid("ITM-001").setBarcode("BC-001").getJson())
+                                    .add(new InputItem().setHrid("ITM-002").setBarcode("BC-002").getJson())))
+                    .add(new InputHoldingsRecord().setHrid("HOL-002").setPermanentLocationId(LOCATION_ID).setCallNumber("test-cn-2").getJson()
+                            .put("items", new JsonArray()
+                                    .add(new InputItem().setHrid("ITM-003").setBarcode("BC-003").getJson()))));
+
+    String instanceId2 = inventoryRecordSet2.getJsonObject("instance").getString("id");
+    JsonObject secondResponse = upsertByHrid(inventoryRecordSet2);
+
+    storedHoldings = getFromStorage(FakeInventoryStorage.HOLDINGS_STORAGE_PATH, "instanceId==\"" + instanceId1 + "\"");
+    testContext.assertEquals(storedHoldings.getInteger("totalRecords"), 0,
+            "After move of holdings the number of holdings records for instance " + instanceId1 + " should be [0] " + storedHoldings.encodePrettily() );
+
+    storedHoldings = getFromStorage(FakeInventoryStorage.HOLDINGS_STORAGE_PATH, "hrid==\"HOL-001\" or hrid==\"HOL-002\"");
+    testContext.assertEquals(storedHoldings.getInteger("totalRecords"), 2,
+            "After move of holdings they should still exist, count should be [2] " + storedHoldings.encodePrettily() );
+
   }
 
   @Test
-  public void upsertByHridWithMissingHridWillBeRejected (TestContext testContext) {
+  public void upsertByHridWithMissingItemHridWillBeRejected (TestContext testContext) {
     String instanceHrid = "1";
     Response upsertResponse = upsertByHrid(422, new JsonObject()
             .put("instance",
@@ -962,6 +1004,24 @@ public class InventoryUpdateTestSuite {
                                     .add(new InputItem().setBarcode("BC-003").getJson())))));
 
   }
+
+  @Test
+  public void upsertByHridWithMissingHoldingsHridWillBeRejected (TestContext testContext) {
+    String instanceHrid = "1";
+    Response upsertResponse = upsertByHrid(422, new JsonObject()
+            .put("instance",
+                    new InputInstance().setTitle("Initial InputInstance").setInstanceTypeId("12345").setHrid(instanceHrid).getJson())
+            .put("holdingsRecords", new JsonArray()
+                    .add(new InputHoldingsRecord().setHrid("HOL-001").setPermanentLocationId(LOCATION_ID).setCallNumber("test-cn-1").getJson()
+                            .put("items", new JsonArray()
+                                    .add(new InputItem().setBarcode("BC-001").getJson())
+                                    .add(new InputItem().setHrid("ITM-002").setBarcode("BC-002").getJson())))
+                    .add(new InputHoldingsRecord().setPermanentLocationId(LOCATION_ID).setCallNumber("test-cn-2").getJson()
+                            .put("items", new JsonArray()
+                                    .add(new InputItem().setHrid("ITM-003").setBarcode("BC-003").getJson())))));
+
+  }
+
 
   @Test
   public void upsertByHridWillHaveErrorsWithWrongHoldingsLocation (TestContext testContext) {

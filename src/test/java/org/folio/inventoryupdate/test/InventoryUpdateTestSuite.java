@@ -689,6 +689,41 @@ public class InventoryUpdateTestSuite {
   }
 
 
+  @Test
+  public void upsertsByHridWillChangeTypeOfRelationshipBetweenTwoInstances (TestContext testContext) {
+    // PARENT INSTANCE TO-BE
+    String instanceHrid = "1";
+    upsertByHrid(
+            new JsonObject()
+                    .put("instance",
+                            new InputInstance().setTitle("Parent InputInstance").setInstanceTypeId("12345").setHrid(instanceHrid).getJson()));
+    // CHILD INSTANCE
+    String childHrid = "2";
+    JsonObject childResponseJson = upsertByHrid(new JsonObject()
+            .put("instance",
+                    new InputInstance().setTitle("Child InputInstance").setInstanceTypeId("12345").setHrid(childHrid).getJson())
+            .put("instanceRelations", new JsonObject()
+                    .put("parentInstances", new JsonArray()
+                            .add(new InputInstanceRelationship().setInstanceRelationshipTypeId("3333").setInstanceIdentifierHrid(instanceHrid).getJson()))));
+
+    testContext.assertEquals(getMetric(childResponseJson, "INSTANCE_RELATIONSHIP", "CREATED" , "COMPLETED"), 1,
+            "After upsert of Instance with parent relation, metrics should report [1] instance relationship successfully created " + childResponseJson.encodePrettily());
+
+    // POST child Instance again with no parent list
+    childResponseJson = upsertByHrid(new JsonObject()
+            .put("instance",
+                    new InputInstance().setTitle("Child InputInstance").setInstanceTypeId("12345").setHrid(childHrid).getJson())
+            .put("instanceRelations", new JsonObject()
+                    .put("parentInstances", new JsonArray()
+                            .add(new InputInstanceRelationship().setInstanceRelationshipTypeId("4444").setInstanceIdentifierHrid(instanceHrid).getJson()))));
+
+    testContext.assertEquals(getMetric(childResponseJson, "INSTANCE_RELATIONSHIP", "DELETED", "COMPLETED"), 1,
+            "After upsert with different instance relationship type, metrics should report one instance relation deleted " + childResponseJson.encodePrettily());
+    testContext.assertEquals(getMetric(childResponseJson, "INSTANCE_RELATIONSHIP", "CREATED", "COMPLETED"), 1,
+            "After upsert with different instance relationship type, metrics should report one instance relation created " + childResponseJson.encodePrettily());
+
+  }
+
   /**
    * Tests API /inventory-upsert-hrid
    * @param testContext

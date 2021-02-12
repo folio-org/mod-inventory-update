@@ -80,6 +80,8 @@ public class UpdatePlanAllHRIDs extends UpdatePlan {
                             }
                         });
                     }
+                } else {
+                    promisedPlan.fail("There was a problem looking for an existing instance in Inventory Storage" + lookup.cause().getMessage());
                 }
             });
         } else {

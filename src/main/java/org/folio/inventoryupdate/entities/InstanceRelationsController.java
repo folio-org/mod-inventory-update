@@ -76,8 +76,7 @@ public class InstanceRelationsController extends JsonRepresentation {
      * @return
      */
     boolean hasRelationshipRecords(JsonObject irsJson) {
-        return (irsJson != null
-                && irsJson.containsKey(INSTANCE_RELATIONS)
+        return (irsJson.containsKey(INSTANCE_RELATIONS)
                 && irsJson.getJsonObject(INSTANCE_RELATIONS).containsKey(EXISTING_PARENT_CHILD_RELATIONS));
     }
 
@@ -87,18 +86,15 @@ public class InstanceRelationsController extends JsonRepresentation {
      * @return
      */
     private boolean hasRelationshipIdentifiers (JsonObject irsJson) {
-        if (irsJson != null) {
-            JsonObject relationsJson = irsJson.getJsonObject(INSTANCE_RELATIONS);
-            if (relationsJson != null) {
-                return (relationsJson.containsKey(PARENT_INSTANCES) ||
-                        relationsJson.containsKey(CHILD_INSTANCES) ||
-                        relationsJson.containsKey(PRECEDING_TITLES) ||
-                        relationsJson.containsKey(SUCCEEDING_TITLES));
-            } else {
-                return false;
-            }
+        JsonObject relationsJson = irsJson.getJsonObject(INSTANCE_RELATIONS);
+        if (relationsJson != null) {
+            return (relationsJson.containsKey(PARENT_INSTANCES) ||
+                    relationsJson.containsKey(CHILD_INSTANCES) ||
+                    relationsJson.containsKey(PRECEDING_TITLES) ||
+                    relationsJson.containsKey(SUCCEEDING_TITLES));
+        } else {
+            return false;
         }
-        return false;
     }
 
     public List<InstanceToInstanceRelation> getInstanceRelationsByTransactionType (InventoryRecord.Transaction transition) {

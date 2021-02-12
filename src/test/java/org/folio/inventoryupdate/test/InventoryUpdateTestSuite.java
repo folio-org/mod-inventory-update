@@ -1478,6 +1478,29 @@ public class InventoryUpdateTestSuite {
                     .put("precedingTitles", new JsonArray()));
     upsertByHrid (inventoryRecordSet);
     upsertByHrid (422,inventoryRecordSet);
+    inventoryRecordSet = new JsonObject()
+            .put("instance",
+                    new InputInstance().setTitle("Test forcedInstanceRelationshipGetRecordsFailure").setInstanceTypeId("12345").setHrid("001").getJson())
+            .put("holdingsRecords", new JsonArray()
+                    .add(new InputHoldingsRecord().setHrid("HOL-001").setPermanentLocationId(LOCATION_ID_1).setCallNumber("test-cn-1").getJson()
+                            .put("items", new JsonArray()
+                                    .add(new InputItem().setHrid("ITM-001").setBarcode("BC-001").getJson())
+                                    .add(new InputItem().setHrid("ITM-002").setBarcode("BC-002").getJson())))
+                    .add(new InputHoldingsRecord().setHrid("HOL-002").setPermanentLocationId(LOCATION_ID_1).setCallNumber("test-cn-2").getJson()
+                            .put("items", new JsonArray()
+                                    .add(new InputItem().setHrid("ITM-003").setBarcode("BC-003").getJson()))))
+            .put("instanceRelations", new JsonObject()
+                    .put("parentInstances",new JsonArray()
+                            .add(new InputInstanceRelationship().setInstanceIdentifierHrid("0001").getJson()))
+                    .put("childInstances", new JsonArray()
+                            .add(new InputInstanceRelationship().setInstanceIdentifierHrid("0001").getJson()))
+                    .put("succeedingTitles", new JsonArray()
+                            .add(new InputInstanceTitleSuccession().setInstanceIdentifierHrid("0001").getJson()))
+                    .put("precedingTitles", new JsonArray()
+                            .add(new InputInstanceTitleSuccession().setInstanceIdentifierHrid("0001").getJson()))
+            );
+    upsertByHrid (422,inventoryRecordSet);
+
   }
 
 

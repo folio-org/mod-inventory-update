@@ -1117,7 +1117,6 @@ public class InventoryUpdateTestSuite {
              .put("instance",
                      new InputInstance().setTitle("InputInstance 2X").setInstanceTypeId("12345").setHrid(instanceHrid2).getJson())
              .put("holdingsRecords", new JsonArray()
-                     .add(new InputHoldingsRecord().setHrid("HOL-001").setPermanentLocationId(LOCATION_ID_1).setCallNumber("test-cn-1").getJson())
                      .add(new InputHoldingsRecord().setHrid("HOL-002").setPermanentLocationId(LOCATION_ID_1).setCallNumber("test-cn-2").getJson()
                              .put("items", new JsonArray()
                                      .add(new InputItem().setHrid("ITM-001").setBarcode("BC-001").getJson())

@@ -169,7 +169,12 @@ public abstract class RecordStorage {
     public void getRecords(RoutingContext routingContext) {
         final String optionalQuery = routingContext.request().getParam("query") != null ?
                 decode(routingContext.request().getParam("query")) : null;
-        respond(routingContext, buildJsonRecordsResponse(optionalQuery), 200);
+        JsonObject responseJson = buildJsonRecordsResponse(optionalQuery);
+        if (responseJson != null) {
+            respond(routingContext, buildJsonRecordsResponse(optionalQuery), 200);
+        } else {
+            respondWithMessage(routingContext, (failOnGetRecords ? "Forced " : "") + " Error on getting records", 500);
+        }
     }
 
     /**
@@ -235,6 +240,7 @@ public abstract class RecordStorage {
     // HELPERS FOR RESPONSE PROCESSING
 
     private JsonObject buildJsonRecordsResponse(String optionalQuery) {
+        if (failOnGetRecords) return null;
         JsonObject response = new JsonObject();
         JsonArray jsonRecords = new JsonArray();
         getRecords().forEach( record -> {

@@ -29,6 +29,8 @@ import io.vertx.ext.unit.junit.VertxUnitRunner;
 import java.util.Arrays;
 import java.util.HashMap;
 
+import static org.folio.inventoryupdate.test.fakestorage.FakeInventoryStorage.RESULT_SET_HOLDINGS_RECORDS;
+
 
 @RunWith(VertxUnitRunner.class)
 public class InventoryUpdateTestSuite {
@@ -1056,9 +1058,9 @@ public class InventoryUpdateTestSuite {
    @Test
    public void upsertByHridWillMoveHoldingsAndItems (TestContext testContext) {
     String instanceHrid1 = "1";
-    JsonObject inventoryRecordSet1 = new JsonObject()
+    JsonObject firstResponse = upsertByHrid(new JsonObject()
             .put("instance",
-                    new InputInstance().setTitle("Initial InputInstance").setInstanceTypeId("12345").setHrid(instanceHrid1).getJson())
+                    new InputInstance().setTitle("InputInstance 1").setInstanceTypeId("12345").setHrid(instanceHrid1).getJson())
             .put("holdingsRecords", new JsonArray()
                     .add(new InputHoldingsRecord().setHrid("HOL-001").setPermanentLocationId(LOCATION_ID_1).setCallNumber("test-cn-1").getJson()
                             .put("items", new JsonArray()
@@ -1066,18 +1068,17 @@ public class InventoryUpdateTestSuite {
                                     .add(new InputItem().setHrid("ITM-002").setBarcode("BC-002").getJson())))
                     .add(new InputHoldingsRecord().setHrid("HOL-002").setPermanentLocationId(LOCATION_ID_1).setCallNumber("test-cn-2").getJson()
                             .put("items", new JsonArray()
-                                    .add(new InputItem().setHrid("ITM-003").setBarcode("BC-003").getJson()))));
+                                    .add(new InputItem().setHrid("ITM-003").setBarcode("BC-003").getJson())))));
 
-    JsonObject firstResponse = upsertByHrid(inventoryRecordSet1);
     String instanceId1 = firstResponse.getJsonObject("instance").getString("id");
     JsonObject storedHoldings = getRecordsFromStorage(FakeInventoryStorage.HOLDINGS_STORAGE_PATH, "instanceId==\"" + instanceId1 + "\"");
     testContext.assertEquals(storedHoldings.getInteger("totalRecords"), 2,
             "After upsert the number of holdings records for instance " + instanceId1 + " should be [2] " + storedHoldings.encodePrettily() );
 
     String instanceHrid2 = "2";
-    JsonObject inventoryRecordSet2 = new JsonObject()
+    upsertByHrid(new JsonObject()
             .put("instance",
-                    new InputInstance().setTitle("InputInstance 2").setInstanceTypeId("12345").setHrid(instanceHrid2).getJson())
+                    new InputInstance().setTitle("InputInstance 2X").setInstanceTypeId("12345").setHrid(instanceHrid2).getJson())
             .put("holdingsRecords", new JsonArray()
                     .add(new InputHoldingsRecord().setHrid("HOL-001").setPermanentLocationId(LOCATION_ID_1).setCallNumber("test-cn-1").getJson()
                             .put("items", new JsonArray()
@@ -1085,9 +1086,7 @@ public class InventoryUpdateTestSuite {
                                     .add(new InputItem().setHrid("ITM-002").setBarcode("BC-002").getJson())))
                     .add(new InputHoldingsRecord().setHrid("HOL-002").setPermanentLocationId(LOCATION_ID_1).setCallNumber("test-cn-2").getJson()
                             .put("items", new JsonArray()
-                                    .add(new InputItem().setHrid("ITM-003").setBarcode("BC-003").getJson()))));
-
-    upsertByHrid(inventoryRecordSet2);
+                                    .add(new InputItem().setHrid("ITM-003").setBarcode("BC-003").getJson())))));
 
     storedHoldings = getRecordsFromStorage(FakeInventoryStorage.HOLDINGS_STORAGE_PATH, "instanceId==\"" + instanceId1 + "\"");
     testContext.assertEquals(storedHoldings.getInteger("totalRecords"), 0,
@@ -1097,26 +1096,40 @@ public class InventoryUpdateTestSuite {
     testContext.assertEquals(storedHoldings.getInteger("totalRecords"), 2,
             "After move of holdings they should still exist, count should be [2] " + storedHoldings.encodePrettily() );
 
-    JsonObject inventoryRecordSet3 = new JsonObject()
+    JsonObject thirdResponse = upsertByHrid(new JsonObject()
             .put("instance",
-                    new InputInstance().setTitle("Initial InputInstance").setInstanceTypeId("12345").setHrid(instanceHrid1).getJson())
+                    new InputInstance().setTitle("InputInstance 1X").setInstanceTypeId("12345").setHrid(instanceHrid1).getJson())
             .put("holdingsRecords", new JsonArray()
                     .add(new InputHoldingsRecord().setHrid("HOL-003").setPermanentLocationId(LOCATION_ID_1).setCallNumber("test-cn-3").getJson()
                             .put("items", new JsonArray()
-                                    .add(new InputItem().setHrid("ITM-003").setBarcode("BC-003").getJson()))));
+                                    .add(new InputItem().setHrid("ITM-003").setBarcode("BC-003").getJson())))));
 
-    JsonObject thirdResponse = upsertByHrid(inventoryRecordSet3);
     testContext.assertEquals(getMetric(thirdResponse, "HOLDINGS_RECORD", "CREATED" , "COMPLETED"), 1,
             "Third update should report [1] holdings record successfully created  " + thirdResponse.encodePrettily());
     testContext.assertEquals(getMetric(thirdResponse, "ITEM", "UPDATED" , "COMPLETED"), 1,
-            "Third update should report [1] item successfully updated (moved)  " + thirdResponse.encodePrettily());
+            "Third update should report [1] item successfully updated (moved)   " + thirdResponse.encodePrettily());
 
     JsonObject storedItems = getRecordsFromStorage(FakeInventoryStorage.ITEM_STORAGE_PATH, null);
     testContext.assertEquals(storedItems.getInteger("totalRecords"), 3,
             "After two moves of holdings/items there should still be [3] items total in storage " + storedItems.encodePrettily() );
 
+     JsonObject fourthResponse = upsertByHrid(new JsonObject()
+             .put("instance",
+                     new InputInstance().setTitle("InputInstance 2X").setInstanceTypeId("12345").setHrid(instanceHrid2).getJson())
+             .put("holdingsRecords", new JsonArray()
+                     .add(new InputHoldingsRecord().setHrid("HOL-001").setPermanentLocationId(LOCATION_ID_1).setCallNumber("test-cn-1").getJson())
+                     .add(new InputHoldingsRecord().setHrid("HOL-002").setPermanentLocationId(LOCATION_ID_1).setCallNumber("test-cn-2").getJson()
+                             .put("items", new JsonArray()
+                                     .add(new InputItem().setHrid("ITM-001").setBarcode("BC-001").getJson())
+                                     .add(new InputItem().setHrid("ITM-002").setBarcode("BC-002").getJson())))));
 
-  }
+     JsonObject storedHoldings002 = getRecordsFromStorage(FakeInventoryStorage.HOLDINGS_STORAGE_PATH, "hrid==\"HOL-002\"");
+     JsonObject holdings002 = storedHoldings002.getJsonArray(RESULT_SET_HOLDINGS_RECORDS).getJsonObject(0);
+     JsonObject storedItemsHol002 = getRecordsFromStorage(FakeInventoryStorage.ITEM_STORAGE_PATH, "holdingsRecordId==\""+holdings002.getString("id")+"\"");
+     testContext.assertEquals(storedItemsHol002.getInteger("totalRecords"), 2,
+             "After moves of items from one holding to the other there should be [2] items on HOL-002 in storage " + storedItemsHol002.encodePrettily() );
+
+   }
 
   @Test
   public void upsertByHridWithMissingItemHridWillBeRejected (TestContext testContext) {

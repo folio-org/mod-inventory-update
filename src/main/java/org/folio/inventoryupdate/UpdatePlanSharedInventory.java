@@ -67,7 +67,6 @@ public class UpdatePlanSharedInventory extends UpdatePlan {
                         } else {
                             promise.fail("There was a problem retrieving locations map, cannot perform updates: " + handler.cause().getMessage());
                         }
-
                     });
                 }
             } else {

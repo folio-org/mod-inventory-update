@@ -1403,6 +1403,24 @@ public class InventoryUpdateTestSuite {
 
   }
 
+  @Test
+  public void testForcedInstanceGetRecordsFailure (TestContext testContext) {
+    fakeInventoryStorage.instanceStorage.failOnGetRecords = true;
+    JsonObject inventoryRecordSet = new JsonObject()
+            .put("instance",
+                    new InputInstance().setTitle("Initial InputInstance").setInstanceTypeId("12345").setHrid("001").getJson())
+            .put("holdingsRecords", new JsonArray()
+                    .add(new InputHoldingsRecord().setHrid("HOL-001").setPermanentLocationId(LOCATION_ID_1).setCallNumber("test-cn-1").getJson()
+                            .put("items", new JsonArray()
+                                    .add(new InputItem().setHrid("ITM-001").setBarcode("BC-001").getJson())
+                                    .add(new InputItem().setHrid("ITM-002").setBarcode("BC-002").getJson())))
+                    .add(new InputHoldingsRecord().setHrid("HOL-002").setPermanentLocationId(LOCATION_ID_1).setCallNumber("test-cn-2").getJson()
+                            .put("items", new JsonArray()
+                                    .add(new InputItem().setHrid("ITM-003").setBarcode("BC-003").getJson()))));
+    upsertByHrid (422,inventoryRecordSet);
+
+  }
+
 
   @After
   public void tearDown(TestContext context) {

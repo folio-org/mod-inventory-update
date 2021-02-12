@@ -95,6 +95,7 @@ public class InventoryUpdateTestSuite {
     new StorageValidatorInstanceRelationships().validateStorage(testContext);
   }
 
+
   /**
    * Tests API /instance-storage-match/instances
    * @param testContext
@@ -1503,6 +1504,29 @@ public class InventoryUpdateTestSuite {
 
   }
 
+  public void testForcedLocationsGetRecordsFailure (TestContext testContext) {
+    fakeInventoryStorage.locationStorage.failOnGetRecords = true;
+    JsonObject inventoryRecordSet = new JsonObject()
+            .put("instance",
+                    new InputInstance().setTitle("Test forcedInstanceRelationshipGetRecordsFailure").setInstanceTypeId("12345").setHrid("001").getJson())
+            .put("holdingsRecords", new JsonArray()
+                    .add(new InputHoldingsRecord().setHrid("HOL-001").setPermanentLocationId(LOCATION_ID_1).setCallNumber("test-cn-1").getJson()
+                            .put("items", new JsonArray()
+                                    .add(new InputItem().setHrid("ITM-001").setBarcode("BC-001").getJson())
+                                    .add(new InputItem().setHrid("ITM-002").setBarcode("BC-002").getJson())))
+                    .add(new InputHoldingsRecord().setHrid("HOL-002").setPermanentLocationId(LOCATION_ID_1).setCallNumber("test-cn-2").getJson()
+                            .put("items", new JsonArray()
+                                    .add(new InputItem().setHrid("ITM-003").setBarcode("BC-003").getJson()))))
+            .put("instanceRelations", new JsonObject()
+                    .put("parentInstances",new JsonArray())
+                    .put("childInstances", new JsonArray())
+                    .put("succeedingTitles", new JsonArray())
+                    .put("precedingTitles", new JsonArray()));
+    upsertByMatchKey (200,inventoryRecordSet);
+    upsertByMatchKey (422, inventoryRecordSet);
+
+  }
+
 
   @After
   public void tearDown(TestContext context) {
@@ -1516,9 +1540,14 @@ public class InventoryUpdateTestSuite {
     return putJsonObject(MainVerticle.SHARED_INVENTORY_UPSERT_MATCHKEY_PATH, inventoryRecordSet);
   }
 
+  private Response upsertByMatchKey (int expectedStatusCode, JsonObject inventoryRecordSet) {
+    return putJsonObject(MainVerticle.SHARED_INVENTORY_UPSERT_MATCHKEY_PATH, inventoryRecordSet, expectedStatusCode);
+  }
+
   private JsonObject upsertByHrid (JsonObject inventoryRecordSet) {
     return putJsonObject(MainVerticle.INVENTORY_UPSERT_HRID_PATH, inventoryRecordSet);
   }
+
 
   private Response upsertByHrid (int expectedStatusCode, JsonObject inventoryRecordSet) {
     return putJsonObject(MainVerticle.INVENTORY_UPSERT_HRID_PATH, inventoryRecordSet, expectedStatusCode);

@@ -45,7 +45,7 @@ public class UpdatePlanSharedInventory extends UpdatePlan {
     @Override
     public Future<Void> planInventoryUpdates(OkapiClient okapiClient) {
         Promise<Void> promise = Promise.promise();
-
+        validateIncomingRecordSet(isDeletion ? new JsonObject() : updatingSet.getSourceJson());
         lookupExistingRecordSet(okapiClient, instanceQuery).onComplete( lookup -> {
             if (lookup.succeeded()) {
                 if (isDeletion && !foundExistingRecordSet()) {
@@ -243,27 +243,23 @@ public class UpdatePlanSharedInventory extends UpdatePlan {
     @Override
     public Future<Void> doInventoryUpdates(OkapiClient okapiClient) {
         Promise<Void> promise = Promise.promise();
-        if (isDeletion && !foundExistingRecordSet()) {
-          promise.complete();
-        } else {
-          handleDeletionsIfAny(okapiClient).onComplete(deletes -> {
-              if (deletes.succeeded()) {
-                  createRecordsWithDependants(okapiClient).onComplete(prerequisites -> {
-                      handleInstanceAndHoldingsUpdatesIfAny(okapiClient).onComplete( instanceAndHoldingsUpdates -> {
-                          handleItemUpdatesAndCreatesIfAny (okapiClient).onComplete(itemUpdatesAndCreates -> {
-                              if (prerequisites.succeeded() && instanceAndHoldingsUpdates.succeeded() && itemUpdatesAndCreates.succeeded() ) {
-                                  promise.complete();
-                              } else {
-                                  promise.fail("One or more errors occurred updating Inventory records");
-                              }
-                          });
+        handleDeletionsIfAny(okapiClient).onComplete(deletes -> {
+          if (deletes.succeeded()) {
+              createRecordsWithDependants(okapiClient).onComplete(prerequisites -> {
+                  handleInstanceAndHoldingsUpdatesIfAny(okapiClient).onComplete( instanceAndHoldingsUpdates -> {
+                      handleItemUpdatesAndCreatesIfAny (okapiClient).onComplete(itemUpdatesAndCreates -> {
+                          if (prerequisites.succeeded() && instanceAndHoldingsUpdates.succeeded() && itemUpdatesAndCreates.succeeded() ) {
+                              promise.complete();
+                          } else {
+                              promise.fail("One or more errors occurred updating Inventory records");
+                          }
                       });
                   });
-              } else {
-                  promise.fail("There was a problem processing deletes - all other updates skipped." );
-              }
-          });
-        }
+              });
+          } else {
+              promise.fail("There was a problem processing deletes - all other updates skipped." );
+          }
+        });
         return promise.future();
     }
 

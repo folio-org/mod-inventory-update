@@ -106,11 +106,7 @@ public class InventoryUpdateService {
           JsonObject pushedRecordSetWithStats = updatePlan.getUpdatingRecordSetJson();
           pushedRecordSetWithStats.put("metrics", updatePlan.getUpdateStats());
           if (updatesDone.succeeded()) {
-            if (updatePlan.isDeletion && !updatePlan.foundExistingRecordSet()) {
-              responseJson(routingCtx, 404).end(pushedRecordSetWithStats.encodePrettily());
-            } else {
-              responseJson(routingCtx, 200).end(pushedRecordSetWithStats.encodePrettily());
-            }
+            responseJson(routingCtx, 200).end(pushedRecordSetWithStats.encodePrettily());
             okapiClient.close();
           } else {
             pushedRecordSetWithStats.put("errors", updatePlan.getErrors());
@@ -118,7 +114,11 @@ public class InventoryUpdateService {
           }
         });
       }  else {
-        responseJson(routingCtx, 422).end("Error creating an inventory update plan:" + LF + "  " + planDone.cause().getMessage());
+        if (updatePlan.isDeletion && !updatePlan.foundExistingRecordSet()) {
+          responseJson(routingCtx, 404).end("Error processing delete request:: "+ planDone.cause().getMessage());
+        } else {
+          responseJson(routingCtx, 422).end("Error creating an inventory update plan:" + LF + "  " + planDone.cause().getMessage());
+        }
       }
     });
   }

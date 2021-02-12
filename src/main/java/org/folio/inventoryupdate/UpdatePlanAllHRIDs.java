@@ -61,8 +61,11 @@ public class UpdatePlanAllHRIDs extends UpdatePlan {
                                 }
                             }
                             getExistingRecordSet().prepareAllInstanceRelationsForDeletion();
+                            promisedPlan.complete();
+                        } else {
+                            promisedPlan.fail("Instance to delete not found");
                         }
-                        promisedPlan.complete();
+
                     } else {
                         prepareTheUpdatingInstance();
                         // Plan holdings/items updates

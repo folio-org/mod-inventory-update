@@ -19,7 +19,7 @@ import io.vertx.core.json.JsonObject;
 public class UpdatePlanSharedInventory extends UpdatePlan {
 
 
-    private static final Map<String,String> locationsToInstitutionsMap = new HashMap<String,String>();
+    public static final Map<String,String> locationsToInstitutionsMap = new HashMap<String,String>();
     private DeletionIdentifiers deletionIdentifiers;
 
     /**

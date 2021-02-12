@@ -70,6 +70,7 @@ public class FakeInventoryStorage {
         router.delete(ITEM_STORAGE_PATH + "/:id").handler(itemStorage::deleteRecord);
         router.delete(INSTANCE_RELATIONSHIP_STORAGE_PATH + "/:id").handler(instanceRelationshipStorage::deleteRecord);
         router.delete(PRECEDING_SUCCEEDING_TITLE_STORAGE_PATH + "/:id").handler(precedingSucceedingStorage::deleteRecord);
+        router.delete(LOCATION_STORAGE_PATH).handler(locationStorage::deleteAll);
         HttpServerOptions so = new HttpServerOptions().setHandle100ContinueAutomatically(true);
         vertx.createHttpServer(so)
                 .requestHandler(router::accept)

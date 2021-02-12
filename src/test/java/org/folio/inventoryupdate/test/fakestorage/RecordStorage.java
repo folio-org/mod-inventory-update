@@ -208,6 +208,15 @@ public abstract class RecordStorage {
     }
 
     /**
+     * Handles DELETE ALL
+     */
+    protected void deleteAll (RoutingContext routingContext) {
+        records.clear();
+        respond(routingContext, new JsonObject("{\"message\": \"all records deleted\"}"), 200);
+    }
+
+
+    /**
      * Handles POST
      * @param routingContext
      */

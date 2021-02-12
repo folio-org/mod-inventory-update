@@ -5,7 +5,9 @@ import io.vertx.core.json.Json;
 import io.vertx.core.json.JsonArray;
 import org.folio.inventoryupdate.MainVerticle;
 import org.folio.inventoryupdate.MatchKey;
+import org.folio.inventoryupdate.UpdatePlanSharedInventory;
 import org.folio.inventoryupdate.test.fakestorage.FakeInventoryStorage;
+import org.folio.inventoryupdate.test.fakestorage.LocationStorage;
 import org.folio.inventoryupdate.test.fakestorage.RecordStorage;
 import org.folio.inventoryupdate.test.fakestorage.entitites.*;
 import org.junit.After;
@@ -25,6 +27,7 @@ import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
 
 import java.util.Arrays;
+import java.util.HashMap;
 
 
 @RunWith(VertxUnitRunner.class)
@@ -1494,6 +1497,38 @@ public class InventoryUpdateTestSuite {
                                     .add(new InputItem().setHrid("ITM-001").setBarcode("BC-001").getJson())
                                     .add(new InputItem().setHrid("ITM-002").setBarcode("BC-002").getJson())))
                     .add(new InputHoldingsRecord().setHrid("HOL-002").setPermanentLocationId("UNKNOWN_LOCATION").setCallNumber("test-cn-2").getJson()
+                            .put("items", new JsonArray()
+                                    .add(new InputItem().setHrid("ITM-003").setBarcode("BC-003").getJson()))))
+            .put("instanceRelations", new JsonObject()
+                    .put("parentInstances",new JsonArray())
+                    .put("childInstances", new JsonArray())
+                    .put("succeedingTitles", new JsonArray())
+                    .put("precedingTitles", new JsonArray()));
+    upsertByMatchKey (422, inventoryRecordSet);
+
+  }
+
+  @Test
+  public void testWithEmptyLocationsTable (TestContext testContext) {
+    RestAssured.given()
+            .body("{}")
+            .header("Content-type","application/json")
+            .header(OKAPI_URL_HEADER)
+            .delete(FakeInventoryStorage.LOCATION_STORAGE_PATH)
+            .then()
+            .log().ifValidationFails()
+            .statusCode(200).extract().response();
+
+    UpdatePlanSharedInventory.locationsToInstitutionsMap.clear();
+    JsonObject inventoryRecordSet = new JsonObject()
+            .put("instance",
+                    new InputInstance().setTitle("Test forcedLocationsGetRecordsFailure").setInstanceTypeId("12345").setHrid("001").getJson())
+            .put("holdingsRecords", new JsonArray()
+                    .add(new InputHoldingsRecord().setHrid("HOL-001").setPermanentLocationId("ANOTHER_UNKNOWN_LOCATION").setCallNumber("test-cn-1").getJson()
+                            .put("items", new JsonArray()
+                                    .add(new InputItem().setHrid("ITM-001").setBarcode("BC-001").getJson())
+                                    .add(new InputItem().setHrid("ITM-002").setBarcode("BC-002").getJson())))
+                    .add(new InputHoldingsRecord().setHrid("HOL-002").setPermanentLocationId("ANOTHER_UNKNOWN_LOCATION").setCallNumber("test-cn-2").getJson()
                             .put("items", new JsonArray()
                                     .add(new InputItem().setHrid("ITM-003").setBarcode("BC-003").getJson()))))
             .put("instanceRelations", new JsonObject()

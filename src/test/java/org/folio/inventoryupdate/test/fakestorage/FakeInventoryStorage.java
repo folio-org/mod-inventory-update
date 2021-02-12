@@ -122,7 +122,11 @@ public class FakeInventoryStorage {
                 .then()
                 .log().ifValidationFails()
                 .statusCode(expectedResponseCode).extract().response();
-        return new JsonObject(response.getBody().asString());
+        if (response.getContentType().equals("application/json")) {
+            return new JsonObject(response.getBody().asString());
+        } else {
+            return new JsonObject().put("response", response.asString());
+        }
     }
 
     public static void put(String storagePath, JsonObject recordToPUT) {

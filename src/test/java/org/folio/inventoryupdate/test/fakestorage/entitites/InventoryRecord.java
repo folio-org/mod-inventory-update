@@ -5,7 +5,7 @@ import io.vertx.core.json.JsonObject;
 
 import java.util.UUID;
 
-public abstract class InventoryRecord {
+public class InventoryRecord {
 
     public static String ID = "id";
     protected JsonObject recordJson;

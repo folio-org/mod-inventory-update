@@ -22,6 +22,12 @@ public abstract class RecordStorage {
     public static final String PRECEDING_SUCCEEDING_TITLES = "precedingSucceedingTitles";
     public static final String LOCATIONS = "locations";
 
+    public final String STORAGE_NAME = getClass().getSimpleName();
+    public boolean failOnDelete = false;
+    public boolean failOnCreate = false;
+    public boolean failOnUpdate = false;
+    public boolean failOnGetRecordById = false;
+    public boolean failOnGetRecords = false;
     List<ForeignKey> dependentEntities = new ArrayList<>();
     List<ForeignKey> masterEntities = new ArrayList<>();
 
@@ -41,6 +47,9 @@ public abstract class RecordStorage {
 
     // INTERNAL DATABASE OPERATIONS - insert() IS DECLARED PUBLIC SO THE TEST SUITE CAN INITIALIZE DATA OUTSIDE THE API.
     public int insert (InventoryRecord record) {
+        if (failOnCreate) {
+            return 500;
+        }
         if (!record.hasId()) {
             record.generateId();
         }
@@ -68,6 +77,9 @@ public abstract class RecordStorage {
     }
 
     protected int update (String id, InventoryRecord record) {
+        if (failOnUpdate) {
+            return 500;
+        }
         if (!record.hasId()) {
             record.setId(id);
         } else if (!id.equals(record.getId())) {
@@ -83,8 +95,9 @@ public abstract class RecordStorage {
     }
 
     protected int delete (String id) {
+        if (failOnDelete) return 500;
         if (!records.containsKey(id)) {
-            logger.error("Record " + id + "not found, cannot delete");
+            logger.error("Record " + id + " not found, cannot delete");
             return 404;
         }
         logger.debug("Dependent entities: " + dependentEntities.size());
@@ -105,7 +118,11 @@ public abstract class RecordStorage {
     }
 
     private InventoryRecord getRecord (String id) {
-        return records.get(id);
+        if (failOnGetRecordById) {
+            return null;
+        } else {
+            return records.get(id);
+        }
     }
 
     // FOREIGN KEY HANDLING
@@ -152,13 +169,7 @@ public abstract class RecordStorage {
     public void getRecords(RoutingContext routingContext) {
         final String optionalQuery = routingContext.request().getParam("query") != null ?
                 decode(routingContext.request().getParam("query")) : null;
-        routingContext.request().endHandler(res -> {
-            respond(routingContext, buildJsonRecordsResponse(optionalQuery), 200);
-        });
-
-        routingContext.request().exceptionHandler(res -> {
-            respondWithMessage(routingContext, res);
-        });
+        respond(routingContext, buildJsonRecordsResponse(optionalQuery), 200);
     }
 
     /**
@@ -169,12 +180,11 @@ public abstract class RecordStorage {
         final String id = routingContext.pathParam("id");
         InventoryRecord record = getRecord(id);
 
-        routingContext.request().endHandler(res -> {
+        if (record != null) {
             respond(routingContext, record.getJson(), 200);
-        });
-        routingContext.request().exceptionHandler(res -> {
-            respondWithMessage(routingContext, res);
-        });
+        } else {
+            respondWithMessage(routingContext, (failOnGetRecordById ? "Forced error on get from " : "No record with ID " + id + " in ") + STORAGE_NAME, 404);
+        }
     }
 
     /**
@@ -185,28 +195,41 @@ public abstract class RecordStorage {
         final String id = routingContext.pathParam("id");
         int code = delete(id);
 
-        routingContext.request().endHandler(res -> {
+        if (code == 200) {
             respond(routingContext, new JsonObject(), code);
-        });
-        routingContext.request().exceptionHandler(res -> {
-            respondWithMessage(routingContext, res);
-        });
-
+        } else {
+            respondWithMessage(routingContext, (failOnDelete ? "Forced " : "") + "Error deleting from " + STORAGE_NAME, code);
+        };
     }
-
-    // API REQUEST HANDLERS TO BE IMPLEMENTED PER STORAGE ENTITY
 
     /**
      * Handles POST
      * @param routingContext
      */
-    protected abstract void createRecord (RoutingContext routingContext);
+    protected void createRecord(RoutingContext routingContext) {
+        JsonObject recordJson = new JsonObject(routingContext.getBodyAsString());
+        int code = insert(new InventoryRecord(recordJson));
+        if (code == 201) {
+            respond(routingContext, recordJson, code);
+        } else {
+            respondWithMessage(routingContext, (failOnCreate ? "Forced " : "") + "Error creating record in " + STORAGE_NAME, code);
+        }
+    }
 
     /**
      * Handles PUT
      * @param routingContext
      */
-    protected abstract void updateRecord (RoutingContext routingContext);
+    protected void updateRecord(RoutingContext routingContext) {
+        JsonObject recordJson = new JsonObject(routingContext.getBodyAsString());
+        String id = routingContext.pathParam("id");
+        int code = update(id, new InventoryRecord(recordJson));
+        if (code == 204) {
+            respond(routingContext, code);
+        } else {
+            respondWithMessage(routingContext, (failOnUpdate ? "Forced " : "") + "Error updating record in " + STORAGE_NAME, code);
+        }
+    }
 
 
     // HELPERS FOR RESPONSE PROCESSING
@@ -254,6 +277,12 @@ public abstract class RecordStorage {
     protected static void respondWithMessage(RoutingContext routingContext, Throwable res) {
         routingContext.response().setStatusCode(500);
         routingContext.response().end(res.getMessage());
+    }
+
+    protected static void respondWithMessage (RoutingContext routingContext, String message, int code) {
+        routingContext.response().setStatusCode(code);
+        routingContext.response().end(message);
+
     }
 
 

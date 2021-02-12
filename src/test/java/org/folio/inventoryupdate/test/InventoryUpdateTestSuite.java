@@ -409,11 +409,6 @@ public class InventoryUpdateTestSuite {
             "After upserting with new Instance, the number of Instances with that HRID should be [1]" );
   }
 
-  @Test
-  public void upsertByHridWillGraciouslyFailWithMissingInstanceTitle (TestContext testContext) {
-    //TODO
-  }
-
   /**
    * Tests API /inventory-upsert-hrid
    * @param testContext
@@ -1212,6 +1207,166 @@ public class InventoryUpdateTestSuite {
             .statusCode(400).extract().response();
 
   }
+
+  @Test
+  public void testForcedItemCreateFailure (TestContext testContext) {
+    fakeInventoryStorage.itemStorage.failOnCreate = true;
+    Response response = upsertByHrid(422,new JsonObject()
+            .put("instance",
+                    new InputInstance().setTitle("Initial InputInstance").setInstanceTypeId("12345").setHrid("001").getJson())
+            .put("holdingsRecords", new JsonArray()
+                    .add(new InputHoldingsRecord().setHrid("HOL-001").setPermanentLocationId(LOCATION_ID_1).setCallNumber("test-cn-1").getJson()
+                            .put("items", new JsonArray()
+                                    .add(new InputItem().setHrid("ITM-001").setBarcode("BC-001").getJson())
+                                    .add(new InputItem().setHrid("ITM-002").setBarcode("BC-002").getJson())))
+                    .add(new InputHoldingsRecord().setHrid("HOL-002").setPermanentLocationId(LOCATION_ID_1).setCallNumber("test-cn-2").getJson()
+                            .put("items", new JsonArray()
+                                    .add(new InputItem().setHrid("ITM-003").setBarcode("BC-003").getJson())))));
+
+    JsonObject responseJson = new JsonObject(response.getBody().asString());
+    testContext.assertEquals(getMetric(responseJson, "ITEM", "CREATED" , "FAILED"), 3,
+            "Upsert metrics response should report [3] item record create failures (forced) " + responseJson.encodePrettily());
+
+  }
+
+  @Test
+  public void testForcedHoldingsCreateFailure (TestContext testContext) {
+    fakeInventoryStorage.holdingsStorage.failOnCreate = true;
+    Response response = upsertByHrid(422,new JsonObject()
+            .put("instance",
+                    new InputInstance().setTitle("Initial InputInstance").setInstanceTypeId("12345").setHrid("001").getJson())
+            .put("holdingsRecords", new JsonArray()
+                    .add(new InputHoldingsRecord().setHrid("HOL-001").setPermanentLocationId(LOCATION_ID_1).setCallNumber("test-cn-1").getJson()
+                            .put("items", new JsonArray()
+                                    .add(new InputItem().setHrid("ITM-001").setBarcode("BC-001").getJson())
+                                    .add(new InputItem().setHrid("ITM-002").setBarcode("BC-002").getJson())))
+                    .add(new InputHoldingsRecord().setHrid("HOL-002").setPermanentLocationId(LOCATION_ID_1).setCallNumber("test-cn-2").getJson()
+                            .put("items", new JsonArray()
+                                    .add(new InputItem().setHrid("ITM-003").setBarcode("BC-003").getJson())))));
+
+    JsonObject responseJson = new JsonObject(response.getBody().asString());
+
+    testContext.assertEquals(getMetric(responseJson, "HOLDINGS_RECORD", "CREATED" , "FAILED"), 2,
+            "Upsert metrics response should report [2] holdings record create failures (forced) " + responseJson.encodePrettily());
+
+    testContext.assertEquals(getMetric(responseJson, "ITEM", "CREATED" , "SKIPPED"), 3,
+            "Upsert metrics response should report [3] item record creates skipped " + responseJson.encodePrettily());
+
+  }
+
+  @Test
+  public void testForcedItemUpdateFailure (TestContext testContext) {
+    fakeInventoryStorage.itemStorage.failOnUpdate = true;
+    JsonObject inventoryRecordSet = new JsonObject()
+            .put("instance",
+                    new InputInstance().setTitle("Initial InputInstance").setInstanceTypeId("12345").setHrid("001").getJson())
+            .put("holdingsRecords", new JsonArray()
+                    .add(new InputHoldingsRecord().setHrid("HOL-001").setPermanentLocationId(LOCATION_ID_1).setCallNumber("test-cn-1").getJson()
+                            .put("items", new JsonArray()
+                                    .add(new InputItem().setHrid("ITM-001").setBarcode("BC-001").getJson())
+                                    .add(new InputItem().setHrid("ITM-002").setBarcode("BC-002").getJson())))
+                    .add(new InputHoldingsRecord().setHrid("HOL-002").setPermanentLocationId(LOCATION_ID_1).setCallNumber("test-cn-2").getJson()
+                            .put("items", new JsonArray()
+                                    .add(new InputItem().setHrid("ITM-003").setBarcode("BC-003").getJson()))));
+    upsertByHrid (inventoryRecordSet);
+    Response response = upsertByHrid(422,inventoryRecordSet);
+    JsonObject responseJson = new JsonObject(response.getBody().asString());
+
+    testContext.assertEquals(getMetric(responseJson, "ITEM", "UPDATED" , "FAILED"), 3,
+            "Upsert metrics response should report [3] item record update failures (forced) " + responseJson.encodePrettily());
+
+  }
+
+  @Test
+  public void testForcedHoldingsUpdateFailure (TestContext testContext) {
+    fakeInventoryStorage.holdingsStorage.failOnUpdate = true;
+    JsonObject inventoryRecordSet = new JsonObject()
+            .put("instance",
+                    new InputInstance().setTitle("Initial InputInstance").setInstanceTypeId("12345").setHrid("001").getJson())
+            .put("holdingsRecords", new JsonArray()
+                    .add(new InputHoldingsRecord().setHrid("HOL-001").setPermanentLocationId(LOCATION_ID_1).setCallNumber("test-cn-1").getJson()
+                            .put("items", new JsonArray()
+                                    .add(new InputItem().setHrid("ITM-001").setBarcode("BC-001").getJson())
+                                    .add(new InputItem().setHrid("ITM-002").setBarcode("BC-002").getJson())))
+                    .add(new InputHoldingsRecord().setHrid("HOL-002").setPermanentLocationId(LOCATION_ID_1).setCallNumber("test-cn-2").getJson()
+                            .put("items", new JsonArray()
+                                    .add(new InputItem().setHrid("ITM-003").setBarcode("BC-003").getJson()))));
+    upsertByHrid (inventoryRecordSet);
+    Response response = upsertByHrid(422,inventoryRecordSet);
+
+    JsonObject responseJson = new JsonObject(response.getBody().asString());
+
+    testContext.assertEquals(getMetric(responseJson, "HOLDINGS_RECORD", "UPDATED" , "FAILED"), 2,
+            "Upsert metrics response should report [2] holdings record update failures (forced) " + responseJson.encodePrettily());
+
+  }
+
+  @Test
+  public void testForcedItemDeleteFailure (TestContext testContext) {
+    fakeInventoryStorage.itemStorage.failOnDelete = true;
+    upsertByHrid (new JsonObject()
+            .put("instance",
+                    new InputInstance().setTitle("Initial InputInstance").setInstanceTypeId("12345").setHrid("001").getJson())
+            .put("holdingsRecords", new JsonArray()
+                    .add(new InputHoldingsRecord().setHrid("HOL-001").setPermanentLocationId(LOCATION_ID_1).setCallNumber("test-cn-1").getJson()
+                            .put("items", new JsonArray()
+                                    .add(new InputItem().setHrid("ITM-001").setBarcode("BC-001").getJson())
+                                    .add(new InputItem().setHrid("ITM-002").setBarcode("BC-002").getJson())))
+                    .add(new InputHoldingsRecord().setHrid("HOL-002").setPermanentLocationId(LOCATION_ID_1).setCallNumber("test-cn-2").getJson()
+                            .put("items", new JsonArray()
+                                    .add(new InputItem().setHrid("ITM-003").setBarcode("BC-003").getJson())))));
+
+    Response response = upsertByHrid(422,new JsonObject()
+            .put("instance",
+                    new InputInstance().setTitle("Initial InputInstance").setInstanceTypeId("12345").setHrid("001").getJson())
+            .put("holdingsRecords", new JsonArray()
+                    .add(new InputHoldingsRecord().setHrid("HOL-001").setPermanentLocationId(LOCATION_ID_1).setCallNumber("test-cn-1").getJson()
+                            .put("items", new JsonArray()
+                                    .add(new InputItem().setHrid("ITM-002").setBarcode("BC-002").getJson())))
+                    .add(new InputHoldingsRecord().setHrid("HOL-002").setPermanentLocationId(LOCATION_ID_1).setCallNumber("test-cn-2").getJson()
+                            .put("items", new JsonArray()
+                                    .add(new InputItem().setHrid("ITM-003").setBarcode("BC-003").getJson())))));
+
+    JsonObject responseJson = new JsonObject(response.getBody().asString());
+
+    testContext.assertEquals(getMetric(responseJson, "ITEM", "DELETED" , "FAILED"), 1,
+            "Upsert metrics response should report [1] item delete failure (forced) " + responseJson.encodePrettily());
+
+  }
+
+  @Test
+  public void testForcedHoldingsDeleteFailure (TestContext testContext) {
+    fakeInventoryStorage.holdingsStorage.failOnDelete = true;
+    upsertByHrid (new JsonObject()
+            .put("instance",
+                    new InputInstance().setTitle("Initial InputInstance").setInstanceTypeId("12345").setHrid("001").getJson())
+            .put("holdingsRecords", new JsonArray()
+                    .add(new InputHoldingsRecord().setHrid("HOL-001").setPermanentLocationId(LOCATION_ID_1).setCallNumber("test-cn-1").getJson()
+                            .put("items", new JsonArray()
+                                    .add(new InputItem().setHrid("ITM-001").setBarcode("BC-001").getJson())
+                                    .add(new InputItem().setHrid("ITM-002").setBarcode("BC-002").getJson())))
+                    .add(new InputHoldingsRecord().setHrid("HOL-002").setPermanentLocationId(LOCATION_ID_1).setCallNumber("test-cn-2").getJson()
+                            .put("items", new JsonArray()
+                                    .add(new InputItem().setHrid("ITM-003").setBarcode("BC-003").getJson())))));
+
+    Response response = upsertByHrid(422,new JsonObject()
+            .put("instance",
+                    new InputInstance().setTitle("Initial InputInstance").setInstanceTypeId("12345").setHrid("001").getJson())
+            .put("holdingsRecords", new JsonArray()
+                    .add(new InputHoldingsRecord().setHrid("HOL-002").setPermanentLocationId(LOCATION_ID_1).setCallNumber("test-cn-2").getJson()
+                            .put("items", new JsonArray()
+                                    .add(new InputItem().setHrid("ITM-003").setBarcode("BC-003").getJson())))));
+
+    JsonObject responseJson = new JsonObject(response.getBody().asString());
+
+    testContext.assertEquals(getMetric(responseJson, "HOLDINGS_RECORD", "DELETED" , "FAILED"), 1,
+            "Upsert metrics response should report [1] holdings record delete failure (forced) " + responseJson.encodePrettily());
+
+    testContext.assertEquals(getMetric(responseJson, "ITEM", "DELETED" , "COMPLETED"), 2,
+            "Upsert metrics response should report [2] items successfully deleted " + responseJson.encodePrettily());
+
+  }
+
 
 
   @After

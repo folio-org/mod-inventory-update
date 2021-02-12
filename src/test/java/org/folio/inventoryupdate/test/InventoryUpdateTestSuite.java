@@ -388,6 +388,18 @@ public class InventoryUpdateTestSuite {
   }
 
 
+  @Test
+  public void testDeleteSignalForNonExistingSharedInstance (TestContext testContext) {
+    JsonObject deleteSignal = new JsonObject()
+            .put("institutionId", INSTITUTION_ID_1)
+            .put("oaiIdentifier","oai:"+"DOES_NOT_EXIST")
+            .put("identifierTypeId", "DOES_NOT_EXIST");
+
+    Response Response = delete(404,MainVerticle.SHARED_INVENTORY_UPSERT_MATCHKEY_PATH, deleteSignal);
+
+  }
+
+
   /**
    * Tests API /inventory-upsert-hrid
    * @param testContext
@@ -1015,8 +1027,8 @@ public class InventoryUpdateTestSuite {
    }
 
    @Test
-   public void deleteSignalForNonExistingInstanceWillReturn404 (TestContext testContext) {
-     JsonObject deleteSignal = new JsonObject().put("hrid","DOESNOTEXIST");
+   public void deleteSignalByHridForNonExistingInstanceWillReturn404 (TestContext testContext) {
+     JsonObject deleteSignal = new JsonObject().put("hrid","DOES_NOT_EXIST");
      delete(404, MainVerticle.INVENTORY_UPSERT_HRID_PATH,deleteSignal);
    }
 

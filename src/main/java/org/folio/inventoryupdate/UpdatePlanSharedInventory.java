@@ -46,31 +46,32 @@ public class UpdatePlanSharedInventory extends UpdatePlan {
     public Future<Void> planInventoryUpdates(OkapiClient okapiClient) {
         Promise<Void> promise = Promise.promise();
 
-        lookupExistingRecordSet(okapiClient, instanceQuery).onComplete( recordSet -> {
-            if (recordSet.succeeded()) {
-                if (foundExistingRecordSet()) {
-                  if (isDeletion) {
-                    logger.debug("UpdatePlanSharedInventory: received deletion");
-                    this.updatingSet = createUpdatingRecordSetFromExistingSet(existingSet, deletionIdentifiers);
-                  } else { // create or update
-                    JsonObject mergedInstance = mergeInstances(getExistingInstance().asJson(), getUpdatingInstance().asJson());
-                    getUpdatingRecordSet().modifyInstance(mergedInstance);
-                  }
-                }
-                logger.debug("Mapping locations to institutions");
-                mapLocationsToInstitutions(okapiClient).onComplete( handler -> {
-                    if (handler.succeeded()) {
-                        logger.debug("got institutions map: " + locationsToInstitutionsMap.toString());
-                        flagAndIdRecordsForInventoryUpdating();
-                        promise.complete();
-                    } else {
-                        promise.fail("There was a problem retrieving locations map, cannot perform updates: " + handler.cause().getMessage());
+        lookupExistingRecordSet(okapiClient, instanceQuery).onComplete( lookup -> {
+            if (lookup.succeeded()) {
+                if (isDeletion && !foundExistingRecordSet()) {
+                    promise.fail("Record to be deleted was not found");
+                } else  {
+                    if (foundExistingRecordSet()) {
+                        if (isDeletion) {
+                            this.updatingSet = createUpdatingRecordSetFromExistingSet(existingSet, deletionIdentifiers);
+                        } else { // create or update
+                            JsonObject mergedInstance = mergeInstances(getExistingInstance().asJson(), getUpdatingInstance().asJson());
+                            getUpdatingRecordSet().modifyInstance(mergedInstance);
+                        }
                     }
+                    mapLocationsToInstitutions(okapiClient).onComplete(handler -> {
+                        if (handler.succeeded()) {
+                            logger.debug("Got institutions map: " + locationsToInstitutionsMap.toString());
+                            flagAndIdRecordsForInventoryUpdating();
+                            promise.complete();
+                        } else {
+                            promise.fail("There was a problem retrieving locations map, cannot perform updates: " + handler.cause().getMessage());
+                        }
 
-                });
-
+                    });
+                }
             } else {
-                promise.fail("Error looking up existing record set: " + recordSet.cause().getMessage());
+                promise.fail("Error looking up existing record set: " + lookup.cause().getMessage());
             }
         });
         return promise.future();

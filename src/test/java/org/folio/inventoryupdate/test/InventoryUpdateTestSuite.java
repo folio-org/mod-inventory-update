@@ -487,6 +487,23 @@ public class InventoryUpdateTestSuite {
   }
 
   @Test
+  public void upsertByHridWillCreateHoldingsWithoutItems (TestContext testContext) {
+    String instanceHrid = "1";
+    JsonObject upsertResponseJson = upsertByHrid(new JsonObject()
+            .put("instance",
+                    new InputInstance().setTitle("Initial InputInstance").setInstanceTypeId("12345").setHrid(instanceHrid).getJson())
+            .put("holdingsRecords", new JsonArray()
+                    .add(new InputHoldingsRecord().setHrid("HOL-001").setPermanentLocationId(LOCATION_ID_1).setCallNumber("test-cn-1").getJson())
+                    .add(new InputHoldingsRecord().setHrid("HOL-002").setPermanentLocationId(LOCATION_ID_1).setCallNumber("test-cn-2").getJson())));
+
+    String instanceId = upsertResponseJson.getJsonObject("instance").getString("id");
+    testContext.assertEquals(getMetric(upsertResponseJson, "HOLDINGS_RECORD", "CREATED" , "COMPLETED"), 2,
+            "Upsert metrics response should report [2] holdings records successfully created " + upsertResponseJson.encodePrettily());
+    testContext.assertEquals(getMetric(upsertResponseJson, "ITEM", "CREATED" , "COMPLETED"), 0,
+            "Upsert metrics response should report [0] items created " + upsertResponseJson.encodePrettily());
+  }
+
+  @Test
   public void upsertByHridWillUpdateHoldingsAndItems (TestContext testContext) {
     String instanceHrid = "1";
     JsonObject upsertResponseJson = upsertByHrid(new JsonObject()

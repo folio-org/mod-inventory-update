@@ -1014,8 +1014,14 @@ public class InventoryUpdateTestSuite {
 
    }
 
-  @Test
-  public void upsertByHridWillMoveHoldingsAndItems (TestContext testContext) {
+   @Test
+   public void deleteSignalForNonExistingInstanceWillReturn404 (TestContext testContext) {
+     JsonObject deleteSignal = new JsonObject().put("hrid","DOESNOTEXIST");
+     delete(404, MainVerticle.INVENTORY_UPSERT_HRID_PATH,deleteSignal);
+   }
+
+   @Test
+   public void upsertByHridWillMoveHoldingsAndItems (TestContext testContext) {
     String instanceHrid1 = "1";
     JsonObject inventoryRecordSet1 = new JsonObject()
             .put("instance",
@@ -1463,16 +1469,19 @@ public class InventoryUpdateTestSuite {
   }
 
   private JsonObject delete(String apiPath, JsonObject requestJson) {
+    return new JsonObject(delete(200, apiPath, requestJson).getBody().asString());
+  }
+
+  private Response delete(int expectedStatusCode, String apiPath, JsonObject requestJson) {
     RestAssured.port = PORT_INVENTORY_UPDATE;
-    Response response = RestAssured.given()
+    return RestAssured.given()
             .body(requestJson.toString())
             .header("Content-type","application/json")
             .header(OKAPI_URL_HEADER)
             .delete(apiPath)
             .then()
             .log().ifValidationFails()
-            .statusCode(200).extract().response();
-    return new JsonObject(response.getBody().asString());
+            .statusCode(expectedStatusCode).extract().response();
   }
 
   private JsonObject getRecordsFromStorage(String apiPath, String query) {

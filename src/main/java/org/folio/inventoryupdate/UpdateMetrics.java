@@ -43,32 +43,32 @@ public class UpdateMetrics {
     }
 
     public abstract class EntityMetrics {
-        protected final TransactionMetrics created = new TransactionMetrics();
-        protected final TransactionMetrics updated = new TransactionMetrics();
-        protected final TransactionMetrics deleted = new TransactionMetrics();
+        protected final TransactionMetrics create = new TransactionMetrics();
+        protected final TransactionMetrics update = new TransactionMetrics();
+        protected final TransactionMetrics delete = new TransactionMetrics();
 
         public TransactionMetrics transaction(InventoryRecord.Transaction transaction) {
             switch (transaction) {
                 case CREATE:
-                    return created;
+                    return create;
                 case UPDATE:
-                    return updated;
+                    return update;
                 case DELETE:
-                    return deleted;
+                    return delete;
                 default:
                     return null;
             }
         }
 
         public boolean touched () {
-            return created.touched() || updated.touched() || deleted.touched();
+            return create.touched() || update.touched() || delete.touched();
         }
 
         public JsonObject asJson () {
             JsonObject metrics = new JsonObject();
-            metrics.put("CREATED", created.asJson());
-            metrics.put("UPDATED", updated.asJson());
-            metrics.put("DELETED", deleted.asJson());
+            metrics.put(InventoryRecord.Transaction.CREATE.name(), create.asJson());
+            metrics.put(InventoryRecord.Transaction.UPDATE.name(), update.asJson());
+            metrics.put(InventoryRecord.Transaction.DELETE.name(), delete.asJson());
             return metrics;
         }
     }
@@ -88,8 +88,8 @@ public class UpdateMetrics {
         @Override
         public JsonObject asJson () {
             JsonObject metrics = new JsonObject();
-            metrics.put("CREATED", created.asJson());
-            metrics.put("DELETED", deleted.asJson());
+            metrics.put(InventoryRecord.Transaction.CREATE.name(), create.asJson());
+            metrics.put(InventoryRecord.Transaction.DELETE.name(), delete.asJson());
             if (provisionalInstanceMetrics.touched) {
                 metrics.put("PROVISIONAL_INSTANCE", provisionalInstanceMetrics.asJson());
             }
@@ -129,10 +129,10 @@ public class UpdateMetrics {
 
         public JsonObject asJson() {
             JsonObject metrics = new JsonObject();
-            metrics.put("COMPLETED", completed);
-            metrics.put("FAILED", failed);
-            metrics.put("SKIPPED", skipped);
-            metrics.put("PENDING", pending);
+            metrics.put(InventoryRecord.Outcome.COMPLETED.name(), completed);
+            metrics.put(InventoryRecord.Outcome.FAILED.name(), failed);
+            metrics.put(InventoryRecord.Outcome.SKIPPED.name(), skipped);
+            metrics.put(InventoryRecord.Outcome.PENDING.name(), pending);
             return metrics;
         }
     }

@@ -1,13 +1,11 @@
 package org.folio.inventoryupdate.test;
 
 import io.vertx.core.impl.logging.Logger;
-import io.vertx.core.json.Json;
 import io.vertx.core.json.JsonArray;
 import org.folio.inventoryupdate.MainVerticle;
 import org.folio.inventoryupdate.MatchKey;
 import org.folio.inventoryupdate.UpdatePlanSharedInventory;
 import org.folio.inventoryupdate.test.fakestorage.FakeInventoryStorage;
-import org.folio.inventoryupdate.test.fakestorage.LocationStorage;
 import org.folio.inventoryupdate.test.fakestorage.RecordStorage;
 import org.folio.inventoryupdate.test.fakestorage.entitites.*;
 import org.junit.After;
@@ -27,7 +25,6 @@ import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
 
 import java.util.Arrays;
-import java.util.HashMap;
 
 import static org.folio.inventoryupdate.test.fakestorage.FakeInventoryStorage.RESULT_SET_HOLDINGS_RECORDS;
 
@@ -45,6 +42,22 @@ public class InventoryUpdateTestSuite {
   public static final String INSTITUTION_ID_1 = "INST1";
   public static final String LOCATION_ID_2 = "LOC2";
   public static final String INSTITUTION_ID_2 = "INST2";
+
+  public static final String CREATE = org.folio.inventoryupdate.entities.InventoryRecord.Transaction.CREATE.name();
+  public static final String UPDATE = org.folio.inventoryupdate.entities.InventoryRecord.Transaction.UPDATE.name();
+  public static final String DELETE = org.folio.inventoryupdate.entities.InventoryRecord.Transaction.DELETE.name();
+
+  public static final String COMPLETED = org.folio.inventoryupdate.entities.InventoryRecord.Outcome.COMPLETED.name();
+  public static final String FAILED = org.folio.inventoryupdate.entities.InventoryRecord.Outcome.FAILED.name();
+  public static final String SKIPPED = org.folio.inventoryupdate.entities.InventoryRecord.Outcome.SKIPPED.name();
+
+  public static final String HOLDINGS_RECORD = org.folio.inventoryupdate.entities.InventoryRecord.Entity.HOLDINGS_RECORD.name();
+  public static final String INSTANCE = org.folio.inventoryupdate.entities.InventoryRecord.Entity.INSTANCE.name();
+  public static final String ITEM = org.folio.inventoryupdate.entities.InventoryRecord.Entity.ITEM.name();
+  public static final String INSTANCE_TITLE_SUCCESSION = org.folio.inventoryupdate.entities.InventoryRecord.Entity.INSTANCE_TITLE_SUCCESSION.name();
+  public static final String INSTANCE_RELATIONSHIP = org.folio.inventoryupdate.entities.InventoryRecord.Entity.INSTANCE_RELATIONSHIP.name();
+  public static final String PROVISIONAL_INSTANCE = "PROVISIONAL_INSTANCE";
+
 
   private final Logger logger = io.vertx.core.impl.logging.LoggerFactory.getLogger("InventoryUpdateTestSuite");
 
@@ -230,9 +243,9 @@ public class InventoryUpdateTestSuite {
 
     String instanceId = upsertResponseJson.getJsonObject("instance").getString("id");
 
-    testContext.assertEquals(getMetric(upsertResponseJson, "HOLDINGS_RECORD", "CREATED" , "COMPLETED"), 2,
+    testContext.assertEquals(getMetric(upsertResponseJson, HOLDINGS_RECORD, CREATE , COMPLETED), 2,
             "Upsert metrics response should report [2] holdings records successfully created " + upsertResponseJson.encodePrettily());
-    testContext.assertEquals(getMetric(upsertResponseJson, "ITEM", "CREATED" , "COMPLETED"), 3,
+    testContext.assertEquals(getMetric(upsertResponseJson, ITEM, CREATE , COMPLETED), 3,
             "Upsert metrics response should report [3] items successfully created " + upsertResponseJson.encodePrettily());
     JsonObject storedHoldings = getRecordsFromStorage(FakeInventoryStorage.HOLDINGS_STORAGE_PATH, "instanceId==\"" + instanceId + "\"");
     testContext.assertEquals(storedHoldings.getInteger("totalRecords"), 2,
@@ -262,9 +275,9 @@ public class InventoryUpdateTestSuite {
                             .put("items", new JsonArray()
                                     .add(new InputItem().setHrid("ITM-003").setBarcode("BC-003").getJson())))));
 
-    testContext.assertEquals(getMetric(upsertResponseJson, "HOLDINGS_RECORD", "CREATED" , "COMPLETED"), 2,
+    testContext.assertEquals(getMetric(upsertResponseJson, HOLDINGS_RECORD, CREATE , COMPLETED), 2,
             "Upsert metrics response should report [2] holdings records successfully created " + upsertResponseJson.encodePrettily());
-    testContext.assertEquals(getMetric(upsertResponseJson, "ITEM", "CREATED" , "COMPLETED"), 3,
+    testContext.assertEquals(getMetric(upsertResponseJson, ITEM, CREATE , COMPLETED), 3,
             "Upsert metrics response should report [3] items successfully created " + upsertResponseJson.encodePrettily());
 
     upsertResponseJson = upsertByMatchKey(new JsonObject()
@@ -279,13 +292,13 @@ public class InventoryUpdateTestSuite {
                             .put("items", new JsonArray()
                                     .add(new InputItem().setHrid("ITM-003").setBarcode("updated").getJson())))));
 
-    testContext.assertEquals(getMetric(upsertResponseJson, "HOLDINGS_RECORD", "DELETED" , "COMPLETED"), 2,
+    testContext.assertEquals(getMetric(upsertResponseJson, HOLDINGS_RECORD, DELETE , COMPLETED), 2,
             "Upsert metrics response should report [2] holdings records successfully deleted " + upsertResponseJson.encodePrettily());
-    testContext.assertEquals(getMetric(upsertResponseJson, "HOLDINGS_RECORD", "CREATED" , "COMPLETED"), 2,
+    testContext.assertEquals(getMetric(upsertResponseJson, HOLDINGS_RECORD, CREATE , COMPLETED), 2,
             "Upsert metrics response should report [2] holdings records successfully created " + upsertResponseJson.encodePrettily());
-    testContext.assertEquals(getMetric(upsertResponseJson, "ITEM", "DELETED" , "COMPLETED"), 3,
+    testContext.assertEquals(getMetric(upsertResponseJson, ITEM, DELETE , COMPLETED), 3,
             "Upsert metrics response should report [3] items successfully deleted " + upsertResponseJson.encodePrettily());
-    testContext.assertEquals(getMetric(upsertResponseJson, "ITEM", "CREATED" , "COMPLETED"), 3,
+    testContext.assertEquals(getMetric(upsertResponseJson, ITEM, CREATE , COMPLETED), 3,
             "Upsert metrics response should report [3] items successfully created " + upsertResponseJson.encodePrettily());
 
     getRecordsFromStorage(FakeInventoryStorage.ITEM_STORAGE_PATH,null).getJsonArray("items").stream().forEach(item -> {
@@ -323,9 +336,9 @@ public class InventoryUpdateTestSuite {
 
     String instanceId = upsertResponseJson1.getJsonObject("instance").getString("id");
 
-    testContext.assertEquals(getMetric(upsertResponseJson1, "HOLDINGS_RECORD", "CREATED" , "COMPLETED"), 2,
+    testContext.assertEquals(getMetric(upsertResponseJson1, HOLDINGS_RECORD, CREATE , COMPLETED), 2,
             "Upsert metrics response should report [2] holdings records successfully created " + upsertResponseJson1.encodePrettily());
-    testContext.assertEquals(getMetric(upsertResponseJson1, "ITEM", "CREATED" , "COMPLETED"), 3,
+    testContext.assertEquals(getMetric(upsertResponseJson1, ITEM, CREATE , COMPLETED), 3,
             "Upsert metrics response should report [3] items successfully created " + upsertResponseJson1.encodePrettily());
 
     JsonObject storedHoldings = getRecordsFromStorage(FakeInventoryStorage.HOLDINGS_STORAGE_PATH, "instanceId==\"" + instanceId + "\"");
@@ -353,9 +366,9 @@ public class InventoryUpdateTestSuite {
                             .put("items", new JsonArray()
                                     .add(new InputItem().setBarcode("BC-006").getJson())))));
 
-    testContext.assertEquals(getMetric(upsertResponseJson2, "HOLDINGS_RECORD", "CREATED" , "COMPLETED"), 2,
+    testContext.assertEquals(getMetric(upsertResponseJson2, HOLDINGS_RECORD, CREATE , COMPLETED), 2,
             "Metrics after second upsert should report additional [2] holdings records successfully created " + upsertResponseJson2.encodePrettily());
-    testContext.assertEquals(getMetric(upsertResponseJson2, "ITEM", "CREATED" , "COMPLETED"), 3,
+    testContext.assertEquals(getMetric(upsertResponseJson2, ITEM, CREATE , COMPLETED), 3,
             "Metrics after second upsert should report additional [3] items successfully created " + upsertResponseJson2.encodePrettily());
 
     storedHoldings = getRecordsFromStorage(FakeInventoryStorage.HOLDINGS_STORAGE_PATH, "instanceId==\"" + instanceId + "\"");
@@ -375,9 +388,9 @@ public class InventoryUpdateTestSuite {
             .put("identifierTypeId", identifierTypeId1);
 
     JsonObject deleteResponse = delete(MainVerticle.SHARED_INVENTORY_UPSERT_MATCHKEY_PATH,deleteSignal);
-    testContext.assertEquals(getMetric(deleteResponse, "HOLDINGS_RECORD", "DELETED" , "COMPLETED"), 2,
+    testContext.assertEquals(getMetric(deleteResponse, HOLDINGS_RECORD, DELETE , COMPLETED), 2,
             "Upsert metrics response should report [2] holdings records successfully deleted " + deleteResponse.encodePrettily());
-    testContext.assertEquals(getMetric(deleteResponse, "ITEM", "DELETED" , "COMPLETED"), 3,
+    testContext.assertEquals(getMetric(deleteResponse, ITEM, DELETE , COMPLETED), 3,
             "Delete metrics response should report [3] items successfully deleted " + deleteResponse.encodePrettily());
 
     storedHoldings = getRecordsFromStorage(FakeInventoryStorage.HOLDINGS_STORAGE_PATH, "instanceId==\"" + instanceId + "\"");
@@ -479,9 +492,9 @@ public class InventoryUpdateTestSuite {
 
     String instanceId = upsertResponseJson.getJsonObject("instance").getString("id");
 
-    testContext.assertEquals(getMetric(upsertResponseJson, "HOLDINGS_RECORD", "CREATED" , "COMPLETED"), 2,
+    testContext.assertEquals(getMetric(upsertResponseJson, HOLDINGS_RECORD, CREATE , COMPLETED), 2,
             "Upsert metrics response should report [2] holdings records successfully created " + upsertResponseJson.encodePrettily());
-    testContext.assertEquals(getMetric(upsertResponseJson, "ITEM", "CREATED" , "COMPLETED"), 3,
+    testContext.assertEquals(getMetric(upsertResponseJson, ITEM, CREATE , COMPLETED), 3,
             "Upsert metrics response should report [3] items successfully created " + upsertResponseJson.encodePrettily());
     JsonObject storedHoldings = getRecordsFromStorage(FakeInventoryStorage.HOLDINGS_STORAGE_PATH, "instanceId==\"" + instanceId + "\"");
     testContext.assertEquals(storedHoldings.getInteger("totalRecords"), 2,
@@ -503,9 +516,9 @@ public class InventoryUpdateTestSuite {
                     .add(new InputHoldingsRecord().setHrid("HOL-002").setPermanentLocationId(LOCATION_ID_1).setCallNumber("test-cn-2").getJson())));
 
     String instanceId = upsertResponseJson.getJsonObject("instance").getString("id");
-    testContext.assertEquals(getMetric(upsertResponseJson, "HOLDINGS_RECORD", "CREATED" , "COMPLETED"), 2,
+    testContext.assertEquals(getMetric(upsertResponseJson, HOLDINGS_RECORD, CREATE , COMPLETED), 2,
             "Upsert metrics response should report [2] holdings records successfully created " + upsertResponseJson.encodePrettily());
-    testContext.assertEquals(getMetric(upsertResponseJson, "ITEM", "CREATED" , "COMPLETED"), 0,
+    testContext.assertEquals(getMetric(upsertResponseJson, ITEM, CREATE , COMPLETED), 0,
             "Upsert metrics response should report [0] items created " + upsertResponseJson.encodePrettily());
   }
 
@@ -524,9 +537,9 @@ public class InventoryUpdateTestSuite {
                             .put("items", new JsonArray()
                                     .add(new InputItem().setHrid("ITM-003").setBarcode("BC-003").getJson())))));
 
-    testContext.assertEquals(getMetric(upsertResponseJson, "HOLDINGS_RECORD", "CREATED" , "COMPLETED"), 2,
+    testContext.assertEquals(getMetric(upsertResponseJson, HOLDINGS_RECORD, CREATE , COMPLETED), 2,
             "Upsert metrics response should report [2] holdings records successfully created " + upsertResponseJson.encodePrettily());
-    testContext.assertEquals(getMetric(upsertResponseJson, "ITEM", "CREATED" , "COMPLETED"), 3,
+    testContext.assertEquals(getMetric(upsertResponseJson, ITEM, CREATE , COMPLETED), 3,
             "Upsert metrics response should report [3] items successfully created " + upsertResponseJson.encodePrettily());
 
     upsertResponseJson = upsertByHrid(new JsonObject()
@@ -541,9 +554,9 @@ public class InventoryUpdateTestSuite {
                             .put("items", new JsonArray()
                                     .add(new InputItem().setHrid("ITM-003").setBarcode("updated").getJson())))));
 
-    testContext.assertEquals(getMetric(upsertResponseJson, "HOLDINGS_RECORD", "UPDATED" , "COMPLETED"), 2,
+    testContext.assertEquals(getMetric(upsertResponseJson, HOLDINGS_RECORD, UPDATE , COMPLETED), 2,
             "Upsert metrics response should report [2] holdings records successfully updated " + upsertResponseJson.encodePrettily());
-    testContext.assertEquals(getMetric(upsertResponseJson, "ITEM", "UPDATED" , "COMPLETED"), 3,
+    testContext.assertEquals(getMetric(upsertResponseJson, ITEM, UPDATE , COMPLETED), 3,
             "Upsert metrics response should report [3] items successfully updated " + upsertResponseJson.encodePrettily());
 
     getRecordsFromStorage(FakeInventoryStorage.ITEM_STORAGE_PATH,null).getJsonArray("items").stream().forEach(item -> {
@@ -586,9 +599,9 @@ public class InventoryUpdateTestSuite {
 
     upsertResponseJson =  upsertByHrid(inventoryRecordSet);
 
-    testContext.assertEquals(getMetric(upsertResponseJson, "HOLDINGS_RECORD", "DELETED" , "COMPLETED"), 1,
+    testContext.assertEquals(getMetric(upsertResponseJson, HOLDINGS_RECORD, DELETE , COMPLETED), 1,
             "After upsert with one holdings record removed from set, metrics should report [1] holdings record successfully deleted " + upsertResponseJson.encodePrettily());
-    testContext.assertEquals(getMetric(upsertResponseJson, "ITEM", "DELETED" , "COMPLETED"), 2,
+    testContext.assertEquals(getMetric(upsertResponseJson, ITEM, DELETE , COMPLETED), 2,
             "After upsert with one holdings record removed from set, metrics should report [2] items successfully deleted " + upsertResponseJson.encodePrettily());
     JsonObject holdingsAfterUpsertJson = getRecordsFromStorage(FakeInventoryStorage.HOLDINGS_STORAGE_PATH, "instanceId==\"" + instanceId + "\"");
     testContext.assertEquals(holdingsAfterUpsertJson.getInteger("totalRecords"), 1,
@@ -620,7 +633,7 @@ public class InventoryUpdateTestSuite {
                     .put("parentInstances", new JsonArray()
                             .add(new InputInstanceRelationship().setInstanceIdentifierHrid(instanceHrid).getJson()))));
 
-    testContext.assertEquals(getMetric(childResponseJson, "INSTANCE_RELATIONSHIP", "CREATED" , "COMPLETED"), 1,
+    testContext.assertEquals(getMetric(childResponseJson, INSTANCE_RELATIONSHIP, CREATE , COMPLETED), 1,
             "After upsert of new Instance with parent relation, metrics should report [1] instance relationship successfully created " + childResponseJson.encodePrettily());
     JsonObject relationshipsAfterUpsertJson = getRecordsFromStorage(FakeInventoryStorage.INSTANCE_RELATIONSHIP_STORAGE_PATH, null);
     testContext.assertEquals(relationshipsAfterUpsertJson.getInteger("totalRecords"), 1,
@@ -633,7 +646,7 @@ public class InventoryUpdateTestSuite {
                     .put("childInstances", new JsonArray()
                             .add(new InputInstanceRelationship().setInstanceIdentifierHrid(instanceHrid).getJson()))));
 
-    testContext.assertEquals(getMetric(grandParentResponseJson, "INSTANCE_RELATIONSHIP", "CREATED" , "COMPLETED"), 1,
+    testContext.assertEquals(getMetric(grandParentResponseJson, INSTANCE_RELATIONSHIP, CREATE , COMPLETED), 1,
             "After upsert of new Instance with child relation, metrics should report [1] instance relationship successfully created " + grandParentResponseJson.encodePrettily());
 
     JsonObject relationshipsAfterGrandParent = getRecordsFromStorage(FakeInventoryStorage.INSTANCE_RELATIONSHIP_STORAGE_PATH, null);
@@ -665,7 +678,7 @@ public class InventoryUpdateTestSuite {
                     .put("parentInstances", new JsonArray()
                             .add(new InputInstanceRelationship().setInstanceIdentifierHrid(instanceHrid).getJson()))));
 
-    testContext.assertEquals(getMetric(childResponseJson, "INSTANCE_RELATIONSHIP", "CREATED" , "COMPLETED"), 1,
+    testContext.assertEquals(getMetric(childResponseJson, INSTANCE_RELATIONSHIP, CREATE , COMPLETED), 1,
       "After upsert of Instance with parent relation, metrics should report [1] instance relationship successfully created " + childResponseJson.encodePrettily());
 
     // POST child Instance again with no parent list
@@ -673,7 +686,7 @@ public class InventoryUpdateTestSuite {
        .put("instance",
               new InputInstance().setTitle("Child InputInstance").setInstanceTypeId("12345").setHrid(childHrid).getJson())
        .put("instanceRelations", new JsonObject()));
-    testContext.assertNull(childResponseJson.getJsonObject("metrics").getJsonObject("INSTANCE_RELATIONSHIP"),
+    testContext.assertNull(childResponseJson.getJsonObject("metrics").getJsonObject(INSTANCE_RELATIONSHIP),
     "After upsert with no parent list, metrics should not report any instance relations updates " + childResponseJson.encodePrettily());
 
     // POST child Instance again with empty parent list.
@@ -683,7 +696,7 @@ public class InventoryUpdateTestSuite {
       .put("instanceRelations", new JsonObject()
              .put("parentInstances", new JsonArray())));
 
-    testContext.assertEquals(getMetric(childResponseJson, "INSTANCE_RELATIONSHIP", "DELETED", "COMPLETED"), 1,
+    testContext.assertEquals(getMetric(childResponseJson, INSTANCE_RELATIONSHIP, DELETE, COMPLETED), 1,
             "After upsert with empty parent list, metrics should report [1] instance relationship successfully deleted " + childResponseJson.encodePrettily());
 
   }
@@ -706,7 +719,7 @@ public class InventoryUpdateTestSuite {
                     .put("parentInstances", new JsonArray()
                             .add(new InputInstanceRelationship().setInstanceRelationshipTypeId("3333").setInstanceIdentifierHrid(instanceHrid).getJson()))));
 
-    testContext.assertEquals(getMetric(childResponseJson, "INSTANCE_RELATIONSHIP", "CREATED" , "COMPLETED"), 1,
+    testContext.assertEquals(getMetric(childResponseJson, INSTANCE_RELATIONSHIP, CREATE , COMPLETED), 1,
             "After upsert of Instance with parent relation, metrics should report [1] instance relationship successfully created " + childResponseJson.encodePrettily());
 
     // POST child Instance again with no parent list
@@ -717,9 +730,9 @@ public class InventoryUpdateTestSuite {
                     .put("parentInstances", new JsonArray()
                             .add(new InputInstanceRelationship().setInstanceRelationshipTypeId("4444").setInstanceIdentifierHrid(instanceHrid).getJson()))));
 
-    testContext.assertEquals(getMetric(childResponseJson, "INSTANCE_RELATIONSHIP", "DELETED", "COMPLETED"), 1,
+    testContext.assertEquals(getMetric(childResponseJson, INSTANCE_RELATIONSHIP, DELETE, COMPLETED), 1,
             "After upsert with different instance relationship type, metrics should report one instance relation deleted " + childResponseJson.encodePrettily());
-    testContext.assertEquals(getMetric(childResponseJson, "INSTANCE_RELATIONSHIP", "CREATED", "COMPLETED"), 1,
+    testContext.assertEquals(getMetric(childResponseJson, INSTANCE_RELATIONSHIP, CREATE, COMPLETED), 1,
             "After upsert with different instance relationship type, metrics should report one instance relation created " + childResponseJson.encodePrettily());
 
   }
@@ -762,10 +775,10 @@ public class InventoryUpdateTestSuite {
                       .add(new InputInstanceTitleSuccession().setInstanceIdentifierHrid(succeeding1Hrid).getJson())
                       .add(new InputInstanceTitleSuccession().setInstanceIdentifierHrid(succeeding2Hrid).getJson()))));
 
-    testContext.assertEquals(getMetric(firstResponseJson, "INSTANCE_RELATIONSHIP", "CREATED" , "COMPLETED"), 4,
+    testContext.assertEquals(getMetric(firstResponseJson, INSTANCE_RELATIONSHIP, CREATE , COMPLETED), 4,
             "After upsert of Instance with multiple relations, metrics should report [4] instance relationship successfully created " + firstResponseJson.encodePrettily());
 
-    testContext.assertEquals(getMetric(firstResponseJson, "INSTANCE_TITLE_SUCCESSION", "CREATED" , "COMPLETED"), 4,
+    testContext.assertEquals(getMetric(firstResponseJson, INSTANCE_TITLE_SUCCESSION, CREATE , COMPLETED), 4,
             "After upsert of Instance with multiple relations, metrics should report [4] instance title successions successfully created " + firstResponseJson.encodePrettily());
 
     JsonObject secondResponseJson = upsertByHrid(new JsonObject()
@@ -781,9 +794,9 @@ public class InventoryUpdateTestSuite {
                     .put("succeedingTitles", new JsonArray()
                             .add(new InputInstanceTitleSuccession().setInstanceIdentifierHrid(succeeding2Hrid).getJson()))));
 
-    testContext.assertEquals(getMetric(secondResponseJson, "INSTANCE_RELATIONSHIP", "DELETED" , "COMPLETED"), 2,
+    testContext.assertEquals(getMetric(secondResponseJson, INSTANCE_RELATIONSHIP, DELETE , COMPLETED), 2,
             "After upsert of Instance with some relations removed, metrics should report [2] instance relationship successfully deleted " + firstResponseJson.encodePrettily());
-    testContext.assertEquals(getMetric(secondResponseJson, "INSTANCE_TITLE_SUCCESSION", "DELETED" , "COMPLETED"), 2,
+    testContext.assertEquals(getMetric(secondResponseJson, INSTANCE_TITLE_SUCCESSION, DELETE , COMPLETED), 2,
             "After upsert of Instance with some relations removed, metrics should report [2] instance title successions successfully deleted " + firstResponseJson.encodePrettily());
 
 
@@ -812,7 +825,7 @@ public class InventoryUpdateTestSuite {
                     .put("childInstances", new JsonArray()
                             .add(new InputInstanceRelationship().setInstanceIdentifierHrid(instanceHrid).getJson()))));
 
-    testContext.assertEquals(getMetric(parentResponseJson, "INSTANCE_RELATIONSHIP", "CREATED" , "COMPLETED"), 1,
+    testContext.assertEquals(getMetric(parentResponseJson, INSTANCE_RELATIONSHIP, CREATE , COMPLETED), 1,
             "After upsert of Instance with child relation, metrics should report [1] instance relationship successfully created " + parentResponseJson.encodePrettily());
 
     // POST child Instance again with no parent list
@@ -820,7 +833,7 @@ public class InventoryUpdateTestSuite {
             .put("instance",
                     new InputInstance().setTitle("Parent InputInstance").setInstanceTypeId("12345").setHrid(parentHrid).getJson())
             .put("instanceRelations", new JsonObject()));
-    testContext.assertNull(parentResponseJson.getJsonObject("metrics").getJsonObject("INSTANCE_RELATIONSHIP"),
+    testContext.assertNull(parentResponseJson.getJsonObject("metrics").getJsonObject(INSTANCE_RELATIONSHIP),
             "After upsert with no child list, metrics should not report any instance relations updates " + parentResponseJson.encodePrettily());
 
     // POST child Instance again with empty parent list.
@@ -830,7 +843,7 @@ public class InventoryUpdateTestSuite {
             .put("instanceRelations", new JsonObject()
                     .put("childInstances", new JsonArray())));
 
-    testContext.assertEquals(getMetric(parentResponseJson, "INSTANCE_RELATIONSHIP", "DELETED", "COMPLETED"), 1,
+    testContext.assertEquals(getMetric(parentResponseJson, INSTANCE_RELATIONSHIP, DELETE, COMPLETED), 1,
             "After upsert with empty child list, metrics should report [1] instance relationship successfully deleted " + parentResponseJson.encodePrettily());
 
   }
@@ -851,7 +864,7 @@ public class InventoryUpdateTestSuite {
                .put("succeedingTitles", new JsonArray()
                 .add(new InputInstanceTitleSuccession().setInstanceIdentifierHrid("002").getJson()))));
 
-    testContext.assertEquals(getMetric(upsertResponseJson2, "INSTANCE_TITLE_SUCCESSION", "CREATED", "COMPLETED"), 1,
+    testContext.assertEquals(getMetric(upsertResponseJson2, INSTANCE_TITLE_SUCCESSION, CREATE, COMPLETED), 1,
             "After upsert of preceding title, metrics should report [1] instance title successions successfully created " + upsertResponseJson2.encodePrettily());
 
     JsonObject upsertResponseJson3 = upsertByHrid(
@@ -862,7 +875,7 @@ public class InventoryUpdateTestSuite {
                 .put("precedingTitles", new JsonArray()
                   .add(new InputInstanceTitleSuccession().setInstanceIdentifierHrid("002").getJson()))));
 
-    testContext.assertEquals(getMetric(upsertResponseJson3, "INSTANCE_TITLE_SUCCESSION", "CREATED", "COMPLETED"), 1,
+    testContext.assertEquals(getMetric(upsertResponseJson3, INSTANCE_TITLE_SUCCESSION, CREATE, COMPLETED), 1,
             "After upsert of succeeding title, metrics should report [1] instance title successions successfully created " + upsertResponseJson3.encodePrettily());
 
     JsonObject titleSuccessions = getRecordsFromStorage(FakeInventoryStorage.PRECEDING_SUCCEEDING_TITLE_STORAGE_PATH,null);
@@ -886,7 +899,7 @@ public class InventoryUpdateTestSuite {
                             .put("succeedingTitles", new JsonArray()
                                     .add(new InputInstanceTitleSuccession().setInstanceIdentifierHrid("002").getJson()))));
 
-    testContext.assertEquals(getMetric(upsertResponseJson2, "INSTANCE_TITLE_SUCCESSION", "CREATED", "COMPLETED"), 1,
+    testContext.assertEquals(getMetric(upsertResponseJson2, INSTANCE_TITLE_SUCCESSION, CREATE, COMPLETED), 1,
             "After upsert of preceding title, metrics should report [1] instance title successions successfully created " + upsertResponseJson2.encodePrettily());
 
     // POST preceding title again with no succeeding titles list
@@ -906,7 +919,7 @@ public class InventoryUpdateTestSuite {
                     .put("instanceRelations", new JsonObject()
                             .put("succeedingTitles", new JsonArray())));
 
-    testContext.assertEquals(getMetric(upsertResponseJson2, "INSTANCE_TITLE_SUCCESSION", "DELETED", "COMPLETED"), 1,
+    testContext.assertEquals(getMetric(upsertResponseJson2, INSTANCE_TITLE_SUCCESSION, DELETE, COMPLETED), 1,
             "After upsert with empty succeedingTitles list, metrics should report [1] instance title successions successfully deleted " + upsertResponseJson2.encodePrettily());
 
     JsonObject titleSuccessions = getRecordsFromStorage(FakeInventoryStorage.PRECEDING_SUCCEEDING_TITLE_STORAGE_PATH,null);
@@ -930,7 +943,7 @@ public class InventoryUpdateTestSuite {
                             .put("precedingTitles", new JsonArray()
                                     .add(new InputInstanceTitleSuccession().setInstanceIdentifierHrid("001").getJson()))));
 
-    testContext.assertEquals(getMetric(upsertResponseJson2, "INSTANCE_TITLE_SUCCESSION", "CREATED", "COMPLETED"), 1,
+    testContext.assertEquals(getMetric(upsertResponseJson2, INSTANCE_TITLE_SUCCESSION, CREATE, COMPLETED), 1,
             "After upsert of succeeding title, metrics should report [1] instance title successions successfully created " + upsertResponseJson2.encodePrettily());
 
     // POST succeeding title again with no preceding titles list
@@ -950,7 +963,7 @@ public class InventoryUpdateTestSuite {
                     .put("instanceRelations", new JsonObject()
                             .put("precedingTitles", new JsonArray())));
 
-    testContext.assertEquals(getMetric(upsertResponseJson2, "INSTANCE_TITLE_SUCCESSION", "DELETED", "COMPLETED"), 1,
+    testContext.assertEquals(getMetric(upsertResponseJson2, INSTANCE_TITLE_SUCCESSION, DELETE, COMPLETED), 1,
             "After upsert with empty precedingTitles list, metrics should report [1] instance title successions successfully deleted " + upsertResponseJson2.encodePrettily());
 
     JsonObject titleSuccessions = getRecordsFromStorage(FakeInventoryStorage.PRECEDING_SUCCEEDING_TITLE_STORAGE_PATH,null);
@@ -975,9 +988,9 @@ public class InventoryUpdateTestSuite {
                                                     .setSource("MARC")
                                                     .setInstanceTypeId("12345").getJson()).getJson()))));
 
-    testContext.assertEquals(getMetric(childResponseJson, "INSTANCE_RELATIONSHIP", "CREATED", "COMPLETED"), 1,
+    testContext.assertEquals(getMetric(childResponseJson, INSTANCE_RELATIONSHIP, CREATE, COMPLETED), 1,
             "Upsert metrics response should report [1] instance relationship successfully created " + childResponseJson.encodePrettily());
-    testContext.assertEquals(getMetric(childResponseJson, "INSTANCE_RELATIONSHIP", "PROVISIONAL_INSTANCE", "COMPLETED"), 1,
+    testContext.assertEquals(getMetric(childResponseJson, INSTANCE_RELATIONSHIP, PROVISIONAL_INSTANCE, COMPLETED), 1,
             "Upsert metrics response should report [1] provisional instance successfully created " + childResponseJson.encodePrettily());
     JsonObject instancesAfterUpsertJson = getRecordsFromStorage(FakeInventoryStorage.INSTANCE_STORAGE_PATH, null);
     testContext.assertEquals(instancesAfterUpsertJson.getInteger("totalRecords"), 2,
@@ -997,7 +1010,7 @@ public class InventoryUpdateTestSuite {
                             .add(new InputInstanceRelationship().setInstanceIdentifierHrid(parentHrid).getJson()))));
 
     JsonObject responseJson = new JsonObject(childResponse.getBody().asString());
-    testContext.assertEquals(getMetric(responseJson, "INSTANCE_RELATIONSHIP", "CREATED", "FAILED"), 1,
+    testContext.assertEquals(getMetric(responseJson, INSTANCE_RELATIONSHIP, CREATE, FAILED), 1,
             "Upsert metrics response should report [1] relation creation failure due to missing provisional instance  " + responseJson.encodePrettily());
 
     childResponse = upsertByHrid(422, new JsonObject()
@@ -1012,9 +1025,9 @@ public class InventoryUpdateTestSuite {
                                                     .setInstanceTypeId("12345").getJson()).getJson()))));
 
     responseJson = new JsonObject(childResponse.getBody().asString());
-    testContext.assertEquals(getMetric(responseJson, "INSTANCE_RELATIONSHIP", "CREATED", "FAILED"), 1,
+    testContext.assertEquals(getMetric(responseJson, INSTANCE_RELATIONSHIP, CREATE, FAILED), 1,
             "Upsert metrics response should report [1] relation creation failure due to missing mandatory properties in provisional instance  " + responseJson.encodePrettily());
-    testContext.assertEquals(getMetric(responseJson, "INSTANCE_RELATIONSHIP", "PROVISIONAL_INSTANCE", "FAILED"), 1,
+    testContext.assertEquals(getMetric(responseJson, INSTANCE_RELATIONSHIP, PROVISIONAL_INSTANCE, FAILED), 1,
             "Upsert metrics response should report [1] provisional Instance creation failure due to missing mandatory properties in provisional instance  " + responseJson.encodePrettily());
 
   }
@@ -1045,11 +1058,11 @@ public class InventoryUpdateTestSuite {
 
      String instanceId = upsertResponseJson.getJsonObject("instance").getString("id");
 
-     testContext.assertEquals(getMetric(upsertResponseJson, "HOLDINGS_RECORD", "CREATED" , "COMPLETED"), 2,
+     testContext.assertEquals(getMetric(upsertResponseJson, HOLDINGS_RECORD, CREATE , COMPLETED), 2,
              "Upsert metrics response should report [2] holdings records successfully created " + upsertResponseJson.encodePrettily());
-     testContext.assertEquals(getMetric(upsertResponseJson, "ITEM", "CREATED" , "COMPLETED"), 3,
+     testContext.assertEquals(getMetric(upsertResponseJson, ITEM, CREATE , COMPLETED), 3,
              "Upsert metrics response should report [3] items successfully created " + upsertResponseJson.encodePrettily());
-     testContext.assertEquals(getMetric(upsertResponseJson, "INSTANCE_TITLE_SUCCESSION", "CREATED", "COMPLETED"), 1,
+     testContext.assertEquals(getMetric(upsertResponseJson, INSTANCE_TITLE_SUCCESSION, CREATE, COMPLETED), 1,
              "Upsert metrics response should report [1] succeeding title relations successfully created " + upsertResponseJson.encodePrettily());
 
      JsonObject storedHoldings = getRecordsFromStorage(FakeInventoryStorage.HOLDINGS_STORAGE_PATH, "instanceId==\"" + instanceId + "\"");
@@ -1065,11 +1078,11 @@ public class InventoryUpdateTestSuite {
      JsonObject deleteSignal = new JsonObject().put("hrid",instanceHrid);
 
      JsonObject deleteResponse = delete(MainVerticle.INVENTORY_UPSERT_HRID_PATH,deleteSignal);
-     testContext.assertEquals(getMetric(deleteResponse, "HOLDINGS_RECORD", "DELETED" , "COMPLETED"), 2,
+     testContext.assertEquals(getMetric(deleteResponse, HOLDINGS_RECORD, DELETE , COMPLETED), 2,
              "Upsert metrics response should report [2] holdings records successfully deleted " + deleteResponse.encodePrettily());
-     testContext.assertEquals(getMetric(deleteResponse, "ITEM", "DELETED" , "COMPLETED"), 3,
+     testContext.assertEquals(getMetric(deleteResponse, ITEM, DELETE , COMPLETED), 3,
              "Delete metrics response should report [3] items successfully deleted " + deleteResponse.encodePrettily());
-     testContext.assertEquals(getMetric(deleteResponse, "INSTANCE_TITLE_SUCCESSION", "DELETED" , "COMPLETED"), 1,
+     testContext.assertEquals(getMetric(deleteResponse, INSTANCE_TITLE_SUCCESSION, DELETE , COMPLETED), 1,
              "Delete metrics response should report [1] relation successfully deleted " + deleteResponse.encodePrettily());
 
      storedHoldings = getRecordsFromStorage(FakeInventoryStorage.HOLDINGS_STORAGE_PATH, "instanceId==\"" + instanceId + "\"");
@@ -1139,9 +1152,9 @@ public class InventoryUpdateTestSuite {
                             .put("items", new JsonArray()
                                     .add(new InputItem().setHrid("ITM-003").setBarcode("BC-003").getJson())))));
 
-    testContext.assertEquals(getMetric(thirdResponse, "HOLDINGS_RECORD", "CREATED" , "COMPLETED"), 1,
+    testContext.assertEquals(getMetric(thirdResponse, HOLDINGS_RECORD, CREATE , COMPLETED), 1,
             "Third update should report [1] holdings record successfully created  " + thirdResponse.encodePrettily());
-    testContext.assertEquals(getMetric(thirdResponse, "ITEM", "UPDATED" , "COMPLETED"), 1,
+    testContext.assertEquals(getMetric(thirdResponse, ITEM, UPDATE , COMPLETED), 1,
             "Third update should report [1] item successfully updated (moved)   " + thirdResponse.encodePrettily());
 
     JsonObject storedItems = getRecordsFromStorage(FakeInventoryStorage.ITEM_STORAGE_PATH, null);
@@ -1218,7 +1231,7 @@ public class InventoryUpdateTestSuite {
     JsonObject upsertResponseJson = new JsonObject(upsertResponse.getBody().asString());
     testContext.assertTrue(upsertResponseJson.containsKey("errors"),
             "After upsert with holdings record with bad location id, the response should contain error reports");
-    testContext.assertEquals(getMetric(upsertResponseJson, "HOLDINGS_RECORD", "CREATED" , "FAILED"), 1,
+    testContext.assertEquals(getMetric(upsertResponseJson, HOLDINGS_RECORD, CREATE , FAILED), 1,
             "Upsert metrics response should report [1] holdings records update failure for wrong location ID " + upsertResponseJson.encodePrettily());
   }
 
@@ -1310,7 +1323,7 @@ public class InventoryUpdateTestSuite {
                                     .add(new InputItem().setHrid("ITM-003").setBarcode("BC-003").getJson())))));
 
     JsonObject responseJson = new JsonObject(response.getBody().asString());
-    testContext.assertEquals(getMetric(responseJson, "ITEM", "CREATED" , "FAILED"), 3,
+    testContext.assertEquals(getMetric(responseJson, ITEM, CREATE , FAILED), 3,
             "Upsert metrics response should report [3] item record create failures (forced) " + responseJson.encodePrettily());
 
   }
@@ -1332,10 +1345,10 @@ public class InventoryUpdateTestSuite {
 
     JsonObject responseJson = new JsonObject(response.getBody().asString());
 
-    testContext.assertEquals(getMetric(responseJson, "HOLDINGS_RECORD", "CREATED" , "FAILED"), 2,
+    testContext.assertEquals(getMetric(responseJson, HOLDINGS_RECORD, CREATE , FAILED), 2,
             "Upsert metrics response should report [2] holdings record create failures (forced) " + responseJson.encodePrettily());
 
-    testContext.assertEquals(getMetric(responseJson, "ITEM", "CREATED" , "SKIPPED"), 3,
+    testContext.assertEquals(getMetric(responseJson, ITEM, CREATE , SKIPPED), 3,
             "Upsert metrics response should report [3] item record creates skipped " + responseJson.encodePrettily());
 
   }
@@ -1358,7 +1371,7 @@ public class InventoryUpdateTestSuite {
     Response response = upsertByHrid(422,inventoryRecordSet);
     JsonObject responseJson = new JsonObject(response.getBody().asString());
 
-    testContext.assertEquals(getMetric(responseJson, "ITEM", "UPDATED" , "FAILED"), 3,
+    testContext.assertEquals(getMetric(responseJson, ITEM, UPDATE , FAILED), 3,
             "Upsert metrics response should report [3] item record update failures (forced) " + responseJson.encodePrettily());
 
   }
@@ -1382,7 +1395,7 @@ public class InventoryUpdateTestSuite {
 
     JsonObject responseJson = new JsonObject(response.getBody().asString());
 
-    testContext.assertEquals(getMetric(responseJson, "HOLDINGS_RECORD", "UPDATED" , "FAILED"), 2,
+    testContext.assertEquals(getMetric(responseJson, HOLDINGS_RECORD, UPDATE , FAILED), 2,
             "Upsert metrics response should report [2] holdings record update failures (forced) " + responseJson.encodePrettily());
 
   }
@@ -1415,7 +1428,7 @@ public class InventoryUpdateTestSuite {
 
     JsonObject responseJson = new JsonObject(response.getBody().asString());
 
-    testContext.assertEquals(getMetric(responseJson, "ITEM", "DELETED" , "FAILED"), 1,
+    testContext.assertEquals(getMetric(responseJson, ITEM, DELETE , FAILED), 1,
             "Upsert metrics response should report [1] item delete failure (forced) " + responseJson.encodePrettily());
 
   }
@@ -1445,10 +1458,10 @@ public class InventoryUpdateTestSuite {
 
     JsonObject responseJson = new JsonObject(response.getBody().asString());
 
-    testContext.assertEquals(getMetric(responseJson, "HOLDINGS_RECORD", "DELETED" , "FAILED"), 1,
+    testContext.assertEquals(getMetric(responseJson, HOLDINGS_RECORD, DELETE , FAILED), 1,
             "Upsert metrics response should report [1] holdings record delete failure (forced) " + responseJson.encodePrettily());
 
-    testContext.assertEquals(getMetric(responseJson, "ITEM", "DELETED" , "COMPLETED"), 2,
+    testContext.assertEquals(getMetric(responseJson, ITEM, DELETE, COMPLETED), 2,
             "Upsert metrics response should report [2] items successfully deleted " + responseJson.encodePrettily());
 
   }

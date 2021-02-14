@@ -19,7 +19,7 @@
 
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-    <vertx-version>3.9.2</vertx-version>
+    <vertx-version>4.0.0</vertx-version>
     <docker.registry>docker.indexdata.com:5000</docker.registry>
     <raml-module-builder-version>31.1.0</raml-module-builder-version>
     <ramlfiles_path>${basedir}/ramls/</ramlfiles_path>

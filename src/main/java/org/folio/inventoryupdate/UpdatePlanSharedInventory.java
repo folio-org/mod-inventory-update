@@ -19,7 +19,7 @@ import io.vertx.core.json.JsonObject;
 public class UpdatePlanSharedInventory extends UpdatePlan {
 
 
-    private static final Map<String,String> locationsToInstitutionsMap = new HashMap<String,String>();
+    public static final Map<String,String> locationsToInstitutionsMap = new HashMap<String,String>();
     private DeletionIdentifiers deletionIdentifiers;
 
     /**
@@ -45,31 +45,32 @@ public class UpdatePlanSharedInventory extends UpdatePlan {
     @Override
     public Future<Void> planInventoryUpdates(OkapiClient okapiClient) {
         Promise<Void> promise = Promise.promise();
-
-        lookupExistingRecordSet(okapiClient, instanceQuery).onComplete( recordSet -> {
-            if (recordSet.succeeded()) {
-                if (foundExistingRecordSet()) {
-                  if (isDeletion) {
-                    logger.debug("UpdatePlanSharedInventory: received deletion");
-                    this.updatingSet = createUpdatingRecordSetFromExistingSet(existingSet, deletionIdentifiers);
-                  } else { // create or update
-                    JsonObject mergedInstance = mergeInstances(getExistingInstance().asJson(), getUpdatingInstance().asJson());
-                    getUpdatingRecordSet().modifyInstance(mergedInstance);
-                  }
-                }
-                mapLocationsToInstitutions(okapiClient).onComplete( handler -> {
-                    if (handler.succeeded()) {
-                        logger.debug("got institutions map: " + locationsToInstitutionsMap.toString());
-                        flagAndIdRecordsForInventoryUpdating();
-                        promise.complete();
-                    } else {
-                        promise.fail("There was a problem retrieving locations map, cannot perform updates: " + handler.cause().getMessage());
+        validateIncomingRecordSet(isDeletion ? new JsonObject() : updatingSet.getSourceJson());
+        lookupExistingRecordSet(okapiClient, instanceQuery).onComplete( lookup -> {
+            if (lookup.succeeded()) {
+                if (isDeletion && !foundExistingRecordSet()) {
+                    promise.fail("Record to be deleted was not found");
+                } else  {
+                    if (foundExistingRecordSet()) {
+                        if (isDeletion) {
+                            this.updatingSet = createUpdatingRecordSetFromExistingSet(existingSet, deletionIdentifiers);
+                        } else { // create or update
+                            JsonObject mergedInstance = mergeInstances(getExistingInstance().asJson(), getUpdatingInstance().asJson());
+                            getUpdatingRecordSet().modifyInstance(mergedInstance);
+                        }
                     }
-
-                });
-
+                    mapLocationsToInstitutions(okapiClient).onComplete(handler -> {
+                        if (handler.succeeded()) {
+                            logger.debug("Got institutions map: " + locationsToInstitutionsMap.toString());
+                            flagAndIdRecordsForInventoryUpdating();
+                            promise.complete();
+                        } else {
+                            promise.fail("There was a problem retrieving locations map, cannot perform updates: " + handler.cause().getMessage());
+                        }
+                    });
+                }
             } else {
-                promise.fail("Error looking up existing record set: " + recordSet.cause().getMessage());
+                promise.fail("Error looking up existing record set: " + lookup.cause().getMessage());
             }
         });
         return promise.future();
@@ -192,7 +193,7 @@ public class UpdatePlanSharedInventory extends UpdatePlan {
         getUpdatingInstance().setTransition(Transaction.UPDATE);
         flagExistingHoldingsAndItemsForDeletion();
       } else if (!isDeletion) {
-        flagAndIdTheUpdatingInstance();
+        prepareTheUpdatingInstance();
         if (foundExistingRecordSet()) {
           // Plan to clean out existing holdings and items
           flagExistingHoldingsAndItemsForDeletion();
@@ -242,28 +243,29 @@ public class UpdatePlanSharedInventory extends UpdatePlan {
     @Override
     public Future<Void> doInventoryUpdates(OkapiClient okapiClient) {
         Promise<Void> promise = Promise.promise();
-        if (isDeletion && !foundExistingRecordSet()) {
-          promise.complete();
-        } else {
-          handleDeletionsIfAny(okapiClient).onComplete(deletes -> {
-              if (deletes.succeeded()) {
-                  createRecordsWithDependants(okapiClient).onComplete(prerequisites -> {
-                      handleInstanceAndHoldingsUpdatesIfAny(okapiClient).onComplete( instanceAndHoldingsUpdates -> {
-                          handleItemUpdatesAndCreatesIfAny (okapiClient).onComplete(itemUpdatesAndCreates -> {
-                              if (prerequisites.succeeded() && instanceAndHoldingsUpdates.succeeded() && itemUpdatesAndCreates.succeeded() ) {
-                                  promise.complete();
-                              } else {
-                                  promise.fail("One or more errors occurred updating Inventory records");
-                              }
-                          });
+        handleDeletionsIfAny(okapiClient).onComplete(deletes -> {
+          if (deletes.succeeded()) {
+              createRecordsWithDependants(okapiClient).onComplete(prerequisites -> {
+                  handleInstanceAndHoldingsUpdatesIfAny(okapiClient).onComplete( instanceAndHoldingsUpdates -> {
+                      handleItemUpdatesAndCreatesIfAny (okapiClient).onComplete(itemUpdatesAndCreates -> {
+                          if (prerequisites.succeeded() && instanceAndHoldingsUpdates.succeeded() && itemUpdatesAndCreates.succeeded() ) {
+                              promise.complete();
+                          } else {
+                              promise.fail("One or more errors occurred updating Inventory records");
+                          }
                       });
                   });
-              } else {
-                  promise.fail("There was a problem processing deletes - all other updates skipped." );
-              }
-          });
-        }
+              });
+          } else {
+              promise.fail("There was a problem processing deletes - all other updates skipped." );
+          }
+        });
         return promise.future();
+    }
+
+    @Override
+    public RequestValidation validateIncomingRecordSet(JsonObject inventoryRecordSet) {
+        return new RequestValidation();
     }
 
 }

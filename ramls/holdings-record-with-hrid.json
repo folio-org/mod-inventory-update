@@ -253,7 +253,6 @@
   },
   "additionalProperties": false,
   "required": [
-    "instanceId",
     "permanentLocationId",
     "hrid"
   ]

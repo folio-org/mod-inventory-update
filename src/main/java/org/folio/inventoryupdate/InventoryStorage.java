@@ -5,9 +5,11 @@ import java.util.List;
 
 import io.vertx.core.impl.logging.Logger;
 import io.vertx.core.impl.logging.LoggerFactory;
+import org.folio.inventoryupdate.entities.InstanceRelationsController;
 import org.folio.inventoryupdate.entities.InventoryRecord;
 import org.folio.inventoryupdate.entities.InventoryRecord.Entity;
 import org.folio.inventoryupdate.entities.InventoryRecord.Transaction;
+import org.folio.inventoryupdate.entities.InventoryRecordSet;
 import org.folio.okapi.common.OkapiClient;
 
 import io.vertx.core.CompositeFuture;
@@ -24,10 +26,22 @@ public class InventoryStorage {
 
   private static final Logger logger = LoggerFactory.getLogger("inventory-update");
   private static final String INSTANCE_STORAGE_PATH = "/instance-storage/instances";
+  private static final String INSTANCE_RELATIONSHIP_STORAGE_PATH = "/instance-storage/instance-relationships";
+  private static final String PRECEDING_SUCCEEDING_TITLE_STORAGE_PATH = "/preceding-succeeding-titles";
   private static final String HOLDINGS_STORAGE_PATH = "/holdings-storage/holdings";
   private static final String ITEM_STORAGE_PATH = "/item-storage/items";
   private static final String LOCATION_STORAGE_PATH = "/locations";
 
+  // Property keys, JSON responses
+  public static final String ID = "id";
+  public static final String INSTANCES = "instances";
+  public static final String TOTAL_RECORDS = "totalRecords";
+  public static final String HOLDINGS_RECORDS = "holdingsRecords";
+  public static final String ITEMS = "items";
+  public static final String INSTANCE_RELATIONSHIPS = "instanceRelationships";
+  public static final String PRECEDING_SUCCEEDING_TITLES = "precedingSucceedingTitles";
+  public static final String LOCATIONS = "locations";
+  public static final String LF = System.lineSeparator();
 
   public static Future<JsonObject> postInventoryRecord (OkapiClient okapiClient, InventoryRecord record) {
     Promise<JsonObject> promise = Promise.promise();
@@ -84,9 +98,9 @@ public class InventoryStorage {
     okapiClient.get(INSTANCE_STORAGE_PATH+"?query="+inventoryQuery.getURLEncodedQueryString(), res -> {
       if ( res.succeeded()) {
         JsonObject matchingInstances = new JsonObject(res.result());
-        int recordCount = matchingInstances.getInteger("totalRecords");
+        int recordCount = matchingInstances.getInteger(TOTAL_RECORDS);
         if (recordCount == 1) {
-          promise.complete(matchingInstances.getJsonArray("instances").getJsonObject(0));
+          promise.complete(matchingInstances.getJsonArray(INSTANCES).getJsonObject(0));
         } else {
           promise.complete(null);
         }
@@ -102,9 +116,9 @@ public class InventoryStorage {
     okapiClient.get(HOLDINGS_STORAGE_PATH+"?query="+hridQuery.getURLEncodedQueryString(), res -> {
       if ( res.succeeded()) {
         JsonObject records = new JsonObject(res.result());
-        int recordCount = records.getInteger("totalRecords");
+        int recordCount = records.getInteger(TOTAL_RECORDS);
         if (recordCount == 1) {
-          promise.complete(records.getJsonArray("holdingsRecords").getJsonObject(0));
+          promise.complete(records.getJsonArray(HOLDINGS_RECORDS).getJsonObject(0));
         } else {
           promise.complete(null);
         }
@@ -120,9 +134,9 @@ public class InventoryStorage {
     okapiClient.get(ITEM_STORAGE_PATH+"?query="+hridQuery.getURLEncodedQueryString(), res -> {
       if ( res.succeeded()) {
         JsonObject records = new JsonObject(res.result());
-        int recordCount = records.getInteger("totalRecords");
+        int recordCount = records.getInteger(TOTAL_RECORDS);
         if (recordCount == 1) {
-          promise.complete(records.getJsonArray("items").getJsonObject(0));
+          promise.complete(records.getJsonArray(ITEMS).getJsonObject(0));
         } else {
           promise.complete(null);
         }
@@ -143,19 +157,53 @@ public class InventoryStorage {
         if (instance==null) {
           promise.complete(null);
         } else {
-          inventoryRecordSet.put("instance",instance);
-          String instanceUUID = instance.getString("id");
+          inventoryRecordSet.put(InventoryRecordSet.INSTANCE,instance);
+          String instanceUUID = instance.getString(ID);
           lookupExistingHoldingsRecordsAndItemsByInstanceUUID(okapiClient, instanceUUID).onComplete(existingHoldingsResult -> {
+              StringBuilder errorMessages = new StringBuilder();
               if (existingHoldingsResult.succeeded()) {
                   if (existingHoldingsResult.result() != null) {
-                      inventoryRecordSet.put("holdingsRecords",existingHoldingsResult.result());
+                      inventoryRecordSet.put(InventoryRecordSet.HOLDINGS_RECORDS,existingHoldingsResult.result());
                   } else {
-                      inventoryRecordSet.put("holdingsRecords", new JsonArray());
+                      inventoryRecordSet.put(InventoryRecordSet.HOLDINGS_RECORDS, new JsonArray());
                   }
-                  promise.complete(inventoryRecordSet);
               } else {
-                failure(existingHoldingsResult.cause(), Entity.HOLDINGS_RECORD, Transaction.GET, okapiClient.getStatusCode(), promise, "While looking up Inventory record set");
+                errorMessages.append(LF + existingHoldingsResult.cause());
+                logger.error("Lookup of existing holdings/items failed " + existingHoldingsResult);
               }
+              lookupExistingParentChildRelationshipsByInstanceUUID(okapiClient, instanceUUID).onComplete(existingParentChildRelations -> {
+                lookupExistingPrecedingOrSucceedingTitlesByInstanceUUID(okapiClient, instanceUUID).onComplete( existingInstanceTitleSuccessions -> {
+                  JsonObject instanceRelations = new JsonObject();
+                  inventoryRecordSet.put(InstanceRelationsController.INSTANCE_RELATIONS, instanceRelations);
+                  if(existingInstanceTitleSuccessions.succeeded()) {
+                    if (existingInstanceTitleSuccessions.result() != null)  {
+                      instanceRelations.put(InstanceRelationsController.EXISTING_PRECEDING_SUCCEEDING_TITLES, existingInstanceTitleSuccessions.result());
+                      logger.debug("InventoryRecordSet JSON populated with " +
+                              inventoryRecordSet.getJsonObject(InstanceRelationsController.INSTANCE_RELATIONS)
+                                      .getJsonArray(InstanceRelationsController.EXISTING_PRECEDING_SUCCEEDING_TITLES).size() + " preceding/succeeding titles");
+                    }
+                  } else {
+                    errorMessages.append(LF + existingInstanceTitleSuccessions.cause());
+                    logger.error("Lookup of existing preceding/succeeding titles failed " + existingInstanceTitleSuccessions.cause());
+                  }
+                  if (existingParentChildRelations.succeeded()) {
+                    if (existingParentChildRelations.result() != null) {
+                      instanceRelations.put(InstanceRelationsController.EXISTING_PARENT_CHILD_RELATIONS, existingParentChildRelations.result());
+                      logger.debug("InventoryRecordSet JSON populated with " +
+                              inventoryRecordSet.getJsonObject(InstanceRelationsController.INSTANCE_RELATIONS)
+                                      .getJsonArray(InstanceRelationsController.EXISTING_PARENT_CHILD_RELATIONS).size() + " parent/child relations");
+                    }
+                  } else {
+                    errorMessages.append(LF + existingParentChildRelations.cause());
+                    logger.error("Lookup of existing Instance relationships failed " + existingParentChildRelations.cause());
+                  }
+                  if (existingHoldingsResult.succeeded() && existingInstanceTitleSuccessions.succeeded() && existingParentChildRelations.succeeded()) {
+                    promise.complete(inventoryRecordSet);
+                  } else {
+                    promise.fail(errorMessages.toString());
+                  }
+                });
+              });
           });
         }
       } else {
@@ -170,8 +218,8 @@ public class InventoryStorage {
     okapiClient.get(HOLDINGS_STORAGE_PATH+"?limit=1000&query=instanceId%3D%3D"+instanceId, res -> {
       if (res.succeeded()) {
         JsonObject holdingsRecordsResult = new JsonObject(res.result());
-        JsonArray holdingsRecords = holdingsRecordsResult.getJsonArray("holdingsRecords");
-        logger.info("Successfully looked up existing holdings records, found  " + holdingsRecords.size());
+        JsonArray holdingsRecords = holdingsRecordsResult.getJsonArray(HOLDINGS_RECORDS);
+        logger.debug("Successfully looked up existing holdings records, found  " + holdingsRecords.size());
         if (holdingsRecords.size()>0) {
           @SuppressWarnings("rawtypes")
           List<Future> itemFutures = new ArrayList<Future>();
@@ -181,7 +229,7 @@ public class InventoryStorage {
           }
           CompositeFuture.all(itemFutures).onComplete( result -> {
             if (result.succeeded()) {
-              logger.info("Composite succeeded with " + result.result().size() + " result(s). First item: " + ((JsonObject) result.result().resultAt(0)).encodePrettily());
+              logger.debug("Composite succeeded with " + result.result().size() + " result(s). First item: " + ((JsonObject) result.result().resultAt(0)).encodePrettily());
               promise.complete(holdingsRecords);
             } else {
               failure(result.cause(), Entity.ITEM, Transaction.GET, okapiClient.getStatusCode(), promise, "While looking up and embedding items for holdings records");
@@ -200,12 +248,12 @@ public class InventoryStorage {
 
   private static Future<JsonObject> lookupAndEmbedExistingItems (OkapiClient okapiClient, JsonObject holdingsRecord) {
     Promise<JsonObject> promise = Promise.promise();
-    okapiClient.get(ITEM_STORAGE_PATH+"?limit=1000&query=holdingsRecordId%3D%3D"+holdingsRecord.getString("id"), res -> {
+    okapiClient.get(ITEM_STORAGE_PATH+"?limit=1000&query=holdingsRecordId%3D%3D"+holdingsRecord.getString(ID), res -> {
       if (res.succeeded()) {
         JsonObject itemsResult = new JsonObject(res.result());
-        JsonArray items = itemsResult.getJsonArray("items");
-        logger.info("Successfully looked up existing items, found  " + items.size());
-        holdingsRecord.put("items",items);
+        JsonArray items = itemsResult.getJsonArray(ITEMS);
+        logger.debug("Successfully looked up existing items, found  " + items.size());
+        holdingsRecord.put(ITEMS,items);
         promise.complete(holdingsRecord);
       } else {
         failure(res.cause(), Entity.ITEM, Transaction.GET, okapiClient.getStatusCode(), promise, "While looking up items by holdingsRecordId");
@@ -214,12 +262,43 @@ public class InventoryStorage {
     return promise.future();
   }
 
+  public static Future<JsonArray> lookupExistingParentChildRelationshipsByInstanceUUID(OkapiClient okapiClient, String instanceId) {
+    Promise<JsonArray> promise = Promise.promise();
+    okapiClient.get(INSTANCE_RELATIONSHIP_STORAGE_PATH +"?limit=1000&query=(subInstanceId%3D%3D"+instanceId+"%20or%20superInstanceId%3D%3D"+instanceId+")", res -> {
+      if (res.succeeded()) {
+        JsonObject relationshipsResult = new JsonObject(res.result());
+        JsonArray parentChildRelations = relationshipsResult.getJsonArray(INSTANCE_RELATIONSHIPS);
+        logger.debug("Successfully looked up existing instance relationships, found  " + parentChildRelations.size());
+        promise.complete(parentChildRelations);
+      } else {
+        failure(res.cause(), Entity.ITEM, Transaction.GET, okapiClient.getStatusCode(), promise, "While looking instance relationships");
+      }
+    });
+    return promise.future();
+  }
+
+  public static Future<JsonArray> lookupExistingPrecedingOrSucceedingTitlesByInstanceUUID (OkapiClient okapiClient, String instanceId) {
+    Promise<JsonArray> promise = Promise.promise();
+    okapiClient.get(PRECEDING_SUCCEEDING_TITLE_STORAGE_PATH +"?limit=1000&query=(precedingInstanceId%3D%3D"+instanceId+"%20or%20succeedingInstanceId%3D%3D"+instanceId+")", res -> {
+      if (res.succeeded()) {
+        JsonObject relationsResult = new JsonObject(res.result());
+        JsonArray instanceTitleSuccessions = relationsResult.getJsonArray(PRECEDING_SUCCEEDING_TITLES);
+        logger.debug("Successfully looked up existing preceding/succeeding titles, found  " + instanceTitleSuccessions.size());
+        promise.complete(instanceTitleSuccessions);
+      } else {
+        failure(res.cause(), Entity.ITEM, Transaction.GET, okapiClient.getStatusCode(), promise, "While looking up preceding/succeeding titles for the Instance");
+      }
+    });
+    return promise.future();
+
+  }
+
   public static Future<JsonArray> getLocations(OkapiClient okapiClient)  {
     Promise<JsonArray> promise = Promise.promise();
     okapiClient.get(LOCATION_STORAGE_PATH + "?limit=9999", locs -> {
       if (locs.succeeded()) {
         JsonObject response = new JsonObject(locs.result());
-        JsonArray locationsJson = response.getJsonArray("locations");
+        JsonArray locationsJson = response.getJsonArray(LOCATIONS);
         promise.complete(locationsJson);
       }  else {
         failure(locs.cause(), Entity.LOCATION, Transaction.GET, okapiClient.getStatusCode(), promise);
@@ -241,6 +320,12 @@ public class InventoryStorage {
         api = ITEM_STORAGE_PATH;
         break;
       case LOCATION:
+        break;
+      case INSTANCE_RELATIONSHIP:
+        api = INSTANCE_RELATIONSHIP_STORAGE_PATH;
+        break;
+      case INSTANCE_TITLE_SUCCESSION:
+        api = PRECEDING_SUCCEEDING_TITLE_STORAGE_PATH;
         break;
       default:
         break;

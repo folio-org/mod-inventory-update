@@ -24,7 +24,7 @@ public class MainVerticle extends AbstractVerticle {
   public final static String INSTANCE_MATCH_PATH = "/instance-storage-match/instances";
 
   private final Logger logger = LoggerFactory.getLogger("inventory-update");
-  private final InventoryUpdateService matchService = new InventoryUpdateService();
+  private final InventoryUpdateService upsertService = new InventoryUpdateService();
 
   @Override
   public void start(Promise<Void> promise)  {
@@ -36,14 +36,14 @@ public class MainVerticle extends AbstractVerticle {
     Router router = Router.router(vertx);
     router.put("/*").handler(BodyHandler.create()); // Tell vertx we want the whole PUT body in the handler
     router.delete("/*").handler(BodyHandler.create()); // Tell vertx we want the whole DELETE body in the handler
-    router.put(INSTANCE_MATCH_PATH).handler(matchService::handleInstanceMatching); // old API
+    router.put(INSTANCE_MATCH_PATH).handler(upsertService::handleInstanceMatching); // old API
 
-    router.put(INVENTORY_UPSERT_HRID_PATH).handler(matchService::handleInventoryUpsertByHRID);
-    router.put(SHARED_INVENTORY_UPSERT_MATCHKEY_PATH).handler(matchService::handleSharedInventoryUpsertByMatchKey);
-    router.delete(INVENTORY_UPSERT_HRID_PATH).handler(matchService::handleInventoryRecordSetDeleteByHRID);
-    router.delete(SHARED_INVENTORY_UPSERT_MATCHKEY_PATH).handler(matchService::handleSharedInventoryRecordSetDeleteByMatchKey);
+    router.put(INVENTORY_UPSERT_HRID_PATH).handler(upsertService::handleInventoryUpsertByHRID);
+    router.put(SHARED_INVENTORY_UPSERT_MATCHKEY_PATH).handler(upsertService::handleSharedInventoryUpsertByMatchKey);
+    router.delete(INVENTORY_UPSERT_HRID_PATH).handler(upsertService::handleInventoryRecordSetDeleteByHRID);
+    router.delete(SHARED_INVENTORY_UPSERT_MATCHKEY_PATH).handler(upsertService::handleSharedInventoryRecordSetDeleteByMatchKey);
     router.route("/apidocs/*").handler(StaticHandler.create("apidocs"));
-    router.route("/*").handler(matchService::handleUnrecognizedPath);
+    router.route("/*").handler(upsertService::handleUnrecognizedPath);
 
     vertx.createHttpServer()
       .requestHandler(router)

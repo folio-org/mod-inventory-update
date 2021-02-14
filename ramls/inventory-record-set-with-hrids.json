@@ -15,6 +15,191 @@
         "type": "object",
         "$ref": "holdings-record-with-hrid.json"
       }
+    },
+    "instanceRelations": {
+      "description": "Object holding information of different types of Instance-to-Instance relationships to create",
+      "properties": {
+        "parentInstances": {
+          "type": "array",
+          "description": "Collection of objects with information required for finding and linking to parent Instances",
+          "items": {
+            "type": "object",
+            "properties": {
+              "instanceIdentifier": {
+                "type": "object",
+                "description": "Object with information required for finding the parent Instance to link to",
+                "properties": {
+                  "hrid": {
+                    "type": "string",
+                    "description": "A unique ID for the parent instance to link to"
+                  }
+                }
+              },
+              "provisionalInstance": {
+                "type": "object",
+                "description": "Object with at least the mandatory Instance properties required for creating a provisional Instance if the parent does not yet exist. Other valid Instance properties allowed.",
+                "properties": {
+                  "title": {
+                    "type": "string",
+                    "description": "The parent record’s title"
+                  },
+                  "source": {
+                    "type": "string",
+                    "description": "The parent record’s source"
+                  },
+                  "instanceTypeId": {
+                    "type": "string",
+                    "description": "The parent record’s resource type ID (UUID) "
+                  }
+                },
+                "required": [
+                  "title",
+                  "source",
+                  "instanceTypeId"
+                ]
+              },
+              "instancesRelationshipTypeId": {
+                "type": "string",
+                "description": "UUID for the type of relationship to establish to a parent instance (article, volume, multipart, series)"
+              }
+            },
+            "required": [
+              "instanceIdentifier",
+              "instanceRelationshipTypeId"
+            ]
+          }
+        },
+        "childInstances": {
+          "type": "array",
+          "description": "Collection of objects with information required for finding and linking to child Instances",
+          "items": {
+            "type": "object",
+            "properties": {
+              "instanceIdentifier": {
+                "type": "object",
+                "description": "Object with information required for finding the child Instance to link to",
+                "properties": {
+                  "hrid": {
+                    "type": "string",
+                    "description": "A unique ID for the child instance to link to"
+                  }
+                },
+                "provisionalInstance": {
+                  "type": "object",
+                  "description": "Object with at least the mandatory Instance properties required for creating a provisional Instance if the child does not yet exist. Other valid Instance properties allowed.",
+                  "properties": {
+                    "title": {
+                      "type": "string",
+                      "description": "The child record’s title"
+                    },
+                    "source": {
+                      "type": "string",
+                      "description": "The child record’s source"
+                    },
+                    "instanceTypeId": {
+                      "type": "string",
+                      "description": "The child record’s resource type ID (UUID) "
+                    }
+                  },
+                  "required": [
+                    "title",
+                    "source",
+                    "instanceTypeId"
+                  ]
+                },
+                "instancesRelationshipTypeId": {
+                  "type": "string",
+                  "description": "UUID for the type of relationship to establish to a child instance (article, volume, multipart, series)"
+                }
+              }
+            }
+          }
+        },
+        "precedingTitles": {
+          "type": "array",
+          "description": "Collection of objects with information required for finding and linking to preceding Instances",
+          "items": {
+            "type": "object",
+            "properties": {
+              "instanceIdentifier": {
+                "type": "object",
+                "description": "Object with information required for finding the preceding Instance to link to",
+                "properties": {
+                  "hrid": {
+                    "type": "string",
+                    "description": "A unique ID for the preceding instance to link to"
+                  }
+                },
+                "provisionalInstance": {
+                  "type": "object",
+                  "description": "Object with at least the mandatory Instance properties required for creating a provisional Instance if the preceding does not yet exist. Other valid Instance properties allowed.",
+                  "properties": {
+                    "title": {
+                      "type": "string",
+                      "description": "The preceding Instance’s title"
+                    },
+                    "source": {
+                      "type": "string",
+                      "description": "The preceding Instance’s source"
+                    },
+                    "instanceTypeId": {
+                      "type": "string",
+                      "description": "The preceding Instance’s resource type ID (UUID) "
+                    }
+                  },
+                  "required": [
+                    "title",
+                    "source",
+                    "instanceTypeId"
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "succeedingTitles": {
+          "type": "array",
+          "description": "Collection of objects with information required for finding and linking to succeeding Instances",
+          "items": {
+            "type": "object",
+            "properties": {
+              "instanceIdentifier": {
+                "type": "object",
+                "description": "Object with information required for finding the succeeding Instance to link to",
+                "properties": {
+                  "hrid": {
+                    "type": "string",
+                    "description": "A unique ID for the succeeding instance to link to"
+                  }
+                },
+                "provisionalInstance": {
+                  "type": "object",
+                  "description": "Object with at least the mandatory Instance properties required for creating a provisional Instance if the succeeding does not yet exist. Other valid Instance properties allowed.",
+                  "properties": {
+                    "title": {
+                      "type": "string",
+                      "description": "The succeeding Instance’s title"
+                    },
+                    "source": {
+                      "type": "string",
+                      "description": "The succeeding Instance’s source"
+                    },
+                    "instanceTypeId": {
+                      "type": "string",
+                      "description": "The succeeding Instance’s resource type ID (UUID) "
+                    }
+                  },
+                  "required": [
+                    "title",
+                    "source",
+                    "instanceTypeId"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "required": [

@@ -11,6 +11,7 @@ import static org.folio.okapi.common.HttpResponse.responseJson;
 import java.util.HashMap;
 import java.util.Map;
 
+import io.vertx.core.CompositeFuture;
 import io.vertx.core.impl.logging.Logger;
 import io.vertx.core.impl.logging.LoggerFactory;
 import io.vertx.core.json.DecodeException;
@@ -33,6 +34,8 @@ public class InventoryUpdateService {
   private final Logger logger = LoggerFactory.getLogger("inventory-update");
 
   private static final String INSTANCE_STORAGE_PATH = "/instance-storage/instances";
+
+  private static final String LF = System.lineSeparator();
 
   public void handleUnrecognizedPath(RoutingContext routingContext) {
     responseError(routingContext, 404, "No Service found for requested path " + routingContext.request().path());
@@ -92,11 +95,10 @@ public class InventoryUpdateService {
   }
 
 
-  //TODO: turn not-found conditions in case of deletion around?
+  //TODO: invert not-found conditions in case of deletion?
   private void runPlan(UpdatePlan updatePlan, RoutingContext routingCtx) {
 
     OkapiClient okapiClient = getOkapiClient(routingCtx);
-
     updatePlan.planInventoryUpdates(okapiClient).onComplete( planDone -> {
       if (planDone.succeeded()) {
         updatePlan.writePlanToLog();
@@ -104,11 +106,7 @@ public class InventoryUpdateService {
           JsonObject pushedRecordSetWithStats = updatePlan.getUpdatingRecordSetJson();
           pushedRecordSetWithStats.put("metrics", updatePlan.getUpdateStats());
           if (updatesDone.succeeded()) {
-            if (updatePlan.isDeletion && !updatePlan.foundExistingRecordSet()) {
-              responseJson(routingCtx, 404).end(pushedRecordSetWithStats.encodePrettily());
-            } else {
-              responseJson(routingCtx, 200).end(pushedRecordSetWithStats.encodePrettily());
-            }
+            responseJson(routingCtx, 200).end(pushedRecordSetWithStats.encodePrettily());
             okapiClient.close();
           } else {
             pushedRecordSetWithStats.put("errors", updatePlan.getErrors());
@@ -116,7 +114,11 @@ public class InventoryUpdateService {
           }
         });
       }  else {
-        responseJson(routingCtx, 500).end("Internal Server Error running inventory update plan: " + planDone.cause().getMessage());
+        if (updatePlan.isDeletion && !updatePlan.foundExistingRecordSet()) {
+          responseJson(routingCtx, 404).end("Error processing delete request:: "+ planDone.cause().getMessage());
+        } else {
+          responseJson(routingCtx, 422).end("Error creating an inventory update plan:" + LF + "  " + planDone.cause().getMessage());
+        }
       }
     });
   }

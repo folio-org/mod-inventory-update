@@ -11,7 +11,7 @@ public class Instance extends InventoryRecord {
 
     public Instance (JsonObject instance) {
         jsonRecord = instance;
-        type = Entity.INSTANCE;
+        entityType = Entity.INSTANCE;
     }
 
     public void replaceJson(JsonObject instance) {

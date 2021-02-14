@@ -1,5 +1,6 @@
 ## 0.0.3-SNAPSHOT
 
+* Extend HRID upsert API with instance relations handling GBV-106
 * Accept incoming UUIDs for new records (instances, holdings, items)
 * Shared Inventory upsert: Stop populating match key to `indexTitle`
 * Respond with details about HTTP 500 errors from Inventory Storage

@@ -3,22 +3,19 @@ package org.folio.inventoryupdate;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.folio.inventoryupdate.entities.HoldingsRecord;
-import org.folio.inventoryupdate.entities.InventoryRecord;
-import org.folio.inventoryupdate.entities.InventoryRecordSet;
-import org.folio.inventoryupdate.entities.Item;
+import io.vertx.core.json.JsonObject;
+import org.folio.inventoryupdate.entities.*;
 import org.folio.inventoryupdate.entities.InventoryRecord.Transaction;
 import org.folio.okapi.common.OkapiClient;
 
 import io.vertx.core.CompositeFuture;
 import io.vertx.core.Future;
 import io.vertx.core.Promise;
-import io.vertx.core.json.JsonObject;
 
 public class UpdatePlanAllHRIDs extends UpdatePlan {
 
 
-
+    private static final String LF = System.lineSeparator();
     /**
      * Constructs plan for creating or updating an Inventory record set
      * @param incomingInventoryRecordSet The record set to create or update with
@@ -34,48 +31,65 @@ public class UpdatePlanAllHRIDs extends UpdatePlan {
      */
     public UpdatePlanAllHRIDs (InventoryQuery existingInstanceQuery) {
       super(null, existingInstanceQuery);
+        logger.debug("This is a deletion");
       this.isDeletion = true;
     }
 
     /**
-     * Creates an in-memory representation of all instances, holdings, and items
-     * that need to be created, updated, or deleted in Inventory storage.
+     * Creates an in-memory representation of the instance, holdings, and items
+     * as well as possible instance-to-instance relationships, that need to be created,
+     * updated, or deleted in Inventory storage.
+     *
      * @param okapiClient
      * @return a Future to confirm that plan was created
     */
     @Override
     public Future<Void> planInventoryUpdates (OkapiClient okapiClient) {
-
         Promise<Void> promisedPlan = Promise.promise();
+        RequestValidation validation = validateIncomingRecordSet(isDeletion ? new JsonObject() : updatingSet.getSourceJson());
+        if (validation.passed()) {
+            lookupExistingRecordSet(okapiClient, instanceQuery).onComplete(lookup -> {
+                if (lookup.succeeded()) {
+                    // Plan instance update
+                    if (isDeletion) {
+                        if (foundExistingRecordSet()) {
+                            getExistingInstance().setTransition(Transaction.DELETE);
+                            for (HoldingsRecord holdings : getExistingInstance().getHoldingsRecords()) {
+                                holdings.setTransition(Transaction.DELETE);
+                                for (Item item : holdings.getItems()) {
+                                    item.setTransition(Transaction.DELETE);
+                                }
+                            }
+                            getExistingRecordSet().prepareAllInstanceRelationsForDeletion();
+                            promisedPlan.complete();
+                        } else {
+                            promisedPlan.fail("Instance to delete not found");
+                        }
 
-        lookupExistingRecordSet(okapiClient, instanceQuery).onComplete( lookup -> {
-            if (lookup.succeeded()) {
-                // Plan instance update
-                if (isDeletion) {
-                  if (foundExistingRecordSet()) {
-                    getExistingInstance().setTransition(Transaction.DELETE);
-                    for (HoldingsRecord holdings : getExistingInstance().getHoldingsRecords()) {
-                      holdings.setTransition(Transaction.DELETE);
-                      for (Item item : holdings.getItems()) {
-                        item.setTransition(Transaction.DELETE);
-                      }
+                    } else {
+                        prepareTheUpdatingInstance();
+                        // Plan holdings/items updates
+                        if (foundExistingRecordSet()) {
+                            prepareUpdatesDeletesAndLocalMoves();
+                        }
+                        Future<Void> relationsFuture = getUpdatingRecordSet().prepareIncomingInstanceRelationRecords(okapiClient, getUpdatingInstance().getUUID());
+                        Future<Void> prepareNewRecordsAndImportsFuture = prepareNewRecordsAndImports(okapiClient);
+                        CompositeFuture.join(relationsFuture, prepareNewRecordsAndImportsFuture).onComplete(done -> {
+                            if (done.succeeded()) {
+                                getUpdatingRecordSet().getInstanceRelationsController().prepareIncomingInstanceRelations(updatingSet, existingSet);
+                                promisedPlan.complete();
+                            } else {
+                                promisedPlan.fail("There was a problem fetching existing relations, holdings and/or items from storage:" + LF + "  " + done.cause().getMessage());
+                            }
+                        });
                     }
-                  }
-                  promisedPlan.complete();
                 } else {
-                  flagAndIdTheUpdatingInstance();
-                  // Plan holdings/items updates
-                  if (foundExistingRecordSet()) {
-                      flagAndIdUpdatesDeletesAndLocalMoves();
-                  }
-                  flagAndIdNewRecordsAndImports(okapiClient).onComplete( done -> {
-                      if (done.succeeded()) {
-                          promisedPlan.complete();
-                      }
-                  });
+                    promisedPlan.fail("There was a problem looking for an existing instance in Inventory Storage" + lookup.cause().getMessage());
                 }
-            }
-        });
+            });
+        } else {
+            promisedPlan.fail("Request did not provide a valid record set: " + validation.toString());
+        }
         return promisedPlan.future();
     }
 
@@ -87,24 +101,77 @@ public class UpdatePlanAllHRIDs extends UpdatePlan {
             logger.debug("Successfully created records referenced by other records if any");
 
             handleInstanceAndHoldingsUpdatesIfAny(okapiClient).onComplete( instanceAndHoldingsUpdates -> {
-                handleItemUpdatesAndCreatesIfAny (okapiClient).onComplete(itemUpdatesAndCreates -> {
-                    if (prerequisites.succeeded() && instanceAndHoldingsUpdates.succeeded() && itemUpdatesAndCreates.succeeded()) {
-                        logger.debug("Successfully processed record create requests if any");
-                        handleDeletionsIfAny(okapiClient).onComplete(deletes -> {
-                            if (deletes.succeeded()) {
-                                promise.complete();
-                            } else {
-                                promise.fail("There was a problem processing Inventory deletes: " + deletes.cause().getMessage());
-                            }
-                        });
-                    } else {
-                        promise.fail("There was a problem creating records, no deletes performed if any requested: " + prerequisites.cause().getMessage());
-                    }
-                });
 
+                handleInstanceRelationCreatesIfAny(okapiClient).onComplete( relationsCreated -> {
+                    if (relationsCreated.succeeded()) {
+                        logger.debug("Successfully processed relationship create requests if any");
+                    } else {
+                        logger.error(relationsCreated.cause().getMessage());
+                    }
+                    handleItemUpdatesAndCreatesIfAny(okapiClient).onComplete(itemUpdatesAndCreates -> {
+                        if (prerequisites.succeeded() && instanceAndHoldingsUpdates.succeeded() && itemUpdatesAndCreates.succeeded()) {
+                            logger.debug("Successfully processed record create requests if any");
+                            handleDeletionsIfAny(okapiClient).onComplete(deletes -> {
+                                if (deletes.succeeded()) {
+                                    if (relationsCreated.succeeded()) {
+                                        promise.complete();
+                                    } else {
+                                        promise.fail("There was a problem creating Instance relationships: " + LF + relationsCreated.cause().getMessage());
+                                    }
+                                } else {
+                                    promise.fail("There was a problem processing Inventory deletes:" + LF + "  " + deletes.cause().getMessage());
+                                }
+                            });
+                        } else {
+                            promise.fail("There was a problem creating records, no deletes performed if any requested:" + LF + "  " +
+                                    (prerequisites.failed() ? prerequisites.cause().getMessage() : "")
+                                    + (instanceAndHoldingsUpdates.failed() ? " " + instanceAndHoldingsUpdates.cause().getMessage() : "")
+                                    + (itemUpdatesAndCreates.failed() ? " " + itemUpdatesAndCreates.cause().getMessage(): ""));
+                        }
+                    });
+                });
             });
         });
         return promise.future();
+    }
+
+    @Override
+    public RequestValidation validateIncomingRecordSet(JsonObject inventoryRecordSet) {
+        RequestValidation validationErrors = new RequestValidation();
+        if (isDeletion) return validationErrors;
+        if (inventoryRecordSet.containsKey("holdingsRecords")) {
+            inventoryRecordSet.getJsonArray("holdingsRecords")
+                    .stream()
+                    .map( rec -> (JsonObject) rec)
+                    .forEach( record -> {
+                        if (!record.containsKey("hrid")) {
+                            logger.error("Holdings Records must have a HRID to be processed by this API");
+                            validationErrors.registerError("Holdings Records must have a HRID to be processed by this API, received: " + record.encodePrettily());
+                        }
+                        if (record.containsKey("items")) {
+                            record.getJsonArray("items")
+                                    .stream()
+                                    .map(item -> (JsonObject) item)
+                                    .forEach(item -> {
+                                        if (!item.containsKey("hrid")) {
+                                            logger.error("Items must have a HRID to be processed by this API");
+                                            validationErrors.registerError("Items must have a HRID to be processed by this API, received: " + item.encodePrettily());
+                                        }
+                                    });
+                        }
+                    });
+        }
+        return validationErrors;
+    }
+
+    public Future<JsonObject> handleInstanceRelationCreatesIfAny (OkapiClient okapiClient) {
+        if (!isDeletion) {
+            return getUpdatingRecordSet().getInstanceRelationsController().handleInstanceRelationCreatesIfAny(okapiClient);
+        } else {
+            Promise<JsonObject> promise = Promise.promise();
+            promise.complete(null);
+            return promise.future();
+        }
     }
 
     /* PLANNING METHODS */
@@ -116,7 +183,7 @@ public class UpdatePlanAllHRIDs extends UpdatePlan {
      * Find items that have moved between holdings locally and mark them for update.
      * Find records that have disappeared and mark them for deletion.
      */
-    private void flagAndIdUpdatesDeletesAndLocalMoves() {
+    private void prepareUpdatesDeletesAndLocalMoves() {
         for (HoldingsRecord existingHoldingsRecord : getExistingInstance().getHoldingsRecords()) {
             HoldingsRecord incomingHoldingsRecord = getUpdatingInstance().getHoldingsRecordByHRID(existingHoldingsRecord.getHRID());
             // HoldingsRecord gone, mark for deletion and check for existing items to delete with it
@@ -157,7 +224,7 @@ public class UpdatePlanAllHRIDs extends UpdatePlan {
      * @param okapiClient client for looking up existing records
      * @return a future with all holdingsRecord and item lookups.
      */
-    public Future<Void> flagAndIdNewRecordsAndImports(OkapiClient okapiClient) {
+    public Future<Void> prepareNewRecordsAndImports(OkapiClient okapiClient) {
         Promise<Void> promise = Promise.promise();
         @SuppressWarnings("rawtypes")
         List<Future> recordFutures = new ArrayList<Future>();
@@ -173,7 +240,7 @@ public class UpdatePlanAllHRIDs extends UpdatePlan {
             if (handler.succeeded()) {
                 promise.complete();
             } else {
-                promise.fail("Failed to retrieve UUIDs: " + handler.cause().getMessage());
+                promise.fail("Failed to retrieve UUIDs:" + LF + "  " + handler.cause().getMessage());
             }
         });
         return promise.future();
@@ -203,7 +270,7 @@ public class UpdatePlanAllHRIDs extends UpdatePlan {
                 }
                 promise.complete();
             } else {
-                promise.fail("Failed to look up holdings record by HRID: " + result.cause().getMessage());
+                promise.fail("Failed to look up holdings record by HRID:" + LF + "  " + result.cause().getMessage());
             }
         });
         return promise.future();
@@ -233,7 +300,7 @@ public class UpdatePlanAllHRIDs extends UpdatePlan {
                 }
                 promise.complete();
             } else {
-                promise.fail("Failed to look up item by HRID: " + result.cause().getMessage());
+                promise.fail("Failed to look up item by HRID:" + LF + "  " + result.cause().getMessage());
             }
         });
         return promise.future();

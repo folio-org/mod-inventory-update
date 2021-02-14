@@ -1,15 +1,11 @@
 package org.folio.inventoryupdate;
 
-import io.vertx.core.impl.logging.Logger;
-import io.vertx.core.impl.logging.LoggerFactory;
-
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
 
 
 public class HridQuery implements InventoryQuery {
     private String hrid;
-    private final Logger logger = LoggerFactory.getLogger("inventory-upsert-hrid-query");
     private String queryString;
 
     public HridQuery(String hrid) {

@@ -5,9 +5,6 @@
  */
 package org.folio.inventoryupdate;
 
-import io.vertx.core.impl.logging.Logger;
-import io.vertx.core.impl.logging.LoggerFactory;
-
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
 
@@ -18,7 +15,6 @@ import java.net.URLEncoder;
  */
 public class MatchQuery implements InventoryQuery {
 
-  private final Logger logger = LoggerFactory.getLogger("inventory-update-match-query");
   private final String matchKey;
   private final String queryString;
 

@@ -5,9 +5,6 @@
  */
 package org.folio.inventoryupdate;
 
-import io.vertx.core.impl.logging.Logger;
-import io.vertx.core.impl.logging.LoggerFactory;
-
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
 
@@ -18,7 +15,6 @@ import java.net.URLEncoder;
  */
 public class MatchQuery implements InventoryQuery {
 
-  private final Logger logger = LoggerFactory.getLogger("inventory-update-match-query");
   private final String matchKey;
   private final String queryString;
 
@@ -51,12 +47,11 @@ public class MatchQuery implements InventoryQuery {
    * @return URL encoded Instance match query
    */
   public String getURLEncodedQueryString () {
-    String encodedQuery;
+    String encodedQuery = queryString;
     try {
       encodedQuery = URLEncoder.encode(queryString,"UTF-8");
     } catch (UnsupportedEncodingException unsupportedEncodingException) {
-      logger.error("System error: Unsupported encoding of Inventory query" + unsupportedEncodingException);
-      encodedQuery =  "encoding-error-while-building-query-string";
+      // ignore
     }
     return encodedQuery;
   }

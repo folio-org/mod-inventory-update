@@ -1,4 +1,4 @@
-## 0.0.3-SNAPSHOT
+## 0.0.3 2021-02-14
 
 * Extend HRID upsert API with instance relations handling GBV-106
 * Accept incoming UUIDs for new records (instances, holdings, items)

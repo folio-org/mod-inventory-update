@@ -174,44 +174,10 @@ public abstract class UpdatePlan {
     }
 
     public void writePlanToLog () {
-        if (logger.isDebugEnabled()) {
-            logger.debug("Planning of " + (isDeletion ? " delete " : " create/update ") + " of Inventory records set done: ");
-            if (isDeletion) {
-                if (foundExistingRecordSet()) {
-                    logger.debug("Instance transition: " + (gotUpdatingRecordSet() ? getUpdatingInstance().getTransaction() : getExistingInstance().getTransaction()));
-                    logger.debug("Items to delete: ");
-                    for (Item record : itemsToDelete()) {
-                        logger.debug(record.asJson().encodePrettily());
-                    }
-                    logger.debug("Holdings to delete: ");
-                    for (HoldingsRecord record : holdingsToDelete()) {
-                        logger.debug(record.asJson().encodePrettily());
-                    }
-                    logger.debug("Relationships to delete: ");
-                    for (InstanceToInstanceRelation record : instanceRelationsToDelete()) {
-                        logger.debug(record.asJson().encodePrettily());
-                    }
-                } else {
-                    logger.debug("Got delete request but no existing records found with provided identifier(s)");
-                }
-            } else {
-                logger.debug("Instance transition: " + getUpdatingInstance().getTransaction());
-                logger.debug("Holdings to create: ");
-                for (HoldingsRecord record : holdingsToCreate()) {
-                    logger.debug(record.asJson().encodePrettily());
-                }
-                logger.debug("Holdings to update: ");
-                for (HoldingsRecord record : holdingsToUpdate()) {
-                    logger.debug(record.asJson().encodePrettily());
-                }
-                logger.debug("Items to create: ");
-                for (Item record : itemsToCreate()) {
-                    logger.debug(record.asJson().encodePrettily());
-                }
-                logger.debug("Items to update: ");
-                for (Item record : itemsToUpdate()) {
-                    logger.debug(record.asJson().encodePrettily());
-                }
+        logger.debug("Planning of " + (isDeletion ? " delete " : " create/update ") + " of Inventory records set done: ");
+        if (isDeletion) {
+            if (foundExistingRecordSet()) {
+                logger.debug("Instance transition: " + (gotUpdatingRecordSet() ? getUpdatingInstance().getTransaction() : getExistingInstance().getTransaction()));
                 logger.debug("Items to delete: ");
                 for (Item record : itemsToDelete()) {
                     logger.debug(record.asJson().encodePrettily());
@@ -220,20 +186,52 @@ public abstract class UpdatePlan {
                 for (HoldingsRecord record : holdingsToDelete()) {
                     logger.debug(record.asJson().encodePrettily());
                 }
-                logger.debug("Instance to Instance relations to create: ");
-                for (InstanceToInstanceRelation record : getUpdatingRecordSet().getInstanceRelationsController().instanceRelationsToCreate()) {
-                    logger.debug(record.asJson().encodePrettily());
-                }
-                logger.debug("Provisional Instances to create: ");
-                for (Instance record : getUpdatingRecordSet().getInstanceRelationsController().provisionalInstancesToCreate()) {
-                    logger.debug(record.asJson().encodePrettily());
-                }
-                logger.debug("Instance to Instance relationships to delete: ");
+                logger.debug("Relationships to delete: ");
                 for (InstanceToInstanceRelation record : instanceRelationsToDelete()) {
                     logger.debug(record.asJson().encodePrettily());
                 }
-
+            } else {
+                logger.debug("Got delete request but no existing records found with provided identifier(s)");
             }
+        } else {
+            logger.debug("Instance transition: " + getUpdatingInstance().getTransaction());
+            logger.debug("Holdings to create: ");
+            for (HoldingsRecord record : holdingsToCreate()) {
+                logger.debug(record.asJson().encodePrettily());
+            }
+            logger.debug("Holdings to update: ");
+            for (HoldingsRecord record : holdingsToUpdate()) {
+                logger.debug(record.asJson().encodePrettily());
+            }
+            logger.debug("Items to create: ");
+            for (Item record : itemsToCreate()) {
+                logger.debug(record.asJson().encodePrettily());
+            }
+            logger.debug("Items to update: ");
+            for (Item record : itemsToUpdate()) {
+                logger.debug(record.asJson().encodePrettily());
+            }
+            logger.debug("Items to delete: ");
+            for (Item record : itemsToDelete()) {
+                logger.debug(record.asJson().encodePrettily());
+            }
+            logger.debug("Holdings to delete: ");
+            for (HoldingsRecord record : holdingsToDelete()) {
+                logger.debug(record.asJson().encodePrettily());
+            }
+            logger.debug("Instance to Instance relations to create: ");
+            for (InstanceToInstanceRelation record : getUpdatingRecordSet().getInstanceRelationsController().instanceRelationsToCreate()) {
+                logger.debug(record.asJson().encodePrettily());
+            }
+            logger.debug("Provisional Instances to create: ");
+            for (Instance record : getUpdatingRecordSet().getInstanceRelationsController().provisionalInstancesToCreate()) {
+                logger.debug(record.asJson().encodePrettily());
+            }
+            logger.debug("Instance to Instance relationships to delete: ");
+            for (InstanceToInstanceRelation record : instanceRelationsToDelete()) {
+                logger.debug(record.asJson().encodePrettily());
+            }
+
         }
     }
 

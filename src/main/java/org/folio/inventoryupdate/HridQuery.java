@@ -40,12 +40,11 @@ public class HridQuery implements InventoryQuery {
    * @return URL encoded Instance match query
    */
   public String getURLEncodedQueryString () {
-    String encodedQuery;
+    String encodedQuery = queryString;
     try {
       encodedQuery = URLEncoder.encode(queryString,"UTF-8");
     } catch (UnsupportedEncodingException unsupportedEncodingException) {
-      logger.error("System error: Unsupported encoding of Inventory query" + unsupportedEncodingException);
-      encodedQuery =  "encoding-error-while-building-query-string";
+        // ignore
     }
     return encodedQuery;
   }

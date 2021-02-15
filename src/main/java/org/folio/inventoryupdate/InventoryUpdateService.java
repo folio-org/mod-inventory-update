@@ -82,7 +82,7 @@ public class InventoryUpdateService {
     }
   }
 
-  public void handleSharedInventoryRecordSetDeleteByMatchKey(RoutingContext routingCtx) {
+  public void handleSharedInventoryRecordSetDeleteByIdentifiers(RoutingContext routingCtx) {
     logger.debug("Handling delete request for shared index " + routingCtx.getBodyAsString());
 
     if (contentTypeIsJson(routingCtx)) {

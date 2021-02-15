@@ -313,7 +313,7 @@ public class InventoryUpdateTestSuite {
    * @param testContext
    */
   @Test
-  public void testSharedInstanceUpsertAndDeleteByTwoInstitutions (TestContext testContext) {
+  public void testSharedInstanceUpsertFromTwoInstitutionsAndDeleteByOaiIdentifier (TestContext testContext) {
 
     final String identifierTypeId1 = "iti-001";
     final String identifierValue1 = "111";
@@ -406,15 +406,96 @@ public class InventoryUpdateTestSuite {
 
   }
 
-
   @Test
-  public void testDeleteSignalForNonExistingSharedInstance (TestContext testContext) {
+  public void testSharedInstanceUpsertFromTwoInstitutionsAndDeleteByLocalIdentifier (TestContext testContext) {
+    final String identifierTypeId1 = "iti-001";
+    final String identifierValue1 = "111";
+    final String identifierTypeId2 = "iti-002";
+    final String identifierValue2 = "222";
+
+    JsonObject upsertResponseJson1 = upsertByMatchKey(new JsonObject()
+            .put("instance",
+                    new InputInstance().setTitle("Shared InputInstance")
+                            .setInstanceTypeId("12345")
+                            .setIdentifiers(new JsonArray().add(new JsonObject().put("identifierTypeId",identifierTypeId1).put("value",identifierValue1))).getJson())
+            .put("holdingsRecords", new JsonArray()
+                    .add(new InputHoldingsRecord().setPermanentLocationId(LOCATION_ID_1).setCallNumber("test-cn-1").getJson()
+                            .put("items", new JsonArray()
+                                    .add(new InputItem().setBarcode("BC-001").getJson())
+                                    .add(new InputItem().setBarcode("BC-002").getJson())))
+                    .add(new InputHoldingsRecord().setPermanentLocationId(LOCATION_ID_1).setCallNumber("test-cn-2").getJson()
+                            .put("items", new JsonArray()
+                                    .add(new InputItem().setBarcode("BC-003").getJson())))));
+
+    String instanceId = upsertResponseJson1.getJsonObject("instance").getString("id");
+
+    testContext.assertEquals(getMetric(upsertResponseJson1, HOLDINGS_RECORD, CREATE , COMPLETED), 2,
+            "Upsert metrics response should report [2] holdings records successfully created " + upsertResponseJson1.encodePrettily());
+    testContext.assertEquals(getMetric(upsertResponseJson1, ITEM, CREATE , COMPLETED), 3,
+            "Upsert metrics response should report [3] items successfully created " + upsertResponseJson1.encodePrettily());
+
+    JsonObject storedHoldings = getRecordsFromStorage(FakeInventoryStorage.HOLDINGS_STORAGE_PATH, "instanceId==\"" + instanceId + "\"");
+    testContext.assertEquals(storedHoldings.getInteger("totalRecords"), 2,
+            "After upsert the number of holdings records for instance " + instanceId + " should be [2] " + storedHoldings.encodePrettily() );
+    JsonObject storedItems = getRecordsFromStorage(FakeInventoryStorage.ITEM_STORAGE_PATH, null);
+    testContext.assertEquals(storedItems.getInteger("totalRecords"), 3,
+            "After upsert the total number of items should be [3] " + storedItems.encodePrettily() );
+
+    JsonObject instanceFromStorage = getRecordFromStorageById(FakeInventoryStorage.INSTANCE_STORAGE_PATH, instanceId);
+    testContext.assertEquals(instanceFromStorage.getJsonArray("identifiers").size(),1,
+            "After first upsert of Shared InputInstance there should be [1] identifier on the instance " + instanceFromStorage.encodePrettily());
+
+    JsonObject upsertResponseJson2 = upsertByMatchKey(new JsonObject()
+            .put("instance",
+                    new InputInstance().setTitle("Shared InputInstance")
+                            .setInstanceTypeId("12345")
+                            .setIdentifiers(new JsonArray().add(new JsonObject().put("identifierTypeId",identifierTypeId2).put("value",identifierValue2))).getJson())
+            .put("holdingsRecords", new JsonArray()
+                    .add(new InputHoldingsRecord().setPermanentLocationId(LOCATION_ID_2).setCallNumber("test-cn-3").getJson()
+                            .put("items", new JsonArray()
+                                    .add(new InputItem().setBarcode("BC-004").getJson())
+                                    .add(new InputItem().setBarcode("BC-005").getJson())))
+                    .add(new InputHoldingsRecord().setPermanentLocationId(LOCATION_ID_2).setCallNumber("test-cn-4").getJson()
+                            .put("items", new JsonArray()
+                                    .add(new InputItem().setBarcode("BC-006").getJson())))));
+
+    testContext.assertEquals(getMetric(upsertResponseJson2, HOLDINGS_RECORD, CREATE , COMPLETED), 2,
+            "Metrics after second upsert should report additional [2] holdings records successfully created " + upsertResponseJson2.encodePrettily());
+    testContext.assertEquals(getMetric(upsertResponseJson2, ITEM, CREATE , COMPLETED), 3,
+            "Metrics after second upsert should report additional [3] items successfully created " + upsertResponseJson2.encodePrettily());
+
+    storedHoldings = getRecordsFromStorage(FakeInventoryStorage.HOLDINGS_STORAGE_PATH, "instanceId==\"" + instanceId + "\"");
+    testContext.assertEquals(storedHoldings.getInteger("totalRecords"), 4,
+            "After second upsert there should be [4] holdings records for instance " + instanceId + ": " + storedHoldings.encodePrettily() );
+    storedItems = getRecordsFromStorage(FakeInventoryStorage.ITEM_STORAGE_PATH, null);
+    testContext.assertEquals(storedItems.getInteger("totalRecords"), 6,
+            "After second upsert there should be [6] items " + storedItems.encodePrettily() );
+
+    instanceFromStorage = getRecordFromStorageById(FakeInventoryStorage.INSTANCE_STORAGE_PATH, instanceId);
+    testContext.assertEquals(instanceFromStorage.getJsonArray("identifiers").size(),2,
+            "After second upsert of Shared InputInstance there should be [2] identifiers on the instance " + instanceFromStorage.encodePrettily());
+
     JsonObject deleteSignal = new JsonObject()
             .put("institutionId", INSTITUTION_ID_1)
-            .put("oaiIdentifier","oai:"+"DOES_NOT_EXIST")
-            .put("identifierTypeId", "DOES_NOT_EXIST");
+            .put("localIdentifier",identifierValue1)
+            .put("identifierTypeId", identifierTypeId1);
 
-    Response Response = delete(404,MainVerticle.SHARED_INVENTORY_UPSERT_MATCHKEY_PATH, deleteSignal);
+    JsonObject deleteResponse = delete(MainVerticle.SHARED_INVENTORY_UPSERT_MATCHKEY_PATH,deleteSignal);
+    testContext.assertEquals(getMetric(deleteResponse, HOLDINGS_RECORD, DELETE , COMPLETED), 2,
+            "Upsert metrics response should report [2] holdings records successfully deleted " + deleteResponse.encodePrettily());
+    testContext.assertEquals(getMetric(deleteResponse, ITEM, DELETE , COMPLETED), 3,
+            "Delete metrics response should report [3] items successfully deleted " + deleteResponse.encodePrettily());
+
+    storedHoldings = getRecordsFromStorage(FakeInventoryStorage.HOLDINGS_STORAGE_PATH, "instanceId==\"" + instanceId + "\"");
+    testContext.assertEquals(storedHoldings.getInteger("totalRecords"), 2,
+            "After delete the number of holdings records left for instance " + instanceId + " should be [2] " + storedHoldings.encodePrettily() );
+    storedItems = getRecordsFromStorage(FakeInventoryStorage.ITEM_STORAGE_PATH, null);
+    testContext.assertEquals(storedItems.getInteger("totalRecords"), 3,
+            "After delete the total number of items left should be [3] " + storedItems.encodePrettily() );
+
+    instanceFromStorage = getRecordFromStorageById(FakeInventoryStorage.INSTANCE_STORAGE_PATH, instanceId);
+    testContext.assertEquals(instanceFromStorage.getJsonArray("identifiers").size(), 1,
+            "After delete request to Shared InputInstance there should be [1] identifier left on the instance " + instanceFromStorage.encodePrettily());
 
   }
 

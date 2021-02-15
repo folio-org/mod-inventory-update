@@ -13,17 +13,22 @@ import io.vertx.core.json.JsonObject;
  * @author ne
  */
 public class DeletionIdentifiers {
-  
+
+  private static final String OAI_IDENTIFIER = "oaiIdentifier";
+  private static final String LOCAL_IDENTIFIER = "localIdentifier";
+  private static final String IDENTIFIER_TYPE_ID = "identifierTypeId";
+  private static final String INSTITUTION_ID = "institutionId";
+
   JsonObject deletionRequestBody; 
-  String localIdentifier;
+  String localIdentifier = null;
   
   public DeletionIdentifiers (JsonObject deletionRequestBody) {
     this.deletionRequestBody = deletionRequestBody;
-    if (deletionRequestBody.containsKey("oaiIdentifier")) {
-      String oaiId = deletionRequestBody.getString("oaiIdentifier");
+    if (deletionRequestBody.containsKey(OAI_IDENTIFIER)) {
+      String oaiId = deletionRequestBody.getString(OAI_IDENTIFIER);
       this.localIdentifier = (oaiId != null ? oaiId.substring(oaiId.lastIndexOf(":")+1) : null);
-    } else {
-      this.localIdentifier = null;
+    } else if (deletionRequestBody.containsKey(LOCAL_IDENTIFIER)) {
+      this.localIdentifier = deletionRequestBody.getString(LOCAL_IDENTIFIER);
     }
   }
   
@@ -32,10 +37,10 @@ public class DeletionIdentifiers {
   }
   
   public String identifierTypeId () {
-    return deletionRequestBody.getString("identifierTypeId");
+    return deletionRequestBody.getString(IDENTIFIER_TYPE_ID);
   }
   
   public String institutionId () {
-    return deletionRequestBody.getString("institutionId");
+    return deletionRequestBody.getString(INSTITUTION_ID);
   }
 }

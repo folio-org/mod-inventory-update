@@ -8,7 +8,7 @@
       "description": "UUID representing the institution who's contributions to a shared Instance should be removed",
       "$ref": "uuid.json"
     },
-    "recordIdentifier": {
+    "localIdentifier": {
       "type": "string",
       "description": "A library's legacy identifier for a bibliographic record that is to be removed from a shared Instance"
     },
@@ -26,7 +26,7 @@
     {
       "required": [
         "institutionId",
-        "recordIdentifier",
+        "localIdentifier",
         "identifierTypeId"
       ]
     },

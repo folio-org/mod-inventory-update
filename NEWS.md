@@ -1,5 +1,7 @@
 ## 0.0.4 SNAPSHOT
 
+* Supports remove record from shared instance by local identifier 
+
 ## 0.0.3 2021-02-14
 
 * Extend HRID upsert API with instance relations handling GBV-106

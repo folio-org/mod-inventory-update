@@ -51,7 +51,7 @@ child relations.
 This may not be the case in the source system where, perhaps, the child record may declare its parent but the parent 
 will not mention its child records. 
 
-To support deletion of relations for these scenarios, following rules apply:
+To support deletion of relations for these scenarios, and not implicitly but unintentionally delete too many, following rules apply:
 
 Including an empty array of child instances will tell the API that if the Instance has any existing child relations, 
 they should be deleted. 
@@ -63,7 +63,7 @@ they should be deleted.
 ```
 
 Leaving out any reference to child instances -- or as in this sample, any references to any related Instances at all -- means 
-that any existing relationships will be left untouched by this update request. 
+that any existing relationships will be left untouched by the update request. 
 
 ```
 "instanceRelations": {

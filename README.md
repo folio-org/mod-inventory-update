@@ -36,17 +36,17 @@ of relationships that tie multipart monographs together or relations pointing to
 on a comparison with the set of relationships that may be registered for the Instance in storage already, relationships
 will be created and/or deleted (updating relationships is obsolete).
 
-#### Provisional Instances created when related Instance doesn't exist yet
+#### Provisional Instance created when related Instance doesn't exist yet
 
 If an upsert request comes in with a relation to an Instance that doesn't already exist in storage, a provisional
-Instance will be created, provided that the request contains sufficient data as required for creating the provisional
+Instance will be created provided that the request contains sufficient data as required for creating the provisional
 Instance - like any mandatory Instance properties.
 
 #### Deletion of Instance-to-Instance relations
 
 Only existing relationships that are explicitly omitted in the request will be deleted. In FOLIO Inventory, a relation
 will appear on both Instances of the relation, say, one Instance will have a parent relation and the other will have a
-child relations. 
+child relation. 
 
 This may not be the case in the source system where, perhaps, the child record may declare its parent but the parent 
 will not mention its child records. 

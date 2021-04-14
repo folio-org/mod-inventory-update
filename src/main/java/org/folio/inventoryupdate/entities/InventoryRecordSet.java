@@ -18,7 +18,7 @@ public class InventoryRecordSet extends JsonRepresentation {
     private Instance anInstance = null;
     private Map<String,HoldingsRecord> holdingsRecordsByHRID = new HashMap<String,HoldingsRecord>();
     private Map<String,Item> itemsByHRID = new HashMap<String,Item>();
-    private List<HoldingsRecord> allHoldingsRecords = new ArrayList<HoldingsRecord>();
+    private List<HoldingsRecord> allHoldingsRecords = new ArrayList<>();
     private List<Item> allItems = new ArrayList<Item>();
 
     public static final String INSTANCE = "instance";
@@ -64,6 +64,7 @@ public class InventoryRecordSet extends JsonRepresentation {
      */
     private void registerHoldingsRecordsAndItems (JsonArray holdingsRecordsWithEmbeddedItems) {
         if (holdingsRecordsWithEmbeddedItems != null) {
+            // If property with zero or more holdings is provided
             for (Object holdings : holdingsRecordsWithEmbeddedItems) {
                 JsonObject holdingsRecordJson = (JsonObject) holdings;
                 JsonArray items = new JsonArray();
@@ -88,6 +89,9 @@ public class InventoryRecordSet extends JsonRepresentation {
                 allHoldingsRecords.add(holdingsRecord);
                 anInstance.addHoldingsRecord(holdingsRecord);
             }
+        } else {
+            // If no holdings property provided, mark holdings to be ignored (ie don't delete holdings)
+            anInstance.ignoreHoldings(true);
         }
     }
 

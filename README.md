@@ -26,10 +26,14 @@ existing instance is updated - thus the term 'upsert'.
 This means that HRIDs are required to be present from the client side in all three record types.
 
 The API will detect if holdings and/or items have disappeared from the Instance since last update and in that case
-remove them from storage. It will also detect if new holdings or items on the Instance existed already on a different
-Instance in storage and then move them over to the incoming Instance. The IDs (UUIDs) on any pre-existing Instances,
-holdings records and items will be preserved in this process, thus avoiding breaking any external UUID based references
-to these records.
+remove them from storage. Note, however, that there is a distinction between a request with no `holdingsRecords`
+property and a request with an empty `holdingsRecords` property. If existing holdings and items should not be touched,
+for example if holdings and items are maintained manually in Inventory, then no `holdingsRecords` property should appear
+in the request JSON and existing records would be ignored. Providing an empty `holdingsRecords` property, on the other
+hand, would cause all existing holdings and items to be deleted. The API will also detect if new holdings or items on
+the Instance existed already on a different Instance in storage and then move them over to the incoming Instance. The
+IDs (UUIDs) on any pre-existing Instances, holdings records and items will be preserved in this process, thus avoiding
+breaking any external UUID based references to these records.
 
 The Inventory Record Set, that is PUT to the end point, may contain relations to other Instances, for example the kind
 of relationships that tie multipart monographs together or relations pointing to preceding or succeeding titles. Based

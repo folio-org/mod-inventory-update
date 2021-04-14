@@ -1,6 +1,7 @@
 ## 0.0.4 SNAPSHOT
 
-* Supports remove record from shared instance by local identifier 
+* Changes semantics for deletion of holdings; no `holdingsRecord` property means 'ignore existing holdings' (FOL-28)
+* Supports remove of record from shared instance by local identifier
 
 ## 0.0.3 2021-02-14
 

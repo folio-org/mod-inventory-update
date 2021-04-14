@@ -7,7 +7,8 @@ import io.vertx.core.json.JsonObject;
 
 public class Instance extends InventoryRecord {
 
-    List<HoldingsRecord> holdingsRecords = new ArrayList<HoldingsRecord>();
+    List<HoldingsRecord> holdingsRecords = new ArrayList<>();
+    boolean holdingsIgnored = false;
 
     public Instance (JsonObject instance) {
         jsonRecord = instance;
@@ -32,6 +33,14 @@ public class Instance extends InventoryRecord {
         String uuid = super.generateUUID();
         setHoldingsRecordsInstanceId(uuid);
         return uuid;
+    }
+
+    public void ignoreHoldings(boolean ignore) {
+        holdingsIgnored = ignore;
+    }
+
+    public boolean ignoreHoldings () {
+        return holdingsIgnored;
     }
 
     public void setHoldingsRecordsInstanceId (String uuid) {

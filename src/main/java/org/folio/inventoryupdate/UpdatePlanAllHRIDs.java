@@ -184,34 +184,36 @@ public class UpdatePlanAllHRIDs extends UpdatePlan {
      * Find records that have disappeared and mark them for deletion.
      */
     private void prepareUpdatesDeletesAndLocalMoves() {
-        for (HoldingsRecord existingHoldingsRecord : getExistingInstance().getHoldingsRecords()) {
-            HoldingsRecord incomingHoldingsRecord = getUpdatingInstance().getHoldingsRecordByHRID(existingHoldingsRecord.getHRID());
-            // HoldingsRecord gone, mark for deletion and check for existing items to delete with it
-            if (incomingHoldingsRecord == null) {
-                existingHoldingsRecord.setTransition(Transaction.DELETE);
-                for (Item existingItem : existingHoldingsRecord.getItems()) {
-                    Item incomingItem = updatingSet.getItemByHRID(existingItem.getHRID());
-                    if (incomingItem == null) {
-                        existingItem.setTransition(Transaction.DELETE);
-                    } else {
-                        // Item appear to be moved to another holdings record in the instance
-                        incomingItem.setUUID(existingItem.getUUID());
-                        incomingItem.setTransition(Transaction.UPDATE);
+        if (! getUpdatingInstance().ignoreHoldings()) { // If a record set came in with a list of holdings records (even if it was an empty list)
+            for (HoldingsRecord existingHoldingsRecord : getExistingInstance().getHoldingsRecords()) {
+                HoldingsRecord incomingHoldingsRecord = getUpdatingInstance().getHoldingsRecordByHRID(existingHoldingsRecord.getHRID());
+                // HoldingsRecord gone, mark for deletion and check for existing items to delete with it
+                if (incomingHoldingsRecord == null) {
+                    existingHoldingsRecord.setTransition(Transaction.DELETE);
+                    for (Item existingItem : existingHoldingsRecord.getItems()) {
+                        Item incomingItem = updatingSet.getItemByHRID(existingItem.getHRID());
+                        if (incomingItem == null) {
+                            existingItem.setTransition(Transaction.DELETE);
+                        } else {
+                            // Item appear to be moved to another holdings record in the instance
+                            incomingItem.setUUID(existingItem.getUUID());
+                            incomingItem.setTransition(Transaction.UPDATE);
+                        }
                     }
-                }
-            } else {
-                // There is an existing holdings record with the same HRID, on the same Instance
-                incomingHoldingsRecord.setUUID(existingHoldingsRecord.getUUID());
-                incomingHoldingsRecord.setTransition(Transaction.UPDATE);
-                for (Item existingItem : existingHoldingsRecord.getItems()) {
-                    Item incomingItem = updatingSet.getItemByHRID(existingItem.getHRID());
-                    if (incomingItem == null) {
-                        // The item is gone from the instance
-                        existingItem.setTransition(Transaction.DELETE);
-                    } else {
-                        // There is an incoming item with the same HRID somewhere in the instance
-                        incomingItem.setUUID(existingItem.getUUID());
-                        incomingItem.setTransition(Transaction.UPDATE);
+                } else {
+                    // There is an existing holdings record with the same HRID, on the same Instance
+                    incomingHoldingsRecord.setUUID(existingHoldingsRecord.getUUID());
+                    incomingHoldingsRecord.setTransition(Transaction.UPDATE);
+                    for (Item existingItem : existingHoldingsRecord.getItems()) {
+                        Item incomingItem = updatingSet.getItemByHRID(existingItem.getHRID());
+                        if (incomingItem == null) {
+                            // The item is gone from the instance
+                            existingItem.setTransition(Transaction.DELETE);
+                        } else {
+                            // There is an incoming item with the same HRID somewhere in the instance
+                            incomingItem.setUUID(existingItem.getUUID());
+                            incomingItem.setTransition(Transaction.UPDATE);
+                        }
                     }
                 }
             }

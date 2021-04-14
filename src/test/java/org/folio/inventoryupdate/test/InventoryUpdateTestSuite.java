@@ -499,6 +499,14 @@ public class InventoryUpdateTestSuite {
 
   }
 
+  @Test
+  public void deleteByIdentifiersThatDoNotExistInSharedInventoryWillReturn404 (TestContext testContext) {
+    delete(404, MainVerticle.SHARED_INVENTORY_UPSERT_MATCHKEY_PATH,
+              new JsonObject()
+                    .put("institutionId", INSTITUTION_ID_1)
+                    .put("localIdentifier","DOES_NOT_EXIST")
+                    .put("identifierTypeId", "DOES_NOT_EXIST"));
+  }
 
   /**
    * Tests API /inventory-upsert-hrid
@@ -690,6 +698,48 @@ public class InventoryUpdateTestSuite {
     JsonObject itemsAfterUpsertJson = getRecordsFromStorage(FakeInventoryStorage.ITEM_STORAGE_PATH, null);
     testContext.assertEquals(itemsAfterUpsertJson.getInteger("totalRecords"), 1,
             "After upsert with one holdings record removed from set, the total number of item records should be [1] " + itemsAfterUpsertJson.encodePrettily() );
+  }
+
+  @Test
+  public void upsertsByHridWillNotDeleteThenWillDeleteAllHoldingsAndItems (TestContext testContext) {
+
+    String instanceHrid = "1";
+    JsonObject inventoryRecordSet = new JsonObject()
+            .put("instance",
+                    new InputInstance().setTitle("Initial InputInstance").setInstanceTypeId("12345").setHrid(instanceHrid).getJson())
+            .put("holdingsRecords", new JsonArray()
+                    .add(new InputHoldingsRecord().setHrid("HOL-001").setPermanentLocationId(LOCATION_ID_1).setCallNumber("test-cn-1").getJson()
+                            .put("items", new JsonArray()
+                                    .add(new InputItem().setHrid("ITM-001").setBarcode("BC-001").getJson())
+                                    .add(new InputItem().setHrid("ITM-002").setBarcode("BC-002").getJson())))
+                    .add(new InputHoldingsRecord().setHrid("HOL-002").setPermanentLocationId(LOCATION_ID_1).setCallNumber("test-cn-2").getJson()
+                            .put("items", new JsonArray()
+                                    .add(new InputItem().setHrid("ITM-003").setBarcode("BC-003").getJson()))));
+
+    JsonObject upsertResponseJson = upsertByHrid(inventoryRecordSet);
+    String instanceId = upsertResponseJson.getJsonObject("instance").getString("id");
+
+    upsertByHrid(
+            new JsonObject()
+                    .put("instance",
+                            new InputInstance().setTitle("Updated InputInstance").setInstanceTypeId("12345").setHrid(instanceHrid).getJson()));
+
+    JsonObject holdingsAfterUpsert1Json = getRecordsFromStorage(FakeInventoryStorage.HOLDINGS_STORAGE_PATH, "instanceId==\"" + instanceId + "\"");
+
+    upsertByHrid(
+            new JsonObject()
+                    .put("instance",
+                            new InputInstance().setTitle("2nd Updated InputInstance").setInstanceTypeId("12345").setHrid(instanceHrid).getJson())
+                    .put("holdingsRecords", new JsonArray()));
+
+    JsonObject holdingsAfterUpsert2Json = getRecordsFromStorage(FakeInventoryStorage.HOLDINGS_STORAGE_PATH, "instanceId==\"" + instanceId + "\"");
+
+    testContext.assertEquals(holdingsAfterUpsert1Json.getInteger("totalRecords"), 2,
+            "After upsert with no holdings record property in request, [2] holdings records should remain " +  holdingsAfterUpsert1Json.encodePrettily());
+
+    testContext.assertEquals(holdingsAfterUpsert2Json.getInteger("totalRecords"), 0,
+            "After upsert with empty holdings record array in request, [0] holdings records should remain " + holdingsAfterUpsert2Json.encodePrettily());
+
   }
 
   /**

@@ -139,6 +139,11 @@ public class UpdatePlanAllHRIDs extends UpdatePlan {
     public RequestValidation validateIncomingRecordSet(JsonObject inventoryRecordSet) {
         RequestValidation validationErrors = new RequestValidation();
         if (isDeletion) return validationErrors;
+        if (!inventoryRecordSet.getJsonObject("instance").containsKey("hrid")
+            || inventoryRecordSet.getJsonObject("instance").getString("hrid").isEmpty()) {
+            logger.error("Missing or empty HRID. Instances must have a HRID to be processed by this API");
+            validationErrors.registerError("Missing or empty HRID. Instances must have a HRID to be processed by this API " + inventoryRecordSet.encodePrettily());
+        }
         if (inventoryRecordSet.containsKey("holdingsRecords")) {
             inventoryRecordSet.getJsonArray("holdingsRecords")
                     .stream()

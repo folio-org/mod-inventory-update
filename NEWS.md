@@ -1,3 +1,6 @@
+## 0.0.5 (wip)
+
+
 ## 0.0.4 2021-04-15
 
 * `inventory-upsert-hrid` responds with 422 if `instance.hrid` is missing in request

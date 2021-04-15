@@ -1,5 +1,6 @@
 ## 0.0.4 SNAPSHOT
 
+* `inventory-upsert-hrid` responds with 422 if `instance.hrid` is missing in request
 * Changes semantics for deletion of holdings; no `holdingsRecord` property means 'ignore existing holdings' (FOL-28)
 * Supports remove of record from shared instance by local identifier
 

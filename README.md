@@ -50,15 +50,16 @@ Instance - like any mandatory Instance properties.
 
 Only existing relationships that are explicitly omitted in the request will be deleted. In FOLIO Inventory, a relation
 will appear on both Instances of the relation, say, one Instance will have a parent relation and the other will have a
-child relation. 
+child relation.
 
-This may not be the case in the source system where, perhaps, the child record may declare its parent but the parent 
-will not mention its child records. 
+This may not be the case in the source system where, perhaps, the child record may declare its parent but the parent
+will not mention its child records.
 
-To support deletion of relations for these scenarios, and not implicitly but unintentionally delete too many, following rules apply:
+To support deletion of relations for these scenarios, and not implicitly but unintentionally delete too many, following
+rules apply:
 
-Including an empty array of child instances will tell the API that if the Instance has any existing child relations, 
-they should be deleted. 
+Including an empty array of child instances will tell the API that if the Instance has any existing child relations,
+they should be deleted.
 
 ```
 "instanceRelations": {
@@ -66,14 +67,13 @@ they should be deleted.
 }
 ```
 
-Leaving out any reference to child instances -- or as in this sample, any references to any related Instances at all -- means 
-that any existing relationships will be left untouched by the update request. 
+Leaving out any reference to child instances -- or as in this sample, any references to any related Instances at all --
+means that any existing relationships will be left untouched by the update request.
 
 ```
 "instanceRelations": {
 }
 ```
-
 
 #### Instance DELETE requests
 
@@ -114,10 +114,14 @@ Inventory Match will return the resulting Instance to the caller as a JSON strin
 
 ## Planned developments
 
-Both of the provided APIs are work in progress. Error handling, Inventory update feedback (counts and performance
-metrics), and unit testing is outstanding.
+* Support handling of bound-with and analytics relationships. This is currently being developed with German GBV as the
+  primary stakeholder.
 
-* Support handling of bound-with and analytics relationships
+* Possibly check for dependent records in other FOLIO modules, specifically before deleting Inventory records. This
+  could be implemented by declaring optional dependencies of those external modules, meaning that dependency checks
+  would only be performed if those modules were present in the installation. It might additionally be required to have a
+  configuration setting to turn off the dependency checks entirely, for the performance of an initial data load for
+  example, where it's already known that no dependent records exist yet.
 
 There is a legacy end-point for back-wards compatibility with the module that was the basis for this module (
 mod-inventory-match). This end-point will eventually be deprecated.

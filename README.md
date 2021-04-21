@@ -49,10 +49,10 @@ Instance - like any mandatory Instance properties.
 #### Deletion of Instance-to-Instance relations
 
 Only existing relationships that are explicitly omitted in the request will be deleted. In FOLIO Inventory, a relation
-will appear on both Instances of the relation, say, one Instance will have a parent relation and the other will have a
+will appear on both Instances of the relation, say, one Instance will have a parent relation, and the other will have a
 child relation.
 
-This may not be the case in the source system where, perhaps, the child record may declare its parent but the parent
+This may not be the case in the source system where, perhaps, the child record may declare its parent, but the parent
 will not mention its child records.
 
 To support deletion of relations for these scenarios, and not implicitly but unintentionally delete too many, following
@@ -108,7 +108,7 @@ Storage for it to determine if an instance with that key already exists.
 The match logic currently considers title, year, publisher, pagination, edition and SUDOC classification.
 
 If it does not find a matching title, a new Instance will be created. If it finds one, the existing Instance will be
-replaced by the incoming Instance, except, the HRID (human readable ID) of the original Instance will be retained.
+replaced by the incoming Instance, except, the HRID (human-readable ID) of the original Instance will be retained.
 
 Inventory Match will return the resulting Instance to the caller as a JSON string.
 
@@ -126,7 +126,7 @@ Inventory Match will return the resulting Instance to the caller as a JSON strin
 There is a legacy end-point for back-wards compatibility with the module that was the basis for this module (
 mod-inventory-match). This end-point will eventually be deprecated.
 
-* `/instance-storage-match/instances`  -- matches based on combination of meta data in instance
+* `/instance-storage-match/instances`  -- matches based on combination of metadata in instance
 
 More Inventory update schemes might be added, specifically an end-point that support Instance identification by
 matchKey _and_ holdings records and items identification by HRID for shared-inventory libraries that can provide such

@@ -24,6 +24,7 @@
       "description": "Title normalized for browsing and searching; based on the title with articles removed"
     },
     "matchKey": {
+      "description": "Optional property for supplying the desired match key for identifying matching Instances.",
       "anyOf": [
         {
           "type": "string",
@@ -31,10 +32,35 @@
         },
         {
           "type": "object",
-          "description": "A number of properties from which to construct a match key"
+          "description": "Select properties from which the API should construct a match key",
+          "properties":{
+            "title": {
+              "type": "string",
+              "description": "The proper/short title of the resource, 245$a of a MARC record"
+            },
+            "remainder-of-title": {
+              "type": "string",
+              "description": "The title beyond the proper/short title, 245$b of a MARC record"
+            },
+            "medium": {
+              "type": "string",
+              "description": "The format of a resource, 245$h of a MARC record"
+            },
+            "name-of-part-section-of-work": {
+              "type": "string",
+              "description": "A portion of a resource, ie 245$p of a MARC record"
+            },
+            "number-of-part-section-of-work": {
+              "type": "string",
+              "description": "A portion of a resource, ie 245$n of a MARC record"
+            },
+            "inclusive-dates": {
+              "type": "string",
+              "description": "Date or sequential designation for a title, 245$f of a MARC record"
+            }
+          }
         }
-      ],
-      "description": "Optional field for supplying the desire match key for identifying matching Instances. Is removed before passing the Instance object on to FOLIO Inventory."
+      ]
     },
     "alternativeTitles": {
       "type": "array",

@@ -718,14 +718,18 @@ public class InventoryUpdateTestSuite {
 
     JsonObject upsertResponseJson = upsertByHrid(inventoryRecordSet);
     String instanceId = upsertResponseJson.getJsonObject("instance").getString("id");
+    JsonObject itemsAfterUpsert0Json = getRecordsFromStorage(FakeInventoryStorage.ITEM_STORAGE_PATH, null);
 
+    // Upsert should not delete holdings/items when there's no holdings array in the request document
     upsertByHrid(
             new JsonObject()
                     .put("instance",
                             new InputInstance().setTitle("Updated InputInstance").setInstanceTypeId("12345").setHrid(instanceHrid).getJson()));
 
     JsonObject holdingsAfterUpsert1Json = getRecordsFromStorage(FakeInventoryStorage.HOLDINGS_STORAGE_PATH, "instanceId==\"" + instanceId + "\"");
+    getRecordsFromStorage(FakeInventoryStorage.ITEM_STORAGE_PATH, null);
 
+    // Upsert should delete any attached holdings/items when there's an empty holdings array in the request
     upsertByHrid(
             new JsonObject()
                     .put("instance",
@@ -733,7 +737,9 @@ public class InventoryUpdateTestSuite {
                     .put("holdingsRecords", new JsonArray()));
 
     JsonObject holdingsAfterUpsert2Json = getRecordsFromStorage(FakeInventoryStorage.HOLDINGS_STORAGE_PATH, "instanceId==\"" + instanceId + "\"");
+    getRecordsFromStorage(FakeInventoryStorage.ITEM_STORAGE_PATH, null);
 
+    testContext.assertEquals(itemsAfterUpsert0Json.getInteger("totalRecords"), 3, "After creating base inventory record set there should be [3] items in it " + itemsAfterUpsert0Json.encodePrettily());
     testContext.assertEquals(holdingsAfterUpsert1Json.getInteger("totalRecords"), 2,
             "After upsert with no holdings record property in request, [2] holdings records should remain " +  holdingsAfterUpsert1Json.encodePrettily());
 

@@ -66,7 +66,6 @@ public class MatchKey {
             + getInstanceMatchKeyValue("remainder-of-title");
         key.append(get70chars(title))
            .append(get5chars(getInstanceMatchKeyValue("medium")));
-
       } else {
         // build match key from plain Instance properties
         key.append(get70chars(getTitle()));
@@ -214,7 +213,7 @@ public class MatchKey {
   }
 
   protected String getTitleNumber() {
-    return makeTitleNumber(getInstanceMatchKeyValue("number-part-section-of-work"));
+    return makeTitleNumber(getInstanceMatchKeyValue("number-of-part-section-of-work"));
   }
 
   protected String getGovDocNumber() {

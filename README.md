@@ -102,15 +102,15 @@ library on the Instance as well as any holdings and items previously attached to
 
 #### Details of the matching mechanism using a match key
 
-Based on select properties of the incoming Instance, Inventory Match will construct a match key and query Inventory
+Based on select properties of the incoming Instance, the API will construct a match key and query Inventory
 Storage for it to determine if an instance with that key already exists.
 
 The match logic currently considers title, year, publisher, pagination, edition and SUDOC classification.
 
 If it does not find a matching title, a new Instance will be created. If it finds one, the existing Instance will be
-replaced by the incoming Instance, except, the HRID (human-readable ID) of the original Instance will be retained.
+replaced by the incoming Instance, except, the HRID (human-readable ID) of the original Instance will be retained, as
+well as the resource identifiers from any of the other libraries that contributed that Instance.  
 
-Inventory Match will return the resulting Instance to the caller as a JSON string.
 
 ## Planned developments
 

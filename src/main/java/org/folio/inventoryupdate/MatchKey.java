@@ -24,6 +24,10 @@ public class MatchKey {
   private static final String MATCH_KEY = "matchKey";
   private static final String TITLE = "title";
 
+  private static final String PERSONAL_NAME_TYPE  = "2b94c631-fca9-4892-a730-03ee529ffe2a";
+  private static final String CORPORATE_NAME_TYPE = "2e48e713-17f3-4c13-a9f8-23845bb210aa";
+  private static final String MEETING_NAME_TYPE   = "e8b311a6-3b21-43f2-a269-dd9310cb2d0a";
+
   static {
     typeOfMap = new HashMap<>();
     // typeOfMap.put("6312d172-f0cf-40f6-b27d-9fa8feaf332f", "a");
@@ -44,6 +48,7 @@ public class MatchKey {
 
   public MatchKey(JsonObject candidateInstance) {
     this.candidateInstance = candidateInstance;
+    logger.info("MatchKey: candidateInstance " + candidateInstance.encodePrettily());
     matchkee = buildMatchKey();
   }
 
@@ -54,7 +59,7 @@ public class MatchKey {
    * @return a matchKey for the Instance
    */
   private String buildMatchKey() {
-    String keyStr = "";
+    String keyStr;
     StringBuilder key = new StringBuilder();
     if (hasMatchKeyAsString(candidateInstance)) {
       // use provided match key if any
@@ -236,12 +241,9 @@ public class MatchKey {
     String author = null;
     if(candidateInstance.containsKey("contributors")) {
       JsonArray contributorList = candidateInstance.getJsonArray("contributors");
-      StringBuilder authorBuilder = new StringBuilder();
-      authorBuilder.append(findContributorType(contributorList, "2b94c631-fca9-4892-a730-03ee529ffe2a"));
-      authorBuilder.append(findContributorType(contributorList, "2e48e713-17f3-4c13-a9f8-23845bb210aa"));
-      authorBuilder.append(findContributorType(contributorList, "e8b311a6-3b21-43f2-a269-dd9310cb2d0a"));
-
-      author = authorBuilder.toString();
+      author = findContributorType( contributorList, PERSONAL_NAME_TYPE ) +
+               findContributorType( contributorList, CORPORATE_NAME_TYPE ) +
+               findContributorType( contributorList, MEETING_NAME_TYPE );
     }
     return makeAuthor(author);
   }

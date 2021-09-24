@@ -1,8 +1,6 @@
 package org.folio.inventoryupdate.entities;
 
 import java.util.UUID;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 import io.vertx.core.json.DecodeException;
 import io.vertx.core.json.JsonArray;
@@ -103,20 +101,12 @@ public abstract class InventoryRecord {
         return entityType;
     }
 
-    public void setOutcome (Outcome outcome) {
-        this.outcome = outcome;
-    }
-
     public Outcome getOutcome () {
         return this.outcome;
     }
 
     public void complete() {
         this.outcome = Outcome.COMPLETED;
-    }
-
-    public boolean completed() {
-        return this.outcome == Outcome.COMPLETED;
     }
 
     public void fail() {
@@ -151,21 +141,14 @@ public abstract class InventoryRecord {
 
     protected static Object maybeJson (String message) {
         try {
-          return new JsonObject(message);
+          return  new JsonObject(message);
         } catch (DecodeException de) {
-            if (message.startsWith("ErrorMessage") && message.contains("SQLSTATE")) {
-                // looks like PostgreSQL error, try to parse to JSON
-                JsonObject postgreSQLError = parsePostgreSQLErrorTuples(message);
-                if (!postgreSQLError.isEmpty()) {
-                    return postgreSQLError;
-                }
-            }
             return message;
         }
     }
 
     protected String findShortMessage (Object inventoryMessage) {
-        String shortMessage = "";
+        String shortMessage;
         if (inventoryMessage instanceof JsonObject) {
             JsonObject jsonFormattedError = (JsonObject)inventoryMessage;
             if (jsonFormattedError.containsKey(ERRORS) && jsonFormattedError.getValue(ERRORS) instanceof JsonArray) {
@@ -205,38 +188,6 @@ public abstract class InventoryRecord {
             }
         }
         return shortMessage;
-    }
-
-    // Sample:  "ErrorMessage(fields=[(Severity, ERROR), (V, ERROR), (SQLSTATE, 23503),
-    //           (Message, insert or update on table \"holdings_record\" violates foreign key constraint \"holdings_record_permanentlocationid_fkey\"),
-    //           (Detail, Key (permanentlocationid)=(53cf956f-c1df-410b-8bea-27f712cca7c9) is not present in table \"location\".),
-    //           (s, diku_mod_inventory_storage), (t, holdings_record), (n, holdings_record_permanentlocationid_fkey),
-    //           (File, ri_triggers.c), (Line, 3266), (Routine, ri_ReportViolation)])"
-
-    // everything between the square brackets of:   ErrorMessage(fields=[(),(),()])
-    private static final Pattern POSTGRESQL_ERROR_TUPLE_ARRAY = Pattern.compile("(?<=\\[).+?(?=\\])");
-    // capture tupples, enclosed in round brackets:  (0),(1),(2)
-    private static final Pattern POSTGRESQL_ERROR_TUPLE_GROUPS = Pattern.compile("[^,(]*(?:\\([^)]*\\))*[^,]*");
-
-    private static JsonObject parsePostgreSQLErrorTuples(String message) {
-
-        final Matcher arrayMatcher = POSTGRESQL_ERROR_TUPLE_ARRAY.matcher(message);
-        JsonObject messageJson = new JsonObject();
-        if (arrayMatcher.find()) {
-            String arrayString = arrayMatcher.group(0);
-            Matcher tuplesMatcher = POSTGRESQL_ERROR_TUPLE_GROUPS.matcher(arrayString);
-            while (tuplesMatcher.find()) {
-                String tupleString = tuplesMatcher.group(0).trim();
-                // trim the round brackets
-                tupleString = tupleString.replaceFirst("\\(", "");
-                tupleString = tupleString.replaceAll("\\)+$", "");
-                String[] keyval = tupleString.split(", ");
-                if (keyval.length==2) {
-                   messageJson.put(keyval[0],keyval[1]);
-                }
-            }
-        }
-        return messageJson;
     }
 
     public JsonObject getError () {

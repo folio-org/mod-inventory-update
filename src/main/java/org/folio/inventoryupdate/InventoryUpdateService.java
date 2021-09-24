@@ -167,7 +167,6 @@ public class InventoryUpdateService {
 
   /**
    * Main flow of Instance matching and creating/updating.
-   * @param routingCtx
    */
   public void handleInstanceMatching(RoutingContext routingCtx) {
     String contentType = routingCtx.request().getHeader("Content-Type");
@@ -179,7 +178,7 @@ public class InventoryUpdateService {
       String candidateInstanceAsString = routingCtx.getBodyAsString("UTF-8");
       JsonObject candidateInstance = new JsonObject(candidateInstanceAsString);
 
-      logger.debug("Received a PUT of " + candidateInstance.toString());
+      logger.debug("Received a PUT of " + candidateInstance);
 
       MatchKey matchKey = new MatchKey(candidateInstance);
       InventoryQuery matchQuery = new MatchQuery(matchKey.getKey());
@@ -205,7 +204,6 @@ public class InventoryUpdateService {
    * @param candidateInstance The new Instance to consider
    * @param matchingInstances Result of match query
    * @param matchQuery The match query (for log statements)
-   * @param routingCtx
    */
   private void updateSharedInventory(OkapiClient okapiClient,
                                JsonObject candidateInstance,
@@ -223,10 +221,6 @@ public class InventoryUpdateService {
       JsonObject mergedInstance = mergeInstances(matchingInstance, candidateInstance);
       // Update existing instance
       putInstance(okapiClient, routingCtx, mergedInstance, matchingInstance.getString("id"));
-    } else if (recordCount > 1) {
-      logger.info("Multiple matches (" + recordCount + ") found by match query [" + matchQuery.getQueryString() + "], cannot determine which instance to update");
-    } else {
-      logger.info("Unexpected recordCount: ["+recordCount+"] cannot determine match");
     }
   }
   /**
@@ -274,9 +268,6 @@ public class InventoryUpdateService {
 
   /**
    * Replaces an existing instance in Inventory with a new instance
-   * @param routingCtx
-   * @param newInstance
-   * @param instanceId
    */
   private void putInstance (OkapiClient okapiClient, RoutingContext routingCtx, JsonObject newInstance, String instanceId) {
     okapiClient.request(HttpMethod.PUT, INSTANCE_STORAGE_PATH+"/"+instanceId, newInstance.toString(), putResult-> {
@@ -304,8 +295,6 @@ public class InventoryUpdateService {
 
   /**
    * Creates a new instance in Inventory
-   * @param ctx
-   * @param newInstance
    */
   private void postInstance (OkapiClient okapiClient, RoutingContext ctx, JsonObject newInstance) {
     okapiClient.post(INSTANCE_STORAGE_PATH, newInstance.toString(), postResult->{

@@ -10,6 +10,7 @@ import io.vertx.core.impl.logging.LoggerFactory;
 
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 
 
 /**
@@ -20,7 +21,7 @@ public class SharedInstanceByLocalIdentifierQuery implements InventoryQuery {
 
   private final String localIdentifier;
   private final String identifierTypeId;
-  private final String queryString;
+  public final String queryString;
 
   private final Logger logger = LoggerFactory.getLogger("inventory-upsert-hrid-query");
 
@@ -47,14 +48,7 @@ public class SharedInstanceByLocalIdentifierQuery implements InventoryQuery {
 
   @Override
   public String getURLEncodedQueryString() {
-    String encodedQuery;
-    try {
-      encodedQuery = URLEncoder.encode(queryString,"UTF-8");
-    } catch (UnsupportedEncodingException unsupportedEncodingException) {
-      logger.error("System error: Unsupported encoding of Inventory query" + unsupportedEncodingException);
-      encodedQuery =  "encoding-error-while-building-query-string";
-    }
-    return encodedQuery;
+    return URLEncoder.encode(queryString, StandardCharsets.UTF_8);
   }
 
 }

@@ -5,8 +5,10 @@
  */
 package org.folio.inventoryupdate;
 
+import javax.sound.sampled.AudioFormat;
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 
 /**
  * MatchQuery takes an Instance and constructs a Inventory query needed for
@@ -47,16 +49,7 @@ public class MatchQuery implements InventoryQuery {
    * @return URL encoded Instance match query
    */
   public String getURLEncodedQueryString () {
-    String encodedQuery = queryString;
-    try {
-      encodedQuery = URLEncoder.encode(queryString,"UTF-8");
-    } catch (UnsupportedEncodingException unsupportedEncodingException) {
-      // ignore
-    }
-    return encodedQuery;
+    return URLEncoder.encode(queryString, StandardCharsets.UTF_8);
   }
 
-  public String getMatchKey () {
-    return this.matchKey;
-  }
 }

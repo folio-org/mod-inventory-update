@@ -1,12 +1,12 @@
 package org.folio.inventoryupdate;
 
-import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 
 
 public class HridQuery implements InventoryQuery {
-    private String hrid;
-    private String queryString;
+    private final String hrid;
+    private final String queryString;
 
     public HridQuery(String hrid) {
         this.hrid = hrid;
@@ -36,13 +36,7 @@ public class HridQuery implements InventoryQuery {
    * @return URL encoded Instance match query
    */
   public String getURLEncodedQueryString () {
-    String encodedQuery = queryString;
-    try {
-      encodedQuery = URLEncoder.encode(queryString,"UTF-8");
-    } catch (UnsupportedEncodingException unsupportedEncodingException) {
-        // ignore
-    }
-    return encodedQuery;
+    return URLEncoder.encode(queryString, StandardCharsets.UTF_8);
   }
 
 }

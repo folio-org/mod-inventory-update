@@ -5,8 +5,6 @@
  */
 package org.folio.inventoryupdate;
 
-import javax.sound.sampled.AudioFormat;
-import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 

@@ -5,10 +5,6 @@
  */
 package org.folio.inventoryupdate;
 
-import io.vertx.core.impl.logging.Logger;
-import io.vertx.core.impl.logging.LoggerFactory;
-
-import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 
@@ -22,9 +18,6 @@ public class SharedInstanceByLocalIdentifierQuery implements InventoryQuery {
   private final String localIdentifier;
   private final String identifierTypeId;
   public final String queryString;
-
-  private final Logger logger = LoggerFactory.getLogger("inventory-upsert-hrid-query");
-
 
   public SharedInstanceByLocalIdentifierQuery(String localIdentifier, String identifierTypeId) {
     this.localIdentifier = localIdentifier;

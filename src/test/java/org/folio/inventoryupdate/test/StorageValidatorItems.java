@@ -44,7 +44,7 @@ public class StorageValidatorItems {
     protected void validateGetByQueryAndPut(TestContext testContext) {
         JsonObject responseJson = FakeInventoryStorage.getRecordsByQuery(
                 ITEM_STORAGE_PATH,
-                "query="+ RecordStorage.encode("holdingsRecordId==\""+ existingHoldingsRecordId +"\""));;
+                "query="+ RecordStorage.encode("holdingsRecordId==\""+ existingHoldingsRecordId +"\""));
         testContext.assertEquals(
                 responseJson.getInteger("totalRecords"), 1,"Number of " + RESULT_SET_ITEMS + " expected: 1" );
         JsonObject existingRecord = responseJson.getJsonArray(RESULT_SET_ITEMS).getJsonObject(0);
@@ -66,10 +66,10 @@ public class StorageValidatorItems {
         JsonObject responseOnPOST = FakeInventoryStorage.post(
                 ITEM_STORAGE_PATH,
                 new InputItem().setHoldingsRecordId("12345").setBarcode("bc-003").getJson(),
-                400);
+                500);
         JsonObject responseJson = FakeInventoryStorage.getRecordsByQuery(
                 ITEM_STORAGE_PATH,
-                "query="+ RecordStorage.encode("holdingsRecordId==\"12345\""));;
+                "query="+ RecordStorage.encode("holdingsRecordId==\"12345\""));
         testContext.assertEquals(
                 responseJson.getInteger("totalRecords"), 0,"Number of " + RESULT_SET_ITEMS + " expected for bad holdingsRecord ID 12345: 0" );
 

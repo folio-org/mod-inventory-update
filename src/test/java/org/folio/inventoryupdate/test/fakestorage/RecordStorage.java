@@ -10,6 +10,7 @@ import org.folio.inventoryupdate.test.fakestorage.entitites.InventoryRecord;
 import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
 import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.*;
 
 public abstract class RecordStorage {
@@ -46,34 +47,35 @@ public abstract class RecordStorage {
     protected abstract String getResultSetName();
 
     // INTERNAL DATABASE OPERATIONS - insert() IS DECLARED PUBLIC SO THE TEST SUITE CAN INITIALIZE DATA OUTSIDE THE API.
-    public int insert (InventoryRecord record) {
+    public StorageResponse insert (InventoryRecord record) {
         if (failOnCreate) {
-            return 500;
+            return new StorageResponse(500, "forced fail");
         }
         if (!record.hasId()) {
             record.generateId();
         }
         if (records.containsKey(record.getId())) {
             logger.error("Fake record storage already contains a record with id " + record.getId() + ", cannot create " + record.getJson().encodePrettily());
-            return 400;
+            return new StorageResponse(400, "add duplicate key message here");
         }
         logger.debug("Checking foreign keys");
         logger.debug("Got " + masterEntities.size() + " foreign keys");
         for (ForeignKey fk : masterEntities) {
             if (! record.getJson().containsKey(fk.getDependentPropertyName())) {
                 logger.error("Foreign key violation, record must contain " + fk.getDependentPropertyName());
-                return 400;
+                return new StorageResponse(422, "{\"errors\":[{\"message\":\"must not be null\",\"type\":\"1\",\"code\":\"-1\",\"parameters\":[{\"key\":\"instanceId\",\"value\":\"null\"}]}]}");
             }
             if (!fk.getMasterStorage().hasId(record.getJson().getString(fk.getDependentPropertyName()))) {
                 logger.error("Foreign key violation " + fk.getDependentPropertyName() + " not found in "+ fk.getMasterStorage().getResultSetName() + ", cannot create " + record.getJson().encodePrettily());
-                return 400;
+                logger.error(new JsonObject().encode());
+                return new StorageResponse (500, new JsonObject("{ \"message\": \"insert or update on table \\\"storage_table\\\" violates foreign key constraint \\\"fkey\\\"\", \"severity\": \"ERROR\", \"code\": \"23503\", \"detail\": \"Key (property value)=(the id) is not present in table \\\"a_referenced_table\\\".\", \"file\": \"ri_triggers.c\", \"line\": \"3266\", \"routine\": \"ri_ReportViolation\", \"schema\": \"diku_mod_inventory_storage\", \"table\": \"storage_table\", \"constraint\": \"a_fkey\" }\"").encodePrettily());
             } else {
                 logger.debug("Found " + record.getJson().getString(fk.getDependentPropertyName()) + " in " + fk.getMasterStorage().getResultSetName());
             }
 
         }
         records.put(record.getId(), record);
-        return 201;
+        return new StorageResponse(201, "Created");
     }
 
     protected int update (String id, InventoryRecord record) {
@@ -164,7 +166,7 @@ public abstract class RecordStorage {
 
     /**
      * Handles GET request with query parameter
-     * @param routingContext
+     *
      */
     public void getRecords(RoutingContext routingContext) {
         final String optionalQuery = routingContext.request().getParam("query") != null ?
@@ -179,7 +181,6 @@ public abstract class RecordStorage {
 
     /**
      * Handles GET by ID
-     * @param routingContext
      */
     protected void getRecordById(RoutingContext routingContext) {
         final String id = routingContext.pathParam("id");
@@ -194,7 +195,6 @@ public abstract class RecordStorage {
 
     /**
      * Handles DELETE
-     * @param routingContext
      */
     protected void deleteRecord (RoutingContext routingContext) {
         final String id = routingContext.pathParam("id");
@@ -204,7 +204,7 @@ public abstract class RecordStorage {
             respond(routingContext, new JsonObject(), code);
         } else {
             respondWithMessage(routingContext, (failOnDelete ? "Forced " : "") + "Error deleting from " + STORAGE_NAME, code);
-        };
+        }
     }
 
     /**
@@ -218,21 +218,21 @@ public abstract class RecordStorage {
 
     /**
      * Handles POST
-     * @param routingContext
+     *
      */
     protected void createRecord(RoutingContext routingContext) {
         JsonObject recordJson = new JsonObject(routingContext.getBodyAsString());
-        int code = insert(new InventoryRecord(recordJson));
-        if (code == 201) {
-            respond(routingContext, recordJson, code);
+        StorageResponse response = insert(new InventoryRecord(recordJson)); // provide STORAGE_NAME to tailor error responses
+        if (response.statusCode == 201) {
+            respond(routingContext, recordJson, response.statusCode);
         } else {
-            respondWithMessage(routingContext, (failOnCreate ? "Forced " : "") + "Error creating record in " + STORAGE_NAME, code);
+            respondWithMessage(routingContext, response.responseBody, response.statusCode);
         }
     }
 
     /**
      * Handles PUT
-     * @param routingContext
+     *
      */
     protected void updateRecord(RoutingContext routingContext) {
         JsonObject recordJson = new JsonObject(routingContext.getBodyAsString());
@@ -263,9 +263,9 @@ public abstract class RecordStorage {
 
     /**
      * Respond with JSON and status code
-     * @param routingContext
-     * @param responseJson
-     * @param code
+     *
+     * @param responseJson the response
+     * @param code the status code
      */
     protected static void respond(RoutingContext routingContext, JsonObject responseJson, int code) {
         routingContext.response().headers().add("Content-Type", "application/json");
@@ -275,8 +275,8 @@ public abstract class RecordStorage {
 
     /**
      * Respond with status code
-     * @param routingContext
-     * @param code
+     *
+     * @param code the status code
      */
     protected static void respond(RoutingContext routingContext, int code) {
         routingContext.response().headers().add("Content-Type", "application/json");
@@ -286,8 +286,8 @@ public abstract class RecordStorage {
 
     /**
      * Respond with text message (error response)
-     * @param routingContext
-     * @param res
+     *
+     * @param res error condition
      */
     protected static void respondWithMessage(RoutingContext routingContext, Throwable res) {
         routingContext.response().setStatusCode(500);
@@ -304,20 +304,11 @@ public abstract class RecordStorage {
     // UTILS
 
     public static String decode (String string) {
-        try {
-            return URLDecoder.decode(string, "UTF-8");
-        } catch (UnsupportedEncodingException uee) {
-            return "";
-        }
-
+      return URLDecoder.decode(string, StandardCharsets.UTF_8);
     }
 
     public static String encode (String string) {
-        try {
-            return URLEncoder.encode(string, "UTF-8");
-        } catch (UnsupportedEncodingException uee) {
-            return "";
-        }
+      return URLEncoder.encode(string, StandardCharsets.UTF_8);
     }
 
     public void logRecords (Logger logger) {

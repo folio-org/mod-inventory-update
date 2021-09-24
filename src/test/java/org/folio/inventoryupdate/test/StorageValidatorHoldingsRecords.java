@@ -18,14 +18,15 @@ public class StorageValidatorHoldingsRecords {
     private String existingInstanceId;
 
     protected void validateStorage(TestContext testContext) {
-        createDependencies(testContext);
+        createDependencies();
         validatePostAndGetById(testContext);
         validateGetByQueryAndPut(testContext);
         validateCannotPostWithBadInstanceId(testContext);
         validateCanDeleteHoldingsRecordById(testContext);
+        validateCannotPostWithBadLocationId( testContext );
     }
 
-    protected void createDependencies(TestContext testContext) {
+    protected void createDependencies() {
         JsonObject responseOnPOST = FakeInventoryStorage.post(
                 INSTANCE_STORAGE_PATH,
                 new InputInstance().setTitle(INSTANCE_TITLE).setInstanceTypeId("123").getJson());
@@ -66,10 +67,10 @@ public class StorageValidatorHoldingsRecords {
         JsonObject responseOnPOST = FakeInventoryStorage.post(
                 HOLDINGS_STORAGE_PATH,
                 new InputHoldingsRecord().setInstanceId(NON_EXISTING_INSTANCE_ID).setPermanentLocationId(InventoryUpdateTestSuite.LOCATION_ID_1).setCallNumber(FIRST_CALL_NUMBER).getJson(),
-                400);
+                500);
         JsonObject responseJson = FakeInventoryStorage.getRecordsByQuery(
                 HOLDINGS_STORAGE_PATH,
-                "query="+ RecordStorage.encode("instanceId==\""+ NON_EXISTING_INSTANCE_ID +"\""));;
+                "query="+ RecordStorage.encode("instanceId==\""+ NON_EXISTING_INSTANCE_ID +"\""));
         testContext.assertEquals(
                 responseJson.getInteger("totalRecords"), 0,"Number of " + RESULT_SET_HOLDINGS_RECORDS + " expected for bad instance ID " + NON_EXISTING_INSTANCE_ID + ": 0" );
 
@@ -79,10 +80,11 @@ public class StorageValidatorHoldingsRecords {
         JsonObject responseOnPOST = FakeInventoryStorage.post(
                 HOLDINGS_STORAGE_PATH,
                 new InputHoldingsRecord().setInstanceId(existingInstanceId).setPermanentLocationId("BAD_LOCATION").setCallNumber(FIRST_CALL_NUMBER).getJson(),
-                400);
+                500);
+        System.out.println(responseOnPOST.encodePrettily());
         JsonObject responseJson = FakeInventoryStorage.getRecordsByQuery(
                 HOLDINGS_STORAGE_PATH,
-                "query="+ RecordStorage.encode("permanentLocationId==\""+ "BAD_LOCATION" +"\""));;
+                "query="+ RecordStorage.encode("permanentLocationId==\""+ "BAD_LOCATION" +"\""));
         testContext.assertEquals(
                 responseJson.getInteger("totalRecords"), 0,"Number of " + RESULT_SET_HOLDINGS_RECORDS + " expected for bad location ID " + NON_EXISTING_INSTANCE_ID + ": 0" );
 

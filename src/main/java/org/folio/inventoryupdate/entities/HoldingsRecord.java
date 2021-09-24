@@ -7,7 +7,7 @@ import java.util.Map;
 import io.vertx.core.json.JsonObject;
 
 public class HoldingsRecord extends InventoryRecord {
-    List<Item> items = new ArrayList<Item>();
+    List<Item> items = new ArrayList<>();
 
     public HoldingsRecord(JsonObject holdingsRecord) {
         this.jsonRecord = holdingsRecord;
@@ -54,15 +54,6 @@ public class HoldingsRecord extends InventoryRecord {
 
     public List<Item> getItems() {
         return items;
-    }
-
-    public Item getItemByHRID (String hrid) {
-        for (int i=0; i<items.size(); i++) {
-            if (items.get(i).getHRID().equals(hrid)) {
-                return items.get(i);
-            }
-        }
-        return null;
     }
 
     public String getPermanentLocationId () {

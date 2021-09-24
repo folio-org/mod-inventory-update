@@ -93,7 +93,7 @@ public class InventoryUpdateTestSuite {
   public void createInitialInstanceWithMatchKey() {
     InputInstance instance = new InputInstance().setInstanceTypeId("123").setTitle("Initial InputInstance").setHrid("1");
     MatchKey matchKey = new MatchKey(instance.getJson());
-    instance.setMatchKey(matchKey.getKey());
+    instance.setMatchKeyAsString(matchKey.getKey());
     fakeInventoryStorage.instanceStorage.insert(instance);
   }
 
@@ -116,7 +116,6 @@ public class InventoryUpdateTestSuite {
 
   /**
    * Tests API /instance-storage-match/instances
-   * @param testContext
    */
   @Test
   public void testPutNewInstanceWillCreateNewInstance (TestContext testContext) {
@@ -125,7 +124,7 @@ public class InventoryUpdateTestSuite {
             .setTitle("New title")
             .setInstanceTypeId("12345");
     MatchKey matchKey = new MatchKey(instance.getJson());
-    instance.setMatchKey(matchKey.getKey());
+    instance.setMatchKeyAsString(matchKey.getKey());
     JsonObject instancesBeforePutJson = getRecordsFromStorage(FakeInventoryStorage.INSTANCE_STORAGE_PATH, "matchKey==\"" + matchKey.getKey() + "\"");
     testContext.assertEquals(instancesBeforePutJson.getInteger("totalRecords"), 0,
             "Number of instance records for query by matchKey 'new_title___(etc)' before PUT expected: 0" );
@@ -140,7 +139,7 @@ public class InventoryUpdateTestSuite {
 
   /**
    * Tests API /instance-storage-match/instances
-   * @param testContext
+  *
    */
   @Test
   public void testPutExistingInstanceWillUpdateExistingInstance (TestContext testContext) {
@@ -168,7 +167,7 @@ public class InventoryUpdateTestSuite {
 
   /**
    * Tests API /shared-inventory-upsert-matchkey
-   * @param testContext
+  *
    */
   @Test
   public void upsertByMatchKeyWillCreateNewInstance (TestContext testContext) {
@@ -177,7 +176,7 @@ public class InventoryUpdateTestSuite {
             .setTitle("New title")
             .setInstanceTypeId("12345");
     MatchKey matchKey = new MatchKey(instance.getJson());
-    instance.setMatchKey(matchKey.getKey());
+    instance.setMatchKeyAsString(matchKey.getKey());
     InventoryRecordSet recordSet = new InventoryRecordSet(instance);
 
     JsonObject instancesBeforePutJson = getRecordsFromStorage(FakeInventoryStorage.INSTANCE_STORAGE_PATH, "matchKey==\"" + matchKey.getKey() + "\"");
@@ -194,7 +193,46 @@ public class InventoryUpdateTestSuite {
 
   /**
    * Tests API /shared-inventory-upsert-matchkey
-   * @param testContext
+   *
+   */
+  @Test
+  public void upsertByMatchKeyWithMultipleMatchKeyPartsWillCreateNewInstance (TestContext testContext) {
+    final String GOV_DOC_NUMBER_TYPE = "9075b5f8-7d97-49e1-a431-73fdd468d476";
+    createInitialInstanceWithMatchKey();
+    JsonObject matchKeyAsObject = new JsonObject();
+    String longTitle = "A long title which should exceed 70 characters of length";
+    matchKeyAsObject.put("title", longTitle);
+    matchKeyAsObject.put("remainder-of-title", " - together with the remainder of title");
+    matchKeyAsObject.put("medium", "[microform]");
+
+    InputInstance instance = new InputInstance()
+            .setTitle(longTitle)
+            .setInstanceTypeId("12345")
+            .setDateOfPublication( "[2000]" )
+            .setClassification( GOV_DOC_NUMBER_TYPE, "12345" )
+            .setContributor( InputInstance.PERSONAL_NAME_TYPE, "Doe, John" )
+            .setPhysicalDescription( "125 pages" )
+            .setEdition("1st edition")
+            .setMatchKeyAsObject( matchKeyAsObject );
+    InventoryRecordSet recordSet = new InventoryRecordSet(instance);
+    logger.info("Instance " + instance.getJson().encodePrettily());
+
+    MatchKey matchKey = new MatchKey( instance.getJson() );
+    JsonObject instancesBeforePutJson = getRecordsFromStorage(FakeInventoryStorage.INSTANCE_STORAGE_PATH, "matchKey==\"" + matchKey.getKey() + "\"");
+    testContext.assertEquals(instancesBeforePutJson.getInteger("totalRecords"), 0,
+            "Number of instance records for query by matchKey 'new_title___(etc)' before PUT expected: 0" );
+
+    upsertByMatchKey(recordSet.getJson());
+
+    JsonObject instancesAfterPutJson = getRecordsFromStorage(FakeInventoryStorage.INSTANCE_STORAGE_PATH, "matchKey==\"" + matchKey.getKey() + "\"");
+    testContext.assertEquals(instancesAfterPutJson.getInteger("totalRecords"), 1,
+            "Number of instance records for query by matchKey " + matchKey.getKey() + " after PUT expected: 1" );
+
+  }
+
+  /**
+   * Tests API /shared-inventory-upsert-matchkey
+  *
    */
   @Test
   public void upsertByMatchKeyWillUpdateExistingInstance (TestContext testContext) {
@@ -224,7 +262,7 @@ public class InventoryUpdateTestSuite {
 
   /**
    * Tests API /shared-inventory-upsert-matchkey
-   * @param testContext
+  *
    */
   @Test
   public void upsertByMatchKeyWillCreateHoldingsAndItems(TestContext testContext) {
@@ -258,7 +296,7 @@ public class InventoryUpdateTestSuite {
 
   /**
    * Tests API /shared-inventory-upsert-matchkey
-   * @param testContext
+  *
    */
   @Test
   public void upsertByMatchKeyWillUpdateHoldingsAndItems (TestContext testContext) {
@@ -310,7 +348,7 @@ public class InventoryUpdateTestSuite {
 
   /**
    * Tests API /shared-inventory-upsert-matchkey
-   * @param testContext
+  *
    */
   @Test
   public void testSharedInstanceUpsertFromTwoInstitutionsAndDeleteByOaiIdentifier (TestContext testContext) {
@@ -510,7 +548,7 @@ public class InventoryUpdateTestSuite {
 
   /**
    * Tests API /inventory-upsert-hrid
-   * @param testContext
+  *
    */
   @Test
   public void testUpsertByHridWillCreateNewInstance(TestContext testContext) {
@@ -531,7 +569,7 @@ public class InventoryUpdateTestSuite {
 
   /**
    * Tests API /inventory-upsert-hrid
-   * @param testContext
+  *
    */
   @Test
   public void upsertByHridWillUpdateExistingInstance (TestContext testContext) {
@@ -562,7 +600,7 @@ public class InventoryUpdateTestSuite {
 
   /**
    * Tests API /inventory-upsert-hrid
-   * @param testContext
+  *
    */
   @Test
   public void upsertByHridWillCreateHoldingsAndItems(TestContext testContext) {
@@ -657,7 +695,6 @@ public class InventoryUpdateTestSuite {
 
   /**
    * Tests API /inventory-upsert-hrid
-   * @param testContext
    */
   @Test
   public void upsertByHridWillDeleteSelectHoldingsAndItems(TestContext testContext) {
@@ -750,7 +787,6 @@ public class InventoryUpdateTestSuite {
 
   /**
    * Tests API /inventory-upsert-hrid
-   * @param testContext
    */
   @Test
   public void upsertByHridWillCreateParentAndChildRelations(TestContext testContext) {
@@ -795,7 +831,6 @@ public class InventoryUpdateTestSuite {
 
   /**
    * Tests API /inventory-upsert-hrid
-   * @param testContext
    */
   @Test
   public void upsertsByHridWillNotDeleteThenWillDeleteParentInstanceRelation (TestContext testContext) {
@@ -876,7 +911,7 @@ public class InventoryUpdateTestSuite {
 
   /**
    * Tests API /inventory-upsert-hrid
-   * @param testContext
+  *
    */
   @Test
   public void upsertsByHridWillDeleteRemovedRelations (TestContext testContext) {
@@ -942,7 +977,7 @@ public class InventoryUpdateTestSuite {
 
   /**
    * Tests API /inventory-upsert-hrid
-   * @param testContext
+  *
    */
   @Test
   public void upsertsByHridWillNotDeleteThenWillDeleteChildInstanceRelation (TestContext testContext) {

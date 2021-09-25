@@ -7,7 +7,7 @@
 
   <groupId>org.folio</groupId>
   <artifactId>mod-inventory-update</artifactId>
-  <version>0.0.5-SNAPSHOT</version>
+  <version>1.0.0-SNAPSHOT</version>
   <name>Inventory Update Module</name>
 
   <licenses>
@@ -77,6 +77,29 @@
       <type>jar</type>
     </dependency>
   </dependencies>
+  <distributionManagement>
+    <repository>
+      <id>folio-nexus</id>
+      <name>FOLIO Release Repository</name>
+      <url>https://repository.folio.org/repository/maven-releases/</url>
+      <uniqueVersion>false</uniqueVersion>
+      <layout>default</layout>
+    </repository>
+    <snapshotRepository>
+      <id>folio-nexus</id>
+      <name>FOLIO Snapshot Repository</name>
+      <uniqueVersion>true</uniqueVersion>
+      <url>https://repository.folio.org/repository/maven-snapshots/</url>
+      <layout>default</layout>
+    </snapshotRepository>
+  </distributionManagement>
+
+  <scm>
+    <url>https://github.com/folio-org/mod-inventory-update</url>
+    <connection>scm:git:git://github.com:folio-org/mod-inventory-update.git</connection>
+    <developerConnection>scm:git:git@github.com:folio-org/mod-inventory-update.git</developerConnection>
+    <tag>HEAD</tag>
+  </scm>
 
   <build>
     <plugins>

@@ -1,13 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0"
-  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0
-  http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0   http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
 
   <groupId>org.folio</groupId>
   <artifactId>mod-inventory-update</artifactId>
-  <version>1.0.0-SNAPSHOT</version>
+  <version>1.0.0</version>
   <name>Inventory Update Module</name>
 
   <licenses>
@@ -98,7 +95,7 @@
     <url>https://github.com/folio-org/mod-inventory-update</url>
     <connection>scm:git:git://github.com:folio-org/mod-inventory-update.git</connection>
     <developerConnection>scm:git:git@github.com:folio-org/mod-inventory-update.git</developerConnection>
-    <tag>HEAD</tag>
+    <tag>v1.0.0</tag>
   </scm>
 
   <build>
@@ -166,7 +163,7 @@
             <configuration>
               <target>
                 <replaceregexp match="baseUri:.+$" replace="baseUri: http://localhost:8081" byline="true">
-                  <fileset dir="${basedir}/target/classes/apidocs/raml" includes="**/*.raml"/>
+                  <fileset dir="${basedir}/target/classes/apidocs/raml" includes="**/*.raml" />
                 </replaceregexp>
               </target>
             </configuration>
@@ -215,15 +212,14 @@
             </goals>
             <configuration>
               <transformers>
-                <transformer
-                  implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
+                <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
                   <manifestEntries>
                     <Main-Class>org.folio.okapi.common.MainLauncher</Main-Class>
                     <Main-Verticle>org.folio.inventoryupdate.MainVerticle</Main-Verticle>
                   </manifestEntries>
                 </transformer>
               </transformers>
-              <artifactSet/>
+              <artifactSet />
               <outputFile>${project.build.directory}/${project.artifactId}-fat.jar</outputFile>
             </configuration>
           </execution>

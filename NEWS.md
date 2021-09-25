@@ -1,5 +1,5 @@
-## 0.0.5 (wip)
-
+## 1.0.0 (wip)
+* `shared-inventory-upsert-matchkey`: fix `number-of-part-section-of-work` for match key (MODINVUP-3)
 
 ## 0.0.4 2021-04-15
 

@@ -109,7 +109,7 @@ The match logic currently considers title, year, publisher, pagination, edition 
 
 If it does not find a matching title, a new Instance will be created. If it finds one, the existing Instance will be
 replaced by the incoming Instance, except, the HRID (human-readable ID) of the original Instance will be retained, as
-well as the resource identifiers from any of the other libraries that contributed that Instance.  
+well as the resource identifiers from any of the other libraries that contributed that Instance.
 
 
 ## Planned developments
@@ -153,4 +153,44 @@ the [FOLIO developer site](https://dev.folio.org/guides/developer-setup/#update-
 ## Building
 
 run `mvn install` from the root directory.
+
+## Additional information
+
+### Other documentation
+
+Other [modules](https://dev.folio.org/source-code/#server-side) are described,
+with further FOLIO Developer documentation at [dev.folio.org](https://dev.folio.org/)
+
+### Code of Conduct
+
+Refer to the Wiki [FOLIO Code of Conduct](https://wiki.folio.org/display/COMMUNITY/FOLIO+Code+of+Conduct).
+
+### Issue tracker
+
+See project [MODINVUP](https://issues.folio.org/browse/MODINVUP)
+at the [FOLIO issue tracker](https://dev.folio.org/guidelines/issue-tracker).
+
+### ModuleDescriptor
+
+See the [ModuleDescriptor](descriptors/ModuleDescriptor-template.json)
+for the interfaces that this module requires and provides, the permissions,
+and the additional module metadata.
+
+### API documentation
+
+API descriptions:
+* [RAML](ramls/)
+* [Schemas](ramls/)
+
+Generated [API documentation](https://dev.folio.org/reference/api/#mod-inventory-update).
+
+### Code analysis
+
+[SonarQube analysis](https://sonarcloud.io/dashboard?id=org.folio%3Amod-inventory-update).
+
+### Download and configuration
+
+The built artifacts for this module are available.
+See [configuration](https://dev.folio.org/download/artifacts) for repository access,
+and the [Docker image](https://hub.docker.com/r/folioorg/mod-inventory-update/).
 

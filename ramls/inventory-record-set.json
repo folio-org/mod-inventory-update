@@ -15,6 +15,27 @@
         "type": "object",
         "$ref": "holdings-record.json"
       }
+    },
+    "processingInfo": {
+      "type": "object",
+      "description": "An object holding supporting pieces of data and/or processing instructions for Inventory update processing",
+      "properties": {
+        "institutionId":  {
+          "type": "string",
+          "description": "The FOLIO UUID of the institution that provided the source records for the update; necessary for certain clean-up tasks in a shared inventory",
+          "$ref": "uuid.json"
+        },
+        "localIdentifier": {
+          "type": "string",
+          "description": "The source system's unique identifier for the source record of this update request; necessary for certain clean-up tasks in a shared inventory"
+        },
+        "identifierTypeId": {
+          "type": "string",
+          "description": "The FOLIO UUID for the identifier type for the local record IDs coming from the given library",
+          "$ref": "uuid.json"
+
+        }
+      }
     }
   }
 }

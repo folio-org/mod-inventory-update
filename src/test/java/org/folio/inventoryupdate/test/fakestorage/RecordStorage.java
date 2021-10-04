@@ -53,6 +53,7 @@ public abstract class RecordStorage {
         }
         if (!record.hasId()) {
             record.generateId();
+
         }
         if (records.containsKey(record.getId())) {
             logger.error("Fake record storage already contains a record with id " + record.getId() + ", cannot create " + record.getJson().encodePrettily());
@@ -74,6 +75,7 @@ public abstract class RecordStorage {
             }
 
         }
+        record.setFirstVersion();
         records.put(record.getId(), record);
         return new StorageResponse(201, "Created");
     }
@@ -123,7 +125,9 @@ public abstract class RecordStorage {
         if (failOnGetRecordById) {
             return null;
         } else {
-            return records.get(id);
+            InventoryRecord record = records.get( id );
+            record.setVersion( record.getVersion() + 1 );
+            return record;
         }
     }
 

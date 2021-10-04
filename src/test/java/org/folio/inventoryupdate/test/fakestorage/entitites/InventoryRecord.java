@@ -7,7 +7,8 @@ import java.util.UUID;
 
 public class InventoryRecord {
 
-    public static String ID = "id";
+    public static final String ID = "id";
+    public static final String VERSION = "_version";
     protected JsonObject recordJson;
 
     private Logger logger = io.vertx.core.impl.logging.LoggerFactory.getLogger("InventoryRecord");
@@ -40,6 +41,20 @@ public class InventoryRecord {
 
     public String getId () {
         return recordJson.getString(ID);
+    }
+
+    public InventoryRecord setFirstVersion () {
+        recordJson.put(VERSION,1);
+        return this;
+    }
+
+    public Integer getVersion () {
+        return recordJson.containsKey( VERSION ) ? recordJson.getInteger( VERSION ) : 0;
+    }
+
+    public InventoryRecord setVersion (Integer version) {
+        recordJson.put( VERSION,  version);
+        return this;
     }
 
     public boolean match(String query) {

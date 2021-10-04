@@ -100,6 +100,7 @@ public abstract class UpdatePlan {
       if (foundExistingRecordSet()) {
         getUpdatingInstance().setUUID(getExistingInstance().getUUID());
         getUpdatingInstance().setTransition(Transaction.UPDATE);
+        getUpdatingInstance().setVersion( getExistingInstance().getVersion() );
       } else {
         // Use UUID on incoming record if any, otherwise generate
         if (!getUpdatingInstance().hasUUID()) {
@@ -282,6 +283,9 @@ public abstract class UpdatePlan {
         @SuppressWarnings("rawtypes")
         List<Future> itemFutures = new ArrayList<>();
         for (Item item : itemsToUpdate()) {
+            // Since the items were updated by storage behind the scenes, triggered by the holdings record updates,
+            // the Item's versions have to be bumped again.
+            item.setVersion( item.getVersion() + 1 );
             itemFutures.add(InventoryStorage.putInventoryRecord(okapiClient, item));
         }
         for (Item item : itemsToCreate()) {

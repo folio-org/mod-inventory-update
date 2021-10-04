@@ -202,6 +202,7 @@ public class UpdatePlanAllHRIDs extends UpdatePlan {
                         } else {
                             // Item appear to be moved to another holdings record in the instance
                             incomingItem.setUUID(existingItem.getUUID());
+                            incomingItem.setVersion( existingItem.getVersion() );
                             incomingItem.setTransition(Transaction.UPDATE);
                         }
                     }
@@ -209,6 +210,7 @@ public class UpdatePlanAllHRIDs extends UpdatePlan {
                     // There is an existing holdings record with the same HRID, on the same Instance
                     incomingHoldingsRecord.setUUID(existingHoldingsRecord.getUUID());
                     incomingHoldingsRecord.setTransition(Transaction.UPDATE);
+                    incomingHoldingsRecord.setVersion( existingHoldingsRecord.getVersion() );
                     for (Item existingItem : existingHoldingsRecord.getItems()) {
                         Item incomingItem = updatingSet.getItemByHRID(existingItem.getHRID());
                         if (incomingItem == null) {
@@ -217,6 +219,7 @@ public class UpdatePlanAllHRIDs extends UpdatePlan {
                         } else {
                             // There is an incoming item with the same HRID somewhere in the instance
                             incomingItem.setUUID(existingItem.getUUID());
+                            incomingItem.setVersion( existingItem.getVersion() );
                             incomingItem.setTransition(Transaction.UPDATE);
                         }
                     }
@@ -271,8 +274,9 @@ public class UpdatePlanAllHRIDs extends UpdatePlan {
                     }
                     record.setTransition(Transaction.CREATE);
                 } else {
-                    String existingHoldingsRecordId = result.result().getString("id");
-                    record.setUUID(existingHoldingsRecordId);
+                    JsonObject existingHoldingsRecord = result.result();
+                    record.setUUID(existingHoldingsRecord.getString( "id" ));
+                    record.setVersion( existingHoldingsRecord.getInteger( InventoryRecord.VERSION ));
                     record.setTransition(Transaction.UPDATE);
                 }
                 promise.complete();
@@ -286,7 +290,6 @@ public class UpdatePlanAllHRIDs extends UpdatePlan {
 
     /**
      * Looks up existing item record by HRID and set UUID and transition state according to whether it's found or not
-     * @param okapiClient
      * @param record The incoming record to match with an existing record if any
      * @return empty future for determining when loook-up is complete
      */
@@ -301,8 +304,9 @@ public class UpdatePlanAllHRIDs extends UpdatePlan {
                     }
                     record.setTransition(Transaction.CREATE);
                 } else {
-                    String existingItemId = result.result().getString("id");
-                    record.setUUID(existingItemId);
+                    JsonObject existingItem = result.result();
+                    record.setUUID(existingItem.getString("id"));
+                    record.setVersion( existingItem.getInteger( InventoryRecord.VERSION ));
                     record.setTransition(Transaction.UPDATE);
                 }
                 promise.complete();

@@ -42,6 +42,7 @@ public abstract class InventoryRecord {
     }
 
     protected JsonObject jsonRecord;
+    public static final String VERSION = "_version";
     protected JsonObject error = new JsonObject();
     protected Entity entityType;
     protected Transaction transaction = Transaction.UNKNOWN;
@@ -83,6 +84,15 @@ public abstract class InventoryRecord {
 
     public String getHRID () {
         return jsonRecord.getString("hrid");
+    }
+
+    public Integer getVersion () {
+        return jsonRecord.getInteger( VERSION );
+    }
+
+    public InventoryRecord setVersion (int version) {
+        jsonRecord.put(VERSION, version);
+        return this;
     }
 
     public JsonObject asJson() {

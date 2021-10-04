@@ -8,7 +8,7 @@ public class InstanceStorage extends RecordStorage {
 
     @Override
     protected void declareDependencies() {
-        // Instances has none in fake storage
+        // Instances have none in fake storage
     }
 
 }

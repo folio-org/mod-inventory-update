@@ -1,3 +1,10 @@
+## 1.1.0 2021-10-06
+
+* Implements the optimistic locking protocol of Inventory Storage (MODINVUP-10)
+* Requires interface `instance-storage` `7.4 8.0`
+* Requires interface `holdings-storage` `4.1 5.0`
+* Requires interface `item-storage` `8.2 9.0`
+
 ## 1.0.0 2021-09-25
 
 * `shared-inventory-upsert-matchkey`: fix `number-of-part-section-of-work` for match key (MODINVUP-3)

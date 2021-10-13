@@ -1,13 +1,5 @@
 package org.folio.inventoryupdate;
 
-import java.net.URLEncoder;
-import java.nio.charset.StandardCharsets;
-
-
-/**
- *
- * @author ne
- */
 public class SharedInstanceByLocalIdentifierQuery extends InventoryQuery {
 
   private final String localIdentifier;
@@ -20,7 +12,6 @@ public class SharedInstanceByLocalIdentifierQuery extends InventoryQuery {
   }
 
   protected String buildQuery() {
-    String query = "(identifiers =/@value/@identifierTypeId=" + "\"" + identifierTypeId + "\"" + " \"" + localIdentifier + "\"" + ")";
-    return query;
+    return "(identifiers =/@value/@identifierTypeId=" + "\"" + identifierTypeId + "\"" + " \"" + localIdentifier + "\"" + ")";
   }
 }

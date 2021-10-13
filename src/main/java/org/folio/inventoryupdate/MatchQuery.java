@@ -1,8 +1,5 @@
 package org.folio.inventoryupdate;
 
-import java.net.URLEncoder;
-import java.nio.charset.StandardCharsets;
-
 /**
  * MatchQuery takes an Instance and constructs a Inventory query needed for
  * determining if a similar Instance already exists in Inventory
@@ -22,10 +19,7 @@ public class MatchQuery extends InventoryQuery {
    * @return match query string
    */
   private String buildMatchQuery() {
-    StringBuilder query = new StringBuilder();
-    // Get match properties from request
-    query.append("(matchKey==\"").append(matchKey).append("\")");
-    return query.toString();
+    return "(matchKey==\"" + matchKey + "\")";
   }
 
 }

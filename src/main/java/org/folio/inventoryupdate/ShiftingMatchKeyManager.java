@@ -5,6 +5,7 @@ import io.vertx.core.Promise;
 import io.vertx.core.impl.logging.Logger;
 import io.vertx.core.impl.logging.LoggerFactory;
 import io.vertx.core.json.JsonObject;
+import org.folio.inventoryupdate.entities.InventoryRecord;
 import org.folio.inventoryupdate.entities.InventoryRecordSet;
 import org.folio.inventoryupdate.entities.RecordIdentifiers;
 import org.folio.okapi.common.OkapiClient;
@@ -49,6 +50,7 @@ public class ShiftingMatchKeyManager
                                     // todo: optimistic locking
                                     UpdatePlanSharedInventory.removeIdentifierFromInstanceForInstitution(
                                             recordIdentifiers, secondaryExistingRecordSet.getInstance().asJson() );
+                                    secondaryExistingRecordSet.getInstance().setTransition( InventoryRecord.Transaction.UPDATE );
                                     promise.complete(secondaryExistingRecordSet);
                                 } else {
                                     promise.complete( null );

@@ -429,7 +429,10 @@ public abstract class UpdatePlan {
           }
           existingSet.getInstanceRelationsController().writeToStats(metrics);
         }
+
         if (foundSecondaryExistingSet()) {
+            InventoryRecord instanceRecord = secondaryExistingSet.getInstance();
+            metrics.entity(instanceRecord.entityType()).transaction(instanceRecord.getTransaction()).outcomes.increment(instanceRecord.getOutcome());
             List<InventoryRecord> holdingsRecordsAndItemsInSecondaryExistingSet = Stream.of(
                     secondaryExistingSet.getHoldingsRecords(),
                     secondaryExistingSet.getItems()

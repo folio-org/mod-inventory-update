@@ -108,10 +108,10 @@ public class UpdatePlanSharedInventory extends UpdatePlan {
       JsonObject inventoryRecordSetForInstanceDeletion = new JsonObject();
       inventoryRecordSetForInstanceDeletion.put(InventoryRecordSet.INSTANCE, existingSet.getInstance().asJson());
       inventoryRecordSetForInstanceDeletion.put(InventoryRecordSet.HOLDINGS_RECORDS, new JsonArray());
-      JsonObject processingInfo = new JsonObject();
-      processingInfo.put(InventoryRecordSet.LOCAL_IDENTIFIER, recordIdentifiers.localIdentifier());
-      processingInfo.put(InventoryRecordSet.IDENTIFIER_TYPE_ID, recordIdentifiers.identifierTypeId());
-      inventoryRecordSetForInstanceDeletion.put(InventoryRecordSet.PROCESSING_INFO, processingInfo);
+      JsonObject processing = new JsonObject();
+      processing.put(InventoryRecordSet.LOCAL_IDENTIFIER, recordIdentifiers.localIdentifier());
+      processing.put(InventoryRecordSet.IDENTIFIER_TYPE_ID, recordIdentifiers.identifierTypeId());
+      inventoryRecordSetForInstanceDeletion.put(InventoryRecordSet.PROCESSING, processing);
       InventoryRecordSet updatingRecordSetBasedOnExistingSet = new InventoryRecordSet(inventoryRecordSetForInstanceDeletion);
       removeIdentifierFromInstanceForInstitution(recordIdentifiers, updatingRecordSetBasedOnExistingSet.getInstance().asJson());
       return updatingRecordSetBasedOnExistingSet;

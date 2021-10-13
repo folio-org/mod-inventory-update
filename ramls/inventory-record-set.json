@@ -16,7 +16,7 @@
         "$ref": "holdings-record.json"
       }
     },
-    "processingInfo": {
+    "processing": {
       "type": "object",
       "description": "An object holding supporting pieces of data and/or processing instructions for Inventory update processing",
       "properties": {

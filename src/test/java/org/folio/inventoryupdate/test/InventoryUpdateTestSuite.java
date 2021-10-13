@@ -483,7 +483,7 @@ public class InventoryUpdateTestSuite {
                     .add(new InputHoldingsRecord().setPermanentLocationId(LOCATION_ID_1).setCallNumber("test-cn-2").getJson()
                             .put("items", new JsonArray()
                                     .add(new InputItem().setBarcode("BC-003").getJson()))))
-            .put("processingInfo", new JsonObject()
+            .put("processing", new JsonObject()
                     .put("identifierTypeId", identifierTypeId1)
                     .put("localIdentifier", identifierValue1)));
 
@@ -519,7 +519,7 @@ public class InventoryUpdateTestSuite {
                     .add(new InputHoldingsRecord().setPermanentLocationId(LOCATION_ID_2).setCallNumber("test-cn-4").getJson()
                             .put("items", new JsonArray()
                                     .add(new InputItem().setBarcode("BC-006").getJson()))))
-            .put("processingInfo", new JsonObject()
+            .put("processing", new JsonObject()
                     .put("identifierTypeId", identifierTypeId2)
                     .put("localIdentifier", identifierValue2)));
 
@@ -553,7 +553,7 @@ public class InventoryUpdateTestSuite {
                     .add(new InputHoldingsRecord().setPermanentLocationId(LOCATION_ID_1).setCallNumber("test-cn-2").getJson()
                             .put("items", new JsonArray()
                                     .add(new InputItem().setBarcode("BC-003").getJson()))))
-            .put("processingInfo", new JsonObject()
+            .put("processing", new JsonObject()
                     .put("identifierTypeId", identifierTypeId1)
                     .put("localIdentifier", identifierValue1)));
 

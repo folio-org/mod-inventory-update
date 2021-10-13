@@ -29,7 +29,7 @@ public class InventoryRecordSet extends JsonRepresentation {
     public static final String HRID = "hrid";
 
     // supporting data for shared inventory updates
-    public static final String PROCESSING_INFO = "processingInfo";
+    public static final String PROCESSING = "processing";
     public static final String INSTITUTION_ID = "institutionId";
     public static final String LOCAL_IDENTIFIER = "localIdentifier";
     public static final String IDENTIFIER_TYPE_ID = "identifierTypeId";
@@ -45,7 +45,7 @@ public class InventoryRecordSet extends JsonRepresentation {
     public List<InstanceToInstanceRelation> succeedingTitles = null;
     public List<InstanceToInstanceRelation> precedingTitles = null;
     public JsonObject instanceRelationsJson = new JsonObject();
-    public JsonObject processingInfo = new JsonObject();
+    public JsonObject processing = new JsonObject();
 
 
     public InventoryRecordSet (JsonObject inventoryRecordSet) {
@@ -57,8 +57,8 @@ public class InventoryRecordSet extends JsonRepresentation {
             JsonArray holdings = inventoryRecordSet.getJsonArray(HOLDINGS_RECORDS);
             registerHoldingsRecordsAndItems(holdings);
             instanceRelationsManager = new InstanceRelationsManager(this);
-            logger.info("Caching processing info: " + inventoryRecordSet.getJsonObject( PROCESSING_INFO ));
-            processingInfo = inventoryRecordSet.getJsonObject( PROCESSING_INFO );
+            logger.info("Caching processing info: " + inventoryRecordSet.getJsonObject( PROCESSING ));
+            processing = inventoryRecordSet.getJsonObject( PROCESSING );
         }
     }
 
@@ -201,15 +201,15 @@ public class InventoryRecordSet extends JsonRepresentation {
     }
 
     public String getLocalIdentifierTypeId () {
-        return (processingInfo != null ? processingInfo.getString(IDENTIFIER_TYPE_ID) : null);
+        return (processing != null ? processing.getString(IDENTIFIER_TYPE_ID) : null);
     }
 
     public String getLocalIdentifier () {
-        if (processingInfo != null && processingInfo.containsKey( OAI_IDENTIFIER )) {
-            String oaiId = processingInfo.getString( OAI_IDENTIFIER );
+        if (processing != null && processing.containsKey( OAI_IDENTIFIER )) {
+            String oaiId = processing.getString( OAI_IDENTIFIER );
             return (oaiId != null ? oaiId.substring(oaiId.lastIndexOf(":")+1) : null);
         } else {
-            return (processingInfo != null ? processingInfo.getString(LOCAL_IDENTIFIER) : null);
+            return (processing != null ? processing.getString(LOCAL_IDENTIFIER) : null);
         }
     }
 
@@ -252,7 +252,7 @@ public class InventoryRecordSet extends JsonRepresentation {
         }
         recordSetJson.put(HOLDINGS_RECORDS, holdingsAndItemsArray);
         recordSetJson.put( InstanceRelationsManager.INSTANCE_RELATIONS, instanceRelationsManager.asJson());
-        recordSetJson.put(PROCESSING_INFO, processingInfo);
+        recordSetJson.put(PROCESSING, processing);
         return recordSetJson;
     }
 

@@ -4,6 +4,8 @@ import io.vertx.core.impl.logging.Logger;
 import io.vertx.core.json.JsonObject;
 
 import java.util.UUID;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class InventoryRecord {
 
@@ -58,13 +60,35 @@ public class InventoryRecord {
     }
 
     public boolean match(String query) {
+        logger.debug("Matching " + recordJson + " with query " + query);
         String trimmed = query.replace("(","").replace(")", "");
         String[] orSections = trimmed.split(" or ");
         logger.debug("orSections: " + (orSections.length>1 ? orSections[0] + ", " + orSections[1] : orSections[0]));
 
         for (int i=0; i<orSections.length; i++) {
+            if (orSections[i].contains(" not ")) {
+                Pattern pattern = Pattern.compile(" not ([^ ]+)");
+                Matcher matcher = pattern.matcher(orSections[i]);
+                if (matcher.find()) {
+                    String notCriterion = matcher.group(1);
+                    String[] equalityParts = notCriterion.split( "==" );
+                    String key = equalityParts[0];
+                    String value = equalityParts.length > 1 ?  equalityParts[1].replace("\"", "") : "";
+                    if  (recordJson.getString(key) != null && recordJson.getString(key).equals(value)) {
+                        logger.debug("NOT query, no match for " + key + " not equal to " + value + " in " + recordJson);
+                        return false;
+                    } else {
+                        logger.debug("NOT query, have match for " + key + " not equal to " + value + " in " + recordJson);
+                    }
+                }
+            }
             if (orSections[i].contains("@identifierTypeId")) {
-                return matchIdentifierQuery(orSections[i]);
+                if (matchIdentifierQuery(orSections[i])) {
+                    logger.debug("Have match for " + orSections[i] + " in " + recordJson);
+                    return true;
+                } else {
+                    logger.debug("No match for " + orSections[i] + " in " + recordJson);
+                }
             }
             String[] queryParts = orSections[i].split("==");
             logger.debug("query: " +query);

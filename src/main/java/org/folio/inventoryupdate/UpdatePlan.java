@@ -46,12 +46,15 @@ import io.vertx.core.json.JsonObject;
  */
 public abstract class UpdatePlan {
 
-    // The record set to update Inventory with - either coming in with the request
-    // or being derived from existing records in Inventory
+    // The record set to update Inventory with - either coming in with the request when creating/updating
+    // or being derived from existing records in Inventory when deleting
     protected InventoryRecordSet updatingSet;
     protected InventoryQuery instanceQuery;
     // Existing Inventory records matching either an incoming record set or a set of deletion identifiers
     protected InventoryRecordSet existingSet = null;
+    // A secondary existing set that needs updating too (currently relevant only in the context of a shared index).
+    protected InventoryRecordSet secondaryExistingSet;
+
     protected final Logger logger = LoggerFactory.getLogger("inventory-update");
     protected boolean isDeletion = false;
 
@@ -72,20 +75,27 @@ public abstract class UpdatePlan {
     public boolean gotUpdatingRecordSet () {
       return updatingSet != null;
     }
+
+    protected boolean foundSecondaryExistingSet () {
+        return (secondaryExistingSet != null);
+    }
+
     public abstract Future<Void> planInventoryUpdates (OkapiClient client);
 
     public abstract Future<Void> doInventoryUpdates (OkapiClient client);
     public abstract RequestValidation validateIncomingRecordSet (JsonObject inventoryRecordSet);
 
-    protected Future<Void> lookupExistingRecordSet (OkapiClient okapiClient, InventoryQuery instanceQuery) {
-        Promise<Void> promise = Promise.promise();
+    protected Future<InventoryRecordSet> lookupExistingRecordSet (OkapiClient okapiClient, InventoryQuery instanceQuery) {
+        Promise<InventoryRecordSet> promise = Promise.promise();
         InventoryStorage.lookupSingleInventoryRecordSet(okapiClient, instanceQuery).onComplete( recordSet -> {
             if (recordSet.succeeded()) {
                 JsonObject existingInventoryRecordSetJson = recordSet.result();
                 if (existingInventoryRecordSetJson != null) {
-                    this.existingSet = new InventoryRecordSet(existingInventoryRecordSetJson);
+                    promise.complete(new InventoryRecordSet(existingInventoryRecordSetJson));
+                } else
+                {
+                    promise.complete( null );
                 }
-                promise.complete();
             } else {
                 promise.fail("Error looking up existing record set: " + recordSet.cause().getMessage());
             }
@@ -240,7 +250,6 @@ public abstract class UpdatePlan {
             if (instanceResult.succeeded()) {
                 createNewHoldingsIfAny(okapiClient).onComplete(handler2 -> {
                     if (handler2.succeeded()) {
-                        logger.debug("Created new holdings if any");
                         promise.complete();
                     } else {
                         promise.fail("Failed to create new holdings records: " + handler2.cause().getMessage());
@@ -419,6 +428,20 @@ public abstract class UpdatePlan {
               }
           }
           existingSet.getInstanceRelationsController().writeToStats(metrics);
+        }
+
+        if (foundSecondaryExistingSet()) {
+            InventoryRecord instanceRecord = secondaryExistingSet.getInstance();
+            metrics.entity(instanceRecord.entityType()).transaction(instanceRecord.getTransaction()).outcomes.increment(instanceRecord.getOutcome());
+            List<InventoryRecord> holdingsRecordsAndItemsInSecondaryExistingSet = Stream.of(
+                    secondaryExistingSet.getHoldingsRecords(),
+                    secondaryExistingSet.getItems()
+            ).flatMap( Collection::stream ).collect( Collectors.toList());
+            for (InventoryRecord record : holdingsRecordsAndItemsInSecondaryExistingSet) {
+                if (record.isDeleting()) {
+                    metrics.entity(record.entityType()).transaction(record.getTransaction()).outcomes.increment(record.getOutcome());
+                }
+            }
         }
         return metrics.asJson();
     }

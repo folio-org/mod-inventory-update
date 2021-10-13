@@ -111,64 +111,9 @@ public class InventoryUpdateTestSuite {
     new StorageValidatorItems().validateStorage(testContext);
     new StorageValidatorPrecedingSucceeding().validateStorage(testContext);
     new StorageValidatorInstanceRelationships().validateStorage(testContext);
+    new StorageValidatorQueries().validateQueries(testContext);
   }
 
-
-  /**
-   * Tests API /instance-storage-match/instances
-   */
-  @Test
-  public void testPutNewInstanceWillCreateNewInstance (TestContext testContext) {
-    createInitialInstanceWithMatchKey();
-    InputInstance instance = new InputInstance()
-            .setTitle("New title")
-            .setInstanceTypeId("12345");
-    MatchKey matchKey = new MatchKey(instance.getJson());
-    instance.setMatchKeyAsString(matchKey.getKey());
-    JsonObject instancesBeforePutJson = getRecordsFromStorage(FakeInventoryStorage.INSTANCE_STORAGE_PATH, "matchKey==\"" + matchKey.getKey() + "\"");
-    testContext.assertEquals(instancesBeforePutJson.getInteger("totalRecords"), 0,
-            "Number of instance records for query by matchKey 'new_title___(etc)' before PUT expected: 0" );
-
-    putToInstanceMatch(instance.getJson());
-
-    JsonObject instancesAfterPutJson = getRecordsFromStorage(FakeInventoryStorage.INSTANCE_STORAGE_PATH, "matchKey==\"" + matchKey.getKey() + "\"");
-    testContext.assertEquals(instancesAfterPutJson.getInteger("totalRecords"), 1,
-            "Number of instance records for query by matchKey 'new_title' after PUT expected: 1" );
-
-  }
-
-  /**
-   * Tests API /instance-storage-match/instances
-  *
-   */
-  @Test
-  public void testPutExistingInstanceWillUpdateExistingInstance (TestContext testContext) {
-    createInitialInstanceWithMatchKey();
-    InputInstance instance = new InputInstance().setTitle("Initial InputInstance").setInstanceTypeId("12345");
-    MatchKey matchKey = new MatchKey(instance.getJson());
-
-    JsonObject instancesBeforePutJson = getRecordsFromStorage(FakeInventoryStorage.INSTANCE_STORAGE_PATH,"matchKey==\"" + matchKey.getKey() + "\"");
-    testContext.assertEquals(instancesBeforePutJson.getInteger("totalRecords"), 1,
-            "Number of instance records for query by matchKey 'initial instance' before PUT expected: 1" );
-    String instanceTypeIdBefore = instancesBeforePutJson.getJsonArray("instances")
-            .getJsonObject(0).getString("instanceTypeId");
-    testContext.assertEquals(instanceTypeIdBefore,"123",
-            "Expected instanceTypeId to be '123' before PUT");
-
-    putToInstanceMatch(instance.getJson());
-
-    JsonObject instancesAfterPutJson = getRecordsFromStorage(FakeInventoryStorage.INSTANCE_STORAGE_PATH,"matchKey==\"" + matchKey.getKey() + "\"");
-    testContext.assertEquals(instancesAfterPutJson.getInteger("totalRecords"), 1,
-            "Number of instance records for query by matchKey 'initial instance' after PUT expected: 1" );
-    String instanceTypeIdAfter = instancesAfterPutJson.getJsonArray("instances")
-            .getJsonObject(0).getString("instanceTypeId");
-    testContext.assertEquals(instanceTypeIdAfter,"12345","Expected instanceTypeId to be '12345' after PUT");
-  }
-
-  /**
-   * Tests API /shared-inventory-upsert-matchkey
-  *
-   */
   @Test
   public void upsertByMatchKeyWillCreateNewInstance (TestContext testContext) {
     createInitialInstanceWithMatchKey();
@@ -191,10 +136,6 @@ public class InventoryUpdateTestSuite {
 
   }
 
-  /**
-   * Tests API /shared-inventory-upsert-matchkey
-   *
-   */
   @Test
   public void upsertByMatchKeyWithMultipleMatchKeyPartsWillCreateNewInstance (TestContext testContext) {
     final String GOV_DOC_NUMBER_TYPE = "9075b5f8-7d97-49e1-a431-73fdd468d476";
@@ -230,10 +171,6 @@ public class InventoryUpdateTestSuite {
 
   }
 
-  /**
-   * Tests API /shared-inventory-upsert-matchkey
-  *
-   */
   @Test
   public void upsertByMatchKeyWillUpdateExistingInstance (TestContext testContext) {
     createInitialInstanceWithMatchKey();
@@ -260,10 +197,6 @@ public class InventoryUpdateTestSuite {
 
   }
 
-  /**
-   * Tests API /shared-inventory-upsert-matchkey
-  *
-   */
   @Test
   public void upsertByMatchKeyWillCreateHoldingsAndItems(TestContext testContext) {
     String instanceHrid = "1";
@@ -294,10 +227,6 @@ public class InventoryUpdateTestSuite {
 
   }
 
-  /**
-   * Tests API /shared-inventory-upsert-matchkey
-  *
-   */
   @Test
   public void upsertByMatchKeyWillUpdateHoldingsAndItems (TestContext testContext) {
     String instanceHrid = "1";
@@ -346,12 +275,8 @@ public class InventoryUpdateTestSuite {
 
   }
 
-  /**
-   * Tests API /shared-inventory-upsert-matchkey
-  *
-   */
   @Test
-  public void testSharedInstanceUpsertFromTwoInstitutionsAndDeleteByOaiIdentifier (TestContext testContext) {
+  public void upsertsByMatchKeyWillCreateSharedInstanceFromTwoInstitutionsAndDeleteByOaiIdentifier (TestContext testContext) {
 
     final String identifierTypeId1 = "iti-001";
     final String identifierValue1 = "111";
@@ -445,7 +370,7 @@ public class InventoryUpdateTestSuite {
   }
 
   @Test
-  public void testSharedInstanceUpsertFromTwoInstitutionsAndDeleteByLocalIdentifier (TestContext testContext) {
+  public void upsertsByMatchKeyWillCreateSharedInstanceFromTwoInstitutionsAndDeleteByLocalIdentifier (TestContext testContext) {
     final String identifierTypeId1 = "iti-001";
     final String identifierValue1 = "111";
     final String identifierTypeId2 = "iti-002";
@@ -517,7 +442,6 @@ public class InventoryUpdateTestSuite {
             .put("institutionId", INSTITUTION_ID_1)
             .put("localIdentifier",identifierValue1)
             .put("identifierTypeId", identifierTypeId1);
-
     JsonObject deleteResponse = delete(MainVerticle.SHARED_INVENTORY_UPSERT_MATCHKEY_PATH,deleteSignal);
     testContext.assertEquals(getMetric(deleteResponse, HOLDINGS_RECORD, DELETE , COMPLETED), 2,
             "Upsert metrics response should report [2] holdings records successfully deleted " + deleteResponse.encodePrettily());
@@ -534,6 +458,130 @@ public class InventoryUpdateTestSuite {
     instanceFromStorage = getRecordFromStorageById(FakeInventoryStorage.INSTANCE_STORAGE_PATH, instanceId);
     testContext.assertEquals(instanceFromStorage.getJsonArray("identifiers").size(), 1,
             "After delete request to Shared InputInstance there should be [1] identifier left on the instance " + instanceFromStorage.encodePrettily());
+  }
+
+  @Test
+  public void upsertByShiftingMatchKeyWillCleanUpRecordsForPreviousMatchKey( TestContext testContext) {
+    // institution 1, record 111
+    final String identifierTypeId1 = "iti-001";
+    final String identifierValue1 = "111";
+    // institution 2, record 222
+    final String identifierTypeId2 = "iti-002";
+    final String identifierValue2 = "222";
+
+    // record from institution 1
+    JsonObject upsertResponseJson1 = upsertByMatchKey(new JsonObject()
+            .put("instance",
+                    new InputInstance().setTitle("Shared InputInstance")
+                            .setInstanceTypeId("12345")
+                            .setIdentifiers(new JsonArray().add(new JsonObject().put("identifierTypeId",identifierTypeId1).put("value",identifierValue1))).getJson())
+            .put("holdingsRecords", new JsonArray()
+                    .add(new InputHoldingsRecord().setPermanentLocationId(LOCATION_ID_1).setCallNumber("test-cn-1").getJson()
+                            .put("items", new JsonArray()
+                                    .add(new InputItem().setBarcode("BC-001").getJson())
+                                    .add(new InputItem().setBarcode("BC-002").getJson())))
+                    .add(new InputHoldingsRecord().setPermanentLocationId(LOCATION_ID_1).setCallNumber("test-cn-2").getJson()
+                            .put("items", new JsonArray()
+                                    .add(new InputItem().setBarcode("BC-003").getJson()))))
+            .put("processing", new JsonObject()
+                    .put("identifierTypeId", identifierTypeId1)
+                    .put("localIdentifier", identifierValue1)));
+
+    String instanceId = upsertResponseJson1.getJsonObject("instance").getString("id");
+
+    testContext.assertEquals(getMetric(upsertResponseJson1, HOLDINGS_RECORD, CREATE , COMPLETED), 2,
+            "Upsert metrics response should report [2] holdings records successfully created " + upsertResponseJson1.encodePrettily());
+    testContext.assertEquals(getMetric(upsertResponseJson1, ITEM, CREATE , COMPLETED), 3,
+            "Upsert metrics response should report [3] items successfully created " + upsertResponseJson1.encodePrettily());
+
+    JsonObject storedHoldings = getRecordsFromStorage(FakeInventoryStorage.HOLDINGS_STORAGE_PATH, "instanceId==\"" + instanceId + "\"");
+    testContext.assertEquals(storedHoldings.getInteger("totalRecords"), 2,
+            "After upsert the number of holdings records for instance " + instanceId + " should be [2] " + storedHoldings.encodePrettily() );
+    JsonObject storedItems = getRecordsFromStorage(FakeInventoryStorage.ITEM_STORAGE_PATH, null);
+    testContext.assertEquals(storedItems.getInteger("totalRecords"), 3,
+            "After upsert the total number of items should be [3] " + storedItems.encodePrettily() );
+
+    JsonObject instanceFromStorage = getRecordFromStorageById(FakeInventoryStorage.INSTANCE_STORAGE_PATH, instanceId);
+    testContext.assertEquals(instanceFromStorage.getJsonArray("identifiers").size(),1,
+            "After first upsert of 'Shared InputInstance' there should be [1] identifier on the instance " + instanceFromStorage.encodePrettily());
+
+    // matching record from institution 2
+    JsonObject upsertResponseJson2 = upsertByMatchKey(new JsonObject()
+            .put("instance",
+                    new InputInstance().setTitle("Shared InputInstance")
+                            .setInstanceTypeId("12345")
+                            .setIdentifiers(new JsonArray().add(new JsonObject().put("identifierTypeId",identifierTypeId2).put("value",identifierValue2))).getJson())
+            .put("holdingsRecords", new JsonArray()
+                    .add(new InputHoldingsRecord().setPermanentLocationId(LOCATION_ID_2).setCallNumber("test-cn-3").getJson()
+                            .put("items", new JsonArray()
+                                    .add(new InputItem().setBarcode("BC-004").getJson())
+                                    .add(new InputItem().setBarcode("BC-005").getJson())))
+                    .add(new InputHoldingsRecord().setPermanentLocationId(LOCATION_ID_2).setCallNumber("test-cn-4").getJson()
+                            .put("items", new JsonArray()
+                                    .add(new InputItem().setBarcode("BC-006").getJson()))))
+            .put("processing", new JsonObject()
+                    .put("identifierTypeId", identifierTypeId2)
+                    .put("localIdentifier", identifierValue2)));
+
+    testContext.assertEquals(getMetric(upsertResponseJson2, HOLDINGS_RECORD, CREATE , COMPLETED), 2,
+            "Metrics after second upsert should report additional [2] holdings records successfully created " + upsertResponseJson2.encodePrettily());
+    testContext.assertEquals(getMetric(upsertResponseJson2, ITEM, CREATE , COMPLETED), 3,
+            "Metrics after second upsert should report additional [3] items successfully created " + upsertResponseJson2.encodePrettily());
+
+    storedHoldings = getRecordsFromStorage(FakeInventoryStorage.HOLDINGS_STORAGE_PATH, "instanceId==\"" + instanceId + "\"");
+    testContext.assertEquals(storedHoldings.getInteger("totalRecords"), 4,
+            "After second upsert there should be [4] holdings records for instance " + instanceId + ": " + storedHoldings.encodePrettily() );
+    storedItems = getRecordsFromStorage(FakeInventoryStorage.ITEM_STORAGE_PATH, null);
+    testContext.assertEquals(storedItems.getInteger("totalRecords"), 6,
+            "After second upsert there should be [6] items " + storedItems.encodePrettily() );
+
+    instanceFromStorage = getRecordFromStorageById(FakeInventoryStorage.INSTANCE_STORAGE_PATH, instanceId);
+    testContext.assertEquals(instanceFromStorage.getJsonArray("identifiers").size(),2,
+            "After second upsert of 'Shared InputInstance' there should be [2] identifiers on the instance " + instanceFromStorage.encodePrettily());
+
+    // update, record 111 from institution 1, with shifting match key
+    JsonObject upsertResponseJsonForChangedMatchKey = upsertByMatchKey(new JsonObject()
+            .put("instance",
+                    new InputInstance().setTitle("Shared Input Instance")
+                            .setInstanceTypeId("12345")
+                            .setIdentifiers(new JsonArray().add(new JsonObject().put("identifierTypeId",identifierTypeId1).put("value",identifierValue1))).getJson())
+            .put("holdingsRecords", new JsonArray()
+                    .add(new InputHoldingsRecord().setPermanentLocationId(LOCATION_ID_1).setCallNumber("test-cn-1").getJson()
+                            .put("items", new JsonArray()
+                                    .add(new InputItem().setBarcode("BC-001").getJson())
+                                    .add(new InputItem().setBarcode("BC-002").getJson())))
+                    .add(new InputHoldingsRecord().setPermanentLocationId(LOCATION_ID_1).setCallNumber("test-cn-2").getJson()
+                            .put("items", new JsonArray()
+                                    .add(new InputItem().setBarcode("BC-003").getJson()))))
+            .put("processing", new JsonObject()
+                    .put("identifierTypeId", identifierTypeId1)
+                    .put("localIdentifier", identifierValue1)));
+
+    String instanceIdSameRecordNewMatchKey = upsertResponseJsonForChangedMatchKey.getJsonObject("instance").getString("id");
+
+    testContext.assertEquals(getMetric(upsertResponseJsonForChangedMatchKey, HOLDINGS_RECORD, CREATE , COMPLETED), 2,
+            "Upsert metrics response should report [2] holdings records successfully created " + upsertResponseJsonForChangedMatchKey.encodePrettily());
+    testContext.assertEquals(getMetric(upsertResponseJsonForChangedMatchKey, ITEM, CREATE , COMPLETED), 3,
+            "Upsert metrics response should report [3] items successfully created " + upsertResponseJsonForChangedMatchKey.encodePrettily());
+
+    JsonObject storedHoldingsSameRecordNewInstance = getRecordsFromStorage(FakeInventoryStorage.HOLDINGS_STORAGE_PATH, "instanceId==\"" + instanceIdSameRecordNewMatchKey + "\"");
+    testContext.assertEquals(storedHoldingsSameRecordNewInstance.getInteger("totalRecords"), 2,
+            "After third upsert, with 'Shared Input Instance', the number of holdings records for the new Instance " + instanceIdSameRecordNewMatchKey + " should be [2] " + storedHoldingsSameRecordNewInstance.encodePrettily() );
+    JsonObject allStoredItems = getRecordsFromStorage(FakeInventoryStorage.ITEM_STORAGE_PATH, null);
+    testContext.assertEquals(allStoredItems.getInteger("totalRecords"), 6,
+            "After third upsert, with 'Shared Input Instance', the total number of items should be [6] " + allStoredItems.encodePrettily() );
+
+    JsonObject newInstanceFromStorage = getRecordFromStorageById(FakeInventoryStorage.INSTANCE_STORAGE_PATH, instanceIdSameRecordNewMatchKey);
+    testContext.assertEquals(newInstanceFromStorage.getJsonArray("identifiers").size(),1,
+            "After third upsert, with 'Shared Input Instance', there should be [1] identifier on a new instance " + newInstanceFromStorage.encodePrettily());
+
+    JsonObject oldInstanceFromStorage = getRecordFromStorageById( FakeInventoryStorage.INSTANCE_STORAGE_PATH, instanceId );
+    testContext.assertEquals(oldInstanceFromStorage.getJsonArray("identifiers").size(),1,
+            "After third upsert, with 'Shared Input Instance', there should be [1] identifier left on the previous instance " + oldInstanceFromStorage.encodePrettily());
+
+    JsonObject previousInstanceStoredHoldings = getRecordsFromStorage(FakeInventoryStorage.HOLDINGS_STORAGE_PATH, "instanceId==\"" + instanceId + "\"");
+    testContext.assertEquals(previousInstanceStoredHoldings.getInteger("totalRecords"), 2,
+            "After third upsert, with 'Shared Input Instance',  there should be [2] holdings records left for the Instance with the previous match key " + instanceId + ": " + previousInstanceStoredHoldings.encodePrettily() );
 
   }
 
@@ -693,9 +741,6 @@ public class InventoryUpdateTestSuite {
 
   }
 
-  /**
-   * Tests API /inventory-upsert-hrid
-   */
   @Test
   public void upsertByHridWillDeleteSelectHoldingsAndItems(TestContext testContext) {
     String instanceHrid = "1";
@@ -785,9 +830,6 @@ public class InventoryUpdateTestSuite {
 
   }
 
-  /**
-   * Tests API /inventory-upsert-hrid
-   */
   @Test
   public void upsertByHridWillCreateParentAndChildRelations(TestContext testContext) {
 
@@ -829,9 +871,6 @@ public class InventoryUpdateTestSuite {
 
   }
 
-  /**
-   * Tests API /inventory-upsert-hrid
-   */
   @Test
   public void upsertsByHridWillNotDeleteThenWillDeleteParentInstanceRelation (TestContext testContext) {
 
@@ -873,7 +912,6 @@ public class InventoryUpdateTestSuite {
 
   }
 
-
   @Test
   public void upsertsByHridWillChangeTypeOfRelationshipBetweenTwoInstances (TestContext testContext) {
     // PARENT INSTANCE TO-BE
@@ -909,10 +947,6 @@ public class InventoryUpdateTestSuite {
 
   }
 
-  /**
-   * Tests API /inventory-upsert-hrid
-  *
-   */
   @Test
   public void upsertsByHridWillDeleteRemovedRelations (TestContext testContext) {
 
@@ -974,11 +1008,6 @@ public class InventoryUpdateTestSuite {
 
   }
 
-
-  /**
-   * Tests API /inventory-upsert-hrid
-  *
-   */
   @Test
   public void upsertsByHridWillNotDeleteThenWillDeleteChildInstanceRelation (TestContext testContext) {
 
@@ -1895,6 +1924,58 @@ public class InventoryUpdateTestSuite {
     } else {
       return -1;
     }
+  }
+
+
+  /**
+   * Tests old API /instance-storage-match/instances
+   */
+  @Test
+  public void upsertNewInstanceWillCreateNewInstance( TestContext testContext) {
+    createInitialInstanceWithMatchKey();
+    InputInstance instance = new InputInstance()
+            .setTitle("New title")
+            .setInstanceTypeId("12345");
+    MatchKey matchKey = new MatchKey(instance.getJson());
+    instance.setMatchKeyAsString(matchKey.getKey());
+    JsonObject instancesBeforePutJson = getRecordsFromStorage(FakeInventoryStorage.INSTANCE_STORAGE_PATH, "matchKey==\"" + matchKey.getKey() + "\"");
+    testContext.assertEquals(instancesBeforePutJson.getInteger("totalRecords"), 0,
+            "Number of instance records for query by matchKey 'new_title___(etc)' before PUT expected: 0" );
+
+    putToInstanceMatch(instance.getJson());
+
+    JsonObject instancesAfterPutJson = getRecordsFromStorage(FakeInventoryStorage.INSTANCE_STORAGE_PATH, "matchKey==\"" + matchKey.getKey() + "\"");
+    testContext.assertEquals(instancesAfterPutJson.getInteger("totalRecords"), 1,
+            "Number of instance records for query by matchKey 'new_title' after PUT expected: 1" );
+
+  }
+
+  /**
+   * Tests old API /instance-storage-match/instances
+   *
+   */
+  @Test
+  public void testPutExistingInstanceWillUpdateExistingInstance (TestContext testContext) {
+    createInitialInstanceWithMatchKey();
+    InputInstance instance = new InputInstance().setTitle("Initial InputInstance").setInstanceTypeId("12345");
+    MatchKey matchKey = new MatchKey(instance.getJson());
+
+    JsonObject instancesBeforePutJson = getRecordsFromStorage(FakeInventoryStorage.INSTANCE_STORAGE_PATH,"matchKey==\"" + matchKey.getKey() + "\"");
+    testContext.assertEquals(instancesBeforePutJson.getInteger("totalRecords"), 1,
+            "Number of instance records for query by matchKey 'initial instance' before PUT expected: 1" );
+    String instanceTypeIdBefore = instancesBeforePutJson.getJsonArray("instances")
+            .getJsonObject(0).getString("instanceTypeId");
+    testContext.assertEquals(instanceTypeIdBefore,"123",
+            "Expected instanceTypeId to be '123' before PUT");
+
+    putToInstanceMatch(instance.getJson());
+
+    JsonObject instancesAfterPutJson = getRecordsFromStorage(FakeInventoryStorage.INSTANCE_STORAGE_PATH,"matchKey==\"" + matchKey.getKey() + "\"");
+    testContext.assertEquals(instancesAfterPutJson.getInteger("totalRecords"), 1,
+            "Number of instance records for query by matchKey 'initial instance' after PUT expected: 1" );
+    String instanceTypeIdAfter = instancesAfterPutJson.getJsonArray("instances")
+            .getJsonObject(0).getString("instanceTypeId");
+    testContext.assertEquals(instanceTypeIdAfter,"12345","Expected instanceTypeId to be '12345' after PUT");
   }
 
 }

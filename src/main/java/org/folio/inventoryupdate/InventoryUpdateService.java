@@ -6,15 +6,13 @@ import static org.folio.okapi.common.HttpResponse.responseJson;
 import java.util.HashMap;
 import java.util.Map;
 
-import io.vertx.core.CompositeFuture;
 import io.vertx.core.impl.logging.Logger;
 import io.vertx.core.impl.logging.LoggerFactory;
 import io.vertx.core.json.DecodeException;
-import org.folio.inventoryupdate.entities.DeletionIdentifiers;
+import org.folio.inventoryupdate.entities.RecordIdentifiers;
 import org.folio.inventoryupdate.entities.InventoryRecordSet;
 import org.folio.okapi.common.OkapiClient;
 
-import io.vertx.core.Future;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
@@ -41,15 +39,21 @@ public class InventoryUpdateService {
       JsonObject incomingJson = getIncomingJsonBody(routingCtx);
       if (InventoryRecordSet.isValidInventoryRecordSet(incomingJson)) {
         InventoryRecordSet incomingSet = new InventoryRecordSet(incomingJson);
-        MatchKey matchKey = new MatchKey(incomingSet.getInstance().asJson());
-        InventoryQuery instanceByMatchKeyQuery = new MatchQuery(matchKey.getKey());
-        incomingSet.getInstance().asJson().put("matchKey", matchKey.getKey());
-
-        UpdatePlan updatePlan = new UpdatePlanSharedInventory(incomingSet, instanceByMatchKeyQuery);
+        UpdatePlan updatePlan = UpdatePlanSharedInventory.getUpsertPlan(incomingSet);
         runPlan(updatePlan, routingCtx);
       } else {
         responseError(routingCtx, 400, "Did not recognize input as an Inventory record set: "+ incomingJson.encodePrettily());
       }
+    }
+  }
+
+  public void handleSharedInventoryRecordSetDeleteByIdentifiers(RoutingContext routingCtx) {
+    logger.info("Handling delete request for shared index " + routingCtx.getBodyAsString());
+    if (contentTypeIsJson(routingCtx)) {
+      JsonObject deletionJson = getIncomingJsonBody(routingCtx);
+      RecordIdentifiers deletionIdentifiers = RecordIdentifiers.identifiersFromDeleteRequestJson(deletionJson);
+      UpdatePlan updatePlan = UpdatePlanSharedInventory.getDeletionPlan(deletionIdentifiers);
+      runPlan(updatePlan, routingCtx);
     }
   }
 
@@ -58,9 +62,7 @@ public class InventoryUpdateService {
       JsonObject incomingJson = getIncomingJsonBody(routingCtx);
       if (InventoryRecordSet.isValidInventoryRecordSet(incomingJson)) {
         InventoryRecordSet incomingSet = new InventoryRecordSet(incomingJson);
-        InventoryQuery queryByInstanceHrid = new HridQuery(incomingSet.getInstanceHRID());
-
-        UpdatePlan updatePlan = new UpdatePlanAllHRIDs(incomingSet, queryByInstanceHrid);
+        UpdatePlan updatePlan = UpdatePlanAllHRIDs.getUpsertPlan(incomingSet);
         runPlan(updatePlan, routingCtx);
       } else {
         responseError(routingCtx, 400, "Did not recognize input as an Inventory record set: "+ incomingJson.encodePrettily());
@@ -72,23 +74,10 @@ public class InventoryUpdateService {
     if (contentTypeIsJson(routingCtx)) {
       JsonObject deletionJson = getIncomingJsonBody(routingCtx);
       InventoryQuery queryByInstanceHrid = new HridQuery(deletionJson.getString("hrid"));
-      UpdatePlan updatePlan = new UpdatePlanAllHRIDs(queryByInstanceHrid);
+      UpdatePlan updatePlan = UpdatePlanAllHRIDs.getDeletionPlan(queryByInstanceHrid);
       runPlan(updatePlan, routingCtx);
     }
   }
-
-  public void handleSharedInventoryRecordSetDeleteByIdentifiers(RoutingContext routingCtx) {
-    logger.debug("Handling delete request for shared index " + routingCtx.getBodyAsString());
-
-    if (contentTypeIsJson(routingCtx)) {
-      JsonObject deletionJson = getIncomingJsonBody(routingCtx);
-      DeletionIdentifiers deletionIdentifiers = new DeletionIdentifiers(deletionJson);
-      InventoryQuery instanceQuery = new SharedInstanceByLocalIdentifierQuery(deletionIdentifiers.localIdentifier(), deletionIdentifiers.identifierTypeId());
-      UpdatePlan updatePlan = new UpdatePlanSharedInventory(deletionIdentifiers, instanceQuery);
-      runPlan(updatePlan, routingCtx);
-    }
-  }
-
 
   //TODO: invert not-found conditions in case of deletion?
   private void runPlan(UpdatePlan updatePlan, RoutingContext routingCtx) {

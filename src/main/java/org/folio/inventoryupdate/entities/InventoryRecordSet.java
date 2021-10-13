@@ -13,40 +13,52 @@ import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import org.folio.okapi.common.OkapiClient;
 
+import static org.folio.inventoryupdate.entities.RecordIdentifiers.OAI_IDENTIFIER;
+
 public class InventoryRecordSet extends JsonRepresentation {
 
     private Instance anInstance = null;
-    private Map<String,HoldingsRecord> holdingsRecordsByHRID = new HashMap<String,HoldingsRecord>();
-    private Map<String,Item> itemsByHRID = new HashMap<String,Item>();
-    private List<HoldingsRecord> allHoldingsRecords = new ArrayList<>();
-    private List<Item> allItems = new ArrayList<Item>();
+    private final Map<String,HoldingsRecord> holdingsRecordsByHRID = new HashMap<>();
+    private final Map<String,Item> itemsByHRID = new HashMap<>();
+    private final List<HoldingsRecord> allHoldingsRecords = new ArrayList<>();
+    private final List<Item> allItems = new ArrayList<>();
 
     public static final String INSTANCE = "instance";
     public static final String HOLDINGS_RECORDS = "holdingsRecords";
     public static final String ITEMS = "items";
     public static final String HRID = "hrid";
 
+    // supporting data for shared inventory updates
+    public static final String PROCESSING = "processing";
+    public static final String INSTITUTION_ID = "institutionId";
+    public static final String LOCAL_IDENTIFIER = "localIdentifier";
+    public static final String IDENTIFIER_TYPE_ID = "identifierTypeId";
+
     @SuppressWarnings("unused")
     private final Logger logger = LoggerFactory.getLogger("inventory-update");
 
     // Controller handles planning and update logic for instance-to-instance relations
-    private InstanceRelationsController instanceRelationsController;
+    private InstanceRelationsManager instanceRelationsManager;
     // Instance relations properties that the controller access directly
     public List<InstanceToInstanceRelation> parentRelations = null;
     public List<InstanceToInstanceRelation> childRelations = null;
     public List<InstanceToInstanceRelation> succeedingTitles = null;
     public List<InstanceToInstanceRelation> precedingTitles = null;
     public JsonObject instanceRelationsJson = new JsonObject();
+    public JsonObject processing = new JsonObject();
 
 
     public InventoryRecordSet (JsonObject inventoryRecordSet) {
         if (inventoryRecordSet != null) {
+            logger.info("Creating InventoryRecordSet from " + inventoryRecordSet.encodePrettily());
             sourceJson = new JsonObject(inventoryRecordSet.toString());
             JsonObject instanceJson = inventoryRecordSet.getJsonObject(INSTANCE);
             anInstance = new Instance(instanceJson);
             JsonArray holdings = inventoryRecordSet.getJsonArray(HOLDINGS_RECORDS);
             registerHoldingsRecordsAndItems(holdings);
-            instanceRelationsController = new InstanceRelationsController(this);
+            instanceRelationsManager = new InstanceRelationsManager(this);
+            logger.info("Caching processing info: " + inventoryRecordSet.getJsonObject( PROCESSING ));
+            processing = inventoryRecordSet.getJsonObject( PROCESSING );
         }
     }
 
@@ -54,6 +66,10 @@ public class InventoryRecordSet extends JsonRepresentation {
         if (inventoryRecordSet != null && inventoryRecordSet.containsKey(INSTANCE)
             && (inventoryRecordSet.getValue(INSTANCE) instanceof JsonObject)) return true;
         return false;
+    }
+
+    public boolean canLookForRecordsWithPreviousMatchKey() {
+        return getLocalIdentifier() != null && getLocalIdentifierTypeId() != null;
     }
 
     /**
@@ -136,7 +152,7 @@ public class InventoryRecordSet extends JsonRepresentation {
     }
 
     public List<Item> getItemsByTransactionType (Transaction transition) {
-        List<Item> records = new ArrayList<Item>();
+        List<Item> records = new ArrayList<>();
         for (Item record : getItems()) {
             if (record.getTransaction() == transition && ! record.skipped()) {
                 records.add(record);
@@ -145,7 +161,7 @@ public class InventoryRecordSet extends JsonRepresentation {
         return records;
     }
     public List<HoldingsRecord> getHoldingsRecordsByTransactionType (Transaction transition) {
-        List<HoldingsRecord> records = new ArrayList<HoldingsRecord>();
+        List<HoldingsRecord> records = new ArrayList<>();
         for (HoldingsRecord record : getHoldingsRecords()) {
             if (record.getTransaction() == transition && ! record.skipped()) {
                 records.add(record);
@@ -168,20 +184,33 @@ public class InventoryRecordSet extends JsonRepresentation {
     }
 
     // Instance-to-Instance relations methods
-    public InstanceRelationsController getInstanceRelationsController() {
-        return instanceRelationsController;
+    public InstanceRelationsManager getInstanceRelationsController() {
+        return instanceRelationsManager;
     }
 
     public void prepareAllInstanceRelationsForDeletion() {
-        instanceRelationsController.markAllRelationsForDeletion();
+        instanceRelationsManager.markAllRelationsForDeletion();
     }
 
     public List<InstanceToInstanceRelation> getInstanceRelationsByTransactionType (Transaction transition) {
-        return instanceRelationsController.getInstanceRelationsByTransactionType(transition);
+        return instanceRelationsManager.getInstanceRelationsByTransactionType(transition);
     }
 
     public Future<Void> prepareIncomingInstanceRelationRecords(OkapiClient client, String instanceId) {
-        return instanceRelationsController.makeInstanceRelationRecordsFromIdentifiers(client, instanceId);
+        return instanceRelationsManager.makeInstanceRelationRecordsFromIdentifiers(client, instanceId);
+    }
+
+    public String getLocalIdentifierTypeId () {
+        return (processing != null ? processing.getString(IDENTIFIER_TYPE_ID) : null);
+    }
+
+    public String getLocalIdentifier () {
+        if (processing != null && processing.containsKey( OAI_IDENTIFIER )) {
+            String oaiId = processing.getString( OAI_IDENTIFIER );
+            return (oaiId != null ? oaiId.substring(oaiId.lastIndexOf(":")+1) : null);
+        } else {
+            return (processing != null ? processing.getString(LOCAL_IDENTIFIER) : null);
+        }
     }
 
     // Errors
@@ -222,7 +251,8 @@ public class InventoryRecordSet extends JsonRepresentation {
             holdingsAndItemsArray.add(holdingsRecordJson);
         }
         recordSetJson.put(HOLDINGS_RECORDS, holdingsAndItemsArray);
-        recordSetJson.put(InstanceRelationsController.INSTANCE_RELATIONS, instanceRelationsController.asJson());
+        recordSetJson.put( InstanceRelationsManager.INSTANCE_RELATIONS, instanceRelationsManager.asJson());
+        recordSetJson.put(PROCESSING, processing);
         return recordSetJson;
     }
 

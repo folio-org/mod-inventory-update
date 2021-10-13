@@ -1,6 +1,16 @@
 package org.folio.inventoryupdate;
 
-public interface InventoryQuery {
-    public String getQueryString();
-    public String getURLEncodedQueryString();
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
+
+public abstract class InventoryQuery {
+    protected String queryString;
+
+    public String getQueryString( ) {
+        return queryString;
+    }
+
+    public String getURLEncodedQueryString( ) {
+        return URLEncoder.encode(queryString, StandardCharsets.UTF_8);
+    }
 }

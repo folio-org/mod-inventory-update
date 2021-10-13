@@ -1,11 +1,8 @@
 package org.folio.inventoryupdate;
 
-import java.net.URLEncoder;
-import java.nio.charset.StandardCharsets;
 
 public class ShiftingMatchKeyQuery extends InventoryQuery
 {
-
     String matchKey;
     String identifierTypeId;
     String localIdentifier;
@@ -18,8 +15,7 @@ public class ShiftingMatchKeyQuery extends InventoryQuery
     }
 
     public String buildQuery () {
-        String query = "(identifiers =/@value/@identifierTypeId=" + "\"" + identifierTypeId + "\"" + " \"" + localIdentifier + "\"" + " not matchKey==" + matchKey + ")";
-        return query;
+        return "(identifiers =/@value/@identifierTypeId=" + "\"" + identifierTypeId + "\"" + " \"" + localIdentifier + "\"" + " not matchKey==" + matchKey + ")";
     }
 
 }

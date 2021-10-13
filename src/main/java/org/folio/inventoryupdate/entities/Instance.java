@@ -35,6 +35,10 @@ public class Instance extends InventoryRecord {
         return uuid;
     }
 
+    public String getMatchKey () {
+        return jsonRecord.getString( "matchKey" );
+    }
+
     public void ignoreHoldings(boolean ignore) {
         holdingsIgnored = ignore;
     }

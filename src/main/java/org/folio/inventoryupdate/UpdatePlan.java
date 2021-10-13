@@ -46,8 +46,8 @@ import io.vertx.core.json.JsonObject;
  */
 public abstract class UpdatePlan {
 
-    // The record set to update Inventory with - either coming in with the request
-    // or being derived from existing records in Inventory
+    // The record set to update Inventory with - either coming in with the request when creating/updating
+    // or being derived from existing records in Inventory when deleting
     protected InventoryRecordSet updatingSet;
     protected InventoryQuery instanceQuery;
     // Existing Inventory records matching either an incoming record set or a set of deletion identifiers
@@ -77,15 +77,17 @@ public abstract class UpdatePlan {
     public abstract Future<Void> doInventoryUpdates (OkapiClient client);
     public abstract RequestValidation validateIncomingRecordSet (JsonObject inventoryRecordSet);
 
-    protected Future<Void> lookupExistingRecordSet (OkapiClient okapiClient, InventoryQuery instanceQuery) {
-        Promise<Void> promise = Promise.promise();
+    protected Future<InventoryRecordSet> lookupExistingRecordSet (OkapiClient okapiClient, InventoryQuery instanceQuery) {
+        Promise<InventoryRecordSet> promise = Promise.promise();
         InventoryStorage.lookupSingleInventoryRecordSet(okapiClient, instanceQuery).onComplete( recordSet -> {
             if (recordSet.succeeded()) {
                 JsonObject existingInventoryRecordSetJson = recordSet.result();
                 if (existingInventoryRecordSetJson != null) {
-                    this.existingSet = new InventoryRecordSet(existingInventoryRecordSetJson);
+                    promise.complete(new InventoryRecordSet(existingInventoryRecordSetJson));
+                } else
+                {
+                    promise.complete( null );
                 }
-                promise.complete();
             } else {
                 promise.fail("Error looking up existing record set: " + recordSet.cause().getMessage());
             }
@@ -240,7 +242,6 @@ public abstract class UpdatePlan {
             if (instanceResult.succeeded()) {
                 createNewHoldingsIfAny(okapiClient).onComplete(handler2 -> {
                     if (handler2.succeeded()) {
-                        logger.debug("Created new holdings if any");
                         promise.complete();
                     } else {
                         promise.fail("Failed to create new holdings records: " + handler2.cause().getMessage());

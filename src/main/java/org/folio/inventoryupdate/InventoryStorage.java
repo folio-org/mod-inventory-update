@@ -5,7 +5,7 @@ import java.util.List;
 
 import io.vertx.core.impl.logging.Logger;
 import io.vertx.core.impl.logging.LoggerFactory;
-import org.folio.inventoryupdate.entities.InstanceRelationsController;
+import org.folio.inventoryupdate.entities.InstanceRelationsManager;
 import org.folio.inventoryupdate.entities.InventoryRecord;
 import org.folio.inventoryupdate.entities.InventoryRecord.Entity;
 import org.folio.inventoryupdate.entities.InventoryRecord.Transaction;
@@ -174,13 +174,13 @@ public class InventoryStorage {
               lookupExistingParentChildRelationshipsByInstanceUUID(okapiClient, instanceUUID).onComplete(existingParentChildRelations -> {
                 lookupExistingPrecedingOrSucceedingTitlesByInstanceUUID(okapiClient, instanceUUID).onComplete( existingInstanceTitleSuccessions -> {
                   JsonObject instanceRelations = new JsonObject();
-                  inventoryRecordSet.put(InstanceRelationsController.INSTANCE_RELATIONS, instanceRelations);
+                  inventoryRecordSet.put( InstanceRelationsManager.INSTANCE_RELATIONS, instanceRelations);
                   if(existingInstanceTitleSuccessions.succeeded()) {
                     if (existingInstanceTitleSuccessions.result() != null)  {
-                      instanceRelations.put(InstanceRelationsController.EXISTING_PRECEDING_SUCCEEDING_TITLES, existingInstanceTitleSuccessions.result());
+                      instanceRelations.put( InstanceRelationsManager.EXISTING_PRECEDING_SUCCEEDING_TITLES, existingInstanceTitleSuccessions.result());
                       logger.debug("InventoryRecordSet JSON populated with " +
-                              inventoryRecordSet.getJsonObject(InstanceRelationsController.INSTANCE_RELATIONS)
-                                      .getJsonArray(InstanceRelationsController.EXISTING_PRECEDING_SUCCEEDING_TITLES).size() + " preceding/succeeding titles");
+                              inventoryRecordSet.getJsonObject( InstanceRelationsManager.INSTANCE_RELATIONS)
+                                      .getJsonArray( InstanceRelationsManager.EXISTING_PRECEDING_SUCCEEDING_TITLES).size() + " preceding/succeeding titles");
                     }
                   } else {
                     errorMessages.append(LF + existingInstanceTitleSuccessions.cause());
@@ -188,10 +188,10 @@ public class InventoryStorage {
                   }
                   if (existingParentChildRelations.succeeded()) {
                     if (existingParentChildRelations.result() != null) {
-                      instanceRelations.put(InstanceRelationsController.EXISTING_PARENT_CHILD_RELATIONS, existingParentChildRelations.result());
+                      instanceRelations.put( InstanceRelationsManager.EXISTING_PARENT_CHILD_RELATIONS, existingParentChildRelations.result());
                       logger.debug("InventoryRecordSet JSON populated with " +
-                              inventoryRecordSet.getJsonObject(InstanceRelationsController.INSTANCE_RELATIONS)
-                                      .getJsonArray(InstanceRelationsController.EXISTING_PARENT_CHILD_RELATIONS).size() + " parent/child relations");
+                              inventoryRecordSet.getJsonObject( InstanceRelationsManager.INSTANCE_RELATIONS)
+                                      .getJsonArray( InstanceRelationsManager.EXISTING_PARENT_CHILD_RELATIONS).size() + " parent/child relations");
                     }
                   } else {
                     errorMessages.append(LF + existingParentChildRelations.cause());
@@ -222,7 +222,7 @@ public class InventoryStorage {
         logger.debug("Successfully looked up existing holdings records, found  " + holdingsRecords.size());
         if (holdingsRecords.size()>0) {
           @SuppressWarnings("rawtypes")
-          List<Future> itemFutures = new ArrayList<Future>();
+          List<Future> itemFutures = new ArrayList<>();
           for (Object holdingsObject : holdingsRecords) {
             JsonObject holdingsRecord = (JsonObject) holdingsObject;
             itemFutures.add(lookupAndEmbedExistingItems(okapiClient, holdingsRecord));

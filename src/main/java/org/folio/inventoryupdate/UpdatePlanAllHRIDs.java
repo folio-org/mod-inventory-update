@@ -16,23 +16,20 @@ public class UpdatePlanAllHRIDs extends UpdatePlan {
 
 
     private static final String LF = System.lineSeparator();
-    /**
-     * Constructs plan for creating or updating an Inventory record set
-     * @param incomingInventoryRecordSet The record set to create or update with
-     * @param existingInstanceQuery query to find existing record set to update
-     */
-    public UpdatePlanAllHRIDs(InventoryRecordSet incomingInventoryRecordSet, InventoryQuery existingInstanceQuery) {
+
+    private UpdatePlanAllHRIDs (InventoryRecordSet incomingInventoryRecordSet, InventoryQuery existingInstanceQuery) {
         super(incomingInventoryRecordSet, existingInstanceQuery);
     }
 
-    /**
-     * Constructs plan for deleting an existing Inventory record set
-     * @param existingInstanceQuery query to find existing Inventory records to delete
-     */
-    public UpdatePlanAllHRIDs (InventoryQuery existingInstanceQuery) {
-      super(null, existingInstanceQuery);
-        logger.debug("This is a deletion");
-      this.isDeletion = true;
+    public static UpdatePlanAllHRIDs getUpsertPlan(InventoryRecordSet incomingInventoryRecordSet) {
+        InventoryQuery queryByInstanceHrid = new HridQuery(incomingInventoryRecordSet.getInstanceHRID());
+        return new UpdatePlanAllHRIDs( incomingInventoryRecordSet, queryByInstanceHrid );
+    }
+
+    public static UpdatePlanAllHRIDs getDeletionPlan(InventoryQuery existingInstanceQuery) {
+        UpdatePlanAllHRIDs updatePlan =  new UpdatePlanAllHRIDs( null, existingInstanceQuery );
+        updatePlan.isDeletion = true;
+        return updatePlan;
     }
 
     /**
@@ -50,6 +47,7 @@ public class UpdatePlanAllHRIDs extends UpdatePlan {
         if (validation.passed()) {
             lookupExistingRecordSet(okapiClient, instanceQuery).onComplete(lookup -> {
                 if (lookup.succeeded()) {
+                    this.existingSet = lookup.result();
                     // Plan instance update
                     if (isDeletion) {
                         if (foundExistingRecordSet()) {
@@ -88,7 +86,7 @@ public class UpdatePlanAllHRIDs extends UpdatePlan {
                 }
             });
         } else {
-            promisedPlan.fail("Request did not provide a valid record set: " + validation.toString());
+            promisedPlan.fail("Request did not provide a valid record set: " + validation);
         }
         return promisedPlan.future();
     }
@@ -237,7 +235,7 @@ public class UpdatePlanAllHRIDs extends UpdatePlan {
     public Future<Void> prepareNewRecordsAndImports(OkapiClient okapiClient) {
         Promise<Void> promise = Promise.promise();
         @SuppressWarnings("rawtypes")
-        List<Future> recordFutures = new ArrayList<Future>();
+        List<Future> recordFutures = new ArrayList<>();
         List<HoldingsRecord> holdingsRecords = updatingSet.getHoldingsRecordsByTransactionType(Transaction.UNKNOWN);
         for (HoldingsRecord record : holdingsRecords) {
             recordFutures.add(flagAndIdHoldingsByStorageLookup(okapiClient, record));

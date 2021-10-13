@@ -28,7 +28,7 @@ import static org.folio.inventoryupdate.entities.InstanceToInstanceRelation.Inst
  * Instance-to-Instance relations are held in the InventoryRecordSet class but the planning and update logic
  * is performed by this controller.
  */
-public class InstanceRelationsController extends JsonRepresentation {
+public class InstanceRelationsManager extends JsonRepresentation {
 
     // JSON property keys
     public static final String INSTANCE_RELATIONS = "instanceRelations";
@@ -54,14 +54,15 @@ public class InstanceRelationsController extends JsonRepresentation {
     InventoryRecordSet irs;
     protected static final Logger logger = LoggerFactory.getLogger("inventory-update");
 
-    public InstanceRelationsController(InventoryRecordSet inventoryRecordSet) {
+    public InstanceRelationsManager( InventoryRecordSet inventoryRecordSet) {
         this.irs = inventoryRecordSet;
         if (hasRelationshipRecords(irs.sourceJson)) {
-            registerRelationshipJsonRecords(irs.getInstance().getUUID(),irs.sourceJson.getJsonObject(InstanceRelationsController.INSTANCE_RELATIONS));
+            registerRelationshipJsonRecords(irs.getInstance().getUUID(),irs.sourceJson.getJsonObject(
+                    InstanceRelationsManager.INSTANCE_RELATIONS));
             logger.debug("InventoryRecordSet initialized with existing instance relationships: " + this.toString());
         }
         if (hasRelationshipIdentifiers(irs.sourceJson)) {
-            irs.instanceRelationsJson = irs.sourceJson.getJsonObject(InstanceRelationsController.INSTANCE_RELATIONS);
+            irs.instanceRelationsJson = irs.sourceJson.getJsonObject( InstanceRelationsManager.INSTANCE_RELATIONS);
             cameInWithEmptyParentIdentifierList = irs.instanceRelationsJson.containsKey(PARENT_INSTANCES) && irs.instanceRelationsJson.getJsonArray(PARENT_INSTANCES).isEmpty();
             cameInWithEmptyChildIdentifierList = irs.instanceRelationsJson.containsKey(CHILD_INSTANCES) && irs.instanceRelationsJson.getJsonArray(CHILD_INSTANCES).isEmpty();
             cameInWithEmptyPrecedingTitlesList = irs.instanceRelationsJson.containsKey(PRECEDING_TITLES) && irs.instanceRelationsJson.getJsonArray(PRECEDING_TITLES).isEmpty();
@@ -147,13 +148,13 @@ public class InstanceRelationsController extends JsonRepresentation {
     }
 
     /**
-     * A relations is considered omitted from the list if the list exists (is not null) but the relation is not in it.
+     * A relation is considered omitted from the list if the list exists (is not null) but the relation is not in it.
      * @param list
      * @param relation
      * @return
      */
     private boolean isThisRelationOmitted(List<InstanceToInstanceRelation> list, InstanceToInstanceRelation relation) {
-        return (list == null ? false : !list.contains(relation));
+        return ( list != null && !list.contains( relation ) );
     }
 
     /**
@@ -267,7 +268,7 @@ public class InstanceRelationsController extends JsonRepresentation {
                                                                                                  String identifierKey,
                                                                                                  InstanceRelationsClass classOfRelations) {
         Promise<InstanceToInstanceRelation> promise = Promise.promise();
-        JsonObject instanceIdentifier = relatedObject.getJsonObject(InstanceRelationsController.INSTANCE_IDENTIFIER);
+        JsonObject instanceIdentifier = relatedObject.getJsonObject( InstanceRelationsManager.INSTANCE_IDENTIFIER);
         String hrid = instanceIdentifier.getString(identifierKey);
         InventoryQuery hridQuery = new HridQuery(hrid);
         InventoryStorage.lookupInstance(client, hridQuery).onComplete(existingInstance -> {
@@ -276,7 +277,7 @@ public class InstanceRelationsController extends JsonRepresentation {
                 String relateToThisId = null;
                 if (existingInstance.result() != null) {
                     JsonObject relatedInstanceJson = existingInstance.result();
-                    relateToThisId = relatedInstanceJson.getString(InstanceRelationsController.ID);
+                    relateToThisId = relatedInstanceJson.getString( InstanceRelationsManager.ID);
                 } else {
                     JsonObject provisionalInstanceJson = relatedObject.getJsonObject(InstanceToInstanceRelation.PROVISIONAL_INSTANCE);
                     if (validateProvisionalInstanceProperties(provisionalInstanceJson)) {
@@ -323,7 +324,7 @@ public class InstanceRelationsController extends JsonRepresentation {
                         failedProvisionalInstance.fail();
                         failedProvisionalInstance.logError("Missing required properties for creating required provisional instance", 422);
                         relation.setProvisionalInstance(failedProvisionalInstance);
-                        relation.logError("Referenced parent Instance not found and required provisional Instance info is missing; cannot create relation to non-existing Instance [" + hrid + "], got:" + InstanceRelationsController.LF + relatedObject.encodePrettily(), 422);
+                        relation.logError("Referenced parent Instance not found and required provisional Instance info is missing; cannot create relation to non-existing Instance [" + hrid + "], got:" + InstanceRelationsManager.LF + relatedObject.encodePrettily(), 422);
                         relation.fail(); // mark relation failed but don't fail the promise.
                     } else {
                         relation.setProvisionalInstance(provisionalInstance);
@@ -346,9 +347,9 @@ public class InstanceRelationsController extends JsonRepresentation {
         if (provisionalInstanceProperties == null) {
             return false;
         } else {
-            if (provisionalInstanceProperties.getString(InstanceRelationsController.TITLE) != null
-                && provisionalInstanceProperties.getString(InstanceRelationsController.SOURCE) != null
-                && provisionalInstanceProperties.getString(InstanceRelationsController.INSTANCE_TYPE_ID) != null) {
+            if (provisionalInstanceProperties.getString( InstanceRelationsManager.TITLE) != null
+                && provisionalInstanceProperties.getString( InstanceRelationsManager.SOURCE) != null
+                && provisionalInstanceProperties.getString( InstanceRelationsManager.INSTANCE_TYPE_ID) != null) {
                 return true;
             } else {
                 return false;
@@ -367,8 +368,8 @@ public class InstanceRelationsController extends JsonRepresentation {
         if (! json.containsKey(HRID)) {
             json.put(HRID, hrid);
         }
-        if (! json.containsKey(InstanceRelationsController.ID)) {
-            json.put(InstanceRelationsController.ID, UUID.randomUUID().toString());
+        if (! json.containsKey( InstanceRelationsManager.ID)) {
+            json.put( InstanceRelationsManager.ID, UUID.randomUUID().toString());
         }
         return new Instance(json);
     }
@@ -481,7 +482,7 @@ public class InstanceRelationsController extends JsonRepresentation {
      * @return
      */
     private Future<Void> failRelationCreation(InstanceToInstanceRelation relation) {
-        Promise promise = Promise.promise();
+        Promise<Void> promise = Promise.promise();
         promise.fail(relation.getError().encodePrettily());
         return promise.future();
     }

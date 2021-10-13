@@ -24,7 +24,6 @@ public class UpdatePlanSharedInventory extends UpdatePlan {
     public static final Map<String,String> locationsToInstitutionsMap = new HashMap<>();
     private RecordIdentifiers deletionIdentifiers;
     private ShiftingMatchKeyManager shiftingMatchKeyManager;
-    private InventoryRecordSet secondaryExistingSet;
 
     private UpdatePlanSharedInventory(InventoryRecordSet incomingSet, InventoryQuery existingInstanceQuery) {
         super(incomingSet, existingInstanceQuery);
@@ -171,10 +170,6 @@ public class UpdatePlanSharedInventory extends UpdatePlan {
         if (array.getJsonObject(i).equals(value)) return true;
         }
         return false;
-    }
-
-    private boolean foundSecondaryExistingSet () {
-        return (secondaryExistingSet != null);
     }
 
     private Future<Void> mapLocationsToInstitutions (OkapiClient okapiClient) {

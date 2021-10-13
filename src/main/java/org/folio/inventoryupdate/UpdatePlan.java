@@ -52,6 +52,9 @@ public abstract class UpdatePlan {
     protected InventoryQuery instanceQuery;
     // Existing Inventory records matching either an incoming record set or a set of deletion identifiers
     protected InventoryRecordSet existingSet = null;
+    // A secondary existing set that needs updating too (currently relevant only in the context of a shared index).
+    protected InventoryRecordSet secondaryExistingSet;
+
     protected final Logger logger = LoggerFactory.getLogger("inventory-update");
     protected boolean isDeletion = false;
 
@@ -72,6 +75,11 @@ public abstract class UpdatePlan {
     public boolean gotUpdatingRecordSet () {
       return updatingSet != null;
     }
+
+    protected boolean foundSecondaryExistingSet () {
+        return (secondaryExistingSet != null);
+    }
+
     public abstract Future<Void> planInventoryUpdates (OkapiClient client);
 
     public abstract Future<Void> doInventoryUpdates (OkapiClient client);
@@ -420,6 +428,17 @@ public abstract class UpdatePlan {
               }
           }
           existingSet.getInstanceRelationsController().writeToStats(metrics);
+        }
+        if (foundSecondaryExistingSet()) {
+            List<InventoryRecord> holdingsRecordsAndItemsInSecondaryExistingSet = Stream.of(
+                    secondaryExistingSet.getHoldingsRecords(),
+                    secondaryExistingSet.getItems()
+            ).flatMap( Collection::stream ).collect( Collectors.toList());
+            for (InventoryRecord record : holdingsRecordsAndItemsInSecondaryExistingSet) {
+                if (record.isDeleting()) {
+                    metrics.entity(record.entityType()).transaction(record.getTransaction()).outcomes.increment(record.getOutcome());
+                }
+            }
         }
         return metrics.asJson();
     }

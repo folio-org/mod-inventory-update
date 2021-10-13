@@ -1,3 +1,8 @@
+## 1.2.0 2021-10-13
+
+* Handles (transfers) holdings/items in case of match-key changes (MODINVUP-9)
+* Provides `shared-inventory-upsert-matchkey 1.1`  (MODINVUP-9)
+
 ## 1.1.0 2021-10-06
 
 * Implements the optimistic locking protocol of Inventory Storage (MODINVUP-10)

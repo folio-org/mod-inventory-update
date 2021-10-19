@@ -1,4 +1,4 @@
-## 1.3.0-SNAPSHOT
+## 1.3.0 2021-10-19
 
 * Provides `/admin/health` end-point (MODINVUP-12)
 

@@ -34,6 +34,10 @@ public class InventoryUpdateService {
     responseError(routingContext, 404, "No Service found for requested path " + routingContext.request().path());
   }
 
+  public void handleHealthCheck(RoutingContext routingContext) {
+    responseJson(routingContext, 200).end("{ \"status\": \"UP\" }");
+  }
+
   public void handleSharedInventoryUpsertByMatchKey(RoutingContext routingCtx) {
     if (contentTypeIsJson(routingCtx)) {
       JsonObject incomingJson = getIncomingJsonBody(routingCtx);

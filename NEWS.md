@@ -1,3 +1,7 @@
+## 1.3.0-SNAPSHOT
+
+* Provides `/admin/health` end-point (MODINVUP-12)
+
 ## 1.2.0 2021-10-13
 
 * Handles (transfers) holdings/items in case of match-key changes (MODINVUP-9)

@@ -115,6 +115,17 @@ public class InventoryUpdateTestSuite {
   }
 
   @Test
+  public void testHealthCheck (TestContext testContext) {
+    RestAssured.port = PORT_INVENTORY_UPDATE;
+    RestAssured.given()
+            .header(OKAPI_URL_HEADER)
+            .get("/admin/health")
+            .then()
+            .log().ifValidationFails()
+            .statusCode(200).extract().response();
+  }
+
+  @Test
   public void upsertByMatchKeyWillCreateNewInstance (TestContext testContext) {
     createInitialInstanceWithMatchKey();
     InputInstance instance = new InputInstance()

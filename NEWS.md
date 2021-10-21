@@ -1,3 +1,7 @@
+## 1.2.1 2021-10-21
+
+* Ensures backward compatibility of optimistic locking logic (MODINVUP-13)
+
 ## 1.2.0 2021-10-13
 
 * Handles (transfers) holdings/items in case of match-key changes (MODINVUP-9)

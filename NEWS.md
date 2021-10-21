@@ -1,3 +1,7 @@
+## 1.1.1 2021-10-21
+
+* Ensures backward compatibility of optimistic locking logic (MODINVUP-13)
+
 ## 1.1.0 2021-10-06
 
 * Implements the optimistic locking protocol of Inventory Storage (MODINVUP-10)

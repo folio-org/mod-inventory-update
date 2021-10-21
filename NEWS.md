@@ -1,3 +1,7 @@
+## 1.3.1 2021-10-21
+
+* Ensures backward compatibility of optimistic locking logic (MODINVUP-13)
+
 ## 1.3.0 2021-10-19
 
 * Provides `/admin/health` end-point (MODINVUP-12)

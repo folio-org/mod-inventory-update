@@ -87,11 +87,11 @@ public abstract class InventoryRecord {
     }
 
     public Integer getVersion () {
-        return jsonRecord.getInteger( VERSION );
+        return jsonRecord.containsKey( VERSION ) ? jsonRecord.getInteger( VERSION ) : null;
     }
 
-    public InventoryRecord setVersion (int version) {
-        jsonRecord.put(VERSION, version);
+    public InventoryRecord setVersion (Integer version) {
+        if (version != null) jsonRecord.put(VERSION, version);
         return this;
     }
 

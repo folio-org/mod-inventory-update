@@ -50,26 +50,29 @@ public class InventoryRecordSet extends JsonRepresentation {
 
     public InventoryRecordSet (JsonObject inventoryRecordSet) {
         if (inventoryRecordSet != null) {
-            logger.info("Creating InventoryRecordSet from " + inventoryRecordSet.encodePrettily());
+            logger.debug("Creating InventoryRecordSet from " + inventoryRecordSet.encodePrettily());
             sourceJson = new JsonObject(inventoryRecordSet.toString());
             JsonObject instanceJson = inventoryRecordSet.getJsonObject(INSTANCE);
             anInstance = new Instance(instanceJson);
             JsonArray holdings = inventoryRecordSet.getJsonArray(HOLDINGS_RECORDS);
             registerHoldingsRecordsAndItems(holdings);
             instanceRelationsManager = new InstanceRelationsManager(this);
-            logger.info("Caching processing info: " + inventoryRecordSet.getJsonObject( PROCESSING ));
+            logger.debug("Caching processing info: " + inventoryRecordSet.getJsonObject( PROCESSING ));
             processing = inventoryRecordSet.getJsonObject( PROCESSING );
         }
     }
 
     public static boolean isValidInventoryRecordSet(JsonObject inventoryRecordSet) {
-        if (inventoryRecordSet != null && inventoryRecordSet.containsKey(INSTANCE)
-            && (inventoryRecordSet.getValue(INSTANCE) instanceof JsonObject)) return true;
-        return false;
+        return inventoryRecordSet != null && inventoryRecordSet.containsKey(
+                INSTANCE ) && ( inventoryRecordSet.getValue( INSTANCE ) instanceof JsonObject );
     }
 
     public boolean canLookForRecordsWithPreviousMatchKey() {
         return getLocalIdentifier() != null && getLocalIdentifierTypeId() != null;
+    }
+
+    public JsonObject getProcessingInfoAsJson () {
+        return processing;
     }
 
     /**

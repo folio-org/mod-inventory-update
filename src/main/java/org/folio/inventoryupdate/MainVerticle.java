@@ -19,9 +19,6 @@ public class MainVerticle extends AbstractVerticle {
   public final static String FETCH_INVENTORY_RECORD_SETS_ID_PATH = INVENTORY_UPSERT_HRID_PATH+"/fetch/:id";
   public final static String FETCH_SHARED_INVENTORY_RECORD_SETS_ID_PATH = SHARED_INVENTORY_UPSERT_MATCHKEY_PATH+"/fetch/:id";
 
-  // Old API
-  public final static String INSTANCE_MATCH_PATH = "/instance-storage-match/instances";
-
   private final Logger logger = LoggerFactory.getLogger("inventory-update");
   private final InventoryUpdateService upsertService = new InventoryUpdateService();
   private final InventoryFetchService fetchService = new InventoryFetchService();
@@ -36,7 +33,6 @@ public class MainVerticle extends AbstractVerticle {
     Router router = Router.router(vertx);
     router.put("/*").handler(BodyHandler.create()); // Tell vertx we want the whole PUT body in the handler
     router.delete("/*").handler(BodyHandler.create()); // Tell vertx we want the whole DELETE body in the handler
-    router.put(INSTANCE_MATCH_PATH).handler(upsertService::handleInstanceMatching); // old API
 
     router.put(INVENTORY_UPSERT_HRID_PATH).handler(upsertService::handleInventoryUpsertByHRID);
     router.put(SHARED_INVENTORY_UPSERT_MATCHKEY_PATH).handler(upsertService::handleSharedInventoryUpsertByMatchKey);
@@ -57,7 +53,7 @@ public class MainVerticle extends AbstractVerticle {
           logger.debug("Succeeded in starting the listener for Inventory match/upsert service");
           promise.complete();
         } else {
-          logger.error("Inventory match/upsert service failed: " + result.cause().getMessage());
+          logger.error("Inventory upsert service failed: " + result.cause().getMessage());
           promise.fail(result.cause());
         }
       });

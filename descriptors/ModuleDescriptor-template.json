@@ -21,7 +21,7 @@
     },
     {
       "id": "inventory-upsert-hrid",
-      "version": "1.0",
+      "version": "1.1",
       "handlers": [
         {
           "methods": ["PUT", "DELETE"],
@@ -48,13 +48,30 @@
             "inventory-storage.locations.collection.get",
             "inventory-storage.locations.item.get"
           ]
+        },
+        {
+          "methods": ["GET"],
+          "pathPattern": "/inventory-upsert-hrid/fetch/{id}",
+          "permissionsRequired": ["inventory-upsert-hrid.item.get"],
+          "modulePermissions": [
+            "inventory-storage.items.collection.get",
+            "inventory-storage.items.item.get",
+            "inventory-storage.holdings.collection.get",
+            "inventory-storage.holdings.item.get",
+            "inventory-storage.instances.collection.get",
+            "inventory-storage.instances.item.get",
+            "inventory-storage.shelf-locations.collection.get",
+            "inventory-storage.shelf-locations.item.get",
+            "inventory-storage.locations.collection.get",
+            "inventory-storage.locations.item.get"
+          ]
         }
 
       ]
     },
     {
       "id": "shared-inventory-upsert-matchkey",
-      "version": "1.1",
+      "version": "1.2",
       "handlers": [
         {
           "methods": ["PUT", "DELETE"],
@@ -76,6 +93,23 @@
             "inventory-storage.instances.item.post",
             "inventory-storage.instances.item.put",
             "inventory-storage.instances.item.delete",
+            "inventory-storage.shelf-locations.collection.get",
+            "inventory-storage.shelf-locations.item.get",
+            "inventory-storage.locations.collection.get",
+            "inventory-storage.locations.item.get"
+          ]
+        },
+        {
+          "methods": ["GET"],
+          "pathPattern": "/shared-inventory-upsert-matchkey/fetch/{id}",
+          "permissionsRequired": ["shared-inventory-upsert-matchkey.item.get"],
+          "modulePermissions": [
+            "inventory-storage.items.collection.get",
+            "inventory-storage.items.item.get",
+            "inventory-storage.holdings.collection.get",
+            "inventory-storage.holdings.item.get",
+            "inventory-storage.instances.collection.get",
+            "inventory-storage.instances.item.get",
             "inventory-storage.shelf-locations.collection.get",
             "inventory-storage.shelf-locations.item.get",
             "inventory-storage.locations.collection.get",
@@ -110,9 +144,19 @@
       "description": "Create or update instances, holdings and items based on the Instance HRID"
     },
     {
+      "permissionName": "inventory-upsert-hrid.item.get",
+      "displayName": "Get an Inventory record set - by UUID or HRID",
+      "description": "Fetching an Inventory record set including holdings, items and relations, by Instance ID or HRID"
+    },
+    {
       "permissionName": "shared-inventory-upsert-matchkey.item.put",
       "displayName": "Updating a shared Inventory by match key - create or update existing records",
       "description": "Create or update instances, create or replace holdings and items, based on the Instance matchkey"
+    },
+    {
+      "permissionName": "shared-inventory-upsert-matchkey.item.get",
+      "displayName": "Get an Inventory records set - by UUID or HRID",
+      "description": "Fetching an Inventory record set including holdings, items and relations, by Instance ID or HRID"
     },
     {
       "permissionName": "inventory-update.all",
@@ -121,7 +165,9 @@
       "subPermissions": [
         "instance-storage-match.instances.item.put",
         "inventory-upsert-hrid.item.put",
-        "shared-inventory-upsert-matchkey.item.put"
+        "inventory-upsert-hrid.item.get",
+        "shared-inventory-upsert-matchkey.item.put",
+        "shared-inventory-upsert-matchkey.item.get"
       ]
     },
     {

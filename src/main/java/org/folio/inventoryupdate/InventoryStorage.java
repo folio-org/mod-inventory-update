@@ -1,10 +1,13 @@
 package org.folio.inventoryupdate;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import io.vertx.core.impl.logging.Logger;
 import io.vertx.core.impl.logging.LoggerFactory;
+import io.vertx.ext.web.RoutingContext;
 import org.folio.inventoryupdate.entities.InstanceRelationsManager;
 import org.folio.inventoryupdate.entities.InventoryRecord;
 import org.folio.inventoryupdate.entities.InventoryRecord.Entity;
@@ -347,6 +350,17 @@ public class InventoryStorage {
       errorMessage.put("note-of-context", contextNote);
     }
     promise.fail(errorMessage.encodePrettily());
+  }
+
+  public static OkapiClient getOkapiClient ( RoutingContext ctx) {
+    OkapiClient client = new OkapiClient(ctx);
+    Map<String, String> headers = new HashMap<>();
+    headers.put("Content-type", "application/json");
+    if (ctx.request().getHeader("X-Okapi-Tenant") != null) headers.put("X-Okapi-Tenant", ctx.request().getHeader("X-Okapi-Tenant"));
+    if (ctx.request().getHeader("X-Okapi-Token") != null) headers.put("X-Okapi-Token", ctx.request().getHeader("X-Okapi-Token"));
+    headers.put("Accept", "application/json, text/plain");
+    client.setHeaders(headers);
+    return client;
   }
 
 }

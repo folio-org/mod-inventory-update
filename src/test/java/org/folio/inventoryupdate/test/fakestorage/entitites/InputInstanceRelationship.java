@@ -39,6 +39,12 @@ public class InputInstanceRelationship extends InventoryRecord {
         return this;
     }
 
+    public InputInstanceRelationship setInstanceIdentifierUuid (String uuid) {
+        recordJson.put(INSTANCE_IDENTIFIER, new JsonObject().put("uuid", uuid));
+        return this;
+
+    }
+
     public InputInstanceRelationship setProvisionalInstance (JsonObject instanceJson) {
         recordJson.put(PROVISIONAL_INSTANCE, instanceJson);
         return this;

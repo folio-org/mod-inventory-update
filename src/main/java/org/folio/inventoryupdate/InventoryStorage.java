@@ -23,7 +23,7 @@ import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 
 /**
- * Static methods making low level HTTP request to create and update records in Inventory Storage.
+ * Static methods making low level HTTP requests to create and update records in Inventory Storage.
  */
 public class InventoryStorage {
 

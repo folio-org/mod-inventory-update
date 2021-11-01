@@ -1,12 +1,10 @@
 package org.folio.inventoryupdate.test;
 
 import io.vertx.core.impl.logging.Logger;
-import io.vertx.core.json.Json;
 import io.vertx.core.json.JsonArray;
 import org.folio.inventoryupdate.MainVerticle;
 import org.folio.inventoryupdate.MatchKey;
 import org.folio.inventoryupdate.UpdatePlanSharedInventory;
-import org.folio.inventoryupdate.entities.InstanceRelationship;
 import org.folio.inventoryupdate.test.fakestorage.FakeInventoryStorage;
 import org.folio.inventoryupdate.test.fakestorage.RecordStorage;
 import org.folio.inventoryupdate.test.fakestorage.entitites.*;
@@ -1664,15 +1662,6 @@ logger.info("Parent: " + parentResponse.encodePrettily());
             .log().ifValidationFails()
             .statusCode(400).extract().response();
 
-    RestAssured.given()
-            .body(new JsonObject().toString())
-            .header("Content-type","text/plain")
-            .header(OKAPI_URL_HEADER)
-            .put(MainVerticle.INSTANCE_MATCH_PATH)
-            .then()
-            .log().ifValidationFails()
-            .statusCode(400).extract().response();
-
   }
 
   @Test
@@ -2001,10 +1990,6 @@ logger.info("Parent: " + parentResponse.encodePrettily());
     return putJsonObject(MainVerticle.INVENTORY_UPSERT_HRID_PATH, inventoryRecordSet, expectedStatusCode);
   }
 
-  private JsonObject putToInstanceMatch (JsonObject instance) {
-    return putJsonObject(MainVerticle.INSTANCE_MATCH_PATH, instance);
-  }
-
   private Response putJsonObject(String apiPath, JsonObject requestJson, int expectedStatusCode) {
     RestAssured.port = PORT_INVENTORY_UPDATE;
     return RestAssured.given()
@@ -2084,58 +2069,6 @@ logger.info("Parent: " + parentResponse.encodePrettily());
     } else {
       return -1;
     }
-  }
-
-
-  /**
-   * Tests old API /instance-storage-match/instances
-   */
-  @Test
-  public void upsertNewInstanceWillCreateNewInstance( TestContext testContext) {
-    createInitialInstanceWithMatchKey();
-    InputInstance instance = new InputInstance()
-            .setTitle("New title")
-            .setInstanceTypeId("12345");
-    MatchKey matchKey = new MatchKey(instance.getJson());
-    instance.setMatchKeyAsString(matchKey.getKey());
-    JsonObject instancesBeforePutJson = getRecordsFromStorage(FakeInventoryStorage.INSTANCE_STORAGE_PATH, "matchKey==\"" + matchKey.getKey() + "\"");
-    testContext.assertEquals(instancesBeforePutJson.getInteger("totalRecords"), 0,
-            "Number of instance records for query by matchKey 'new_title___(etc)' before PUT expected: 0" );
-
-    putToInstanceMatch(instance.getJson());
-
-    JsonObject instancesAfterPutJson = getRecordsFromStorage(FakeInventoryStorage.INSTANCE_STORAGE_PATH, "matchKey==\"" + matchKey.getKey() + "\"");
-    testContext.assertEquals(instancesAfterPutJson.getInteger("totalRecords"), 1,
-            "Number of instance records for query by matchKey 'new_title' after PUT expected: 1" );
-
-  }
-
-  /**
-   * Tests old API /instance-storage-match/instances
-   *
-   */
-  @Test
-  public void testPutExistingInstanceWillUpdateExistingInstance (TestContext testContext) {
-    createInitialInstanceWithMatchKey();
-    InputInstance instance = new InputInstance().setTitle("Initial InputInstance").setInstanceTypeId("12345");
-    MatchKey matchKey = new MatchKey(instance.getJson());
-
-    JsonObject instancesBeforePutJson = getRecordsFromStorage(FakeInventoryStorage.INSTANCE_STORAGE_PATH,"matchKey==\"" + matchKey.getKey() + "\"");
-    testContext.assertEquals(instancesBeforePutJson.getInteger("totalRecords"), 1,
-            "Number of instance records for query by matchKey 'initial instance' before PUT expected: 1" );
-    String instanceTypeIdBefore = instancesBeforePutJson.getJsonArray("instances")
-            .getJsonObject(0).getString("instanceTypeId");
-    testContext.assertEquals(instanceTypeIdBefore,"123",
-            "Expected instanceTypeId to be '123' before PUT");
-
-    putToInstanceMatch(instance.getJson());
-
-    JsonObject instancesAfterPutJson = getRecordsFromStorage(FakeInventoryStorage.INSTANCE_STORAGE_PATH,"matchKey==\"" + matchKey.getKey() + "\"");
-    testContext.assertEquals(instancesAfterPutJson.getInteger("totalRecords"), 1,
-            "Number of instance records for query by matchKey 'initial instance' after PUT expected: 1" );
-    String instanceTypeIdAfter = instancesAfterPutJson.getJsonArray("instances")
-            .getJsonObject(0).getString("instanceTypeId");
-    testContext.assertEquals(instanceTypeIdAfter,"12345","Expected instanceTypeId to be '12345' after PUT");
   }
 
 }

@@ -3,23 +3,6 @@
   "name": "Inventory Update Module",
   "provides": [
     {
-      "id": "instance-storage-match",
-      "version": "3.1",
-      "handlers": [
-        {
-          "methods": ["PUT"],
-          "pathPattern": "/instance-storage-match/instances",
-          "permissionsRequired": ["instance-storage-match.instances.item.put"],
-          "modulePermissions": [
-            "inventory-storage.instances.collection.get",
-            "inventory-storage.instances.item.get",
-            "inventory-storage.instances.item.post",
-            "inventory-storage.instances.item.put"
-          ]
-        }
-      ]
-    },
-    {
       "id": "inventory-upsert-hrid",
       "version": "1.1",
       "handlers": [
@@ -46,7 +29,19 @@
             "inventory-storage.shelf-locations.collection.get",
             "inventory-storage.shelf-locations.item.get",
             "inventory-storage.locations.collection.get",
-            "inventory-storage.locations.item.get"
+            "inventory-storage.locations.item.get",
+            "inventory-storage.preceding-succeeding-titles.collection.get",
+            "inventory-storage.preceding-succeeding-titles.item.get",
+            "inventory-storage.preceding-succeeding-titles.item.post",
+            "inventory-storage.preceding-succeeding-titles.item.put",
+            "inventory-storage.preceding-succeeding-titles.item.delete",
+            "inventory-storage.instances.preceding-succeeding-titles.collection.put",
+            "inventory-storage.instance-relationships.collection.get",
+            "inventory-storage.instance-relationships.item.post",
+            "inventory-storage.instance-relationships.item.get",
+            "inventory-storage.instance-relationships.item.put",
+            "inventory-storage.instance-relationships.item.delete"
+
           ]
         },
         {
@@ -63,7 +58,11 @@
             "inventory-storage.shelf-locations.collection.get",
             "inventory-storage.shelf-locations.item.get",
             "inventory-storage.locations.collection.get",
-            "inventory-storage.locations.item.get"
+            "inventory-storage.locations.item.get",
+            "inventory-storage.preceding-succeeding-titles.collection.get",
+            "inventory-storage.preceding-succeeding-titles.item.get",
+            "inventory-storage.instance-relationships.collection.get",
+            "inventory-storage.instance-relationships.item.get"
           ]
         }
 
@@ -96,7 +95,18 @@
             "inventory-storage.shelf-locations.collection.get",
             "inventory-storage.shelf-locations.item.get",
             "inventory-storage.locations.collection.get",
-            "inventory-storage.locations.item.get"
+            "inventory-storage.locations.item.get",
+            "inventory-storage.preceding-succeeding-titles.collection.get",
+            "inventory-storage.preceding-succeeding-titles.item.get",
+            "inventory-storage.preceding-succeeding-titles.item.post",
+            "inventory-storage.preceding-succeeding-titles.item.put",
+            "inventory-storage.preceding-succeeding-titles.item.delete",
+            "inventory-storage.instances.preceding-succeeding-titles.collection.put",
+            "inventory-storage.instance-relationships.collection.get",
+            "inventory-storage.instance-relationships.item.post",
+            "inventory-storage.instance-relationships.item.get",
+            "inventory-storage.instance-relationships.item.put",
+            "inventory-storage.instance-relationships.item.delete"
           ]
         },
         {
@@ -113,7 +123,11 @@
             "inventory-storage.shelf-locations.collection.get",
             "inventory-storage.shelf-locations.item.get",
             "inventory-storage.locations.collection.get",
-            "inventory-storage.locations.item.get"
+            "inventory-storage.locations.item.get",
+            "inventory-storage.preceding-succeeding-titles.collection.get",
+            "inventory-storage.preceding-succeeding-titles.item.get",
+            "inventory-storage.instance-relationships.collection.get",
+            "inventory-storage.instance-relationships.item.get"
           ]
         }
       ]
@@ -130,6 +144,10 @@
     {
       "id": "item-storage",
       "version": "8.2 9.0"
+    },
+    {
+      "id": "instance-preceding-succeeding-titles",
+      "version": "0.2"
     }
   ],
   "permissionSets": [

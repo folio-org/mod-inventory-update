@@ -245,11 +245,6 @@ Regarding the `_version` fields for optimistic locking seen in the output, they 
   configuration setting to turn off the dependency checks entirely, for the performance of an initial data load for
   example, where it's already known that no dependent records exist yet.
 
-There is a legacy end-point for back-wards compatibility with the module that was the basis for this module (
-mod-inventory-match). This end-point will eventually be deprecated.
-
-* `/instance-storage-match/instances`  -- matches based on combination of metadata in instance
-
 More Inventory update schemes might be added, specifically an end-point that support Instance identification by
 matchKey _and_ holdings records and items identification by HRID for shared-inventory libraries that can provide such
 unique local identifiers for their records, for example:

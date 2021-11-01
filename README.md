@@ -102,8 +102,8 @@ library on the Instance as well as any holdings and items previously attached to
 
 #### Details of the matching mechanism using a match key
 
-Based on select properties of the incoming Instance, the API will construct a match key and query Inventory
-Storage for it to determine if an instance with that key already exists.
+Based on select properties of the incoming Instance, the API will construct a match key and query Inventory Storage for
+it to determine if an instance with that key already exists.
 
 The match logic currently considers title, year, publisher, pagination, edition and SUDOC classification.
 
@@ -111,7 +111,125 @@ If it does not find a matching title, a new Instance will be created. If it find
 replaced by the incoming Instance, except, the HRID (human-readable ID) of the original Instance will be retained, as
 well as the resource identifiers from any of the other libraries that contributed that Instance.
 
+### API for fetching an Inventory record set
 
+There are two REST paths for retrieving single Inventory record sets by ID: `/inventory-upsert-hrid/fetch/{id}`
+and `/shared-inventory-upsert-matchkey/fetch/{id}`. The two APIs will currently return the same response, which is a set
+with an Instance record, potentially an array of holdings records, each holdings-record potentially with an array of
+Item records, and finally an array of any external relations that the Instance has with other Instances.
+
+The provided ID can be the Instance HRID or UUID - for example: 
+
+`GET /inventory-upsert-hrid/fetch/inst000000000017`
+
+could fetch
+```
+{
+  "instance" : {
+    "id" : "a89eccf0-57a6-495e-898d-32b9b2210f2f",
+    "_version" : 1,
+    "hrid" : "inst000000000017",
+    "source" : "FOLIO",
+    "title" : "Interesting Times",
+    "alternativeTitles" : [ ],
+    "editions" : [ ],
+    "series" : [ ],
+    "identifiers" : [ {
+      "value" : "0552142352",
+      "identifierTypeId" : "8261054f-be78-422d-bd51-4ed9f33c3422"
+    }, {
+      "value" : "9780552142352",
+      "identifierTypeId" : "8261054f-be78-422d-bd51-4ed9f33c3422"
+    } ],
+    "contributors" : [ {
+      "name" : "Pratchett, Terry",
+      "contributorNameTypeId" : "2b94c631-fca9-4892-a730-03ee529ffe2a"
+    } ],
+    "subjects" : [ ],
+    "classifications" : [ ],
+    "publication" : [ ],
+    "publicationFrequency" : [ ],
+    "publicationRange" : [ ],
+    "electronicAccess" : [ ],
+    "instanceTypeId" : "6312d172-f0cf-40f6-b27d-9fa8feaf332f",
+    "instanceFormatIds" : [ ],
+    "instanceFormats" : [ ],
+    "physicalDescriptions" : [ ],
+    "languages" : [ ],
+    "notes" : [ ],
+    "previouslyHeld" : false,
+    "discoverySuppress" : false,
+    "statisticalCodeIds" : [ ],
+    "statusUpdatedDate" : "2021-10-31T21:34:07.179+0100",
+    "metadata" : {
+      "createdDate" : "2021-10-31T20:34:07.178+00:00",
+      "updatedDate" : "2021-10-31T20:34:07.178+00:00"
+    },
+    "holdingsRecords2" : [ ],
+    "natureOfContentTermIds" : [ ]
+  },
+  "holdingsRecords" : [ {
+    "id" : "67cd0046-e4f1-4e4f-9024-adf0b0039d09",
+    "_version" : 1,
+    "hrid" : "hold000000000007",
+    "formerIds" : [ ],
+    "instanceId" : "a89eccf0-57a6-495e-898d-32b9b2210f2f",
+    "permanentLocationId" : "f34d27c6-a8eb-461b-acd6-5dea81771e70",
+    "effectiveLocationId" : "f34d27c6-a8eb-461b-acd6-5dea81771e70",
+    "electronicAccess" : [ ],
+    "callNumber" : "D15.H63 A3 2002",
+    "notes" : [ ],
+    "holdingsStatements" : [ {
+      "statement" : "Line 1b"
+    }, {
+      "statement" : "Line 2b"
+    } ],
+    "holdingsStatementsForIndexes" : [ ],
+    "holdingsStatementsForSupplements" : [ ],
+    "statisticalCodeIds" : [ ],
+    "holdingsItems" : [ ],
+    "bareHoldingsItems" : [ ],
+    "metadata" : {
+      "createdDate" : "2021-10-31T20:34:08.430+00:00",
+      "updatedDate" : "2021-10-31T20:34:08.430+00:00"
+    },
+    "items" : [ {
+      "id" : "bb5a6689-c008-4c96-8f8f-b666850ee12d",
+      "_version" : 1,
+      "hrid" : "item000000000012",
+      "holdingsRecordId" : "67cd0046-e4f1-4e4f-9024-adf0b0039d09",
+      "formerIds" : [ ],
+      "barcode" : "326547658598",
+      "effectiveShelvingOrder" : "D 215 H63 A3 42002",
+      "effectiveCallNumberComponents" : {
+        "callNumber" : "D15.H63 A3 2002"
+      },
+      "yearCaption" : [ ],
+      "notes" : [ ],
+      "circulationNotes" : [ ],
+      "status" : {
+        "name" : "Checked out",
+        "date" : "2021-10-31T20:34:08.961+00:00"
+      },
+      "materialTypeId" : "1a54b431-2e4f-452d-9cae-9cee66c9a892",
+      "permanentLoanTypeId" : "2b94c631-fca9-4892-a730-03ee529ffe27",
+      "effectiveLocationId" : "f34d27c6-a8eb-461b-acd6-5dea81771e70",
+      "electronicAccess" : [ ],
+      "statisticalCodeIds" : [ ],
+      "metadata" : {
+        "createdDate" : "2021-10-31T20:34:08.960+00:00",
+        "updatedDate" : "2021-10-31T20:34:08.960+00:00"
+      }
+    } ]
+  } ],
+  "instanceRelations" : {
+    "parentInstances" : [ ],
+    "childInstances" : [ ],
+    "precedingTitles" : [ ],
+    "succeedingTitles" : [ ]
+  }
+}
+```
 ## Planned developments
 
 * Support handling of bound-with and analytics relationships. This is currently being developed with German GBV as the
@@ -158,8 +276,8 @@ run `mvn install` from the root directory.
 
 ### Other documentation
 
-Other [modules](https://dev.folio.org/source-code/#server-side) are described,
-with further FOLIO Developer documentation at [dev.folio.org](https://dev.folio.org/)
+Other [modules](https://dev.folio.org/source-code/#server-side) are described, with further FOLIO Developer
+documentation at [dev.folio.org](https://dev.folio.org/)
 
 ### Code of Conduct
 
@@ -173,12 +291,12 @@ at the [FOLIO issue tracker](https://dev.folio.org/guidelines/issue-tracker).
 ### ModuleDescriptor
 
 See the [ModuleDescriptor](descriptors/ModuleDescriptor-template.json)
-for the interfaces that this module requires and provides, the permissions,
-and the additional module metadata.
+for the interfaces that this module requires and provides, the permissions, and the additional module metadata.
 
 ### API documentation
 
 API descriptions:
+
 * [RAML](ramls/)
 * [Schemas](ramls/)
 
@@ -190,7 +308,6 @@ Generated [API documentation](https://dev.folio.org/reference/api/#mod-inventory
 
 ### Download and configuration
 
-The built artifacts for this module are available.
-See [configuration](https://dev.folio.org/download/artifacts) for repository access,
-and the [Docker image](https://hub.docker.com/r/folioorg/mod-inventory-update/).
+The built artifacts for this module are available. See [configuration](https://dev.folio.org/download/artifacts) for
+repository access, and the [Docker image](https://hub.docker.com/r/folioorg/mod-inventory-update/).
 

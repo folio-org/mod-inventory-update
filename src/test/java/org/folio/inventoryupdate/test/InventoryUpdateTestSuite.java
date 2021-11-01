@@ -6,6 +6,7 @@ import io.vertx.core.json.JsonArray;
 import org.folio.inventoryupdate.MainVerticle;
 import org.folio.inventoryupdate.MatchKey;
 import org.folio.inventoryupdate.UpdatePlanSharedInventory;
+import org.folio.inventoryupdate.entities.InstanceRelationship;
 import org.folio.inventoryupdate.test.fakestorage.FakeInventoryStorage;
 import org.folio.inventoryupdate.test.fakestorage.RecordStorage;
 import org.folio.inventoryupdate.test.fakestorage.entitites.*;
@@ -1481,8 +1482,11 @@ logger.info("Parent: " + parentResponse.encodePrettily());
                      .put("succeedingTitles", new JsonArray()
                              .add(new InputInstanceTitleSuccession().setInstanceIdentifierHrid("001").getJson()))
                      .put("precedingTitles", new JsonArray()
-                             .add(new InputInstanceTitleSuccession().setInstanceIdentifierHrid("002").getJson()))));
-
+                             .add(new InputInstanceTitleSuccession().setInstanceIdentifierHrid("002").getJson()))
+                     .put("parentInstances", new JsonArray()
+                             .add(new InputInstanceRelationship().setInstanceIdentifierHrid( "001" ).getJson() ))
+                     .put("childInstances", new JsonArray()
+                             .add(new InputInstanceRelationship().setInstanceIdentifierHrid( "002" )))));
 
      fetchRecordSetFromUpsertHrid( "1" );
      fetchRecordSetFromUpsertHrid (newInstance.getJsonObject( "instance" ).getString( "id" ));

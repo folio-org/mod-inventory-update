@@ -56,8 +56,6 @@ public class UpdateMetrics {
                     return update;
                 case DELETE:
                     return delete;
-                case UNKNOWN:
-                    return unknown;
                 default:
                     return null;
             }

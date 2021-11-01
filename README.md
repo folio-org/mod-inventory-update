@@ -230,6 +230,10 @@ could fetch
   }
 }
 ```
+The output from the fetch APIs can be PUT back to the `/inventory-upsert-hrid` API. For example, it would be possible to update the record set above, say set "editions" to \["First edition"\] or add another Item and PUT the record set JSON back to the `/inventory-upsert-hrid` API (warning: `/shared-inventory-upsert-matchkey` is special purpose and few if any would want to use its API like described here). 
+
+Regarding the `_version` fields for optimistic locking seen in the output, they would have no effect in the PUT to the upsert API. When the service receives the updated JSON, it will pull new versions of the entities from storage and get latest versions from them anyway. 
+
 ## Planned developments
 
 * Support handling of bound-with and analytics relationships. This is currently being developed with German GBV as the

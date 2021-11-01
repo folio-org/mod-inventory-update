@@ -20,6 +20,7 @@ types:
   shared-index-deletion: !include shared-index-deletion.json
   upsert-response-200: !include upsert-response-200.json
   upsert-response-422: !include upsert-response-422.json
+  get-recordset-response: !include get-recordset-response.json
 
 resourceTypes:
   collection-item: !include raml-util/rtypes/item-collection.raml
@@ -69,7 +70,7 @@ traits:
          description: "Inventory record set found"
          body:
             application/json:
-                type: get-recordset-response.json
+                type: get-recordset-response
 
 
 

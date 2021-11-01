@@ -46,6 +46,7 @@ public class UpdateMetrics {
         protected final TransactionMetrics create = new TransactionMetrics();
         protected final TransactionMetrics update = new TransactionMetrics();
         protected final TransactionMetrics delete = new TransactionMetrics();
+        protected final TransactionMetrics unknown = new TransactionMetrics();
 
         public TransactionMetrics transaction(InventoryRecord.Transaction transaction) {
             switch (transaction) {
@@ -55,6 +56,8 @@ public class UpdateMetrics {
                     return update;
                 case DELETE:
                     return delete;
+                case UNKNOWN:
+                    return unknown;
                 default:
                     return null;
             }

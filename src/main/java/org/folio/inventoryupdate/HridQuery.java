@@ -1,7 +1,7 @@
 package org.folio.inventoryupdate;
 
 public class HridQuery extends InventoryQuery {
-    private final String hrid;
+    public final String hrid;
 
     public HridQuery(String hrid) {
         this.hrid = hrid;

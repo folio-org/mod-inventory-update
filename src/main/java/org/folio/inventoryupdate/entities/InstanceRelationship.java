@@ -14,10 +14,10 @@ public class InstanceRelationship extends InstanceToInstanceRelation {
     protected static final Logger logger = LoggerFactory.getLogger("inventory-update");
 
     /**
-     * Builds an Instance relationship object from a JSON record (from storage).
-     * @param instanceId
-     * @param instanceRelationJson
-     * @return
+     * Builds an Instance relationship object from a JSON record.
+     * @param instanceId The UUID of the Instance to link from
+     * @param instanceRelationJson Instance relation JSON object from storage
+     * @return Relationship object
      */
     public static InstanceRelationship makeRelationshipFromJsonRecord(String instanceId, JsonObject instanceRelationJson) {
         InstanceRelationship relation = new InstanceRelationship();
@@ -30,11 +30,11 @@ public class InstanceRelationship extends InstanceToInstanceRelation {
 
     /**
      * Builds an Instance relationship object by its individual properties.
-     * @param instanceId
-     * @param subInstanceId
-     * @param superInstanceId
-     * @param instanceRelationshipTypeId
-     * @return
+     * @param instanceId The UUID of the Instance to link from
+     * @param subInstanceId The ID of the child
+     * @param superInstanceId The ID of the parent
+     * @param instanceRelationshipTypeId The type of relation
+     * @return Relationship object
      */
     public static InstanceRelationship makeRelationship(String instanceId, String subInstanceId, String superInstanceId, String instanceRelationshipTypeId) {
         InstanceRelationship relation = new InstanceRelationship();
@@ -65,7 +65,7 @@ public class InstanceRelationship extends InstanceToInstanceRelation {
     }
 
     public void skipDependants() {
-        // relationships has no dependants in the database
+        // relationships have no dependants in the database
     }
 
     @Override
@@ -74,7 +74,7 @@ public class InstanceRelationship extends InstanceToInstanceRelation {
             InstanceRelationship other = (InstanceRelationship) o;
             return (other.getSubInstanceId() != null && other.getSubInstanceId().equals(this.getSubInstanceId()) &&
                     other.getSuperInstanceId() != null && other.getSuperInstanceId().equals(this.getSuperInstanceId()) &&
-                    other.getInstanceRelationshipTypeId().equals(this.getInstanceRelationshipTypeId()));
+                    other.getInstanceRelationshipTypeId() != null && other.getInstanceRelationshipTypeId().equals(this.getInstanceRelationshipTypeId()));
         } else {
             return false;
         }
@@ -86,11 +86,8 @@ public class InstanceRelationship extends InstanceToInstanceRelation {
     }
 
     public String toString () {
-        StringBuilder str = new StringBuilder();
-        str.append("// Sub: ").append(jsonRecord.getString(SUB_INSTANCE_ID))
-           .append(" Super: ").append(jsonRecord.getString(SUPER_INSTANCE_ID))
-           .append(" TypeId: ").append(jsonRecord.getString(INSTANCE_RELATIONSHIP_TYPE_ID));
-        return str.toString();
+        return "// Sub: " + jsonRecord.getString( SUB_INSTANCE_ID ) + " Super: " + jsonRecord.getString(
+                SUPER_INSTANCE_ID ) + " TypeId: " + jsonRecord.getString( INSTANCE_RELATIONSHIP_TYPE_ID );
     }
 
 }

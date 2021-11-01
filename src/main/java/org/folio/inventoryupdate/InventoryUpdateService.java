@@ -3,9 +3,6 @@ package org.folio.inventoryupdate;
 import static org.folio.okapi.common.HttpResponse.responseError;
 import static org.folio.okapi.common.HttpResponse.responseJson;
 
-import java.util.HashMap;
-import java.util.Map;
-
 import io.vertx.core.impl.logging.Logger;
 import io.vertx.core.impl.logging.LoggerFactory;
 import io.vertx.core.json.DecodeException;
@@ -46,7 +43,8 @@ public class InventoryUpdateService {
         UpdatePlan updatePlan = UpdatePlanSharedInventory.getUpsertPlan(incomingSet);
         runPlan(updatePlan, routingCtx);
       } else {
-        responseError(routingCtx, 400, "Did not recognize input as an Inventory record set: "+ incomingJson.encodePrettily());
+        responseError(routingCtx, 400, "Did not recognize input as an Inventory record set: "+
+                (incomingJson != null ? incomingJson.encodePrettily() : "no JSON object"));
       }
     }
   }
@@ -86,7 +84,7 @@ public class InventoryUpdateService {
   //TODO: invert not-found conditions in case of deletion?
   private void runPlan(UpdatePlan updatePlan, RoutingContext routingCtx) {
 
-    OkapiClient okapiClient = getOkapiClient(routingCtx);
+    OkapiClient okapiClient = InventoryStorage.getOkapiClient(routingCtx);
     updatePlan.planInventoryUpdates(okapiClient).onComplete( planDone -> {
       if (planDone.succeeded()) {
         updatePlan.writePlanToLog();
@@ -135,17 +133,6 @@ public class InventoryUpdateService {
     }
   }
 
-  private OkapiClient getOkapiClient (RoutingContext ctx) {
-    OkapiClient client = new OkapiClient(ctx);
-    Map<String, String> headers = new HashMap<>();
-    headers.put("Content-type", "application/json");
-    if (ctx.request().getHeader("X-Okapi-Tenant") != null) headers.put("X-Okapi-Tenant", ctx.request().getHeader("X-Okapi-Tenant"));
-    if (ctx.request().getHeader("X-Okapi-Token") != null) headers.put("X-Okapi-Token", ctx.request().getHeader("X-Okapi-Token"));
-    headers.put("Accept", "application/json, text/plain");
-    client.setHeaders(headers);
-    return client;
-  }
-
 
   /*
      =================
@@ -161,7 +148,7 @@ public class InventoryUpdateService {
     if (contentType != null && !contentType.startsWith("application/json")) {
       responseError(routingCtx, 400, "Only accepts Content-Type application/json, was: "+ contentType);
     } else {
-      OkapiClient okapiClient = getOkapiClient(routingCtx);
+      OkapiClient okapiClient = InventoryStorage.getOkapiClient(routingCtx);
 
       String candidateInstanceAsString = routingCtx.getBodyAsString("UTF-8");
       JsonObject candidateInstance = new JsonObject(candidateInstanceAsString);

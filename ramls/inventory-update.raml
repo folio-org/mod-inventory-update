@@ -61,6 +61,18 @@ traits:
         500:
           description: "Error during delete by HRID"
 
+/inventory-upsert-hrid/fetch/{id}:
+  displayName: Retrieve single Inventory record set either by Instance UUID or HRID
+  get:
+    responses:
+       200:
+         description: "Inventory record set found"
+         body:
+            application/json:
+                type: get-recordset-response.json
+
+
+
 /shared-inventory-upsert-matchkey:
   displayName: Create, update, "delete" instance, replace its holdings and items, based on instance match key
   put:
@@ -96,6 +108,16 @@ traits:
           description: "Bad request, for example non-JSON in request body"
         500:
           description: "Error during delete by institution ID and record identifier"
+
+/shared-inventory-upsert-matchkey/fetch/{id}:
+  displayName: Retrieve single Inventory record set either by Instance UUID or HRID
+  get:
+    responses:
+       200:
+         description: "Inventory record set found"
+         body:
+            application/json:
+                type: get-recordset-response.json
 
 /instance-storage-match:
   displayName: Instance create or update by match key (being deprecated)

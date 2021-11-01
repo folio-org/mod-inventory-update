@@ -167,12 +167,12 @@ public class UpdatePlanAllHRIDs extends UpdatePlan {
         return validationErrors;
     }
 
-    public Future<JsonObject> handleInstanceRelationCreatesIfAny (OkapiClient okapiClient) {
+    public Future<Void> handleInstanceRelationCreatesIfAny (OkapiClient okapiClient) {
         if (!isDeletion) {
             return getUpdatingRecordSet().getInstanceRelationsController().handleInstanceRelationCreatesIfAny(okapiClient);
         } else {
-            Promise<JsonObject> promise = Promise.promise();
-            promise.complete(null);
+            Promise promise = Promise.promise();
+            promise.complete();
             return promise.future();
         }
     }

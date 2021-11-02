@@ -41,15 +41,7 @@ public class InventoryFetchService
      */
     public void handleInventoryRecordSetFetchHrid( RoutingContext routingContext) {
         String id = routingContext.request().getParam( "id" );
-        InventoryQuery instanceQuery;
-        try
-        {
-            UUID uuid = UUID.fromString( id );
-            instanceQuery = new QueryByUUID( uuid );
-        } catch (IllegalArgumentException iae) {
-            instanceQuery = new HridQuery( id );
-        }
-
+        InventoryQuery instanceQuery = getInstanceQuery( id );
         InventoryStorage.lookupSingleInventoryRecordSet( InventoryStorage.getOkapiClient(routingContext), instanceQuery )
                 .onComplete( lookup -> {
                     if (lookup.succeeded()) {
@@ -73,19 +65,24 @@ public class InventoryFetchService
                 }  );
     }
 
+    private InventoryQuery getInstanceQuery( String id )
+    {
+        InventoryQuery instanceQuery;
+        try {
+            UUID uuid = UUID.fromString( id );
+            instanceQuery = new QueryByUUID( uuid );
+        } catch ( IllegalArgumentException iae ) {
+            instanceQuery = new HridQuery( id );
+        }
+        return instanceQuery;
+    }
+
     /**
      * Handles GET request to shared inventory fetch API
      */
     public void handleSharedInventoryRecordSetFetch( RoutingContext routingContext) {
         String id = routingContext.request().getParam( "id" );
-        InventoryQuery instanceQuery;
-        try
-        {
-            UUID uuid = UUID.fromString( id );
-            instanceQuery = new QueryByUUID( uuid );
-        } catch (IllegalArgumentException iae) {
-            instanceQuery = new HridQuery( id );
-        }
+        InventoryQuery instanceQuery = getInstanceQuery( id );
 
         InventoryStorage.lookupSingleInventoryRecordSet( InventoryStorage.getOkapiClient(routingContext), instanceQuery )
                 .onComplete( lookup -> {

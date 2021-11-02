@@ -111,34 +111,27 @@ If it does not find a matching title, a new Instance will be created. If it find
 replaced by the incoming Instance, except, the HRID (human-readable ID) of the original Instance will be retained, as
 well as the resource identifiers from any of the other libraries that contributed that Instance.
 
-### API for fetching an Inventory record set
+### APIs for fetching an Inventory record set
 
 There are two REST paths for retrieving single Inventory record sets by ID: `/inventory-upsert-hrid/fetch/{id}`
-and `/shared-inventory-upsert-matchkey/fetch/{id}`. The two APIs will currently return the same response, which is a set
-with an Instance record, potentially an array of holdings records, each holdings-record potentially with an array of
-Item records, and finally an array of any external relations that the Instance has with other Instances.
+and `/shared-inventory-upsert-matchkey/fetch/{id}`. Both APIs will return a record set with an Instance record,
+potentially an array of holdings records, each holdings-record potentially with an array of Item records, and finally a
+set of arrays of external relations that the Instance has with other Instances.
 
-The provided ID can be the Instance HRID or UUID - for example: 
+#### Fetching an Inventory record set from `inventory-upsert-hrid/fetch`
 
-`GET /inventory-upsert-hrid/fetch/inst000000000017`
+The ID provided on the API path is the Instance HRID. A request like
+`GET /inventory-upsert-hrid/fetch/inst000000000017` would give a response like this (shortened):
 
-could fetch
 ```
 {
   "instance" : {
-    "id" : "a89eccf0-57a6-495e-898d-32b9b2210f2f",
     "_version" : 1,
     "hrid" : "inst000000000017",
     "source" : "FOLIO",
     "title" : "Interesting Times",
-    "alternativeTitles" : [ ],
-    "editions" : [ ],
-    "series" : [ ],
     "identifiers" : [ {
       "value" : "0552142352",
-      "identifierTypeId" : "8261054f-be78-422d-bd51-4ed9f33c3422"
-    }, {
-      "value" : "9780552142352",
       "identifierTypeId" : "8261054f-be78-422d-bd51-4ed9f33c3422"
     } ],
     "contributors" : [ {
@@ -146,79 +139,35 @@ could fetch
       "contributorNameTypeId" : "2b94c631-fca9-4892-a730-03ee529ffe2a"
     } ],
     "subjects" : [ ],
-    "classifications" : [ ],
-    "publication" : [ ],
-    "publicationFrequency" : [ ],
-    "publicationRange" : [ ],
-    "electronicAccess" : [ ],
-    "instanceTypeId" : "6312d172-f0cf-40f6-b27d-9fa8feaf332f",
-    "instanceFormatIds" : [ ],
-    "instanceFormats" : [ ],
-    "physicalDescriptions" : [ ],
-    "languages" : [ ],
-    "notes" : [ ],
-    "previouslyHeld" : false,
-    "discoverySuppress" : false,
-    "statisticalCodeIds" : [ ],
-    "statusUpdatedDate" : "2021-10-31T21:34:07.179+0100",
+    ... etc
+    "statusUpdatedDate" : "2021-11-01T23:31:36.026+0100",
     "metadata" : {
-      "createdDate" : "2021-10-31T20:34:07.178+00:00",
-      "updatedDate" : "2021-10-31T20:34:07.178+00:00"
+      "createdDate" : "2021-11-01T22:31:36.025+00:00",
+      "updatedDate" : "2021-11-01T22:31:36.025+00:00"
     },
-    "holdingsRecords2" : [ ],
-    "natureOfContentTermIds" : [ ]
   },
   "holdingsRecords" : [ {
-    "id" : "67cd0046-e4f1-4e4f-9024-adf0b0039d09",
     "_version" : 1,
     "hrid" : "hold000000000007",
-    "formerIds" : [ ],
-    "instanceId" : "a89eccf0-57a6-495e-898d-32b9b2210f2f",
     "permanentLocationId" : "f34d27c6-a8eb-461b-acd6-5dea81771e70",
-    "effectiveLocationId" : "f34d27c6-a8eb-461b-acd6-5dea81771e70",
-    "electronicAccess" : [ ],
-    "callNumber" : "D15.H63 A3 2002",
-    "notes" : [ ],
-    "holdingsStatements" : [ {
-      "statement" : "Line 1b"
-    }, {
-      "statement" : "Line 2b"
-    } ],
-    "holdingsStatementsForIndexes" : [ ],
-    "holdingsStatementsForSupplements" : [ ],
-    "statisticalCodeIds" : [ ],
-    "holdingsItems" : [ ],
-    "bareHoldingsItems" : [ ],
+    ... etc
     "metadata" : {
-      "createdDate" : "2021-10-31T20:34:08.430+00:00",
-      "updatedDate" : "2021-10-31T20:34:08.430+00:00"
+      "createdDate" : "2021-11-01T22:31:38.030+00:00",
+      "updatedDate" : "2021-11-01T22:31:38.030+00:00"
     },
     "items" : [ {
-      "id" : "bb5a6689-c008-4c96-8f8f-b666850ee12d",
       "_version" : 1,
       "hrid" : "item000000000012",
-      "holdingsRecordId" : "67cd0046-e4f1-4e4f-9024-adf0b0039d09",
-      "formerIds" : [ ],
       "barcode" : "326547658598",
-      "effectiveShelvingOrder" : "D 215 H63 A3 42002",
-      "effectiveCallNumberComponents" : {
-        "callNumber" : "D15.H63 A3 2002"
-      },
-      "yearCaption" : [ ],
-      "notes" : [ ],
-      "circulationNotes" : [ ],
+      ... etc
       "status" : {
         "name" : "Checked out",
-        "date" : "2021-10-31T20:34:08.961+00:00"
+        "date" : "2021-11-01T22:31:38.587+00:00"
       },
       "materialTypeId" : "1a54b431-2e4f-452d-9cae-9cee66c9a892",
-      "permanentLoanTypeId" : "2b94c631-fca9-4892-a730-03ee529ffe27",
-      "effectiveLocationId" : "f34d27c6-a8eb-461b-acd6-5dea81771e70",
-      "electronicAccess" : [ ],
-      "statisticalCodeIds" : [ ],
       "metadata" : {
-        "createdDate" : "2021-10-31T20:34:08.960+00:00",
-        "updatedDate" : "2021-10-31T20:34:08.960+00:00"
+        "createdDate" : "2021-11-01T22:31:38.587+00:00",
+        "updatedDate" : "2021-11-01T22:31:38.587+00:00"
       }
     } ]
   } ],
@@ -229,10 +178,50 @@ could fetch
     "succeedingTitles" : [ ]
   }
 }
+(Note: it's possible to use the Instance UUID instead of the HRID in the GET request)
 ```
-The output from the fetch APIs can be PUT back to the `/inventory-upsert-hrid` API. For example, it would be possible to update the record set above, say set "editions" to \["First edition"\] or add another Item and PUT the record set JSON back to the `/inventory-upsert-hrid` API (warning: `/shared-inventory-upsert-matchkey` is special purpose and few if any would want to use its API like described here). 
 
-Regarding the `_version` fields for optimistic locking seen in the output, they would have no effect in the PUT to the upsert API. When the service receives the updated JSON, it will pull new versions of the entities from storage and get latest versions from them anyway. 
+
+It's possible to take the response from the `/inventory-upsert-hrid/fetch` and PUT it back to
+the `/inventory-upsert-hrid` API.
+
+There may not be obvious use cases for it but for what it's worth, the response JSON can be edited by, say, setting 
+"editions" to ["First edition"] or adding one more Item, and the record set JSON can then be PUT back
+to `/inventory-upsert-hrid` to perform the updates.
+
+The response JSON above contains none of the primary key fields, `id`, or referential fields,
+`instanceId` and `holdingsRecordId`, for the three main entities of the Inventory record set. This is because the
+`inventory-upsert-hrid` API is entirely HRID based (at least when viewed from the outside. Internally the module of
+course deals with the UUIDs).
+
+The client of the API is responsible for knowing what the HRIDs for the records are and for ensuring that the
+provided IDs are indeed unique. 
+
+#### Fetching an Inventory record set from `shared-inventory-upsert-matchkey/fetch`
+
+For consistency, it is also possible to fetch a record set from the shared inventory API like from the HRID based API.
+Similarly, it's possible to PUT the record set back to the API, though in reality, it probably will not make sense to
+update a shared Inventory like that. With a shared Inventory, updates should probably always come from the catalogs that
+participate in the shared index.
+
+#### Avoiding cross-PUTting between the two APIs
+
+If a GET request is issued to an Inventory that is in fact not a shared Inventory and therefore has no matchKeys in the
+instances, the GET will fail. This is basically just to separate the two update and fetch schemes some.
+
+Generally speaking, it does not make sense to mix the two APIs even though it's technically possible to fetch from one
+and put to the other. If the module is used with a regular Inventory (non-shared) it could be feasible to disable the
+shared Inventory APIs by not giving users the permissions required to use it. For a regular Inventory, one or both of
+the permissions `inventory-upsert-hrid.item.get`
+and `inventory-upsert-hrid.item.put` might be assigned, while the permissions for the shared
+Inventory, `shared-inventory-upsert-matchkey.item.put` and `shared-inventory-upsert-matchkey.item.get`, could be left
+out.
+
+#### The _version fields and optimistic locking
+
+The `_version` fields for optimistic locking can be seen in the output above. These values would have no effect in a PUT
+to the upsert API. As the service receives the record set JSON in a PUT request, it will pull new versions of the
+entities from storage and get the latest version numbers from that anyway.
 
 ## Planned developments
 

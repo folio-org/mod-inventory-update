@@ -306,7 +306,9 @@ public class InventoryUpdateTestSuite {
                                     .add(new InputItem().setBarcode("BC-002").getJson())))
                     .add(new InputHoldingsRecord().setPermanentLocationId(LOCATION_ID_1).setCallNumber("test-cn-2").getJson()
                             .put("items", new JsonArray()
-                                    .add(new InputItem().setBarcode("BC-003").getJson())))));
+                                    .add(new InputItem().setBarcode("BC-003").getJson()))))
+            .put("processing", new JsonObject()
+                    .put("localIdentifier",identifierValue1)));
 
     String instanceId = upsertResponseJson1.getJsonObject("instance").getString("id");
 

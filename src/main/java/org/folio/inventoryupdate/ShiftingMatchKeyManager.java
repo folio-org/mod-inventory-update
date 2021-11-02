@@ -17,6 +17,7 @@ public class ShiftingMatchKeyManager
     InventoryRecordSet updatingRecordSet;
     InventoryRecordSet secondaryExistingRecordSet;
     boolean doCheck;
+    boolean canCheck;
     protected final Logger logger = LoggerFactory.getLogger("inventory-update");
 
 
@@ -25,7 +26,8 @@ public class ShiftingMatchKeyManager
         if (doCheck) {
             this.secondaryExistingRecordSet = secondaryExistingRecordSet;
             this.updatingRecordSet = updatingRecordSet;
-            if (updatingRecordSet.getLocalIdentifier() != null) {
+            if (updatingRecordSet.canLookForRecordsWithPreviousMatchKey()) {
+                canCheck = true;
                 shiftingMatchKeyQuery = new ShiftingMatchKeyQuery(
                         updatingRecordSet.getLocalIdentifier(),
                         updatingRecordSet.getLocalIdentifierTypeId(),
@@ -39,7 +41,7 @@ public class ShiftingMatchKeyManager
         Promise<InventoryRecordSet> promise = Promise.promise();
         if (doCheck)
         {
-            if ( shiftingMatchKeyQuery != null )
+            if ( canCheck )
             {
                 InventoryStorage.lookupSingleInventoryRecordSet( okapiClient, shiftingMatchKeyQuery ).onComplete(
                         recordSet -> {
@@ -47,7 +49,6 @@ public class ShiftingMatchKeyManager
                                 JsonObject existingInventoryRecordSetJson = recordSet.result();
                                 if (existingInventoryRecordSetJson != null) {
                                     secondaryExistingRecordSet = new InventoryRecordSet( existingInventoryRecordSetJson );
-                                    // todo: optimistic locking
                                     UpdatePlanSharedInventory.removeIdentifierFromInstanceForInstitution(
                                             recordIdentifiers, secondaryExistingRecordSet.getInstance().asJson() );
                                     secondaryExistingRecordSet.getInstance().setTransition( InventoryRecord.Transaction.UPDATE );
@@ -60,7 +61,15 @@ public class ShiftingMatchKeyManager
                             }
                         } );
             } else {
-                logger.info( "Incoming set does not provide its record identifiers, cannot look up previous matches" );
+                if ( updatingRecordSet != null)
+                {
+                    logger.info(
+                            "Incoming set does not provide all required record identifiers for looking up previous matches. " +
+                                    "Provided processing info was: " +
+                                    ( updatingRecordSet.getProcessingInfoAsJson() != null ?
+                                            updatingRecordSet.getProcessingInfoAsJson().encode()
+                                            : " None, no 'processing' info element provided " ) );
+                }
                 promise.complete( null );
             }
         } else {

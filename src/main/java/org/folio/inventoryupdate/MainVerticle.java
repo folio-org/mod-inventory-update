@@ -39,8 +39,8 @@ public class MainVerticle extends AbstractVerticle {
     router.delete(INVENTORY_UPSERT_HRID_PATH).handler(upsertService::handleInventoryRecordSetDeleteByHRID);
     router.delete(SHARED_INVENTORY_UPSERT_MATCHKEY_PATH).handler(upsertService::handleSharedInventoryRecordSetDeleteByIdentifiers);
 
-    router.get( FETCH_SHARED_INVENTORY_RECORD_SETS_ID_PATH ).handler(fetchService::handleGetInventoryRecordSet);
-    router.get( FETCH_INVENTORY_RECORD_SETS_ID_PATH ).handler(fetchService::handleGetInventoryRecordSet);
+    router.get( FETCH_SHARED_INVENTORY_RECORD_SETS_ID_PATH ).handler(fetchService::handleSharedInventoryRecordSetFetch );
+    router.get( FETCH_INVENTORY_RECORD_SETS_ID_PATH ).handler(fetchService::handleInventoryRecordSetFetchHrid );
 
     router.route("/apidocs/*").handler(StaticHandler.create("apidocs"));
     router.route(HEALTH_CHECK).handler(upsertService::handleHealthCheck);

@@ -1484,7 +1484,7 @@ logger.info("Parent: " + parentResponse.encodePrettily());
                      .put("parentInstances", new JsonArray()
                              .add(new InputInstanceRelationship().setInstanceIdentifierHrid( "001" ).getJson() ))
                      .put("childInstances", new JsonArray()
-                             .add(new InputInstanceRelationship().setInstanceIdentifierHrid( "002" )))));
+                             .add(new InputInstanceRelationship().setInstanceIdentifierHrid( "002" ).getJson()))));
 
      fetchRecordSetFromUpsertHrid( "1" );
      fetchRecordSetFromUpsertHrid (newInstance.getJsonObject( "instance" ).getString( "id" ));
@@ -1496,7 +1496,10 @@ logger.info("Parent: " + parentResponse.encodePrettily());
     String instanceHrid1 = "1";
     JsonObject newInstance = upsertByHrid(new JsonObject()
             .put("instance",
-                    new InputInstance().setTitle("InputInstance 1").setInstanceTypeId("12345").setHrid(instanceHrid1).getJson())
+                    new InputInstance().setTitle("InputInstance 1")
+                            .setInstanceTypeId("12345")
+                            .setHrid(instanceHrid1)
+                            .setMatchKeyAsString( "inputinstance_1" ).getJson())
             .put("holdingsRecords", new JsonArray()
                     .add(new InputHoldingsRecord().setHrid("HOL-001").setPermanentLocationId(LOCATION_ID_1).setCallNumber("test-cn-1").getJson()
                             .put("items", new JsonArray()
@@ -1512,6 +1515,28 @@ logger.info("Parent: " + parentResponse.encodePrettily());
     fetchRecordSetFromUpsertSharedInventory (newInstance.getJsonObject( "instance" ).getString( "id" ));
     getJsonObjectById( MainVerticle.FETCH_SHARED_INVENTORY_RECORD_SETS_ID_PATH, "2", 404 );
 
+  }
+
+  @Test
+  public void cannotFetchFromUpsertSharedInventoryApiIfInstanceHasNoMatchKey (TestContext testContext) {
+    String instanceHrid1 = "1";
+    JsonObject newInstance = upsertByHrid(new JsonObject()
+            .put("instance",
+                    new InputInstance().setTitle("InputInstance 1")
+                            .setInstanceTypeId("12345")
+                            .setHrid(instanceHrid1)
+                            .getJson())
+            .put("holdingsRecords", new JsonArray()
+                    .add(new InputHoldingsRecord().setHrid("HOL-001").setPermanentLocationId(LOCATION_ID_1).setCallNumber("test-cn-1").getJson()
+                            .put("items", new JsonArray()
+                                    .add(new InputItem().setHrid("ITM-001").setBarcode("BC-001").getJson())
+                                    .add(new InputItem().setHrid("ITM-002").setBarcode("BC-002").getJson())))
+                    .add(new InputHoldingsRecord().setHrid("HOL-002").setPermanentLocationId(LOCATION_ID_1).setCallNumber("test-cn-2").getJson()
+                            .put("items", new JsonArray()
+                                    .add(new InputItem().setHrid("ITM-003").setBarcode("BC-003").getJson())))));
+
+
+    getJsonObjectById( MainVerticle.FETCH_SHARED_INVENTORY_RECORD_SETS_ID_PATH, "1", 400 );
   }
 
 

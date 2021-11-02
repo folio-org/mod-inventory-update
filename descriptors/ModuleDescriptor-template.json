@@ -152,11 +152,6 @@
   ],
   "permissionSets": [
     {
-      "permissionName": "instance-storage-match.instances.item.put",
-      "displayName": "instance storage match on matchkey - create or update instance by matchkey",
-      "description": "create or update instance in storage depending on matchkey already existing or not"
-    },
-    {
       "permissionName": "inventory-upsert-hrid.item.put",
       "displayName": "Inventory upsert based on HRID - create or update existing records",
       "description": "Create or update instances, holdings and items based on the Instance HRID"
@@ -181,21 +176,10 @@
       "displayName": "inventory Update module - all permissions",
       "description": "Set of permissions required to use all APIs of the inventory update module",
       "subPermissions": [
-        "instance-storage-match.instances.item.put",
         "inventory-upsert-hrid.item.put",
         "inventory-upsert-hrid.item.get",
         "shared-inventory-upsert-matchkey.item.put",
         "shared-inventory-upsert-matchkey.item.get"
-      ]
-    },
-    {
-      "permissionName": "inventory-match.all",
-      "displayName": "inventory Update module - all permissions",
-      "description": "Permission set included for backwards compatibility only",
-      "subPermissions": [
-        "instance-storage-match.instances.item.put",
-        "inventory-upsert-hrid.item.put",
-        "shared-inventory-upsert-matchkey.item.put"
       ]
     }
   ],

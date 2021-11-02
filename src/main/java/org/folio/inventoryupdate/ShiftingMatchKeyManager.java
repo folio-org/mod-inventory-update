@@ -49,7 +49,6 @@ public class ShiftingMatchKeyManager
                                 JsonObject existingInventoryRecordSetJson = recordSet.result();
                                 if (existingInventoryRecordSetJson != null) {
                                     secondaryExistingRecordSet = new InventoryRecordSet( existingInventoryRecordSetJson );
-                                    // todo: optimistic locking
                                     UpdatePlanSharedInventory.removeIdentifierFromInstanceForInstitution(
                                             recordIdentifiers, secondaryExistingRecordSet.getInstance().asJson() );
                                     secondaryExistingRecordSet.getInstance().setTransition( InventoryRecord.Transaction.UPDATE );

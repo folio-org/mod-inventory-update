@@ -7,6 +7,7 @@ import io.vertx.core.json.JsonObject;
 
 public class Instance extends InventoryRecord {
 
+    public static final String MATCH_KEY = "matchKey";
     List<HoldingsRecord> holdingsRecords = new ArrayList<>();
     boolean holdingsIgnored = false;
 
@@ -36,7 +37,7 @@ public class Instance extends InventoryRecord {
     }
 
     public String getMatchKey () {
-        return jsonRecord.getString( "matchKey" );
+        return jsonRecord.getString( MATCH_KEY );
     }
 
     public void ignoreHoldings(boolean ignore) {

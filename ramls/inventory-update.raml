@@ -20,6 +20,7 @@ types:
   shared-index-deletion: !include shared-index-deletion.json
   upsert-response-200: !include upsert-response-200.json
   upsert-response-422: !include upsert-response-422.json
+  get-recordset-response: !include get-recordset-response.json
 
 resourceTypes:
   collection-item: !include raml-util/rtypes/item-collection.raml
@@ -61,6 +62,18 @@ traits:
         500:
           description: "Error during delete by HRID"
 
+/inventory-upsert-hrid/fetch/{id}:
+  displayName: Retrieve single Inventory record set either by Instance UUID or HRID
+  get:
+    responses:
+       200:
+         description: "Inventory record set found"
+         body:
+            application/json:
+                type: get-recordset-response
+
+
+
 /shared-inventory-upsert-matchkey:
   displayName: Create, update, "delete" instance, replace its holdings and items, based on instance match key
   put:
@@ -97,10 +110,13 @@ traits:
         500:
           description: "Error during delete by institution ID and record identifier"
 
-/instance-storage-match:
-  displayName: Instance create or update by match key (being deprecated)
-  /instances:
-    put:
-        body:
+/shared-inventory-upsert-matchkey/fetch/{id}:
+  displayName: Retrieve single Inventory record set either by Instance UUID or HRID
+  get:
+    responses:
+       200:
+         description: "Inventory record set found"
+         body:
             application/json:
-                type: instance
+                type: get-recordset-response
+

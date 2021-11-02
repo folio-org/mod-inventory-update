@@ -8,6 +8,9 @@ import java.util.Map;
 import io.vertx.core.json.JsonObject;
 
 public class HoldingsRecord extends InventoryRecord {
+
+    public static final String INSTANCE_ID = "instanceId";
+    public static final String PERMANENT_LOCATION_ID = "permanentLocationId";
     List<Item> items = new ArrayList<>();
 
     public HoldingsRecord(JsonObject holdingsRecord) {
@@ -35,7 +38,7 @@ public class HoldingsRecord extends InventoryRecord {
     }
 
     public String getInstanceId () {
-        return jsonRecord.getString("instanceId");
+        return jsonRecord.getString(INSTANCE_ID);
     }
 
     public boolean hasInstanceId () {
@@ -43,7 +46,7 @@ public class HoldingsRecord extends InventoryRecord {
     }
 
     public void setInstanceId (String uuid) {
-        jsonRecord.put("instanceId", uuid);
+        jsonRecord.put(INSTANCE_ID, uuid);
     }
 
     public void addItem(Item item) {
@@ -58,7 +61,7 @@ public class HoldingsRecord extends InventoryRecord {
     }
 
     public String getPermanentLocationId () {
-        return jsonRecord.getString("permanentLocationId");
+        return jsonRecord.getString(PERMANENT_LOCATION_ID);
     }
 
     public String getInstitutionId (Map<String,String> institutionsMap) {

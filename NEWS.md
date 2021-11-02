@@ -1,3 +1,9 @@
+## 2.0.0 SNAPSHOT
+
+* No longer provides `instance-storage-match` API (MODINV-16)
+* Provides `shared-inventory-upsert-matchkey 1.2` with GET API (MODINVUP-15)
+* Provides `inventory-upsert-hrid 1.1` with GET API (MODINVUP-15)
+
 ## 1.3.0 2021-10-19
 
 * Provides `/admin/health` end-point (MODINVUP-12)

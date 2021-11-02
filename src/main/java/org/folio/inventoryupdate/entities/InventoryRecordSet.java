@@ -26,7 +26,8 @@ public class InventoryRecordSet extends JsonRepresentation {
     public static final String INSTANCE = "instance";
     public static final String HOLDINGS_RECORDS = "holdingsRecords";
     public static final String ITEMS = "items";
-    public static final String HRID = "hrid";
+    public static final String HRID_IDENTIFIER_KEY = "hrid";
+    public static final String UUID_IDENTIFIER_KEY = "uuid";
 
     // supporting data for shared inventory updates
     public static final String PROCESSING = "processing";
@@ -94,14 +95,14 @@ public class InventoryRecordSet extends JsonRepresentation {
                 for (Object object : items) {
                     JsonObject itemJson = (JsonObject) object;
                     Item item = new Item(itemJson);
-                    String itemHrid = itemJson.getString(HRID);
+                    String itemHrid = itemJson.getString( HRID_IDENTIFIER_KEY );
                     if (itemHrid != null && !itemHrid.isEmpty()) {
                         itemsByHRID.put(itemHrid, item);
                     }
                     holdingsRecord.addItem(item);
                     allItems.add(item);
                 }
-                String holdingsRecordHrid = holdingsRecordJson.getString(HRID);
+                String holdingsRecordHrid = holdingsRecordJson.getString( HRID_IDENTIFIER_KEY );
                 if (holdingsRecordHrid != null && !holdingsRecordHrid.isEmpty()) {
                     holdingsRecordsByHRID.put(holdingsRecordHrid, holdingsRecord);
                 }

@@ -1,0 +1,120 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "description": "Response on a successful upsert request",
+  "type": "object",
+  "properties": {
+    "instance": {
+      "type": "object",
+      "description": "The Instance, the bibliographic part, of this Inventory record set as it was pushed to Inventory storage",
+      "$ref": "instance.json"
+    },
+    "holdingsRecords": {
+      "type": "array",
+      "description": "Collection of holdings of the Instance, each holdings record with embedded items as it was pushed to Inventory storage",
+      "items": {
+        "type": "object",
+        "$ref": "holdings-record.json"
+      }
+    },
+    "instanceRelations": {
+      "type": "object",
+      "description": "Collection of the Instance's relations to other instances, like parent-child relations or title successions",
+      "parentInstances": {
+        "type": "array",
+        "description": "The Instance's relations to parent instances",
+        "items": {
+          "type": "object",
+          "properties": {
+            "subInstanceId": {
+              "type": "string",
+              "description": "UUID of the child instance"
+            },
+            "superInstanceId": {
+              "type": "string",
+              "description": "UUID of the parent instance"
+            },
+            "instanceRelationshipTypeId": {
+              "type": "string",
+              "description": "UUID of the type of relations - ie a multipart monograph relation"
+            },
+            "CREATE_PROVISIONAL_INSTANCE": {
+              "type": "object",
+              "description": "Provisional Instance required to create this Instance relationship",
+              "$ref": "instance.json"
+            }
+          }
+        }
+      },
+      "childInstances": {
+        "type": "array",
+        "description": "The Instance's relations to child instances",
+        "items": {
+          "type": "object",
+          "properties": {
+            "subInstanceId": {
+              "type": "string",
+              "description": "UUID of the child instance"
+            },
+            "superInstanceId": {
+              "type": "string",
+              "description": "UUID of the parent instance"
+            },
+            "instanceRelationshipTypeId": {
+              "type": "string",
+              "description": "UUID of the type of relations - ie a multipart monograph relation"
+            },
+            "CREATE_PROVISIONAL_INSTANCE": {
+              "type": "object",
+              "description": "Provisional Instance required to create this Instance relationship",
+              "$ref": "instance.json"
+            }
+          }
+        }
+      },
+      "precedingTitles": {
+        "type": "array",
+        "description": "The Instance's relation to preceding title(s)",
+        "items": {
+          "type": "object",
+          "properties": {
+            "succeedingInstanceId": {
+              "type": "string",
+              "description": "UUID of the succeeding title (this Instance)"
+            },
+            "precedingInstanceId": {
+              "type": "string",
+              "description": "UUID of the preceding title"
+            },
+            "CREATE_PROVISIONAL_INSTANCE": {
+              "type": "object",
+              "description": "Provisional Instance required to create this Instance relationship",
+              "$ref": "instance.json"
+            }
+          }
+        }
+      },
+      "succeedingTitles": {
+        "type": "array",
+        "description": "The Instance's relation to succeeding title(s)",
+        "items": {
+          "type": "object",
+          "properties": {
+            "succeedingInstanceId": {
+              "type": "string",
+              "description": "UUID of the succeeding title"
+            },
+            "precedingInstanceId": {
+              "type": "string",
+              "description": "UUID of the preceding title (this Instance)"
+            },
+            "CREATE_PROVISIONAL_INSTANCE": {
+              "type": "object",
+              "description": "Provisional Instance required to create this Instance relationship",
+              "$ref": "instance.json"
+            }
+          }
+        }
+      }
+    }
+  }
+}

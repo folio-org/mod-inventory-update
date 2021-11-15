@@ -15,7 +15,9 @@ populating the storage with Instances, holdings and items according to one of mu
 Inventory Update so far supports two different update schemes implemented by two different end-points, which both
 accepts PUT requests with a payload of an [Inventory Record Set JSON body](ramls/inventory-record-set.json). An
 inventory record set is a set of records including an Inventory Instance, and an array of holdings records with embedded
-arrays of items
+arrays of items.
+
+Refer to the [API documentation](#api-documentation) section, and to the following explanation sections:
 
 ### `/inventory-upsert-hrid`
 
@@ -185,7 +187,7 @@ The ID provided on the API path is the Instance HRID. A request like
 It's possible to take the response from the `/inventory-upsert-hrid/fetch` and PUT it back to
 the `/inventory-upsert-hrid` API.
 
-There may not be obvious use cases for it but for what it's worth, the response JSON can be edited by, say, setting 
+There may not be obvious use cases for it but for what it's worth, the response JSON can be edited by, say, setting
 "editions" to ["First edition"] or adding one more Item, and the record set JSON can then be PUT back
 to `/inventory-upsert-hrid` to perform the updates.
 
@@ -195,7 +197,7 @@ The response JSON above contains none of the primary key fields, `id`, or refere
 course deals with the UUIDs).
 
 The client of the API is responsible for knowing what the HRIDs for the records are and for ensuring that the
-provided IDs are indeed unique. 
+provided IDs are indeed unique.
 
 #### Fetching an Inventory record set from `shared-inventory-upsert-matchkey/fetch`
 

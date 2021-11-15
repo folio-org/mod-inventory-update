@@ -17,7 +17,7 @@ accepts PUT requests with a payload of an [Inventory Record Set JSON body](ramls
 inventory record set is a set of records including an Inventory Instance, and an array of holdings records with embedded
 arrays of items.
 
-Refer to the [API documentation](api-documentation) section, and to the following explanation sections:
+Refer to the [API documentation](#api-documentation) section, and to the following explanation sections:
 
 ### `/inventory-upsert-hrid`
 

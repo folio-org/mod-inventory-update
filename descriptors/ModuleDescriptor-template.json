@@ -148,6 +148,14 @@
     {
       "id": "instance-preceding-succeeding-titles",
       "version": "0.2"
+    },
+    {
+      "id": "shelf-locations",
+      "version": "1.1"
+    },
+    {
+      "id": "locations",
+      "version": "3.0"
     }
   ],
   "permissionSets": [

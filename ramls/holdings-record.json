@@ -26,6 +26,7 @@
       "uniqueItems": true
     },
     "instanceId": {
+      "description": "Inventory instance identifier, a UUID",
       "type": "string",
       "$ref": "uuid.json"
     },
@@ -40,6 +41,7 @@
       "$ref": "uuid.json"
     },
     "electronicAccess": {
+      "description": "List of electronic access items",
       "type": "array",
       "items": {
         "type": "object",
@@ -137,16 +139,18 @@
       "description": "Records information regarding how long we have agreed to keep something."
     },
     "digitizationPolicy": {
+      "description": "Records information regarding digitization aspects",
       "type": "string"
     },
     "holdingsStatements": {
+      "description": "Notes about action, copy, binding etc.",
       "type": "array",
       "items": {
         "type": "object",
         "properties": {
           "statement": {
             "type": "string",
-            "description": "Specifices the exact content to which the library has access, typically for continuing publications."
+            "description": "Specifies the exact content to which the library has access, typically for continuing publications."
           },
           "note": {
             "type": "string",
@@ -156,6 +160,7 @@
       }
     },
     "holdingsStatementsForIndexes": {
+      "description": "Holdings record indexes statements",
       "type": "array",
       "items": {
         "type": "object",
@@ -172,6 +177,7 @@
       }
     },
     "holdingsStatementsForSupplements": {
+      "description": "Holdings record supplements statements",
       "type": "array",
       "items": {
         "type": "object",
@@ -196,6 +202,7 @@
       "description": "Text (Number)"
     },
     "receivingHistory": {
+      "description": "Receiving history of holdings record",
       "type": "object",
       "properties": {
         "displayType": {
@@ -204,7 +211,7 @@
         },
         "entries": {
           "type": "array",
-          "description": ".",
+          "description": "Entries of receiving history",
           "items": {
             "type": "object",
             "properties": {
@@ -244,9 +251,9 @@
       "readonly": true
     },
     "items": {
+        "description": "Inventory items for this holdings record",
         "type": "array",
         "items": {
-            "description": "Inventory items for this holdings record",
             "$ref": "item.json"
         }
     }

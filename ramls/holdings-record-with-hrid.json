@@ -150,7 +150,7 @@
         "properties": {
           "statement": {
             "type": "string",
-            "description": "Specifices the exact content to which the library has access, typically for continuing publications."
+            "description": "Specifies the exact content to which the library has access, typically for continuing publications."
           },
           "note": {
             "type": "string",
@@ -202,7 +202,7 @@
       "description": "Text (Number)"
     },
     "receivingHistory": {
-      "description": "Holdings record supplements statements",
+      "description": "Receiving history of holdings record",
       "type": "object",
       "properties": {
         "displayType": {

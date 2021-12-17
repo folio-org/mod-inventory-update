@@ -225,6 +225,25 @@ The `_version` fields for optimistic locking can be seen in the output above. Th
 to the upsert API. As the service receives the record set JSON in a PUT request, it will pull new versions of the
 entities from storage and get the latest version numbers from that anyway.
 
+## Interfaces implemented by Inventory Update
+
+The most recently released versions are marked in `code`. 
+
+| API                                   | API version | Implementing modules                           | Implementing versions ¹                  | Breaking change         | 
+|---------------------------------------|-------------|------------------------------------------------|------------------------------------------|-------------------------|
+| `/instance-storage-match`             |             | mod-inventory-match, mod-inventory-update      |                                          |                         |
+|                                       | 2.1         | mod-inventory-match                            | 2.4.3                                    |                         |
+|                                       | 3.0         | mod-inventory-match                            | 3.0.0                                    | Match-key logic changes |
+|                                       | `3.1 `      | mod-inventory-match<br/>`mod-inventory-update` | 3.1.0 (last version)<br/>1.0.0 - `1.3.0` |                         |
+|                                       | Removal     | mod-inventory-update                           | 2.0.0-SNAPSHOT                           |                         |
+| `/inventory-upsert-hrid`              |             | mod-inventory-update                           |                                          |                         |
+|                                       | `1.0`       | `mod-inventory-update`                         | 1.2.0 - `1.3.0`<br/>2.0.0-SNAPSHOT       |                         | 
+|                                       | 1.1         | mod-inventory-update                           | 2.0.0-SNAPSHOT                           |                         |
+| `/shared-inventory-upsert-matchkey`   | 1.0         | mod-inventory-update                           | 1.0.0                                    |                         |
+|                                       | `1.1`       | `mod-inventory-update`                         | 1.2.0 - `1.3.0`<br/>2.0.0-SNAPSHOT       |                         |
+
+[ 1 ] The version of the module where the interface version was implemented or the module terminated an implementation of the interface.
+
 ## Planned developments
 
 * Support handling of bound-with and analytics relationships. This is currently being developed with German GBV as the

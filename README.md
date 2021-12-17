@@ -242,7 +242,7 @@ The most recently released versions are marked in `code`.
 | `/shared-inventory-upsert-matchkey`   | 1.0         | mod-inventory-update                           | 1.0.0                                    |                         |
 |                                       | `1.1`       | `mod-inventory-update`                         | 1.2.0 - `1.3.0`<br/>2.0.0-SNAPSHOT       |                         |
 
-[ 1 ] The version of the module where the interface version was implemented or the module terminated an implementation of the interface.
+[ 1 ] The versions of the module where the interface version is implemented or where the module has ended the implementation of the interface altogether.
 
 ## Planned developments
 

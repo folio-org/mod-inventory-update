@@ -23,7 +23,7 @@
         "institutionId":  {
           "type": "string",
           "description": "The FOLIO UUID of the institution that provided the source records for the update; necessary for certain clean-up tasks in a shared inventory",
-          "$ref": "uuid.json"
+          "$ref": "raml-util/schemas/uuid.schema"
         },
         "localIdentifier": {
           "type": "string",
@@ -32,7 +32,7 @@
         "identifierTypeId": {
           "type": "string",
           "description": "The FOLIO UUID for the identifier type for the local record IDs coming from the given library",
-          "$ref": "uuid.json"
+          "$ref": "raml-util/schemas/uuid.schema"
 
         }
       }

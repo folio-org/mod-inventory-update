@@ -6,7 +6,7 @@
     "institutionId": {
       "type": "string",
       "description": "UUID representing the institution who's contributions to a shared Instance should be removed",
-      "$ref": "uuid.json"
+      "$ref": "raml-util/schemas/uuid.schema"
     },
     "localIdentifier": {
       "type": "string",
@@ -19,7 +19,7 @@
     "identifierTypeId": {
       "type": "string",
       "description": "ID for the identifier type attached to all identifier values from the institution who's contributions to a shared Instance should be removed",
-      "$ref": "uuid.json"
+      "$ref": "raml-util/schemas/uuid.schema"
     }
   },
   "oneOf": [

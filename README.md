@@ -229,20 +229,18 @@ entities from storage and get the latest version numbers from that anyway.
 
 The most recently released versions are marked in `code`. 
 
-| Interface                                   | Interface version | Implementing modules                           | Implementing versions ¹                  | Breaking change         | 
-|---------------------------------------|-------------|------------------------------------------------|------------------------------------------|-------------------------|
-| `/instance-storage-match`             |             | mod-inventory-match, mod-inventory-update      |                                          |                         |
-|                                       | 2.1         | mod-inventory-match                            | 2.4.3                                    |                         |
-|                                       | 3.0         | mod-inventory-match                            | 3.0.0                                    | Match-key logic changes |
-|                                       | `3.1 `      | mod-inventory-match<br/>`mod-inventory-update` | 3.1.0 (last version)<br/>1.0.0 - `1.3.0` |                         |
-|                                       | Removal     | mod-inventory-update                           | 2.0.0-SNAPSHOT                           |                         |
-| `/inventory-upsert-hrid`              |             | mod-inventory-update                           |                                          |                         |
-|                                       | `1.0`       | `mod-inventory-update`                         | 1.2.0 - `1.3.0`<br/>2.0.0-SNAPSHOT       |                         | 
-|                                       | 1.1         | mod-inventory-update                           | 2.0.0-SNAPSHOT                           |                         |
-| `/shared-inventory-upsert-matchkey`   | 1.0         | mod-inventory-update                           | 1.0.0                                    |                         |
-|                                       | `1.1`       | `mod-inventory-update`                         | 1.2.0 - `1.3.0`<br/>2.0.0-SNAPSHOT       |                         |
+| Interface                           | Interface version | Breaking changes         | Implementing modules                           | Implementation versions ¹                |  
+|-------------------------------------|-------------------|--------------------------|------------------------------------------------|------------------------------------------|
+| `/instance-storage-match`           | 2.1               |                          | mod-inventory-match                            | 2.4.3                                    |
+|                                     | 3.0               | Changes to the match-key | mod-inventory-match                            | 3.0.0                                    |
+|                                     | `3.1 `            |                          | mod-inventory-match<br/>`mod-inventory-update` | 3.1.0 (last version)<br/>1.0.0 - `1.3.0` |
+|                                     | Removed           |                          | mod-inventory-update                           | 2.0.0-SNAPSHOT                           |
+| `/inventory-upsert-hrid`            | `1.0`             |                          | `mod-inventory-update`                         | 1.2.0 - `1.3.0`                          | 
+|                                     | 1.1               |                          | mod-inventory-update                           | 2.0.0-SNAPSHOT                           |
+| `/shared-inventory-upsert-matchkey` | 1.0               |                          | mod-inventory-update                           | 1.0.0                                    |
+|                                     | `1.1`             |                          | `mod-inventory-update`                         | 1.2.0 - `1.3.0`<br/>2.0.0-SNAPSHOT       |
 
-[ 1 ] The version of the module where the interface version was implemented or the module terminated an implementation of the interface.
+[ 1 ] All the versions of the module that implement the interface version, or the version where the module stopped implementing the interface.
 
 ## Planned developments
 

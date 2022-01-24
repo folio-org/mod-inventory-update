@@ -73,7 +73,7 @@
           "typeId": {
             "type": "string",
             "description": "Effective Call Number Type Id is the call number type id of the item, if available, otherwise that of the holding.",
-            "$ref": "uuid.json",
+            "$ref": "raml-util/schemas/uuid.schema",
             "readonly": true
           }
         },
@@ -268,7 +268,7 @@
       "effectiveLocationId": {
         "type": "string",
         "description": "Read only current home location for the item.",
-        "$ref": "uuid.json",
+        "$ref": "raml-util/schemas/uuid.schema",
         "readonly": true
       },
       "electronicAccess": {
@@ -344,12 +344,12 @@
           "servicePointId": {
             "type": "string",
             "description": "Service point ID being used by a staff member when item was scanned in Check in app.",
-            "$ref": "uuid.json"
+            "$ref": "raml-util/schemas/uuid.schema"
           },
           "staffMemberId": {
             "type": "string",
             "description": "ID a staff member who scanned the item",
-            "$ref": "uuid.json"
+            "$ref": "raml-util/schemas/uuid.schema"
           }
         }
       }

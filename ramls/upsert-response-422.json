@@ -361,6 +361,7 @@
             "description": "A short error message that might be used by the client to count similar error occurrences"
           },
           "message": {
+            "description": "Error message returned by Inventory storage",
             "anyOf": [
               {
                 "type": "string",

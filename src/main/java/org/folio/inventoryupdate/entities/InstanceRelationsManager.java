@@ -587,9 +587,9 @@ public class InstanceRelationsManager extends JsonRepresentation {
     public void writeToStats(UpdateMetrics metrics) {
         if (! getInstanceToInstanceRelations().isEmpty()) {
             for ( InstanceToInstanceRelation record : getInstanceToInstanceRelations() ) {
-                logger.info("Record: " + record.jsonRecord.encode());
-                logger.info("Transaction: " + record.getTransaction());
-                logger.info("Entity type: " + record.entityType);
+                logger.debug("Record: " + record.jsonRecord.encode());
+                logger.debug("Transaction: " + record.getTransaction());
+                logger.debug("Entity type: " + record.entityType);
                 if ( !record.getTransaction().equals( InventoryRecord.Transaction.NONE ) ) {
                     metrics.entity( record.entityType ).transaction( record.transaction ).outcomes.increment(
                             record.getOutcome() );

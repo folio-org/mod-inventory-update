@@ -10,8 +10,6 @@ import org.folio.inventoryupdate.entities.RecordIdentifiers;
 import org.folio.inventoryupdate.entities.InventoryRecordSet;
 import org.folio.okapi.common.OkapiClient;
 
-import io.vertx.core.http.HttpMethod;
-import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.RoutingContext;
 
@@ -22,8 +20,6 @@ import io.vertx.ext.web.RoutingContext;
  */
 public class InventoryUpdateService {
   private final Logger logger = LoggerFactory.getLogger("inventory-update");
-
-  private static final String INSTANCE_STORAGE_PATH = "/instance-storage/instances";
 
   private static final String LF = System.lineSeparator();
 
@@ -60,16 +56,20 @@ public class InventoryUpdateService {
   }
 
   public void handleInventoryUpsertByHRID(RoutingContext routingCtx) {
-    if (contentTypeIsJson(routingCtx)) {
-      JsonObject incomingJson = getIncomingJsonBody(routingCtx);
-      if (InventoryRecordSet.isValidInventoryRecordSet(incomingJson)) {
-        InventoryRecordSet incomingSet = new InventoryRecordSet(incomingJson);
-        UpdatePlan updatePlan = UpdatePlanAllHRIDs.getUpsertPlan(incomingSet);
-        runPlan(updatePlan, routingCtx);
-      } else {
-        responseError(routingCtx, 400, "Did not recognize input as an Inventory record set: "+ incomingJson.encodePrettily());
-      }
+    if (! contentTypeIsJson(routingCtx)) {
+      return;
     }
+    JsonObject incomingJson = getIncomingJsonBody(routingCtx);
+    if (incomingJson == null) {
+      return;
+    }
+    if (! InventoryRecordSet.isValidInventoryRecordSet(incomingJson)) {
+      responseError(routingCtx, 400, "Did not recognize input as an Inventory record set: " + incomingJson.encodePrettily());
+      return;
+    }
+    InventoryRecordSet incomingSet = new InventoryRecordSet(incomingJson);
+    UpdatePlan updatePlan = UpdatePlanAllHRIDs.getUpsertPlan(incomingSet);
+    runPlan(updatePlan, routingCtx);
   }
 
   public void handleInventoryRecordSetDeleteByHRID(RoutingContext routingCtx) {

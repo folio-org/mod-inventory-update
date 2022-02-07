@@ -1,14 +1,12 @@
 package org.folio.inventoryupdate;
 
-import io.vertx.core.CompositeFuture;
 import io.vertx.core.Future;
 import io.vertx.core.Promise;
-import io.vertx.core.impl.logging.Logger;
-import io.vertx.core.impl.logging.LoggerFactory;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.RoutingContext;
 import org.folio.inventoryupdate.entities.InstanceRelationsManager;
+import org.folio.okapi.common.GenericCompositeFuture;
 import org.folio.okapi.common.OkapiClient;
 
 import java.util.ArrayList;
@@ -33,7 +31,6 @@ import static org.folio.inventoryupdate.entities.InstanceTitleSuccession.SUCCEED
 
 public class InventoryFetchService
 {
-    private final Logger logger = LoggerFactory.getLogger("inventory-update");
     private static final String PK = "id";
 
     /**
@@ -266,7 +263,7 @@ public class InventoryFetchService
                 relatedIds.add(relation.getString( SUCCEEDING_INSTANCE_ID ));
             }
         }
-        List<Future> instanceFutures = new ArrayList<>();
+        List<Future<JsonObject>> instanceFutures = new ArrayList<>();
         for (String relatedInstanceId : relatedIds) {
             QueryByUUID query = new QueryByUUID( relatedInstanceId );
             instanceFutures.add(InventoryStorage.lookupInstance( client, query ));
@@ -275,7 +272,7 @@ public class InventoryFetchService
             promise.complete(new HashMap<>());
         } else
         {
-            CompositeFuture.all( instanceFutures ).onComplete( relatedInstances -> {
+            GenericCompositeFuture.all( instanceFutures ).onComplete( relatedInstances -> {
                 if ( relatedInstances.succeeded() )
                 {
                     if ( relatedInstances.result().list() != null )

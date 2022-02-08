@@ -7,7 +7,6 @@ import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.RoutingContext;
 import org.folio.inventoryupdate.test.fakestorage.entitites.InventoryRecord;
 
-import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
@@ -33,7 +32,6 @@ public abstract class RecordStorage {
     List<ForeignKey> masterEntities = new ArrayList<>();
 
     protected FakeInventoryStorage fakeStorage;
-    protected String resultSetName = null;
 
     protected final Map<String, InventoryRecord> records = new HashMap<>();
     protected final Logger logger = LoggerFactory.getLogger("fake-inventory-storage");

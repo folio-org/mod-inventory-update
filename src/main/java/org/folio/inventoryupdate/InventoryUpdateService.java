@@ -50,7 +50,7 @@ public class InventoryUpdateService {
   }
 
   public void handleSharedInventoryRecordSetDeleteByIdentifiers(RoutingContext routingCtx) {
-    logger.info("Handling delete request for shared index " + routingCtx.getBodyAsString());
+    logger.debug("Handling delete request for shared index " + routingCtx.getBodyAsString());
     if (contentTypeIsJson(routingCtx)) {
       JsonObject deletionJson = getIncomingJsonBody(routingCtx);
       RecordIdentifiers deletionIdentifiers = RecordIdentifiers.identifiersFromDeleteRequestJson(deletionJson);

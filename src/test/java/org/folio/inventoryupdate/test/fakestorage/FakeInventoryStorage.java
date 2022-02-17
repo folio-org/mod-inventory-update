@@ -1,12 +1,10 @@
 package org.folio.inventoryupdate.test.fakestorage;
 
-import com.jayway.restassured.RestAssured;
-import com.jayway.restassured.response.Response;
 import io.vertx.core.json.JsonObject;
-
+import io.restassured.RestAssured;
+import io.restassured.response.Response;
 import io.vertx.core.Vertx;
 import io.vertx.core.http.HttpServerOptions;
-import io.vertx.ext.unit.Async;
 import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.handler.BodyHandler;
@@ -31,7 +29,7 @@ public class FakeInventoryStorage {
     public InstanceRelationshipStorage instanceRelationshipStorage = new InstanceRelationshipStorage();
     public PrecedingSucceedingStorage precedingSucceedingStorage = new PrecedingSucceedingStorage();
 
-    public FakeInventoryStorage(Vertx vertx, TestContext testContext, Async async) {
+    public FakeInventoryStorage(Vertx vertx, TestContext testContext) {
         locationStorage.attachToFakeStorage(this);
         instanceStorage.attachToFakeStorage(this);
         holdingsStorage.attachToFakeStorage(this);
@@ -73,16 +71,9 @@ public class FakeInventoryStorage {
         router.delete(LOCATION_STORAGE_PATH).handler(locationStorage::deleteAll);
         HttpServerOptions so = new HttpServerOptions().setHandle100ContinueAutomatically(true);
         vertx.createHttpServer(so)
-                .requestHandler(router::accept)
-                .listen(
-                        PORT_INVENTORY_STORAGE,
-                        result -> {
-                            if (result.failed()) {
-                                testContext.fail(result.cause());
-                            }
-                            async.complete();
-                        }
-                );
+                .requestHandler(router)
+                .listen(PORT_INVENTORY_STORAGE)
+                .onComplete(testContext.asyncAssertSuccess());
         RestAssured.port = FakeInventoryStorage.PORT_INVENTORY_STORAGE;
     }
 
@@ -148,11 +139,11 @@ public class FakeInventoryStorage {
     }
 
     public static void delete(String storagePath, String id, int expectedResponseCode) {
-        Response response = RestAssured.given()
+        RestAssured.given()
                 .delete(storagePath + "/" + id)
                 .then()
                 .log().ifValidationFails()
-                .statusCode(expectedResponseCode).extract().response();
+                .statusCode(expectedResponseCode);
 
     }
 

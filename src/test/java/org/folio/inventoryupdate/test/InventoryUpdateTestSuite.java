@@ -1,6 +1,5 @@
 package org.folio.inventoryupdate.test;
 
-import io.vertx.core.impl.logging.Logger;
 import io.vertx.core.json.JsonArray;
 import org.folio.inventoryupdate.MainVerticle;
 import org.folio.inventoryupdate.MatchKey;
@@ -10,15 +9,16 @@ import org.folio.inventoryupdate.test.fakestorage.RecordStorage;
 import org.folio.inventoryupdate.test.fakestorage.entitites.*;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TestName;
 import org.junit.runner.RunWith;
-
-import com.jayway.restassured.RestAssured;
-import com.jayway.restassured.response.Header;
-import com.jayway.restassured.response.Response;
-
+import io.restassured.RestAssured;
+import io.restassured.http.Header;
+import io.restassured.response.Response;
 import io.vertx.core.DeploymentOptions;
 import io.vertx.core.Vertx;
+import io.vertx.core.impl.logging.Logger;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.unit.Async;
 import io.vertx.ext.unit.TestContext;
@@ -58,29 +58,31 @@ public class InventoryUpdateTestSuite {
   public static final String INSTANCE_RELATIONSHIP = org.folio.inventoryupdate.entities.InventoryRecord.Entity.INSTANCE_RELATIONSHIP.name();
   public static final String PROVISIONAL_INSTANCE = "PROVISIONAL_INSTANCE";
 
-
   private final Logger logger = io.vertx.core.impl.logging.LoggerFactory.getLogger("InventoryUpdateTestSuite");
+  @Rule
+  public final TestName name = new TestName();
 
   public InventoryUpdateTestSuite() {}
 
   @Before
   public void setUp(TestContext testContext) {
+    logger.debug("setUp " + name.getMethodName());
+
     vertx = Vertx.vertx();
 
     // Register the testContext exception handler to catch assertThat
     vertx.exceptionHandler(testContext.exceptionHandler());
 
-    deployService(testContext, testContext.async());
+    deployService(testContext);
   }
 
-  private void deployService(TestContext testContext, Async async) {
+  private void deployService(TestContext testContext) {
     System.setProperty("port", String.valueOf(PORT_INVENTORY_UPDATE));
-    vertx.deployVerticle(MainVerticle.class.getName(), new DeploymentOptions(),
-            r -> {
-              testContext.assertTrue(r.succeeded());
-              fakeInventoryStorage = new FakeInventoryStorage(vertx, testContext, async);
-              createReferenceRecords();
-            });
+    vertx.deployVerticle(MainVerticle.class.getName(), new DeploymentOptions())
+    .onComplete(testContext.asyncAssertSuccess(x -> {
+      fakeInventoryStorage = new FakeInventoryStorage(vertx, testContext);
+      createReferenceRecords();
+    }));
   }
 
   public void createReferenceRecords () {

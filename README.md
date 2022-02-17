@@ -229,6 +229,7 @@ entities from storage and get the latest version numbers from that anyway.
 
 The most recently released versions are marked in `code`. 
 
+
 | Interface                           | Interface version | Breaking changes         | Implementing modules                           | Implementation versions ¹                |  
 |-------------------------------------|-------------------|--------------------------|------------------------------------------------|------------------------------------------|
 | `/instance-storage-match`           | 2.1               |                          | mod-inventory-match                            | 2.4.3                                    |

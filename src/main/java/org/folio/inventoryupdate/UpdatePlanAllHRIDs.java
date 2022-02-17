@@ -171,9 +171,7 @@ public class UpdatePlanAllHRIDs extends UpdatePlan {
         if (!isDeletion) {
             return getUpdatingRecordSet().getInstanceRelationsController().handleInstanceRelationCreatesIfAny(okapiClient);
         } else {
-            Promise promise = Promise.promise();
-            promise.complete();
-            return promise.future();
+            return Future.succeededFuture();
         }
     }
 

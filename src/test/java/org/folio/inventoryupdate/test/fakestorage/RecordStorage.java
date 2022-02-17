@@ -32,7 +32,6 @@ public abstract class RecordStorage {
     List<ForeignKey> masterEntities = new ArrayList<>();
 
     protected FakeInventoryStorage fakeStorage;
-    protected String resultSetName = null;
 
     protected final Map<String, InventoryRecord> records = new HashMap<>();
     protected final Logger logger = LoggerFactory.getLogger("fake-inventory-storage");

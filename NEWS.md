@@ -1,8 +1,9 @@
-## 2.0.0 SNAPSHOT
+## 2.0.0 2022-02-17
 
-* No longer provides `instance-storage-match` API (MODINV-16)
+* No longer provides `instance-storage-match` API (MODINVUP-16)
 * Provides `shared-inventory-upsert-matchkey 1.2` with GET API (MODINVUP-15)
 * Provides `inventory-upsert-hrid 1.1` with GET API (MODINVUP-15)
+* Upgrades Netty, Vert.x, log4j, drops RMB (MODINVUP-26)
 
 ## 1.3.0 2021-10-19
 

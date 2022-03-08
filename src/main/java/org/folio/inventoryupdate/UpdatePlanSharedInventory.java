@@ -52,7 +52,7 @@ public class UpdatePlanSharedInventory extends UpdatePlan {
     public Future<Void> planInventoryUpdates(OkapiClient okapiClient) {
         Promise<Void> promise = Promise.promise();
         validateIncomingRecordSet(isDeletion ? new JsonObject() : updatingSet.getSourceJson());
-        logger.info((isDeletion ? "Deletion" : "Upsert" ) + ": Look up existing record set ");
+        logger.debug((isDeletion ? "Deletion" : "Upsert" ) + ": Look up existing record set ");
         lookupExistingRecordSet(okapiClient, instanceQuery).onComplete( lookup -> {
             if (lookup.succeeded()) {
                 this.existingSet = lookup.result();

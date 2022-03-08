@@ -5,7 +5,6 @@ import static org.folio.okapi.common.HttpResponse.responseJson;
 
 import java.util.HashMap;
 import java.util.Map;
-
 import io.vertx.core.impl.logging.Logger;
 import io.vertx.core.impl.logging.LoggerFactory;
 import io.vertx.core.json.DecodeException;
@@ -17,6 +16,7 @@ import io.vertx.core.http.HttpMethod;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.RoutingContext;
+import org.folio.okapi.common.WebClientFactory;
 
 /**
  * MatchService looks for an Instance in Inventory that matches an incoming
@@ -95,7 +95,6 @@ public class InventoryUpdateService {
           pushedRecordSetWithStats.put("metrics", updatePlan.getUpdateStats());
           if (updatesDone.succeeded()) {
             responseJson(routingCtx, 200).end(pushedRecordSetWithStats.encodePrettily());
-            okapiClient.close();
           } else {
             pushedRecordSetWithStats.put("errors", updatePlan.getErrors());
             responseJson(routingCtx, 422).end(pushedRecordSetWithStats.encodePrettily());
@@ -136,11 +135,13 @@ public class InventoryUpdateService {
   }
 
   private OkapiClient getOkapiClient (RoutingContext ctx) {
-    OkapiClient client = new OkapiClient(ctx);
+    OkapiClient client = new OkapiClient(WebClientFactory.getWebClient(ctx.vertx()), ctx);
     Map<String, String> headers = new HashMap<>();
     headers.put("Content-type", "application/json");
-    if (ctx.request().getHeader("X-Okapi-Tenant") != null) headers.put("X-Okapi-Tenant", ctx.request().getHeader("X-Okapi-Tenant"));
-    if (ctx.request().getHeader("X-Okapi-Token") != null) headers.put("X-Okapi-Token", ctx.request().getHeader("X-Okapi-Token"));
+    if (ctx.request().getHeader("X-Okapi-Tenant") != null)
+      headers.put("X-Okapi-Tenant", ctx.request().getHeader("X-Okapi-Tenant"));
+    if (ctx.request().getHeader("X-Okapi-Token") != null)
+      headers.put("X-Okapi-Token", ctx.request().getHeader("X-Okapi-Token"));
     headers.put("Accept", "application/json, text/plain");
     client.setHeaders(headers);
     return client;
@@ -266,17 +267,14 @@ public class InventoryUpdateService {
             JsonObject instanceResponseJson = new JsonObject(res.result());
             String instancePrettyString = instanceResponseJson.encodePrettily();
             responseJson(routingCtx, 200).end(instancePrettyString);
-            okapiClient.close();
           } else {
             String message = res.cause().getMessage();
             responseError(routingCtx, 500, "mod-inventory-storage GET failed with " + message);
-            okapiClient.close();
           }
         });
       } else {
         String msg = putResult.cause().getMessage();
         responseError(routingCtx, 500, "mod-inventory-storage PUT failed with " + msg);
-        okapiClient.close();
       }
     });
   }
@@ -292,11 +290,9 @@ public class InventoryUpdateService {
         JsonObject instanceResponseJson = new JsonObject(instanceResult);
         String instancePrettyString = instanceResponseJson.encodePrettily();
         responseJson(ctx, 200).end(instancePrettyString);
-        okapiClient.close();
       } else {
         String msg = postResult.cause().getMessage();
         responseError(ctx, 500, "mod-inventory-storage POST failed with " + msg);
-        okapiClient.close();
       }
     });
   }

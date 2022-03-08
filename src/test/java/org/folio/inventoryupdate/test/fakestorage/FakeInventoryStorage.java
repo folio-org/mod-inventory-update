@@ -73,7 +73,7 @@ public class FakeInventoryStorage {
         router.delete(LOCATION_STORAGE_PATH).handler(locationStorage::deleteAll);
         HttpServerOptions so = new HttpServerOptions().setHandle100ContinueAutomatically(true);
         vertx.createHttpServer(so)
-                .requestHandler(router::accept)
+                .requestHandler(router)
                 .listen(
                         PORT_INVENTORY_STORAGE,
                         result -> {

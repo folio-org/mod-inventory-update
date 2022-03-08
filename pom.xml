@@ -16,9 +16,9 @@
 
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-    <vertx-version>4.0.0</vertx-version>
+    <vertx-version>4.2.5</vertx-version>
     <docker.registry>docker.indexdata.com:5000</docker.registry>
-    <raml-module-builder-version>31.1.0</raml-module-builder-version>
+    <raml-module-builder-version>32.2.5</raml-module-builder-version>
     <ramlfiles_path>${basedir}/ramls/</ramlfiles_path>
   </properties>
 
@@ -31,7 +31,7 @@
     <dependency>
       <groupId>org.folio.okapi</groupId>
       <artifactId>okapi-common</artifactId>
-      <version>3.1.3</version>
+      <version>4.13.0</version>
     </dependency>
     <!-- logging see http://www.slf4j.org/legacy.html -->
     <!-- we use SLF4J for our logging interface -->

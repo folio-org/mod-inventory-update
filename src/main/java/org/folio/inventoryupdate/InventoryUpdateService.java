@@ -93,7 +93,6 @@ public class InventoryUpdateService {
           pushedRecordSetWithStats.put("metrics", updatePlan.getUpdateStats());
           if (updatesDone.succeeded()) {
             responseJson(routingCtx, 200).end(pushedRecordSetWithStats.encodePrettily());
-            okapiClient.close();
           } else {
             pushedRecordSetWithStats.put("errors", updatePlan.getErrors());
             responseJson(routingCtx, 422).end(pushedRecordSetWithStats.encodePrettily());

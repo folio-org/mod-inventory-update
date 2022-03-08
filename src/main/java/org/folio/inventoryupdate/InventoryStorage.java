@@ -21,6 +21,7 @@ import io.vertx.core.Promise;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
+import org.folio.okapi.common.WebClientFactory;
 
 /**
  * Static methods making low level HTTP requests to create and update records in Inventory Storage.
@@ -353,7 +354,7 @@ public class InventoryStorage {
   }
 
   public static OkapiClient getOkapiClient ( RoutingContext ctx) {
-    OkapiClient client = new OkapiClient(ctx);
+    OkapiClient client = new OkapiClient(WebClientFactory.getWebClient(ctx.vertx()), ctx);
     Map<String, String> headers = new HashMap<>();
     headers.put("Content-type", "application/json");
     if (ctx.request().getHeader("X-Okapi-Tenant") != null) headers.put("X-Okapi-Tenant", ctx.request().getHeader("X-Okapi-Tenant"));

@@ -1,3 +1,7 @@
+## 1.3.2 2022-03-08
+* Back-port fix for socket leak (MODINVUP-29)
+* Back-port changes to reduce logging (MODINVUP-24)
+
 ## 1.3.1 2021-10-21
 
 * Ensures backward compatibility of optimistic locking logic (MODINVUP-13)

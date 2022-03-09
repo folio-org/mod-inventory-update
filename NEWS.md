@@ -1,3 +1,7 @@
+## 2.0.1 2022-03-09
+
+* Fix leak by only constructing one WebClient per Vert.x instance (MODINVUP-29)
+
 ## 2.0.0 2022-02-17
 
 * No longer provides `instance-storage-match` API (MODINVUP-16)

@@ -99,7 +99,7 @@ public class InventoryStorage {
       if ( res.succeeded()) {
         JsonObject matchingInstances = new JsonObject(res.result());
         int recordCount = matchingInstances.getInteger(TOTAL_RECORDS);
-        if (recordCount == 1) {
+        if (recordCount > 0) {
           promise.complete(matchingInstances.getJsonArray(INSTANCES).getJsonObject(0));
         } else {
           promise.complete(null);

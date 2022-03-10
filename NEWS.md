@@ -1,3 +1,7 @@
+## 2.0.2 2022-03-10
+
+* Fix logging issues (MODINVUP-31)
+
 ## 2.0.1 2022-03-09
 
 * Fix leak by only constructing one WebClient per Vert.x instance (MODINVUP-29)

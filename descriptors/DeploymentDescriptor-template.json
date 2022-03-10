@@ -2,6 +2,6 @@
   "srvcId": "${artifactId}-${version}",
   "nodeId": "localhost",
   "descriptor": {
-    "exec": "java -Dport=%p -DlogLevel=INFO -jar ../mod-inventory-match/target/mod-inventory-update-fat.jar embed_postgres=true"
+    "exec": "java -Dport=%p -jar ../mod-inventory-match/target/mod-inventory-update-fat.jar"
   }
 }

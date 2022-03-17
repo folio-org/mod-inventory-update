@@ -1,3 +1,7 @@
+## 1.3.4 2022-03-17
+
+* `shared-inventory-upsert-matchkey`: Enclose match-key in quotes (MODINVUP-35)
+
 ## 1.3.3 2022-03-10
 
 * `shared-inventory-upsert-matchkey`: Bugfix, match-key transition (MODINVUP-33)

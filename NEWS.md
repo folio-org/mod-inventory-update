@@ -1,4 +1,9 @@
+## 1.3.3 2022-03-10
+
+* `shared-inventory-upsert-matchkey`: Bugfix, match-key transition (MODINVUP-33)
+
 ## 1.3.2 2022-03-08
+
 * Back-port fix for socket leak (MODINVUP-29)
 * Back-port changes to reduce logging (MODINVUP-24)
 

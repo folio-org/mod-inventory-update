@@ -10,8 +10,8 @@ public class ProcessingInstructions {
   JsonObject processing;
   public static final String ITEM_STATUS_RETAIN = "retain";
   public static final String ITEM_STATUS_OVERWRITE = "overwrite";
-  public static final String ITEM_STATUS_ONLY_UPDATE_THESE = "only-update-these";
-  public static final String ITEM_STATUS_DO_NOT_UPDATE_THESE = "do-not-update-these";
+  public static final String ITEM_STATUS_OVERWRITE_STATUSES_IN_LIST = "overwrite-statuses-in-list";
+  public static final String ITEM_STATUS_RETAIN_STATUSES_IN_LIST = "retain-statuses-in-list";
   public static final String ITEM_UPDATES_KEY = "itemUpdates";
   public static final String ITEM_UPDATES_STATUS_KEY = "itemStatus";
   public static final String ITEM_UPDATES_STATUS_INSTRUCTION_KEY = "instruction";
@@ -46,12 +46,12 @@ public class ProcessingInstructions {
   }
 
   private boolean itemStatusInstructionIsOnlyUpdateThese() {
-    return ITEM_STATUS_ONLY_UPDATE_THESE
+    return ITEM_STATUS_OVERWRITE_STATUSES_IN_LIST
             .equalsIgnoreCase(getItemStatusUpdateInstruction());
   }
 
   private boolean itemStatusInstructionIsDoNotUpdateThese() {
-    return ITEM_STATUS_DO_NOT_UPDATE_THESE
+    return ITEM_STATUS_RETAIN_STATUSES_IN_LIST
             .equalsIgnoreCase(getItemStatusUpdateInstruction());
   }
 

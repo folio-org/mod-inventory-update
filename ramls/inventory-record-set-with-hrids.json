@@ -219,8 +219,8 @@
                   "enum": [
                     "retain",
                     "overwrite",
-                    "only-update-these",
-                    "do-not-update-these"
+                    "retain-statuses-in-list",
+                    "overwrite-statuses-in-list"
                   ]
                 },
                 "previousStatuses": {

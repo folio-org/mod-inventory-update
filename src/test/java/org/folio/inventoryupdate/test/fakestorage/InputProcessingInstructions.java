@@ -4,10 +4,6 @@ import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 
 public class InputProcessingInstructions {
-  public static final String ITEM_STATUS_DO_NOT_UPDATE_THESE = "do-not-update-these";
-  public static final String ITEM_STATUS_ONLY_UPDATE_THESE = "only-update-these";
-  public static final String ITEM_STATUS_RETAIN = "retain";
-  public static final String ITEM_STATUS_OVERWRITE = "overwrite";
   JsonObject processingInstructions = new JsonObject();
 
   public InputProcessingInstructions () {

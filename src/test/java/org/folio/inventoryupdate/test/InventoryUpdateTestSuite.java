@@ -3,6 +3,7 @@ package org.folio.inventoryupdate.test;
 import io.vertx.core.json.JsonArray;
 import org.folio.inventoryupdate.MainVerticle;
 import org.folio.inventoryupdate.MatchKey;
+import org.folio.inventoryupdate.ProcessingInstructions;
 import org.folio.inventoryupdate.UpdatePlanSharedInventory;
 import org.folio.inventoryupdate.test.fakestorage.FakeInventoryStorage;
 import org.folio.inventoryupdate.test.fakestorage.InputProcessingInstructions;
@@ -789,7 +790,7 @@ public class InventoryUpdateTestSuite {
                             .put("items", new JsonArray()
                                     .add(new InputItem().setHrid("ITM-003").setBarcode("updated").getJson()))))
             .put("processing", new InputProcessingInstructions()
-                    .setItemStatusUpdateInstruction(InputProcessingInstructions.ITEM_STATUS_ONLY_UPDATE_THESE)
+                    .setItemStatusUpdateInstruction(ProcessingInstructions.ITEM_STATUS_OVERWRITE_STATUSES_IN_LIST)
                     .setListOfPreviousStatuses("On order").getJson()));
 
     testContext.assertEquals(getMetric(upsertResponseJson, HOLDINGS_RECORD, UPDATE , COMPLETED), 2,
@@ -840,7 +841,7 @@ public class InventoryUpdateTestSuite {
                             .put("items", new JsonArray()
                                     .add(new InputItem().setHrid("ITM-003").setBarcode("updated").setStatus("Available").getJson()))))
             .put("processing", new InputProcessingInstructions()
-                    .setItemStatusUpdateInstruction(InputProcessingInstructions.ITEM_STATUS_ONLY_UPDATE_THESE)
+                    .setItemStatusUpdateInstruction(ProcessingInstructions.ITEM_STATUS_OVERWRITE_STATUSES_IN_LIST)
                     .setListOfPreviousStatuses("On order", "Unknown").getJson()));
 
     testContext.assertEquals(getMetric(upsertResponseJson, HOLDINGS_RECORD, UPDATE , COMPLETED), 2,
@@ -897,7 +898,7 @@ public class InventoryUpdateTestSuite {
                             .put("items", new JsonArray()
                                     .add(new InputItem().setHrid("ITM-003").setBarcode("updated").getJson()))))
             .put("processing", new InputProcessingInstructions()
-                    .setItemStatusUpdateInstruction(InputProcessingInstructions.ITEM_STATUS_RETAIN)
+                    .setItemStatusUpdateInstruction(ProcessingInstructions.ITEM_STATUS_RETAIN)
                     .setListOfPreviousStatuses("").getJson()));
 
     testContext.assertEquals(getMetric(upsertResponseJson, HOLDINGS_RECORD, UPDATE , COMPLETED), 2,
@@ -948,7 +949,7 @@ public class InventoryUpdateTestSuite {
                             .put("items", new JsonArray()
                                     .add(new InputItem().setHrid("ITM-003").setBarcode("updated").getJson()))))
             .put("processing", new InputProcessingInstructions()
-                    .setItemStatusUpdateInstruction(InputProcessingInstructions.ITEM_STATUS_OVERWRITE)
+                    .setItemStatusUpdateInstruction(ProcessingInstructions.ITEM_STATUS_OVERWRITE)
                     .setListOfPreviousStatuses("").getJson()));
 
     testContext.assertEquals(getMetric(upsertResponseJson, HOLDINGS_RECORD, UPDATE , COMPLETED), 2,

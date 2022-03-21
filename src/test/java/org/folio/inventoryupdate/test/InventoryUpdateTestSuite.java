@@ -809,7 +809,64 @@ public class InventoryUpdateTestSuite {
   }
 
   @Test
-  public void upsertByHridWillRetainItemStatusIfStatusIsInDoNotUpdateTheseList (TestContext testContext) {
+  public void upsertByHridWillOnlyUpdateItemStatusIfStatusIsInOnlyUpdateTheseList (TestContext testContext) {
+    String instanceHrid = "1";
+    JsonObject upsertResponseJson = upsertByHrid(new JsonObject()
+            .put("instance",
+                    new InputInstance().setTitle("Initial InputInstance").setInstanceTypeId("12345").setHrid(instanceHrid).getJson())
+            .put("holdingsRecords", new JsonArray()
+                    .add(new InputHoldingsRecord().setHrid("HOL-001").setPermanentLocationId(LOCATION_ID_1).setCallNumber("test-cn-1").getJson()
+                            .put("items", new JsonArray()
+                                    .add(new InputItem().setHrid("ITM-001").setBarcode("BC-001").setStatus("On order").getJson())
+                                    .add(new InputItem().setHrid("ITM-002").setBarcode("BC-002").setStatus("Unknown").getJson())))
+                    .add(new InputHoldingsRecord().setHrid("HOL-002").setPermanentLocationId(LOCATION_ID_1).setCallNumber("test-cn-2").getJson()
+                            .put("items", new JsonArray()
+                                    .add(new InputItem().setHrid("ITM-003").setBarcode("BC-003").setStatus("Checked out").getJson())))));
+
+    testContext.assertEquals(getMetric(upsertResponseJson, HOLDINGS_RECORD, CREATE , COMPLETED), 2,
+            "Upsert metrics response should report [2] holdings records successfully created " + upsertResponseJson.encodePrettily());
+    testContext.assertEquals(getMetric(upsertResponseJson, ITEM, CREATE , COMPLETED), 3,
+            "Upsert metrics response should report [3] items successfully created " + upsertResponseJson.encodePrettily());
+
+    upsertResponseJson = upsertByHrid(new JsonObject()
+            .put("instance",
+                    new InputInstance().setTitle("Initial InputInstance").setInstanceTypeId("12345").setHrid(instanceHrid).getJson())
+            .put("holdingsRecords", new JsonArray()
+                    .add(new InputHoldingsRecord().setHrid("HOL-001").setPermanentLocationId(LOCATION_ID_1).setCallNumber("updated-1").getJson()
+                            .put("items", new JsonArray()
+                                    .add(new InputItem().setHrid("ITM-001").setBarcode("updated").setStatus("Available").getJson())
+                                    .add(new InputItem().setHrid("ITM-002").setBarcode("updated").setStatus("Available").getJson())))
+                    .add(new InputHoldingsRecord().setHrid("HOL-002").setPermanentLocationId(LOCATION_ID_1).setCallNumber("updated-2").getJson()
+                            .put("items", new JsonArray()
+                                    .add(new InputItem().setHrid("ITM-003").setBarcode("updated").setStatus("Available").getJson()))))
+            .put("processing", new InputProcessingInstructions()
+                    .setItemStatusUpdateInstruction(InputProcessingInstructions.ITEM_STATUS_ONLY_UPDATE_THESE)
+                    .setListOfPreviousStatuses("On order", "Unknown").getJson()));
+
+    testContext.assertEquals(getMetric(upsertResponseJson, HOLDINGS_RECORD, UPDATE , COMPLETED), 2,
+            "Upsert metrics response should report [2] holdings records successfully updated " + upsertResponseJson.encodePrettily());
+    testContext.assertEquals(getMetric(upsertResponseJson, ITEM, UPDATE , COMPLETED), 3,
+            "Upsert metrics response should report [3] items successfully updated " + upsertResponseJson.encodePrettily());
+
+    JsonArray item001 = getRecordsFromStorage(FakeInventoryStorage.ITEM_STORAGE_PATH, "hrid==\"ITM-001\"").getJsonArray("items");
+    testContext.assertEquals(item001.getJsonObject(0).getJsonObject("status").getString("name"),
+            "Available",
+            "Status for item ITM-001 should have been updated to 'Available' from 'On order'");
+
+    JsonArray item002 = getRecordsFromStorage(FakeInventoryStorage.ITEM_STORAGE_PATH, "hrid==\"ITM-002\"").getJsonArray("items");
+    testContext.assertEquals(item002.getJsonObject(0).getJsonObject("status").getString("name"),
+            "Available",
+            "Status for item ITM-002 should have been updated to 'Available' from 'Unknown'");
+
+    JsonArray item003 = getRecordsFromStorage(FakeInventoryStorage.ITEM_STORAGE_PATH, "hrid==\"ITM-003\"").getJsonArray("items");
+    testContext.assertEquals(item003.getJsonObject(0).getJsonObject("status").getString("name"),
+            "Checked out",
+            "Status for item ITM-003 should have been retained as 'Checked out'");
+  }
+
+
+  @Test
+  public void upsertByHridWillRetainAllItemStatusesIfInstructionIsRetain (TestContext testContext) {
     String instanceHrid = "1";
     JsonObject upsertResponseJson = upsertByHrid(new JsonObject()
             .put("instance",
@@ -840,8 +897,8 @@ public class InventoryUpdateTestSuite {
                             .put("items", new JsonArray()
                                     .add(new InputItem().setHrid("ITM-003").setBarcode("updated").getJson()))))
             .put("processing", new InputProcessingInstructions()
-                    .setItemStatusUpdateInstruction(InputProcessingInstructions.ITEM_STATUS_DO_NOT_UPDATE_THESE)
-                    .setListOfPreviousStatuses("On order").getJson()));
+                    .setItemStatusUpdateInstruction(InputProcessingInstructions.ITEM_STATUS_RETAIN)
+                    .setListOfPreviousStatuses("").getJson()));
 
     testContext.assertEquals(getMetric(upsertResponseJson, HOLDINGS_RECORD, UPDATE , COMPLETED), 2,
             "Upsert metrics response should report [2] holdings records successfully updated " + upsertResponseJson.encodePrettily());
@@ -855,10 +912,60 @@ public class InventoryUpdateTestSuite {
 
     JsonArray item002 = getRecordsFromStorage(FakeInventoryStorage.ITEM_STORAGE_PATH, "hrid==\"ITM-002\"").getJsonArray("items");
     testContext.assertEquals(item002.getJsonObject(0).getJsonObject("status").getString("name"),
-            "Available",
-            "Status for item ITM-002 should have been updated to 'Available' from 'Unknown'");
+            "Unknown",
+            "Status for item ITM-002 should have been retained as 'Unknown'");
   }
 
+  @Test
+  public void upsertByHridWillOverwriteAllItemStatusesIfInstructionIsOverwrite (TestContext testContext) {
+    String instanceHrid = "1";
+    JsonObject upsertResponseJson = upsertByHrid(new JsonObject()
+            .put("instance",
+                    new InputInstance().setTitle("Initial InputInstance").setInstanceTypeId("12345").setHrid(instanceHrid).getJson())
+            .put("holdingsRecords", new JsonArray()
+                    .add(new InputHoldingsRecord().setHrid("HOL-001").setPermanentLocationId(LOCATION_ID_1).setCallNumber("test-cn-1").getJson()
+                            .put("items", new JsonArray()
+                                    .add(new InputItem().setHrid("ITM-001").setBarcode("BC-001").setStatus("On order").getJson())
+                                    .add(new InputItem().setHrid("ITM-002").setBarcode("BC-002").setStatus("Unknown").getJson())))
+                    .add(new InputHoldingsRecord().setHrid("HOL-002").setPermanentLocationId(LOCATION_ID_1).setCallNumber("test-cn-2").getJson()
+                            .put("items", new JsonArray()
+                                    .add(new InputItem().setHrid("ITM-003").setBarcode("BC-003").getJson())))));
+
+    testContext.assertEquals(getMetric(upsertResponseJson, HOLDINGS_RECORD, CREATE , COMPLETED), 2,
+            "Upsert metrics response should report [2] holdings records successfully created " + upsertResponseJson.encodePrettily());
+    testContext.assertEquals(getMetric(upsertResponseJson, ITEM, CREATE , COMPLETED), 3,
+            "Upsert metrics response should report [3] items successfully created " + upsertResponseJson.encodePrettily());
+
+    upsertResponseJson = upsertByHrid(new JsonObject()
+            .put("instance",
+                    new InputInstance().setTitle("Initial InputInstance").setInstanceTypeId("12345").setHrid(instanceHrid).getJson())
+            .put("holdingsRecords", new JsonArray()
+                    .add(new InputHoldingsRecord().setHrid("HOL-001").setPermanentLocationId(LOCATION_ID_1).setCallNumber("updated-1").getJson()
+                            .put("items", new JsonArray()
+                                    .add(new InputItem().setHrid("ITM-001").setBarcode("updated").setStatus("Available").getJson())
+                                    .add(new InputItem().setHrid("ITM-002").setBarcode("updated").setStatus("Available").getJson())))
+                    .add(new InputHoldingsRecord().setHrid("HOL-002").setPermanentLocationId(LOCATION_ID_1).setCallNumber("updated-2").getJson()
+                            .put("items", new JsonArray()
+                                    .add(new InputItem().setHrid("ITM-003").setBarcode("updated").getJson()))))
+            .put("processing", new InputProcessingInstructions()
+                    .setItemStatusUpdateInstruction(InputProcessingInstructions.ITEM_STATUS_OVERWRITE)
+                    .setListOfPreviousStatuses("").getJson()));
+
+    testContext.assertEquals(getMetric(upsertResponseJson, HOLDINGS_RECORD, UPDATE , COMPLETED), 2,
+            "Upsert metrics response should report [2] holdings records successfully updated " + upsertResponseJson.encodePrettily());
+    testContext.assertEquals(getMetric(upsertResponseJson, ITEM, UPDATE , COMPLETED), 3,
+            "Upsert metrics response should report [3] items successfully updated " + upsertResponseJson.encodePrettily());
+
+    JsonArray item001 = getRecordsFromStorage(FakeInventoryStorage.ITEM_STORAGE_PATH, "hrid==\"ITM-001\"").getJsonArray("items");
+    testContext.assertEquals(item001.getJsonObject(0).getJsonObject("status").getString("name"),
+            "Available",
+            "Status for item ITM-001 should have been overwritten to 'Avaliable' from 'On order'");
+
+    JsonArray item002 = getRecordsFromStorage(FakeInventoryStorage.ITEM_STORAGE_PATH, "hrid==\"ITM-002\"").getJsonArray("items");
+    testContext.assertEquals(item002.getJsonObject(0).getJsonObject("status").getString("name"),
+            "Available",
+            "Status for item ITM-002 should have been overwritten to 'Available' from 'Unknown'");
+  }
 
 
   @Test

@@ -8,6 +8,8 @@ import java.util.List;
 
 public class ProcessingInstructions {
   JsonObject processing;
+  public static final String ITEM_STATUS_RETAIN = "retain";
+  public static final String ITEM_STATUS_OVERWRITE = "overwrite";
   public static final String ITEM_STATUS_ONLY_UPDATE_THESE = "only-update-these";
   public static final String ITEM_STATUS_DO_NOT_UPDATE_THESE = "do-not-update-these";
   public static final String ITEM_UPDATES_KEY = "itemUpdates";
@@ -35,6 +37,14 @@ public class ProcessingInstructions {
     return (getItemStatusProcessing() != null);
   }
 
+  private boolean itemStatusInstructionIsOverwrite() {
+    return ITEM_STATUS_OVERWRITE.equalsIgnoreCase(getItemStatusUpdateInstruction());
+  }
+
+  private boolean itemStatusInstructionIsRetain() {
+    return ITEM_STATUS_RETAIN.equalsIgnoreCase(getItemStatusUpdateInstruction());
+  }
+
   private boolean itemStatusInstructionIsOnlyUpdateThese() {
     return ITEM_STATUS_ONLY_UPDATE_THESE
             .equalsIgnoreCase(getItemStatusUpdateInstruction());
@@ -47,17 +57,17 @@ public class ProcessingInstructions {
 
   private String getItemStatusUpdateInstruction () {
     if (hasItemStatusProcessing()) {
-      String instruction = getItemStatusProcessing().getString(ITEM_UPDATES_STATUS_INSTRUCTION_KEY);
-      if (instruction.equalsIgnoreCase(ITEM_STATUS_ONLY_UPDATE_THESE) ||
-          instruction.equalsIgnoreCase(ITEM_STATUS_DO_NOT_UPDATE_THESE)) {
-        return instruction;
-      }
-    }
+      return getItemStatusProcessing().getString(ITEM_UPDATES_STATUS_INSTRUCTION_KEY);
+   }
     return null;
   }
 
   public boolean retainThisStatus(String statusName) {
-    if (itemStatusInstructionIsOnlyUpdateThese()) {
+    if (itemStatusInstructionIsRetain()) {
+      return true;
+    } else if (itemStatusInstructionIsOverwrite()) {
+      return false;
+    } else if (itemStatusInstructionIsOnlyUpdateThese()) {
       return !getListOfStatuses().contains(statusName);
     } else if (itemStatusInstructionIsDoNotUpdateThese()) {
       return getListOfStatuses().contains(statusName);

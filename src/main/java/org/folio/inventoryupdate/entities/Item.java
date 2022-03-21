@@ -27,4 +27,12 @@ public class Item extends InventoryRecord {
         // has none
     }
 
+    public void setStatus (String statusName) {
+        jsonRecord.getJsonObject("status").put("name", statusName);
+    }
+
+    public String getStatusName () {
+        return jsonRecord.getJsonObject("status").getString("name");
+    }
+
 }

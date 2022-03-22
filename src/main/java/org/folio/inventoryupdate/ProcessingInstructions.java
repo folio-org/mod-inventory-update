@@ -13,7 +13,7 @@ import java.util.List;
  *   "item": {
  *     "status": {
  *       "policy": "retain" or "overwrite",
- *       "ifStatusIs": [
+ *       "ifStatusWas": [
  *         {"name": "Available"}, {"name": "Checked out"}, ... etc
  *       ]
  *     }
@@ -28,7 +28,7 @@ public class ProcessingInstructions {
   public static final String ITEM_STATUS_POLICY_KEY = "policy";
   public static final String ITEM_STATUS_POLICY_RETAIN = "retain";
   public static final String ITEM_STATUS_POLICY_OVERWRITE = "overwrite";
-  public static final String ITEM_STATUS_POLICY_APPLIES_TO_KEY = "ifStatusIs";
+  public static final String ITEM_STATUS_POLICY_APPLIES_TO_KEY = "ifStatusWas";
   public static final String ITEM_STATUS_NAME_KEY = "name";
 
   public ProcessingInstructions (JsonObject processing) {

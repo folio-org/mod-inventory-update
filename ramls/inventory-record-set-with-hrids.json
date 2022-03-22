@@ -221,8 +221,8 @@
                     "overwrite"
                   ]
                 },
-                "ifStatusIs": {
-                  "description": "List of previous statuses to retain or overwrite",
+                "ifStatusWas": {
+                  "description": "List of statuses that policy applies to",
                   "type": "array",
                   "items": {
                     "type": "object",

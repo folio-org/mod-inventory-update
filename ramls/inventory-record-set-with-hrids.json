@@ -205,25 +205,23 @@
       "description": "An object holding supporting pieces of data and/or processing instructions for Inventory update processing",
       "type": "object",
       "properties": {
-        "itemUpdates": {
+        "item": {
           "description": "Instructions for processing Inventory items",
           "type": "object",
           "properties": {
-            "itemStatus": {
+            "status": {
               "description": "Instructions for retaining or overwriting status when updating an item",
               "type": "object",
               "properties": {
-                "instruction": {
-                  "description": "Update semantics",
+                "policy": {
+                  "description": "Update instruction for item status",
                   "type": "string",
                   "enum": [
                     "retain",
-                    "overwrite",
-                    "retain-statuses-in-list",
-                    "overwrite-statuses-in-list"
+                    "overwrite"
                   ]
                 },
-                "previousStatuses": {
+                "ifStatusIs": {
                   "description": "List of previous statuses to retain or overwrite",
                   "type": "array",
                   "items": {
@@ -259,7 +257,7 @@
                   }
                 }
               },
-              "required": ["instruction"]
+              "required": ["policy"]
             }
           }
         }

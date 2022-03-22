@@ -759,7 +759,7 @@ public class InventoryUpdateTestSuite {
   }
 
   @Test
-  public void upsertByHridWillRetainItemStatusUnlessStatusIsInOnlyUpdateTheseList (TestContext testContext) {
+  public void upsertByHridWillRetainItemStatusUnlessStatusIsInOverwriteList (TestContext testContext) {
     String instanceHrid = "1";
     JsonObject upsertResponseJson = upsertByHrid(new JsonObject()
             .put("instance",
@@ -790,8 +790,8 @@ public class InventoryUpdateTestSuite {
                             .put("items", new JsonArray()
                                     .add(new InputItem().setHrid("ITM-003").setBarcode("updated").getJson()))))
             .put("processing", new InputProcessingInstructions()
-                    .setItemStatusUpdateInstruction(ProcessingInstructions.ITEM_STATUS_OVERWRITE_STATUSES_IN_LIST)
-                    .setListOfPreviousStatuses("On order").getJson()));
+                    .setItemStatusPolicy(ProcessingInstructions.ITEM_STATUS_POLICY_OVERWRITE)
+                    .setListOfStatuses("On order").getJson()));
 
     testContext.assertEquals(getMetric(upsertResponseJson, HOLDINGS_RECORD, UPDATE , COMPLETED), 2,
             "Upsert metrics response should report [2] holdings records successfully updated " + upsertResponseJson.encodePrettily());
@@ -810,7 +810,7 @@ public class InventoryUpdateTestSuite {
   }
 
   @Test
-  public void upsertByHridWillOnlyUpdateItemStatusIfStatusIsInOnlyUpdateTheseList (TestContext testContext) {
+  public void upsertByHridWillOnlyUpdateItemStatusIfStatusIsInOverwriteList (TestContext testContext) {
     String instanceHrid = "1";
     JsonObject upsertResponseJson = upsertByHrid(new JsonObject()
             .put("instance",
@@ -841,8 +841,8 @@ public class InventoryUpdateTestSuite {
                             .put("items", new JsonArray()
                                     .add(new InputItem().setHrid("ITM-003").setBarcode("updated").setStatus("Available").getJson()))))
             .put("processing", new InputProcessingInstructions()
-                    .setItemStatusUpdateInstruction(ProcessingInstructions.ITEM_STATUS_OVERWRITE_STATUSES_IN_LIST)
-                    .setListOfPreviousStatuses("On order", "Unknown").getJson()));
+                    .setItemStatusPolicy(ProcessingInstructions.ITEM_STATUS_POLICY_OVERWRITE)
+                    .setListOfStatuses("On order", "Unknown").getJson()));
 
     testContext.assertEquals(getMetric(upsertResponseJson, HOLDINGS_RECORD, UPDATE , COMPLETED), 2,
             "Upsert metrics response should report [2] holdings records successfully updated " + upsertResponseJson.encodePrettily());
@@ -898,8 +898,7 @@ public class InventoryUpdateTestSuite {
                             .put("items", new JsonArray()
                                     .add(new InputItem().setHrid("ITM-003").setBarcode("updated").getJson()))))
             .put("processing", new InputProcessingInstructions()
-                    .setItemStatusUpdateInstruction(ProcessingInstructions.ITEM_STATUS_RETAIN)
-                    .setListOfPreviousStatuses("").getJson()));
+                    .setItemStatusPolicy(ProcessingInstructions.ITEM_STATUS_POLICY_RETAIN).getJson()));
 
     testContext.assertEquals(getMetric(upsertResponseJson, HOLDINGS_RECORD, UPDATE , COMPLETED), 2,
             "Upsert metrics response should report [2] holdings records successfully updated " + upsertResponseJson.encodePrettily());
@@ -930,7 +929,8 @@ public class InventoryUpdateTestSuite {
                                     .add(new InputItem().setHrid("ITM-002").setBarcode("BC-002").setStatus("Unknown").getJson())))
                     .add(new InputHoldingsRecord().setHrid("HOL-002").setPermanentLocationId(LOCATION_ID_1).setCallNumber("test-cn-2").getJson()
                             .put("items", new JsonArray()
-                                    .add(new InputItem().setHrid("ITM-003").setBarcode("BC-003").getJson())))));
+                                    .add(new InputItem().setHrid("ITM-003").setBarcode("BC-003").getJson()))))
+            .put("processing", new JsonObject()));
 
     testContext.assertEquals(getMetric(upsertResponseJson, HOLDINGS_RECORD, CREATE , COMPLETED), 2,
             "Upsert metrics response should report [2] holdings records successfully created " + upsertResponseJson.encodePrettily());
@@ -949,8 +949,7 @@ public class InventoryUpdateTestSuite {
                             .put("items", new JsonArray()
                                     .add(new InputItem().setHrid("ITM-003").setBarcode("updated").getJson()))))
             .put("processing", new InputProcessingInstructions()
-                    .setItemStatusUpdateInstruction(ProcessingInstructions.ITEM_STATUS_OVERWRITE)
-                    .setListOfPreviousStatuses("").getJson()));
+                    .setItemStatusPolicy(ProcessingInstructions.ITEM_STATUS_POLICY_OVERWRITE).getJson()));
 
     testContext.assertEquals(getMetric(upsertResponseJson, HOLDINGS_RECORD, UPDATE , COMPLETED), 2,
             "Upsert metrics response should report [2] holdings records successfully updated " + upsertResponseJson.encodePrettily());

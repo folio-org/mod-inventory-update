@@ -191,35 +191,27 @@ public class UpdatePlanAllHRIDs extends UpdatePlan {
                 // HoldingsRecord gone, mark for deletion and check for existing items to delete with it
                 if (incomingHoldingsRecord == null) {
                     existingHoldingsRecord.setTransition(Transaction.DELETE);
-                    for (Item existingItem : existingHoldingsRecord.getItems()) {
-                        Item incomingItem = updatingSet.getItemByHRID(existingItem.getHRID());
-                        if (incomingItem == null) {
-                            existingItem.setTransition(Transaction.DELETE);
-                        } else {
-                            // Item appear to be moved to another holdings record in the instance
-                            incomingItem.setUUID(existingItem.getUUID());
-                            incomingItem.setVersion( existingItem.getVersion() );
-                            incomingItem.setTransition(Transaction.UPDATE);
-                        }
-                    }
                 } else {
                     // There is an existing holdings record with the same HRID, on the same Instance
                     incomingHoldingsRecord.setUUID(existingHoldingsRecord.getUUID());
                     incomingHoldingsRecord.setTransition(Transaction.UPDATE);
                     incomingHoldingsRecord.setVersion( existingHoldingsRecord.getVersion() );
-                    for (Item existingItem : existingHoldingsRecord.getItems()) {
-                        Item incomingItem = updatingSet.getItemByHRID(existingItem.getHRID());
-                        if (incomingItem == null) {
-                            // The item is gone from the instance
-                            existingItem.setTransition(Transaction.DELETE);
-                        } else {
-                            // There is an incoming item with the same HRID somewhere in the instance
-                            incomingItem.setUUID(existingItem.getUUID());
-                            incomingItem.setVersion( existingItem.getVersion() );
-                            incomingItem.setTransition(Transaction.UPDATE);
+                }
+                for (Item existingItem : existingHoldingsRecord.getItems()) {
+                    Item incomingItem = updatingSet.getItemByHRID(existingItem.getHRID());
+                    if (incomingItem == null) {
+                        existingItem.setTransition(Transaction.DELETE);
+                    } else {
+                        incomingItem.setUUID(existingItem.getUUID());
+                        incomingItem.setVersion( existingItem.getVersion() );
+                        incomingItem.setTransition(Transaction.UPDATE);
+                        ProcessingInstructions instr = new ProcessingInstructions(updatingSet.getProcessingInfoAsJson());
+                        if (instr.retainThisStatus(existingItem.getStatusName())) {
+                            incomingItem.setStatus(existingItem.getStatusName());
                         }
                     }
                 }
+
             }
         }
     }

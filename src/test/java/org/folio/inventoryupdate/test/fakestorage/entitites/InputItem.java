@@ -14,6 +14,7 @@ public class InputItem extends InventoryRecord {
 
     public InputItem() {
         super();
+        setStatus("Unknown");
     }
 
     public InputItem setHrid (String hrid) {
@@ -27,6 +28,13 @@ public class InputItem extends InventoryRecord {
 
     public InputItem setHoldingsRecordId (String holdingsRecordId) {
         recordJson.put(HOLDINGS_RECORD_ID, holdingsRecordId);
+        return this;
+    }
+
+    public InputItem setStatus (String statusName) {
+        JsonObject status = new JsonObject();
+        status.put("name", statusName);
+        recordJson.put("status", status);
         return this;
     }
 

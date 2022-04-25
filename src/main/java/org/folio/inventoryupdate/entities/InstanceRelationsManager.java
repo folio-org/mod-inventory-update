@@ -246,7 +246,7 @@ public class InstanceRelationsManager extends JsonRepresentation {
             for (Object o : identifiers) {
                 JsonObject relationJson = (JsonObject) o;
                 JsonObject instanceIdentifier = relationJson.getJsonObject( INSTANCE_IDENTIFIER );
-                if (instanceIdentifier != null) {
+                if (instanceIdentifier != null && !instanceIdentifier.isEmpty()) {
                     InventoryQuery queryByUniqueId = makeInstanceQueryUsingIdentifierObject(instanceIdentifier);
                     relationsFutures.add(makeInstanceRelationWithInstanceIdentifier(
                                 client, instanceId, relationJson, queryByUniqueId, classOfRelations ) );

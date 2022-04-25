@@ -1503,6 +1503,44 @@ logger.info("Parent: " + parentResponse.encodePrettily());
   }
 
   @Test
+  public void upsertByHridWillSilentlyOmitRelationWithoutInstanceIdentifier (TestContext testContext) {
+    String childHrid = "002";
+    String parentHrid = "001";
+
+    Response childResponse = upsertByHrid(200, new JsonObject()
+            .put("instance",
+                    new InputInstance().setTitle("Child InputInstance").setInstanceTypeId("12345").setHrid(childHrid).getJson())
+            .put("instanceRelations", new JsonObject()
+                    .put("parentInstances", new JsonArray()
+                            .add(new InputInstanceRelationship()
+                                    .setProvisionalInstance(
+                                            new InputInstance()
+                                                    .setSource("MARC")
+                                                    .setInstanceTypeId("12345").getJson()).getJson()))));
+
+    JsonObject responseJson = new JsonObject(childResponse.getBody().asString());
+    testContext.assertTrue(responseJson.getJsonObject("instanceRelations").isEmpty(),
+            "No Instance relations should have been created  due to missing Instance identifier " + responseJson.encodePrettily());
+
+    childResponse = upsertByHrid(200, new JsonObject()
+            .put("instance",
+                    new InputInstance().setTitle("Child InputInstance").setInstanceTypeId("12345").setHrid(childHrid).getJson())
+            .put("instanceRelations", new JsonObject()
+                    .put("parentInstances", new JsonArray()
+                            .add(new InputInstanceRelationship().setInstanceIdentifierHrid(null)
+                                    .setProvisionalInstance(
+                                            new InputInstance()
+                                                    .setSource("MARC")
+                                                    .setInstanceTypeId("12345").getJson()).getJson()))));
+
+    responseJson = new JsonObject(childResponse.getBody().asString());
+    testContext.assertTrue(responseJson.getJsonObject("instanceRelations").isEmpty(),
+            "No Instance relations should have been created due to empty Instance identifier " + responseJson.encodePrettily());
+
+  }
+
+
+  @Test
   public void upsertByHridWillRunWithBadUuidAsRelationIdentifierButNotFindTheRelation (TestContext testContext) {
     String childHrid = "002";
     String badUuid = "bad";

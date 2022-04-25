@@ -35,7 +35,12 @@ public class InputInstanceRelationship extends InventoryRecord {
     }
 
     public InputInstanceRelationship setInstanceIdentifierHrid(String hrid) {
-        recordJson.put(INSTANCE_IDENTIFIER, new JsonObject().put("hrid", hrid));
+        if (hrid != null) {
+            recordJson.put(INSTANCE_IDENTIFIER, new JsonObject().put("hrid", hrid));
+        } else {
+            recordJson.put(INSTANCE_IDENTIFIER, new JsonObject());
+        }
+
         return this;
     }
 

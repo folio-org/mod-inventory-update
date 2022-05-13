@@ -42,6 +42,29 @@ of relationships that tie multipart monographs together or relations pointing to
 on a comparison with the set of relationships that may be registered for the Instance in storage already, relationships
 will be created and/or deleted (updating relationships is obsolete).
 
+#### Control overlay of Item status with `processing` instructions
+
+The JSON property `processing` can be used for controlling how Item status is handled on Item updates. This is to
+support Item status being managed outside the update API, likely by FOLIO Circulation. With instructions the requester
+can ask that certain or all existing status values are updated or that certain or all status values are retained on Item
+updates.
+
+For example, to only overwrite a status of "On order" and retain any other statuses, do:
+```
+processing": {
+   "item": {
+     "status": {
+       "policy": "overwrite",
+       "ifStatusWas": [
+         {"name": "On order"}
+       ]
+     }
+   }
+}
+```
+
+The default behavior is to overwrite all statuses. 
+
 #### Provisional Instance created when related Instance doesn't exist yet
 
 If an upsert request comes in with a relation to an Instance that doesn't already exist in storage, a provisional
@@ -183,7 +206,6 @@ The ID provided on the API path is the Instance HRID. A request like
 (Note: it's possible to use the Instance UUID instead of the HRID in the GET request)
 ```
 
-
 It's possible to take the response from the `/inventory-upsert-hrid/fetch` and PUT it back to
 the `/inventory-upsert-hrid` API.
 
@@ -227,8 +249,7 @@ entities from storage and get the latest version numbers from that anyway.
 
 ## Interfaces implemented by Inventory Update
 
-The most recently released versions are marked in `code`. 
-
+The most recently released versions are marked in `code`.
 
 | Interface                           | Interface version | Breaking changes         | Implementing modules                           | Implementation versions ¹                |  
 |-------------------------------------|-------------------|--------------------------|------------------------------------------------|------------------------------------------|
@@ -241,7 +262,8 @@ The most recently released versions are marked in `code`.
 | `/shared-inventory-upsert-matchkey` | 1.0               |                          | mod-inventory-update                           | 1.0.0                                    |
 |                                     | `1.1`             |                          | `mod-inventory-update`                         | 1.2.0 - `1.3.0`<br/>2.0.0-SNAPSHOT       |
 
-[ 1 ] All the versions of the module that implement the interface version, or the version where the module stopped implementing the interface.
+[ 1 ] All the versions of the module that implement the interface version, or the version where the module stopped
+implementing the interface.
 
 ## Planned developments
 

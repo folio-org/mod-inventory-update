@@ -4,7 +4,7 @@
 
   <groupId>org.folio</groupId>
   <artifactId>mod-inventory-update</artifactId>
-  <version>2.1.0-SNAPSHOT</version>
+  <version>2.1.0</version>
   <name>Inventory Update Module</name>
 
   <licenses>
@@ -106,7 +106,7 @@
     <url>https://github.com/folio-org/mod-inventory-update</url>
     <connection>scm:git:git://github.com:folio-org/mod-inventory-update.git</connection>
     <developerConnection>scm:git:git@github.com:folio-org/mod-inventory-update.git</developerConnection>
-    <tag>HEAD</tag>
+    <tag>v2.1.0</tag>
   </scm>
 
   <build>

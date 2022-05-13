@@ -15,7 +15,10 @@ public class ShiftingMatchKeyQuery extends InventoryQuery
     }
 
     public String buildQuery () {
-        return "(identifiers =/@value/@identifierTypeId=" + "\"" + identifierTypeId + "\"" + " \"" + localIdentifier + "\"" + " not matchKey==" + matchKey + ")";
+        return "(identifiers =/@value/@identifierTypeId="
+                + "\"" + identifierTypeId + "\""
+                + " \"" + localIdentifier + "\""
+                + " not matchKey==\"" + matchKey + "\")";
     }
 
 }

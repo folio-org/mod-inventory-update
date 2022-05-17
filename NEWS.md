@@ -1,3 +1,7 @@
+## 2.1.0 2022-05-13
+
+* Provides option for controlling overwrite of Item statuses (MODINVUP-6)
+
 ## 2.0.0 2022-02-17
 
 * No longer provides `instance-storage-match` API (MODINVUP-16)

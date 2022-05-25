@@ -97,22 +97,31 @@ public class InventoryStorage {
 
   }
 
-  public static Future<JsonObject> lookupInstance (OkapiClient okapiClient, InventoryQuery inventoryQuery) {
-    Promise<JsonObject> promise = Promise.promise();
-    okapiClient.get(INSTANCE_STORAGE_PATH+"?query="+inventoryQuery.getURLEncodedQueryString(), res -> {
-      if ( res.succeeded()) {
-        JsonObject matchingInstances = new JsonObject(res.result());
-        int recordCount = matchingInstances.getInteger(TOTAL_RECORDS);
-        if (recordCount > 0) {
-          promise.complete(matchingInstances.getJsonArray(INSTANCES).getJsonObject(0));
-        } else {
-          promise.complete(null);
-        }
-      } else {
-        failure(res.cause(), Entity.INSTANCE, Transaction.GET, okapiClient.getStatusCode(), promise);
+  public static Future<JsonObject> lookupInstance(OkapiClient okapiClient, InventoryQuery inventoryQuery) {
+    if (inventoryQuery instanceof QueryByUUID) {
+      // this reduces the lookup response time from 22 ms to 18 ms.
+      return lookupInstance(okapiClient, (QueryByUUID) inventoryQuery);
     }
-    });
-    return promise.future();
+    return okapiClient.get(INSTANCE_STORAGE_PATH+"?query="+inventoryQuery.getURLEncodedQueryString())
+        .map(json -> {
+          JsonArray matchingInstances = new JsonObject(json).getJsonArray(INSTANCES);
+          if (matchingInstances.size() == 0) {
+            return null;
+          }
+          return matchingInstances.getJsonObject(0);
+        })
+        .recover(e -> failureFuture(e, Entity.INSTANCE, Transaction.GET, okapiClient.getStatusCode(), null));
+  }
+
+  public static Future<JsonObject> lookupInstance(OkapiClient okapiClient, QueryByUUID queryByUuid) {
+    return okapiClient.get(INSTANCE_STORAGE_PATH + "/" + queryByUuid.getUuid())
+        .map(JsonObject::new)
+        .recover(e -> {
+          if (okapiClient.getStatusCode() == 404) {
+            return Future.succeededFuture(null);
+          }
+          return failureFuture(e, Entity.INSTANCE, Transaction.GET, okapiClient.getStatusCode(), null);
+        });
   }
 
   public static Future<JsonObject> lookupHoldingsRecordByHRID (OkapiClient okapiClient, InventoryQuery hridQuery) {
@@ -342,6 +351,12 @@ public class InventoryStorage {
   }
 
   private static <T> void failure(Throwable cause, Entity entityType, Transaction transaction, int httpStatusCode, Promise<T> promise, String contextNote) {
+    promise.handle(failureFuture(cause, entityType, transaction, httpStatusCode, contextNote));
+  }
+
+  private static <T> Future<T> failureFuture(Throwable cause, Entity entityType, Transaction transaction,
+      int httpStatusCode, String contextNote) {
+
     JsonObject errorMessage = new JsonObject();
     errorMessage.put("message", cause.getMessage());
     errorMessage.put("entity-type",entityType);
@@ -350,7 +365,7 @@ public class InventoryStorage {
     if (contextNote != null) {
       errorMessage.put("note-of-context", contextNote);
     }
-    promise.fail(errorMessage.encodePrettily());
+    return Future.failedFuture(errorMessage.encodePrettily());
   }
 
   public static OkapiClient getOkapiClient ( RoutingContext ctx) {

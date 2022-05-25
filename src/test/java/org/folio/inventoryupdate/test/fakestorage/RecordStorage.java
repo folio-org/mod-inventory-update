@@ -124,7 +124,9 @@ public abstract class RecordStorage {
             return null;
         } else {
             InventoryRecord record = records.get( id );
-            record.setVersion( record.getVersion() + 1 );
+            if (record != null) {
+              record.setVersion(record.getVersion() + 1);
+            }
             return record;
         }
     }

@@ -102,7 +102,7 @@ public class InventoryStorage {
       // this reduces the lookup response time from 22 ms to 18 ms.
       return lookupInstance(okapiClient, (QueryByUUID) inventoryQuery);
     }
-    return okapiClient.get(INSTANCE_STORAGE_PATH+"?query="+inventoryQuery.getURLEncodedQueryString())
+    return okapiClient.get(queryUri(INSTANCE_STORAGE_PATH, inventoryQuery))
         .map(json -> {
           JsonArray matchingInstances = new JsonObject(json).getJsonArray(INSTANCES);
           if (matchingInstances.size() == 0) {
@@ -126,7 +126,7 @@ public class InventoryStorage {
 
   public static Future<JsonObject> lookupHoldingsRecordByHRID (OkapiClient okapiClient, InventoryQuery hridQuery) {
     Promise<JsonObject> promise = Promise.promise();
-    okapiClient.get(HOLDINGS_STORAGE_PATH+"?query="+hridQuery.getURLEncodedQueryString(), res -> {
+    okapiClient.get(queryUri(HOLDINGS_STORAGE_PATH, hridQuery), res -> {
       if ( res.succeeded()) {
         JsonObject records = new JsonObject(res.result());
         int recordCount = records.getInteger(TOTAL_RECORDS);
@@ -144,7 +144,7 @@ public class InventoryStorage {
 
   public static Future<JsonObject> lookupItemByHRID (OkapiClient okapiClient, InventoryQuery hridQuery) {
     Promise<JsonObject> promise = Promise.promise();
-    okapiClient.get(ITEM_STORAGE_PATH+"?query="+hridQuery.getURLEncodedQueryString(), res -> {
+    okapiClient.get(queryUri(ITEM_STORAGE_PATH, hridQuery), res -> {
       if ( res.succeeded()) {
         JsonObject records = new JsonObject(res.result());
         int recordCount = records.getInteger(TOTAL_RECORDS);
@@ -344,6 +344,10 @@ public class InventoryStorage {
         break;
     }
     return api;
+  }
+
+  private static String queryUri(String path, InventoryQuery inventoryQuery) {
+    return path + "?query=" + inventoryQuery.getURLEncodedQueryString();
   }
 
   private static <T> void failure(Throwable cause, Entity entityType, Transaction transaction, int httpStatusCode, Promise<T> promise) {

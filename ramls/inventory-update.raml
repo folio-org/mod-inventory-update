@@ -12,6 +12,7 @@ types:
   instance: !include instance.json
   inventory-record-set: !include inventory-record-set.json
   inventory-record-set-with-hrids: !include inventory-record-set-with-hrids.json
+  inventory-record-sets-with-hrids: !include inventory-record-sets-with-hrids.json
   holdings-record: !include holdings-record.json
   holdings-record-with-hrid: !include holdings-record-with-hrid.json
   item: !include item.json
@@ -61,6 +62,25 @@ traits:
           description: "Bad request, for example: non-JSON in request body; inventory record set without an Instance"
         500:
           description: "Error during delete by HRID"
+
+/inventory-batch-upsert-hrid:
+  displayName: Create or update a batch of instances with holdings and items, based on incoming HRIDs on all three record types
+  put:
+    body:
+        application/json:
+            type: inventory-record-set-with-hrids
+    responses:
+        200:
+            description: "Inventory record set successfully created or updated by HRIDs"
+            body:
+                application/json:
+                    type: upsert-response-200
+        422:
+            description: "One or more problems encountered when creating/updating an Inventory record set by HRIDs"
+            body:
+                application/json:
+                    type: upsert-response-422
+
 
 /inventory-upsert-hrid/fetch/{id}:
   displayName: Retrieve single Inventory record set either by Instance UUID or HRID

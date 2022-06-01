@@ -32,14 +32,14 @@ public class UpdatePlanSharedInventory extends UpdatePlan {
     public static UpdatePlanSharedInventory getUpsertPlan(InventoryRecordSet incomingSet) {
         MatchKey matchKey = new MatchKey(incomingSet.getInstance().asJson());
         incomingSet.getInstance().asJson().put("matchKey", matchKey.getKey());
-        InventoryQuery instanceByMatchKeyQuery = new MatchQuery(matchKey.getKey());
+        InventoryQuery instanceByMatchKeyQuery = new QueryMatchKey(matchKey.getKey());
         UpdatePlanSharedInventory updatePlan = new UpdatePlanSharedInventory( incomingSet, instanceByMatchKeyQuery );
         updatePlan.shiftingMatchKeyManager = new ShiftingMatchKeyManager( incomingSet, updatePlan.secondaryExistingSet, true );
         return updatePlan;
     }
 
     public static UpdatePlanSharedInventory getDeletionPlan(RecordIdentifiers deletionIdentifiers) {
-        InventoryQuery existingInstanceQuery = new SharedInstanceByLocalIdentifierQuery(
+        InventoryQuery existingInstanceQuery = new QuerySharedInstanceByLocalIdentifier(
                 deletionIdentifiers.localIdentifier(), deletionIdentifiers.identifierTypeId());
         UpdatePlanSharedInventory updatePlan = new UpdatePlanSharedInventory( null, existingInstanceQuery );
         updatePlan.isDeletion = true;

@@ -39,7 +39,7 @@ public class InventoryRecordSet extends JsonRepresentation {
     private final Logger logger = LoggerFactory.getLogger("inventory-update");
 
     // Controller handles planning and update logic for instance-to-instance relations
-    private InstanceRelationsManager instanceRelationsManager;
+    private InstanceRelations instanceRelations;
     // Instance relations properties that the controller access directly
     public List<InstanceToInstanceRelation> parentRelations = null;
     public List<InstanceToInstanceRelation> childRelations = null;
@@ -57,7 +57,7 @@ public class InventoryRecordSet extends JsonRepresentation {
             anInstance = new Instance(instanceJson);
             JsonArray holdings = inventoryRecordSet.getJsonArray(HOLDINGS_RECORDS);
             registerHoldingsRecordsAndItems(holdings);
-            instanceRelationsManager = new InstanceRelationsManager(this);
+            instanceRelations = new InstanceRelations(this);
             logger.debug("Caching processing info: " + inventoryRecordSet.getJsonObject( PROCESSING ));
             processing = inventoryRecordSet.getJsonObject( PROCESSING );
         }
@@ -188,20 +188,20 @@ public class InventoryRecordSet extends JsonRepresentation {
     }
 
     // Instance-to-Instance relations methods
-    public InstanceRelationsManager getInstanceRelationsController() {
-        return instanceRelationsManager;
+    public InstanceRelations getInstanceRelationsController() {
+        return instanceRelations;
     }
 
     public void prepareAllInstanceRelationsForDeletion() {
-        instanceRelationsManager.markAllRelationsForDeletion();
+        instanceRelations.markAllRelationsForDeletion();
     }
 
     public List<InstanceToInstanceRelation> getInstanceRelationsByTransactionType (Transaction transition) {
-        return instanceRelationsManager.getInstanceRelationsByTransactionType(transition);
+        return instanceRelations.getInstanceRelationsByTransactionType(transition);
     }
 
     public Future<Void> prepareIncomingInstanceRelationRecords(OkapiClient client, String instanceId) {
-        return instanceRelationsManager.makeInstanceRelationRecordsFromIdentifiers(client, instanceId);
+        return instanceRelations.makeInstanceRelationRecordsFromIdentifiers(client, instanceId);
     }
 
     public String getLocalIdentifierTypeId () {
@@ -255,7 +255,7 @@ public class InventoryRecordSet extends JsonRepresentation {
             holdingsAndItemsArray.add(holdingsRecordJson);
         }
         recordSetJson.put(HOLDINGS_RECORDS, holdingsAndItemsArray);
-        recordSetJson.put( InstanceRelationsManager.INSTANCE_RELATIONS, instanceRelationsManager.asJson());
+        recordSetJson.put( InstanceRelations.INSTANCE_RELATIONS, instanceRelations.asJson());
         recordSetJson.put(PROCESSING, processing);
         return recordSetJson;
     }

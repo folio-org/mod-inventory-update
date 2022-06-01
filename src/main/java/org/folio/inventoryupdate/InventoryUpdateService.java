@@ -75,7 +75,7 @@ public class InventoryUpdateService {
   public void handleInventoryRecordSetDeleteByHRID(RoutingContext routingCtx) {
     if (contentTypeIsJson(routingCtx)) {
       JsonObject deletionJson = getIncomingJsonBody(routingCtx);
-      InventoryQuery queryByInstanceHrid = new HridQuery(deletionJson.getString("hrid"));
+      InventoryQuery queryByInstanceHrid = new QueryByHrid(deletionJson.getString("hrid"));
       UpdatePlan updatePlan = UpdatePlanAllHRIDs.getDeletionPlan(queryByInstanceHrid);
       runPlan(updatePlan, routingCtx);
     }

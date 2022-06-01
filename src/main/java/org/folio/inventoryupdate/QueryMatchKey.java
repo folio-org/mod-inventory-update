@@ -5,11 +5,11 @@ package org.folio.inventoryupdate;
  * determining if a similar Instance already exists in Inventory
  *
  */
-public class MatchQuery extends InventoryQuery {
+public class QueryMatchKey extends InventoryQuery {
 
   private final String matchKey;
 
-  public MatchQuery(String matchKey) {
+  public QueryMatchKey(String matchKey) {
     this.matchKey = matchKey;
     queryString = buildMatchQuery();
   }

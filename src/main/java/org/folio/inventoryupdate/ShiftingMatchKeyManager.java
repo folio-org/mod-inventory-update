@@ -28,7 +28,7 @@ public class ShiftingMatchKeyManager
             this.updatingRecordSet = updatingRecordSet;
             if (updatingRecordSet.canLookForRecordsWithPreviousMatchKey()) {
                 canCheck = true;
-                shiftingMatchKeyQuery = new ShiftingMatchKeyQuery(
+                shiftingMatchKeyQuery = new QueryShiftingMatchKey(
                         updatingRecordSet.getLocalIdentifier(),
                         updatingRecordSet.getLocalIdentifierTypeId(),
                         updatingRecordSet.getInstance().getMatchKey());

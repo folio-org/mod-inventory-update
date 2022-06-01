@@ -22,7 +22,7 @@ public class UpdatePlanAllHRIDs extends UpdatePlan {
     }
 
     public static UpdatePlanAllHRIDs getUpsertPlan(InventoryRecordSet incomingInventoryRecordSet) {
-        InventoryQuery queryByInstanceHrid = new HridQuery(incomingInventoryRecordSet.getInstanceHRID());
+        InventoryQuery queryByInstanceHrid = new QueryByHrid(incomingInventoryRecordSet.getInstanceHRID());
         return new UpdatePlanAllHRIDs( incomingInventoryRecordSet, queryByInstanceHrid );
     }
 
@@ -37,7 +37,6 @@ public class UpdatePlanAllHRIDs extends UpdatePlan {
      * as well as possible instance-to-instance relationships, that need to be created,
      * updated, or deleted in Inventory storage.
      *
-     * @param okapiClient
      * @return a Future to confirm that plan was created
     */
     @Override
@@ -90,6 +89,53 @@ public class UpdatePlanAllHRIDs extends UpdatePlan {
         }
         return promisedPlan.future();
     }
+
+    public void planBatchInventoryUpdates (Repository repository) {
+        for (PairedRecordSets pair : repository.getPairsOfRecordSets()) {
+            if (pair.hasExistingRecordSet() && pair.hasIncomingRecordSet()) {
+                InventoryRecordSet existing = pair.getExistingRecordSet();
+                InventoryRecordSet incoming = pair.getIncomingRecordSet();
+                incoming.getInstance().setUUID(existing.getInstanceUUID());
+                incoming.getInstance().setTransition(Transaction.UPDATE);
+                incoming.getInstance().setVersion( existing.getInstance().getVersion() );
+                if (! incoming.getInstance().ignoreHoldings()) { // If a record set came in with a list of holdings records (even if it was an empty list)
+                    for (HoldingsRecord existingHoldingsRecord : existing.getInstance().getHoldingsRecords()) {
+                        HoldingsRecord incomingHoldingsRecord = incoming.getInstance().getHoldingsRecordByHRID(existingHoldingsRecord.getHRID());
+                        // HoldingsRecord gone, mark for deletion and check for existing items to delete with it
+                        if (incomingHoldingsRecord == null) {
+                            existingHoldingsRecord.setTransition(Transaction.DELETE);
+                        } else {
+                            // There is an existing holdings record with the same HRID, on the same Instance
+                            incomingHoldingsRecord.setUUID(existingHoldingsRecord.getUUID());
+                            incomingHoldingsRecord.setTransition(Transaction.UPDATE);
+                            incomingHoldingsRecord.setVersion( existingHoldingsRecord.getVersion() );
+                        }
+                        for (Item existingItem : existingHoldingsRecord.getItems()) {
+                            Item incomingItem = incoming.getItemByHRID(existingItem.getHRID());
+                            if (incomingItem == null) {
+                                existingItem.setTransition(Transaction.DELETE);
+                            } else {
+                                incomingItem.setUUID(existingItem.getUUID());
+                                incomingItem.setVersion( existingItem.getVersion() );
+                                incomingItem.setTransition(Transaction.UPDATE);
+                                ProcessingInstructions instr = new ProcessingInstructions(incoming.getProcessingInfoAsJson());
+                                if (instr.retainThisStatus(existingItem.getStatusName())) {
+                                    incomingItem.setStatus(existingItem.getStatusName());
+                                }
+                            }
+                        }
+                    }
+                }
+            } else if (!pair.hasExistingRecordSet()) {
+                InventoryRecordSet incoming = pair.getIncomingRecordSet();
+                if (incoming.getInstance().hasUUID()) {
+                    incoming.getInstance().generateUUID();
+                }
+                incoming.getInstance().setTransition(Transaction.CREATE);
+            }
+        }
+    }
+
 
     @Override
     public Future<Void> doInventoryUpdates (OkapiClient okapiClient) {
@@ -247,13 +293,12 @@ public class UpdatePlanAllHRIDs extends UpdatePlan {
     /**
      * Looks up existing holdings record by HRID and set UUID and transition state on incoming records
      * according to whether they were matched with existing records or not
-     * @param okapiClient
      * @param record The incoming record to match with an existing record if any
      * @return empty future for determining when look-up is complete
      */
     private Future<Void> flagAndIdHoldingsByStorageLookup (OkapiClient okapiClient, InventoryRecord record) {
         Promise<Void> promise = Promise.promise();
-        InventoryQuery hridQuery = new HridQuery(record.getHRID());
+        InventoryQuery hridQuery = new QueryByHrid(record.getHRID());
         InventoryStorage.lookupHoldingsRecordByHRID(okapiClient, hridQuery).onComplete( result -> {
             if (result.succeeded()) {
                 if (result.result() == null) {
@@ -279,11 +324,11 @@ public class UpdatePlanAllHRIDs extends UpdatePlan {
     /**
      * Looks up existing item record by HRID and set UUID and transition state according to whether it's found or not
      * @param record The incoming record to match with an existing record if any
-     * @return empty future for determining when loook-up is complete
+     * @return empty future for determining when look-up is complete
      */
     private Future<Void> flagAndIdItemsByStorageLookup (OkapiClient okapiClient, InventoryRecord record) {
         Promise<Void> promise = Promise.promise();
-        InventoryQuery hridQuery = new HridQuery(record.getHRID());
+        InventoryQuery hridQuery = new QueryByHrid(record.getHRID());
         InventoryStorage.lookupItemByHRID(okapiClient, hridQuery).onComplete( result -> {
             if (result.succeeded()) {
                 if (result.result() == null) {

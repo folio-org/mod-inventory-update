@@ -7,7 +7,7 @@ import io.vertx.core.impl.logging.Logger;
 import io.vertx.core.impl.logging.LoggerFactory;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
-import org.folio.inventoryupdate.HridQuery;
+import org.folio.inventoryupdate.QueryByHrid;
 import org.folio.inventoryupdate.InventoryQuery;
 import org.folio.inventoryupdate.InventoryStorage;
 import org.folio.inventoryupdate.QueryByUUID;
@@ -30,7 +30,7 @@ import static org.folio.inventoryupdate.entities.InstanceToInstanceRelation.Inst
  * Instance-to-Instance relations are held in the InventoryRecordSet class but the planning and update logic
  * is performed by this controller.
  */
-public class InstanceRelationsManager extends JsonRepresentation {
+public class InstanceRelations extends JsonRepresentation {
 
     // JSON property keys
     public static final String INSTANCE_RELATIONS = "instanceRelations";
@@ -56,15 +56,15 @@ public class InstanceRelationsManager extends JsonRepresentation {
     InventoryRecordSet irs;
     protected static final Logger logger = LoggerFactory.getLogger("inventory-update");
 
-    public InstanceRelationsManager( InventoryRecordSet inventoryRecordSet) {
+    public InstanceRelations(InventoryRecordSet inventoryRecordSet) {
         this.irs = inventoryRecordSet;
         if (hasRelationshipRecords(irs.sourceJson)) {
             registerRelationshipJsonRecords(irs.getInstance().getUUID(),irs.sourceJson.getJsonObject(
-                    InstanceRelationsManager.INSTANCE_RELATIONS));
+                    InstanceRelations.INSTANCE_RELATIONS));
             logger.debug("InventoryRecordSet initialized with existing instance relationships: " + this );
         }
         if (hasRelationshipIdentifiers(irs.sourceJson)) {
-            irs.instanceRelationsJson = irs.sourceJson.getJsonObject( InstanceRelationsManager.INSTANCE_RELATIONS);
+            irs.instanceRelationsJson = irs.sourceJson.getJsonObject( InstanceRelations.INSTANCE_RELATIONS);
             cameInWithEmptyParentIdentifierList = irs.instanceRelationsJson.containsKey(PARENT_INSTANCES) && irs.instanceRelationsJson.getJsonArray(PARENT_INSTANCES).isEmpty();
             cameInWithEmptyChildIdentifierList = irs.instanceRelationsJson.containsKey(CHILD_INSTANCES) && irs.instanceRelationsJson.getJsonArray(CHILD_INSTANCES).isEmpty();
             cameInWithEmptyPrecedingTitlesList = irs.instanceRelationsJson.containsKey(PRECEDING_TITLES) && irs.instanceRelationsJson.getJsonArray(PRECEDING_TITLES).isEmpty();
@@ -177,28 +177,44 @@ public class InstanceRelationsManager extends JsonRepresentation {
                                         irs.parentRelations = parents.result();
                                     }
                                 } else {
-                                    errorMessages.append(LF + "There was a problem looking up or creating Instance IDs to build parent relationships:" + LF + "  " + parents.cause().getMessage());
+                                    errorMessages.append(LF)
+                                            .append("There was a problem looking up or creating Instance IDs to build parent relationships:")
+                                            .append(LF)
+                                            .append("  ")
+                                            .append(parents.cause().getMessage());
                                 }
                                 if (children.succeeded()) {
                                     if (children.result() != null) {
                                         irs.childRelations = children.result();
                                     }
                                 } else {
-                                    errorMessages.append(LF + "There was a problem looking up or creating Instance IDs to build child relationships:" + LF + "  " + children.cause().getMessage());
+                                    errorMessages.append(LF)
+                                            .append("There was a problem looking up or creating Instance IDs to build child relationships:")
+                                            .append(LF)
+                                            .append("  ")
+                                            .append(children.cause().getMessage());
                                 }
                                 if (succeedingTitles.succeeded()) {
                                     if (succeedingTitles.result() != null) {
                                         irs.succeedingTitles = succeedingTitles.result();
                                     }
                                 } else {
-                                    errorMessages.append(LF + "There was a problem looking up or creating Instance IDs to build succeeding titles links:" + LF + "  " + succeedingTitles.cause().getMessage());
+                                    errorMessages.append(LF)
+                                            .append("There was a problem looking up or creating Instance IDs to build succeeding titles links:")
+                                            .append(LF)
+                                            .append("  ")
+                                            .append(succeedingTitles.cause().getMessage());
                                 }
                                 if (precedingTitles.succeeded()) {
                                     if (precedingTitles.result() != null) {
                                         irs.precedingTitles = precedingTitles.result();
                                     }
                                 } else {
-                                    errorMessages.append(LF + "There was a problem looking up or creating Instance IDs to build preceding titles links:" + LF + "  " + precedingTitles.cause().getMessage());
+                                    errorMessages.append(LF)
+                                            .append("There was a problem looking up or creating Instance IDs to build preceding titles links:")
+                                            .append(LF)
+                                            .append("  ")
+                                            .append(precedingTitles.cause().getMessage());
                                 }
                                 if (parents.succeeded() && children.succeeded() && succeedingTitles.succeeded() && precedingTitles.succeeded()) {
                                     promise.complete();
@@ -218,7 +234,7 @@ public class InstanceRelationsManager extends JsonRepresentation {
     private static InventoryQuery makeInstanceQueryUsingIdentifierObject( JsonObject instanceIdentifierJson) {
         InventoryQuery queryByUniqueId = null;
         if (instanceIdentifierJson.containsKey( HRID_IDENTIFIER_KEY )) {
-            queryByUniqueId = new HridQuery( instanceIdentifierJson.getString( HRID_IDENTIFIER_KEY ) );
+            queryByUniqueId = new QueryByHrid( instanceIdentifierJson.getString( HRID_IDENTIFIER_KEY ) );
         } else if ( instanceIdentifierJson.containsKey( UUID_IDENTIFIER_KEY )) {
             try {
                 UUID uuid = UUID.fromString( instanceIdentifierJson.getString(UUID_IDENTIFIER_KEY) );
@@ -299,14 +315,14 @@ public class InstanceRelationsManager extends JsonRepresentation {
                                                                                                  InventoryQuery queryById,
                                                                                                  InstanceRelationsClass classOfRelations) {
         Promise<InstanceToInstanceRelation> promise = Promise.promise();
-        boolean gotHrid = queryById instanceof HridQuery;
+        boolean gotHrid = queryById instanceof QueryByHrid;
         InventoryStorage.lookupInstance(client, queryById).onComplete(existingInstance -> {
             if (existingInstance.succeeded()) {
                 Instance provisionalInstance = null;
                 String relateToThisId = null;
                 if (existingInstance.result() != null) {
                     JsonObject relatedInstanceJson = existingInstance.result();
-                    relateToThisId = relatedInstanceJson.getString( InstanceRelationsManager.ID);
+                    relateToThisId = relatedInstanceJson.getString( InstanceRelations.ID);
                 } else {
                     // The instance to relate to, does not exist. if an HRID was provided we might be able to create a provisional Instance
                     if (gotHrid) {
@@ -314,7 +330,7 @@ public class InstanceRelationsManager extends JsonRepresentation {
                                 InstanceToInstanceRelation.PROVISIONAL_INSTANCE );
                         if ( validateProvisionalInstanceProperties( provisionalInstanceJson ) )
                         {
-                            provisionalInstance = prepareProvisionalInstance( ((HridQuery) queryById).hrid, provisionalInstanceJson );
+                            provisionalInstance = prepareProvisionalInstance( ((QueryByHrid) queryById).hrid, provisionalInstanceJson );
                             relateToThisId = provisionalInstance.getUUID();
                         }
                     }
@@ -360,7 +376,7 @@ public class InstanceRelationsManager extends JsonRepresentation {
                         relation.setProvisionalInstance(failedProvisionalInstance);
                         relation.logError("Referenced parent Instance not found and required provisional Instance " +
                                 "info for potentially creating one is missing; cannot create relation to non-existing Instance, HRID: [" +
-                                (gotHrid ? ((HridQuery) queryById).hrid : "no HRID provided") +"], got:" + InstanceRelationsManager.LF + relatedObject.encodePrettily(), 422);
+                                (gotHrid ? ((QueryByHrid) queryById).hrid : "no HRID provided") +"], got:" + InstanceRelations.LF + relatedObject.encodePrettily(), 422);
                         relation.fail(); // mark relation failed but don't fail the promise.
                     } else {
                         relation.setProvisionalInstance(provisionalInstance);
@@ -383,9 +399,9 @@ public class InstanceRelationsManager extends JsonRepresentation {
         if (provisionalInstanceProperties == null) {
             return false;
         } else {
-            if (provisionalInstanceProperties.getString( InstanceRelationsManager.TITLE) != null
-                && provisionalInstanceProperties.getString( InstanceRelationsManager.SOURCE) != null
-                && provisionalInstanceProperties.getString( InstanceRelationsManager.INSTANCE_TYPE_ID) != null) {
+            if (provisionalInstanceProperties.getString( InstanceRelations.TITLE) != null
+                && provisionalInstanceProperties.getString( InstanceRelations.SOURCE) != null
+                && provisionalInstanceProperties.getString( InstanceRelations.INSTANCE_TYPE_ID) != null) {
                 return true;
             } else {
                 return false;
@@ -404,8 +420,8 @@ public class InstanceRelationsManager extends JsonRepresentation {
         if (! json.containsKey( HRID_IDENTIFIER_KEY )) {
             json.put( HRID_IDENTIFIER_KEY, hrid);
         }
-        if (! json.containsKey( InstanceRelationsManager.ID)) {
-            json.put( InstanceRelationsManager.ID, UUID.randomUUID().toString());
+        if (! json.containsKey( InstanceRelations.ID)) {
+            json.put( InstanceRelations.ID, UUID.randomUUID().toString());
         }
         return new Instance(json);
     }

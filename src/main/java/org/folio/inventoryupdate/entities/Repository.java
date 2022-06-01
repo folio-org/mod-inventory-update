@@ -48,28 +48,43 @@ public class Repository {
 
   public Future<Void> buildRepositoryFromStorage (RoutingContext routingContext) {
     Promise<Void> promise = Promise.promise();
-    List<Future> existingRecordsFutures = new ArrayList<>();
-    existingRecordsFutures.add(fetchExistingInstancesByIncomingHRIDs(routingContext));
-    existingRecordsFutures.add(fetchExistingHoldingsRecordsByIncomingHRIDs(routingContext));
-    existingRecordsFutures.add(fetchExistingItemsByIncomingHRIDs(routingContext));
-    CompositeFuture.join(existingRecordsFutures).onComplete (allItemsDone -> {
-      if (allItemsDone.succeeded()) {
-        fetchExistingHoldingsRecordsByInstanceIds(routingContext).onComplete(void1 -> {
-          if (void1.succeeded()) {
-            fetchExistingItemsByHoldingsRecordIds(routingContext).onComplete(void2 -> {
-              if (void2.succeeded()) {
+    List<Future> existingRecordsByHridsFutures = new ArrayList<>();
+    for (List<String> idList : getSubListsOfFifty(getIncomingInstanceHRIDs())) {
+      existingRecordsByHridsFutures.add(requestInstancesByHRIDs(routingContext, idList));
+    }
+    for (List<String> idList : getSubListsOfFifty(getIncomingHoldingsRecordHRIDs())) {
+      existingRecordsByHridsFutures.add(requestHoldingsRecordsByHRIDs(routingContext, idList));
+    }
+    for (List<String> idList : getSubListsOfFifty(getIncomingItemHRIDs())) {
+      existingRecordsByHridsFutures.add(requestItemsByHRIDs(routingContext, idList));
+    }
+    CompositeFuture.join(existingRecordsByHridsFutures).onComplete (recordsByHrids -> {
+      if (recordsByHrids.succeeded()) {
+
+        List<Future> holdingsRecordsFutures = new ArrayList<>();
+        for (List<String> idList : getSubListsOfFifty(getExistingInstanceIds())) {
+          holdingsRecordsFutures.add(requestHoldingsRecordsByInstanceIds(routingContext, idList));
+        }
+        CompositeFuture.join(holdingsRecordsFutures).onComplete(holdingsRecordsByInstanceIds -> {
+          if (holdingsRecordsByInstanceIds.succeeded()) {
+            List<Future> itemsFutures = new ArrayList<>();
+            for (List<String> idList : getSubListsOfFifty(getExistingHoldingsRecordIds())) {
+              itemsFutures.add(requestItemsByHoldingsRecordIds(routingContext,idList));
+            }
+            CompositeFuture.join(itemsFutures).onComplete(itemsByHoldingsRecordIds -> {
+              if (itemsByHoldingsRecordIds.succeeded()) {
                 setExistingRecordSets();
                 promise.complete();
               } else {
-                promise.fail("There was an error fetching items by holdings record IDs: " + void2.cause().getMessage());
+                promise.fail("There was an error fetching items by holdings record IDs: " + itemsByHoldingsRecordIds.cause().getMessage());
               }
             });
           } else {
-            promise.fail("There was an error fetching holdings by instance IDs: " + void1.cause().getMessage());
+            promise.fail("There was an error fetching holdings by instance IDs: " + recordsByHrids.cause().getMessage());
           }
         });
       } else {
-        promise.fail("There was an fetching inventory records by incoming HRIDss: " + allItemsDone.cause().getMessage());
+        promise.fail("There was an fetching inventory records by incoming HRIDss: " + recordsByHrids.cause().getMessage());
       }
     });
     return promise.future();
@@ -102,11 +117,12 @@ public class Repository {
     }
   }
 
-  private Future<Void> fetchExistingInstancesByIncomingHRIDs(RoutingContext routingContext) {
+  private Future<Void> requestInstancesByHRIDs(RoutingContext routingContext,
+                                               List<String> hrids) {
     Promise<Void> promise = Promise.promise();
     OkapiClient okapiClient = InventoryStorage.getOkapiClient(routingContext);
     InventoryStorage.lookupInstances(okapiClient,
-                    new QueryByListOfIds("hrid", getIncomingInstanceHRIDs()))
+                    new QueryByListOfIds("hrid", hrids))
             .onComplete(instances -> {
               if (instances.succeeded()) {
                 for (Object o : instances.result()) {
@@ -116,18 +132,20 @@ public class Repository {
                 }
                 promise.complete();
               } else {
-                promise.fail("There was a problem fetching existing Instances by incoming HRIDs " + instances.cause().getMessage());
+                promise.fail("There was a problem fetching existing Instances by incoming HRIDs "
+                        + instances.cause().getMessage());
               }
 
             });
     return promise.future();
   }
 
-  private Future<Void> fetchExistingHoldingsRecordsByIncomingHRIDs(RoutingContext routingContext) {
+  private Future<Void> requestHoldingsRecordsByHRIDs(RoutingContext routingContext,
+                                                     List<String> hrids) {
     Promise<Void> promise = Promise.promise();
     OkapiClient okapiClient = InventoryStorage.getOkapiClient(routingContext);
     InventoryStorage.lookupHoldingsRecords(okapiClient,
-                    new QueryByListOfIds("hrid", getIncomingHoldingsRecordHRIDs()))
+                    new QueryByListOfIds("hrid", hrids))
             .onComplete(records -> {
               if (records.succeeded()) {
                 for (Object o : records.result()) {
@@ -143,18 +161,21 @@ public class Repository {
                 }
                 promise.complete();
               } else {
-                promise.fail("There was a problem fetching existing holdings records by incoming HRIDs " + records.cause().getMessage());
+                promise.fail(
+                        "There was a problem fetching existing holdings records by incoming HRIDs "
+                                + records.cause().getMessage());
               }
 
             });
     return promise.future();
   }
 
-  private Future<Void> fetchExistingHoldingsRecordsByInstanceIds(RoutingContext routingContext) {
+  private Future<Void> requestHoldingsRecordsByInstanceIds(RoutingContext routingContext,
+                                                           List<String> instanceIds) {
     Promise<Void> promise = Promise.promise();
     OkapiClient okapiClient = InventoryStorage.getOkapiClient(routingContext);
     InventoryStorage.lookupHoldingsRecords(okapiClient,
-                    new QueryByListOfIds("instanceId", getExistingInstanceIds()))
+                    new QueryByListOfIds("instanceId", instanceIds))
             .onComplete(records -> {
               if (records.succeeded()) {
                 for (Object o : records.result()) {
@@ -177,11 +198,11 @@ public class Repository {
     return promise.future();
   }
 
-  private Future<Void> fetchExistingItemsByIncomingHRIDs(RoutingContext routingContext) {
+  private Future<Void> requestItemsByHRIDs(RoutingContext routingContext, List<String> hrids) {
     Promise<Void> promise = Promise.promise();
     OkapiClient okapiClient = InventoryStorage.getOkapiClient(routingContext);
     InventoryStorage.lookupItems(okapiClient,
-                    new QueryByListOfIds("hrid", getIncomingItemHRIDs()))
+                    new QueryByListOfIds("hrid", hrids))
             .onComplete(records -> {
               if (records.succeeded()) {
                 if (records.result() != null) {
@@ -204,11 +225,12 @@ public class Repository {
     return promise.future();
   }
 
-  private Future<Void> fetchExistingItemsByHoldingsRecordIds(RoutingContext routingContext) {
+  private Future<Void> requestItemsByHoldingsRecordIds(RoutingContext routingContext,
+                                                       List<String> holdingsRecordIds) {
     Promise<Void> promise = Promise.promise();
     OkapiClient okapiClient = InventoryStorage.getOkapiClient(routingContext);
     InventoryStorage.lookupItems(okapiClient,
-                    new QueryByListOfIds("holdingsRecordId", getExistingHoldingsRecordIds()))
+                    new QueryByListOfIds("holdingsRecordId", holdingsRecordIds))
             .onComplete(records -> {
               if (records.succeeded()) {
                 if (records.result() != null) {
@@ -226,7 +248,8 @@ public class Repository {
                 }
                 promise.complete();
               } else {
-                promise.fail("There was a problem fetching existing items by holdings record IDs " + records.cause().getMessage());
+                promise.fail("There was a problem fetching existing items by holdings record IDs "
+                        + records.cause().getMessage());
               }
 
             });
@@ -290,5 +313,19 @@ public class Repository {
   public List<PairedRecordSets> getPairsOfRecordSets() {
     return pairsOfRecordSets;
   }
+
+  public static List<List<String>> getSubLists (List<String> list, int lengthOfSubLists) {
+    List<List<String>> subLists = new ArrayList<>();
+    for (int i = 0; i < list.size(); i += lengthOfSubLists) {
+      List<String> sub = list.subList(i, Math.min(list.size(),i+lengthOfSubLists));
+      subLists.add(sub);
+    }
+    return subLists;
+  }
+
+  public static List<List<String>> getSubListsOfFifty (List<String> list) {
+    return getSubLists(list, 50);
+  }
+
 
 }

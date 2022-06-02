@@ -5,12 +5,9 @@ import io.vertx.core.impl.logging.LoggerFactory;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.RoutingContext;
-import org.folio.inventoryupdate.entities.InventoryRecord;
 import org.folio.inventoryupdate.entities.InventoryRecordSet;
 import org.folio.inventoryupdate.entities.Repository;
 import org.folio.okapi.common.OkapiClient;
-
-import java.util.List;
 
 import static org.folio.okapi.common.HttpResponse.responseError;
 import static org.folio.okapi.common.HttpResponse.responseJson;

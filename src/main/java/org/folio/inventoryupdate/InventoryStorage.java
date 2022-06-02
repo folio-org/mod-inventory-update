@@ -169,6 +169,36 @@ public class InventoryStorage {
     });
     return promise.future();
   }
+  public static Future<JsonArray> lookupParentChildRelationships(OkapiClient okapiClient, QueryByListOfIds inventoryQuery) {
+    Promise<JsonArray> promise = Promise.promise();
+    okapiClient.get(INSTANCE_RELATIONSHIP_STORAGE_PATH +"?limit=10000&query=" + inventoryQuery.getURLEncodedQueryString(), res -> {
+      if (res.succeeded()) {
+        JsonObject relationshipsResult = new JsonObject(res.result());
+        JsonArray parentChildRelations = relationshipsResult.getJsonArray(INSTANCE_RELATIONSHIPS);
+        logger.debug("Successfully looked up existing instance relationships, found  " + parentChildRelations.size());
+        promise.complete(parentChildRelations);
+      } else {
+        failure(res.cause(), Entity.INSTANCE_RELATIONSHIP, Transaction.GET, okapiClient.getStatusCode(), promise, "While looking up instance relationships");
+      }
+    });
+    return promise.future();
+  }
+
+  public static Future<JsonArray> lookupTitleSuccessions (OkapiClient okapiClient, QueryByListOfIds inventoryQuery) {
+    Promise<JsonArray> promise = Promise.promise();
+    okapiClient.get(PRECEDING_SUCCEEDING_TITLE_STORAGE_PATH +"?limit=10000&query=" + inventoryQuery.getURLEncodedQueryString(), res -> {
+      if (res.succeeded()) {
+        JsonObject relationshipsResult = new JsonObject(res.result());
+        JsonArray titleSuccessions = relationshipsResult.getJsonArray(PRECEDING_SUCCEEDING_TITLES);
+        logger.debug("Successfully looked up existing title succession relationships, found  " + titleSuccessions.size());
+        promise.complete(titleSuccessions);
+      } else {
+        failure(res.cause(), Entity.INSTANCE_TITLE_SUCCESSION, Transaction.GET, okapiClient.getStatusCode(), promise, "While looking up instance title succession");
+      }
+    });
+    return promise.future();
+
+  }
 
   public static Future<JsonObject> lookupHoldingsRecordByHRID (OkapiClient okapiClient, InventoryQuery hridQuery) {
     Promise<JsonObject> promise = Promise.promise();
@@ -321,9 +351,10 @@ public class InventoryStorage {
     return promise.future();
   }
 
+
   public static Future<JsonArray> lookupExistingParentChildRelationshipsByInstanceUUID(OkapiClient okapiClient, String instanceId) {
     Promise<JsonArray> promise = Promise.promise();
-    okapiClient.get(INSTANCE_RELATIONSHIP_STORAGE_PATH +"?limit=1000&query=(subInstanceId%3D%3D"+instanceId+"%20or%20superInstanceId%3D%3D"+instanceId+")", res -> {
+    okapiClient.get(INSTANCE_RELATIONSHIP_STORAGE_PATH +"?limit=10000&query=(subInstanceId%3D%3D"+instanceId+"%20or%20superInstanceId%3D%3D"+instanceId+")", res -> {
       if (res.succeeded()) {
         JsonObject relationshipsResult = new JsonObject(res.result());
         JsonArray parentChildRelations = relationshipsResult.getJsonArray(INSTANCE_RELATIONSHIPS);

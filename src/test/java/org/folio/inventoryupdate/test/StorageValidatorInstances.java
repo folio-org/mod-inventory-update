@@ -22,6 +22,7 @@ public class StorageValidatorInstances  {
 
     validatePostAndGetById(testContext);
     validateGetByQueryAndPut(testContext);
+    validateGetByIdList(testContext);
     validateCanDeleteInstanceById(testContext);
     cannotDeleteInstanceWithHoldings(testContext);
     cannotDeleteInstanceWithInstanceRelations(testContext);
@@ -31,7 +32,7 @@ public class StorageValidatorInstances  {
   protected void validatePostAndGetById(TestContext testContext) {
     JsonObject responseOnPOST = FakeInventoryStorage.post(
             INSTANCE_STORAGE_PATH,
-            new InputInstance().setTitle("New InputInstance").setInstanceTypeId("12345").getJson());
+            new InputInstance().setTitle("New InputInstance").setInstanceTypeId("12345").setHrid("999999999").getJson());
     testContext.assertEquals(responseOnPOST.getString("title"), "New InputInstance");
     JsonObject responseOnGET = FakeInventoryStorage.getRecordById(INSTANCE_STORAGE_PATH, responseOnPOST.getString("id"));
     testContext.assertEquals(responseOnGET.getString("title"), "New InputInstance");
@@ -48,6 +49,14 @@ public class StorageValidatorInstances  {
     FakeInventoryStorage.put(INSTANCE_STORAGE_PATH, existingRecord);
     JsonObject record = FakeInventoryStorage.getRecordById(INSTANCE_STORAGE_PATH, existingRecord.getString("id"));
     testContext.assertEquals(record.getString("instanceTypeId"), "456");
+  }
+
+  protected void validateGetByIdList(TestContext testContext) {
+    JsonObject responseJson = FakeInventoryStorage.getRecordsByQuery(
+            INSTANCE_STORAGE_PATH,
+            "query="+ RecordStorage.encode("(hrid==(\"10\" OR \"999999999\")"));
+    testContext.assertEquals(
+            responseJson.getInteger("totalRecords"), 1,"Number of " + RESULT_SET_INSTANCES + " expected: 1" );
   }
 
   protected void validateCanDeleteInstanceById (TestContext testContext) {

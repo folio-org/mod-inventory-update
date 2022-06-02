@@ -1,22 +1,27 @@
 package org.folio.inventoryupdate;
 
-import java.util.ArrayList;
+import static org.folio.inventoryupdate.entities.InstanceRelationsManager.EXISTING_PARENT_CHILD_RELATIONS;
+import static org.folio.inventoryupdate.entities.InstanceRelationsManager.EXISTING_PRECEDING_SUCCEEDING_TITLES;
+import static org.folio.inventoryupdate.entities.InstanceRelationsManager.INSTANCE_RELATIONS;
+
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 import io.vertx.core.impl.logging.Logger;
 import io.vertx.core.impl.logging.LoggerFactory;
 import io.vertx.ext.web.RoutingContext;
-import org.folio.inventoryupdate.entities.InstanceRelationsManager;
+import io.vertx.ext.web.client.WebClient;
 import org.folio.inventoryupdate.entities.InventoryRecord;
 import org.folio.inventoryupdate.entities.InventoryRecord.Entity;
 import org.folio.inventoryupdate.entities.InventoryRecord.Transaction;
 import org.folio.inventoryupdate.entities.InventoryRecordSet;
+import org.folio.okapi.common.ExtendedAsyncResult;
 import org.folio.okapi.common.OkapiClient;
-
 import io.vertx.core.CompositeFuture;
 import io.vertx.core.Future;
+import io.vertx.core.Handler;
 import io.vertx.core.Promise;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.json.JsonArray;
@@ -67,7 +72,6 @@ public class InventoryStorage {
 
   public static Future<JsonObject> putInventoryRecord (OkapiClient okapiClient, InventoryRecord record) {
     Promise<JsonObject> promise = Promise.promise();
-    logger.debug("Putting " + record.entityType() + ": " + record.asJson().encodePrettily());
     okapiClient.request(HttpMethod.PUT, getApi(record.entityType())+"/"+record.getUUID(), record.asJsonString(), putResult -> {
       if (putResult.succeeded()) {
         record.complete();
@@ -151,119 +155,98 @@ public class InventoryStorage {
     return promise.future();
   }
 
-  public static Future<JsonObject> lookupSingleInventoryRecordSet (OkapiClient okapiClient, InventoryQuery uniqueQuery) {
-    Promise<JsonObject> promise = Promise.promise();
-    JsonObject inventoryRecordSet = new JsonObject();
-
-    lookupInstance(okapiClient, uniqueQuery).onComplete( instanceResult -> {
-      if (instanceResult.succeeded()) {
-        JsonObject instance = instanceResult.result();
-        if (instance==null) {
-          promise.complete(null);
-        } else {
-          inventoryRecordSet.put(InventoryRecordSet.INSTANCE,instance);
-          String instanceUUID = instance.getString(ID);
-          lookupExistingHoldingsRecordsAndItemsByInstanceUUID(okapiClient, instanceUUID).onComplete(existingHoldingsResult -> {
-              StringBuilder errorMessages = new StringBuilder();
-              if (existingHoldingsResult.succeeded()) {
-                  if (existingHoldingsResult.result() != null) {
-                      inventoryRecordSet.put(InventoryRecordSet.HOLDINGS_RECORDS,existingHoldingsResult.result());
-                  } else {
-                      inventoryRecordSet.put(InventoryRecordSet.HOLDINGS_RECORDS, new JsonArray());
-                  }
-              } else {
-                errorMessages.append(LF + existingHoldingsResult.cause());
-                logger.error("Lookup of existing holdings/items failed " + existingHoldingsResult);
-              }
-              lookupExistingParentChildRelationshipsByInstanceUUID(okapiClient, instanceUUID).onComplete(existingParentChildRelations -> {
-                lookupExistingPrecedingOrSucceedingTitlesByInstanceUUID(okapiClient, instanceUUID).onComplete( existingInstanceTitleSuccessions -> {
-                  JsonObject instanceRelations = new JsonObject();
-                  inventoryRecordSet.put( InstanceRelationsManager.INSTANCE_RELATIONS, instanceRelations);
-                  if(existingInstanceTitleSuccessions.succeeded()) {
-                    if (existingInstanceTitleSuccessions.result() != null)  {
-                      instanceRelations.put( InstanceRelationsManager.EXISTING_PRECEDING_SUCCEEDING_TITLES, existingInstanceTitleSuccessions.result());
-                      logger.debug("InventoryRecordSet JSON populated with " +
-                              inventoryRecordSet.getJsonObject( InstanceRelationsManager.INSTANCE_RELATIONS)
-                                      .getJsonArray( InstanceRelationsManager.EXISTING_PRECEDING_SUCCEEDING_TITLES).size() + " preceding/succeeding titles");
-                    }
-                  } else {
-                    errorMessages.append(LF + existingInstanceTitleSuccessions.cause());
-                    logger.error("Lookup of existing preceding/succeeding titles failed " + existingInstanceTitleSuccessions.cause());
-                  }
-                  if (existingParentChildRelations.succeeded()) {
-                    if (existingParentChildRelations.result() != null) {
-                      instanceRelations.put( InstanceRelationsManager.EXISTING_PARENT_CHILD_RELATIONS, existingParentChildRelations.result());
-                      logger.debug("InventoryRecordSet JSON populated with " +
-                              inventoryRecordSet.getJsonObject( InstanceRelationsManager.INSTANCE_RELATIONS)
-                                      .getJsonArray( InstanceRelationsManager.EXISTING_PARENT_CHILD_RELATIONS).size() + " parent/child relations");
-                    }
-                  } else {
-                    errorMessages.append(LF + existingParentChildRelations.cause());
-                    logger.error("Lookup of existing Instance relationships failed " + existingParentChildRelations.cause());
-                  }
-                  if (existingHoldingsResult.succeeded() && existingInstanceTitleSuccessions.succeeded() && existingParentChildRelations.succeeded()) {
-                    promise.complete(inventoryRecordSet);
-                  } else {
-                    promise.fail(errorMessages.toString());
-                  }
-                });
-              });
-          });
-        }
-      } else {
-        failure(instanceResult.cause(), Entity.INSTANCE, Transaction.GET, okapiClient.getStatusCode(), promise);
-      }
-    });
-    return promise.future();
-  }
-
-  public static Future<JsonArray> lookupExistingHoldingsRecordsAndItemsByInstanceUUID (OkapiClient okapiClient, String instanceId) {
-    Promise<JsonArray> promise = Promise.promise();
-    okapiClient.get(HOLDINGS_STORAGE_PATH+"?limit=1000&query=instanceId%3D%3D"+instanceId, res -> {
-      if (res.succeeded()) {
-        JsonObject holdingsRecordsResult = new JsonObject(res.result());
-        JsonArray holdingsRecords = holdingsRecordsResult.getJsonArray(HOLDINGS_RECORDS);
-        logger.debug("Successfully looked up existing holdings records, found  " + holdingsRecords.size());
-        if (holdingsRecords.size()>0) {
-          @SuppressWarnings("rawtypes")
-          List<Future> itemFutures = new ArrayList<>();
-          for (Object holdingsObject : holdingsRecords) {
-            JsonObject holdingsRecord = (JsonObject) holdingsObject;
-            itemFutures.add(lookupAndEmbedExistingItems(okapiClient, holdingsRecord));
+  public static Future<JsonObject> lookupSingleInventoryRecordSet(OkapiClient okapiClient, InventoryQuery uniqueQuery) {
+    return lookupInstanceHoldingsItems(okapiClient, uniqueQuery)
+        .compose(inventoryRecordSet -> {
+          if (inventoryRecordSet == null) {
+            return Future.succeededFuture();
           }
-          CompositeFuture.all(itemFutures).onComplete( result -> {
-            if (result.succeeded()) {
-              logger.debug("Composite succeeded with " + result.result().size() + " result(s). First item: " + ((JsonObject) result.result().resultAt(0)).encodePrettily());
-              promise.complete(holdingsRecords);
-            } else {
-              failure(result.cause(), Entity.ITEM, Transaction.GET, okapiClient.getStatusCode(), promise, "While looking up and embedding items for holdings records");
-            }
-          });
-        } else {
-          promise.complete(null);
-        }
-      } else {
-        failure(res.cause(), Entity.HOLDINGS_RECORD, Transaction.GET, okapiClient.getStatusCode(), promise, "While looking up holdings by instance ID");
-        promise.fail("There was an error looking up existing holdings and items");
-      }
-    });
-    return promise.future();
+          var instanceId = inventoryRecordSet.getJsonObject(InventoryRecordSet.INSTANCE).getString("id");
+          var instanceRelations = new JsonObject();
+          inventoryRecordSet.put(INSTANCE_RELATIONS, instanceRelations);
+          var future1 = lookupExistingParentChildRelationshipsByInstanceUUID(okapiClient, instanceId)
+              .onSuccess(result -> instanceRelations.put(EXISTING_PARENT_CHILD_RELATIONS, result));
+          var future2 = lookupExistingPrecedingOrSucceedingTitlesByInstanceUUID(okapiClient, instanceId)
+              .onSuccess(result -> instanceRelations.put(EXISTING_PRECEDING_SUCCEEDING_TITLES, result));
+          return CompositeFuture.all(future1, future2)
+              .map(inventoryRecordSet);
+        })
+        .recover(e -> failureFuture(e, Entity.INSTANCE, Transaction.GET, okapiClient.getStatusCode(),
+            "lookupSingleInventoryRecordSet"));
   }
 
-  private static Future<JsonObject> lookupAndEmbedExistingItems (OkapiClient okapiClient, JsonObject holdingsRecord) {
-    Promise<JsonObject> promise = Promise.promise();
-    okapiClient.get(ITEM_STORAGE_PATH+"?limit=1000&query=holdingsRecordId%3D%3D"+holdingsRecord.getString(ID), res -> {
-      if (res.succeeded()) {
-        JsonObject itemsResult = new JsonObject(res.result());
-        JsonArray items = itemsResult.getJsonArray(ITEMS);
-        logger.debug("Successfully looked up existing items, found  " + items.size());
-        holdingsRecord.put(ITEMS,items);
-        promise.complete(holdingsRecord);
-      } else {
-        failure(res.cause(), Entity.ITEM, Transaction.GET, okapiClient.getStatusCode(), promise, "While looking up items by holdingsRecordId");
-      }
-    });
-    return promise.future();
+  private static Future<JsonObject> lookupInstanceHoldingsItems(
+      OkapiClient okapiClient, InventoryQuery uniqueQuery) {
+
+    // prepend first word: id -> instance.id, hrid -> instance.hrid
+    String query = uniqueQuery.queryString.replaceFirst("\\w", "instance.$0");
+    query = URLEncoder.encode(query, StandardCharsets.UTF_8);
+    return okapiClient.get("/inventory-view/instances?query=" + query)
+        .map(body -> {
+          /* {
+           *   "instances": [
+           *     {
+           *       "instanceId": "7fbd5d84-62d1-44c6-9c45-6cb173998bbd",
+           *       "isBoundWith": false,
+           *       "instance": {
+           *         "id": "7fbd5d84-62d1-44c6-9c45-6cb173998bbd",
+           *         "hrid": "inst000000000006",
+           *         ...
+           *       },
+           *       "holdingsRecords": [
+           *         {
+           *           "id": "fb7b70f1-b898-4924-a991-0e4b6312bb5f",
+           *           "hrid": "hold000000000005",
+           *           ...
+           *         },{
+           *           ...
+           *         }
+           *       ],
+           *       "items": [
+           *         {
+           *           "id": "d6f7c1ba-a237-465e-94ed-f37e91bc64bd",
+           *           "hrid": "item000000000010",
+           *           ...
+           *         },{
+           *           ...
+           *         }
+           *       ]
+           *     }
+           *   ]
+           * }
+           */
+          JsonObject view = new JsonObject(body);
+          if (view.getJsonArray("instances").size() == 0) {
+            return null;
+          }
+          JsonObject input = view.getJsonArray("instances").getJsonObject(0);
+          JsonObject instance = input.getJsonObject(InventoryRecordSet.INSTANCE);
+          JsonObject output = new JsonObject().put(InventoryRecordSet.INSTANCE, instance);
+          JsonArray holdingsRecords = input.getJsonArray(InventoryRecordSet.HOLDINGS_RECORDS);
+          if (holdingsRecords == null) {
+            output.put(InventoryRecordSet.HOLDINGS_RECORDS, new JsonArray());
+            return output;
+          }
+          output.put(InventoryRecordSet.HOLDINGS_RECORDS, holdingsRecords);
+          /** map holding id to the items array of the holding */
+          Map<String,JsonArray> map = new HashMap<>();
+          for (int i = 0; i < holdingsRecords.size(); i++) {
+            JsonObject holding = holdingsRecords.getJsonObject(i);
+            JsonArray items = new JsonArray();
+            holding.put(InventoryRecordSet.ITEMS, items);
+            map.put(holding.getString("id"), items);
+          }
+          JsonArray items = input.getJsonArray(InventoryRecordSet.ITEMS);
+          for (int i = 0; i < items.size(); i++) {
+            JsonObject item = items.getJsonObject(i);
+            JsonArray itemArray = map.get(item.getString("holdingsRecordId"));
+            if (itemArray == null) {
+              continue;
+            }
+            itemArray.add(item);
+          }
+          return output;
+        });
   }
 
   public static Future<JsonArray> lookupExistingParentChildRelationshipsByInstanceUUID(OkapiClient okapiClient, String instanceId) {
@@ -342,6 +325,12 @@ public class InventoryStorage {
   }
 
   private static <T> void failure(Throwable cause, Entity entityType, Transaction transaction, int httpStatusCode, Promise<T> promise, String contextNote) {
+    promise.handle(failureFuture(cause, entityType, transaction, httpStatusCode, contextNote));
+  }
+
+  private static <T> Future<T> failureFuture(Throwable cause, Entity entityType, Transaction transaction,
+      int httpStatusCode, String contextNote) {
+
     JsonObject errorMessage = new JsonObject();
     errorMessage.put("message", cause.getMessage());
     errorMessage.put("entity-type",entityType);
@@ -350,11 +339,48 @@ public class InventoryStorage {
     if (contextNote != null) {
       errorMessage.put("note-of-context", contextNote);
     }
-    promise.fail(errorMessage.encodePrettily());
+    return Future.failedFuture(errorMessage.encodePrettily());
+  }
+
+  /** Logs execution times of OkapiClient HTTP requests. */
+  static class TimingOkapiClient extends OkapiClient {
+    TimingOkapiClient(WebClient webClient, RoutingContext ctx) {
+      super(webClient, ctx);
+    }
+
+    private void log(long start, long end, HttpMethod method, String uri) {
+      logger.debug(String.format("%4d ms (...%03d - ...%03d) %s %s",
+          (end-start), (start%1000), (end%1000), method, uri));
+    }
+
+    @Override
+    public Future<String> get(String uri) {
+      long start = System.currentTimeMillis();
+      return super.get(uri)
+          .onComplete(x -> log(start, System.currentTimeMillis(), HttpMethod.GET, uri));
+    }
+
+    @Override
+    public void request(HttpMethod method, String uri, String body, Handler<ExtendedAsyncResult<String>> fut) {
+      long start = System.currentTimeMillis();
+      super.request(method, uri, body, event -> {
+        log(start, System.currentTimeMillis(), method, uri);
+        fut.handle(event);
+      });
+    }
+
+    @Override
+    public Future<String> request(HttpMethod method, String uri, String body) {
+      long start = System.currentTimeMillis();
+      return super.request(method, uri, body)
+          .onComplete(x -> log(start, System.currentTimeMillis(), method, uri));
+    }
   }
 
   public static OkapiClient getOkapiClient ( RoutingContext ctx) {
-    OkapiClient client = new OkapiClient(WebClientFactory.getWebClient(ctx.vertx()), ctx);
+    OkapiClient client = logger.isDebugEnabled()
+        ? new TimingOkapiClient(WebClientFactory.getWebClient(ctx.vertx()), ctx)
+        : new OkapiClient(WebClientFactory.getWebClient(ctx.vertx()), ctx);
     Map<String, String> headers = new HashMap<>();
     headers.put("Content-type", "application/json");
     if (ctx.request().getHeader("X-Okapi-Tenant") != null) headers.put("X-Okapi-Tenant", ctx.request().getHeader("X-Okapi-Tenant"));

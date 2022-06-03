@@ -6,8 +6,10 @@ import static org.folio.okapi.common.HttpResponse.responseJson;
 import io.vertx.core.impl.logging.Logger;
 import io.vertx.core.impl.logging.LoggerFactory;
 import io.vertx.core.json.DecodeException;
+import io.vertx.core.json.JsonArray;
 import org.folio.inventoryupdate.entities.RecordIdentifiers;
 import org.folio.inventoryupdate.entities.InventoryRecordSet;
+import org.folio.inventoryupdate.entities.Repository;
 import org.folio.okapi.common.OkapiClient;
 
 import io.vertx.core.json.JsonObject;
@@ -67,9 +69,17 @@ public class InventoryUpdateService {
       responseError(routingCtx, 400, "Did not recognize input as an Inventory record set: " + incomingJson.encodePrettily());
       return;
     }
-    InventoryRecordSet incomingSet = new InventoryRecordSet(incomingJson);
-    UpdatePlan updatePlan = UpdatePlanAllHRIDs.getUpsertPlan(incomingSet);
-    runPlan(updatePlan, routingCtx);
+    JsonArray inventoryRecordSets = new JsonArray();
+    inventoryRecordSets.add(new JsonObject(incomingJson.encodePrettily()));
+    Repository repository = new Repository();
+    repository
+            .setIncomingRecordSets(inventoryRecordSets)
+            .buildRepositoryFromStorage(routingCtx).onComplete(result ->{
+                logger.info(repository.getIncomingRecordSets().get(0).asJson().encodePrettily());
+                InventoryRecordSet incomingSet = new InventoryRecordSet(incomingJson);
+                UpdatePlan updatePlan = UpdatePlanAllHRIDs.getUpsertPlan(incomingSet);
+                runPlan(updatePlan, routingCtx);
+            });
   }
 
   public void handleInventoryRecordSetDeleteByHRID(RoutingContext routingCtx) {

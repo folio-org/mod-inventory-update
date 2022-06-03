@@ -70,7 +70,7 @@ public class Repository {
     for (List<String> idList : getSubListsOfFifty(getIncomingReferencedInstanceHrids())) {
       existingRecordsByHridsFutures.add(requestReferencedInstancesByHRIDs(routingContext, idList));
     }
-    CompositeFuture.join(existingRecordsByHridsFutures).onComplete (recordsByHrids -> {
+    CompositeFuture.join(existingRecordsByHridsFutures).onComplete(recordsByHrids -> {
       if (recordsByHrids.succeeded()) {
         List<Future> instanceRelationsFutures = new ArrayList<>();
         for (List<String> idList : getSubListsOfFifty(getExistingInstanceIds())) {
@@ -94,7 +94,7 @@ public class Repository {
             if (holdingsRecordsByInstanceIds.succeeded()) {
               List<Future> itemsFutures = new ArrayList<>();
               for (List<String> idList : getSubListsOfFifty(getExistingHoldingsRecordIds())) {
-                itemsFutures.add(requestItemsByHoldingsRecordIds(routingContext,idList));
+                itemsFutures.add(requestItemsByHoldingsRecordIds(routingContext, idList));
               }
               CompositeFuture.join(itemsFutures).onComplete(itemsByHoldingsRecordIds -> {
                 if (itemsByHoldingsRecordIds.succeeded()) {
@@ -109,7 +109,6 @@ public class Repository {
             }
           });
         });
-
       } else {
         promise.fail("There was an fetching inventory records by incoming HRIDss: " + recordsByHrids.cause().getMessage());
       }
@@ -152,10 +151,12 @@ public class Repository {
                     new QueryByListOfIds("hrid", hrids))
             .onComplete(instances -> {
               if (instances.succeeded()) {
-                for (Object o : instances.result()) {
-                  Instance instance = new Instance((JsonObject) o);
-                  existingInstancesByHrid.put(instance.getHRID(), instance);
-                  existingInstancesByUUID.put(instance.getUUID(), instance);
+                if (instances.result() != null) {
+                  for (Object o : instances.result()) {
+                    Instance instance = new Instance((JsonObject) o);
+                    existingInstancesByHrid.put(instance.getHRID(), instance);
+                    existingInstancesByUUID.put(instance.getUUID(), instance);
+                  }
                 }
                 promise.complete();
               } else {
@@ -175,10 +176,12 @@ public class Repository {
                     new QueryByListOfIds("hrid", hrids))
             .onComplete(instances -> {
               if (instances.succeeded()) {
-                for (Object o : instances.result()) {
-                  Instance instance = new Instance((JsonObject) o);
-                  referencedInstancesByHrid.put(instance.getHRID(), instance);
-                  referencedInstancesByUUID.put(instance.getUUID(), instance);
+                if (instances.result() != null) {
+                  for (Object o : instances.result()) {
+                    Instance instance = new Instance((JsonObject) o);
+                    referencedInstancesByHrid.put(instance.getHRID(), instance);
+                    referencedInstancesByUUID.put(instance.getUUID(), instance);
+                  }
                 }
                 promise.complete();
               } else {
@@ -198,16 +201,17 @@ public class Repository {
                     new QueryByListOfIds("hrid", hrids))
             .onComplete(records -> {
               if (records.succeeded()) {
-                for (Object o : records.result()) {
-                  HoldingsRecord holdingsRecord = new HoldingsRecord((JsonObject) o);
-                  existingHoldingsRecordsByHrid.put(holdingsRecord.getHRID(), holdingsRecord);
-                  existingHoldingsRecordsByUUID.put(holdingsRecord.getUUID(), holdingsRecord);
-                  if (!existingHoldingsRecordsByInstanceId.containsKey(holdingsRecord.getInstanceId())) {
-                    existingHoldingsRecordsByInstanceId.put(holdingsRecord.getInstanceId(), new HashMap<>());
+                if (records.result() != null) {
+                  for (Object o : records.result()) {
+                    HoldingsRecord holdingsRecord = new HoldingsRecord((JsonObject) o);
+                    existingHoldingsRecordsByHrid.put(holdingsRecord.getHRID(), holdingsRecord);
+                    existingHoldingsRecordsByUUID.put(holdingsRecord.getUUID(), holdingsRecord);
+                    if (!existingHoldingsRecordsByInstanceId.containsKey(holdingsRecord.getInstanceId())) {
+                      existingHoldingsRecordsByInstanceId.put(holdingsRecord.getInstanceId(), new HashMap<>());
+                    }
+                    existingHoldingsRecordsByInstanceId.get(holdingsRecord.getInstanceId()).put(
+                            holdingsRecord.getUUID(), holdingsRecord);
                   }
-                  existingHoldingsRecordsByInstanceId
-                          .get(holdingsRecord.getInstanceId())
-                          .put(holdingsRecord.getUUID(), holdingsRecord);
                 }
                 promise.complete();
               } else {
@@ -228,16 +232,17 @@ public class Repository {
                     new QueryByListOfIds("instanceId", instanceIds))
             .onComplete(records -> {
               if (records.succeeded()) {
-                for (Object o : records.result()) {
-                  HoldingsRecord holdingsRecord = new HoldingsRecord((JsonObject) o);
-                  existingHoldingsRecordsByHrid.put(holdingsRecord.getHRID(), holdingsRecord);
-                  existingHoldingsRecordsByUUID.put(holdingsRecord.getUUID(), holdingsRecord);
-                  if (!existingHoldingsRecordsByInstanceId.containsKey(holdingsRecord.getInstanceId())) {
-                    existingHoldingsRecordsByInstanceId.put(holdingsRecord.getInstanceId(), new HashMap<>());
+                if (records.result() != null) {
+                  for (Object o : records.result()) {
+                    HoldingsRecord holdingsRecord = new HoldingsRecord((JsonObject) o);
+                    existingHoldingsRecordsByHrid.put(holdingsRecord.getHRID(), holdingsRecord);
+                    existingHoldingsRecordsByUUID.put(holdingsRecord.getUUID(), holdingsRecord);
+                    if (!existingHoldingsRecordsByInstanceId.containsKey(holdingsRecord.getInstanceId())) {
+                      existingHoldingsRecordsByInstanceId.put(holdingsRecord.getInstanceId(), new HashMap<>());
+                    }
+                    existingHoldingsRecordsByInstanceId.get(holdingsRecord.getInstanceId()).put(
+                            holdingsRecord.getUUID(), holdingsRecord);
                   }
-                  existingHoldingsRecordsByInstanceId
-                          .get(holdingsRecord.getInstanceId())
-                          .put(holdingsRecord.getUUID(), holdingsRecord);
                 }
                 promise.complete();
               } else {

@@ -47,11 +47,6 @@ public class InstanceRelations extends JsonRepresentation {
     public static final String SOURCE = "source";
     // EOF JSON property keys
 
-    boolean cameInWithEmptyParentIdentifierList = false;
-    boolean cameInWithEmptyChildIdentifierList = false;
-    boolean cameInWithEmptySucceedingTitlesList = false;
-    boolean cameInWithEmptyPrecedingTitlesList = false;
-
     public static final String LF = System.lineSeparator();
     InventoryRecordSet irs;
     protected static final Logger logger = LoggerFactory.getLogger("inventory-update");
@@ -65,10 +60,6 @@ public class InstanceRelations extends JsonRepresentation {
         }
         if (hasRelationshipIdentifiers(irs.sourceJson)) {
             irs.instanceRelationsJson = irs.sourceJson.getJsonObject( InstanceRelations.INSTANCE_RELATIONS);
-            cameInWithEmptyParentIdentifierList = irs.instanceRelationsJson.containsKey(PARENT_INSTANCES) && irs.instanceRelationsJson.getJsonArray(PARENT_INSTANCES).isEmpty();
-            cameInWithEmptyChildIdentifierList = irs.instanceRelationsJson.containsKey(CHILD_INSTANCES) && irs.instanceRelationsJson.getJsonArray(CHILD_INSTANCES).isEmpty();
-            cameInWithEmptyPrecedingTitlesList = irs.instanceRelationsJson.containsKey(PRECEDING_TITLES) && irs.instanceRelationsJson.getJsonArray(PRECEDING_TITLES).isEmpty();
-            cameInWithEmptySucceedingTitlesList = irs.instanceRelationsJson.containsKey(SUCCEEDING_TITLES) && irs.instanceRelationsJson.getJsonArray(SUCCEEDING_TITLES).isEmpty();
             logger.debug("InventoryRecordSet initialized with incoming instance relationships JSON (relations to be built.");
         }
     }
@@ -114,49 +105,6 @@ public class InstanceRelations extends JsonRepresentation {
         for (InstanceToInstanceRelation relation : getInstanceToInstanceRelations()) {
             relation.setTransition(InventoryRecord.Transaction.DELETE);
         }
-    }
-
-    public boolean hasThisRelation(InstanceToInstanceRelation relation) {
-        for (InstanceToInstanceRelation relationHere : getInstanceToInstanceRelations()) {
-            if (relation.equals(relationHere)) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    /**
-     * A relation is considered omitted if the list it would be in exists but the relation is not in the list.
-     *
-     * Can be used to signal that relations of a given type should be deleted from the Instance by providing an
-     * empty list of that type. When no such list is provided, on the other hand, then existing relations of that type
-     * should be retained.
-     *
-     * @param relation Relationship to check
-     * @return true if the relation is not in a provides list of relations, false if its present or if no list was provided
-     */
-    public boolean isThisRelationOmitted(InstanceToInstanceRelation relation) {
-        switch (relation.instanceRelationClass) {
-            case TO_PARENT:
-                return (cameInWithEmptyParentIdentifierList || isThisRelationOmitted(irs.parentRelations, relation));
-            case TO_CHILD:
-                return (cameInWithEmptyChildIdentifierList || isThisRelationOmitted(irs.childRelations, relation));
-            case TO_PRECEDING:
-                return (cameInWithEmptyPrecedingTitlesList || isThisRelationOmitted(irs.precedingTitles, relation));
-            case TO_SUCCEEDING:
-                return (cameInWithEmptySucceedingTitlesList || isThisRelationOmitted(irs.succeedingTitles, relation));
-        }
-        return false;
-    }
-
-    /**
-     * A relation is considered omitted from the list if the list exists (is not null) but the relation is not in it.
-     * @param list list of relations to check the relation against
-     * @param relation the relation to check
-     * @return true if a list was provided and the relation is not in the list
-     */
-    private boolean isThisRelationOmitted(List<InstanceToInstanceRelation> list, InstanceToInstanceRelation relation) {
-        return ( list != null && !list.contains( relation ) );
     }
 
     /**
@@ -470,7 +418,7 @@ public class InstanceRelations extends JsonRepresentation {
         if (updatingRecordSet != null) {
             for (InstanceToInstanceRelation incomingRelation : updatingRecordSet.getInstanceRelationsController().getInstanceToInstanceRelations()) {
                 if (existingRecordSet != null) {
-                    if (existingRecordSet.getInstanceRelationsController().hasThisRelation(incomingRelation)) {
+                    if (existingRecordSet.hasThisRelation(incomingRelation)) {
                         incomingRelation.skip();
                     }
                 }
@@ -478,7 +426,7 @@ public class InstanceRelations extends JsonRepresentation {
         }
         if (existingRecordSet != null) {
             for (InstanceToInstanceRelation existingRelation : existingRecordSet.getInstanceRelationsController().getInstanceToInstanceRelations()) {
-                if (updatingRecordSet.getInstanceRelationsController().isThisRelationOmitted(existingRelation)) {
+                if (updatingRecordSet.isThisRelationOmitted(existingRelation)) {
                     existingRelation.setTransition(InventoryRecord.Transaction.DELETE);
                 } else {
                     existingRelation.setTransition(InventoryRecord.Transaction.NONE);

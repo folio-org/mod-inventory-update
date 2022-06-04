@@ -13,6 +13,8 @@ import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import org.folio.okapi.common.OkapiClient;
 
+import static org.folio.inventoryupdate.entities.InstanceRelations.*;
+import static org.folio.inventoryupdate.entities.InstanceRelationship.INSTANCE_RELATIONSHIP_TYPE_ID;
 import static org.folio.inventoryupdate.entities.RecordIdentifiers.OAI_IDENTIFIER;
 
 public class InventoryRecordSet extends JsonRepresentation {
@@ -202,6 +204,183 @@ public class InventoryRecordSet extends JsonRepresentation {
 
     public Future<Void> prepareIncomingInstanceRelationRecords(OkapiClient client, String instanceId) {
         return instanceRelations.makeInstanceRelationRecordsFromIdentifiers(client, instanceId);
+    }
+
+    public List<InstanceToInstanceRelation> getInstanceToInstanceRelations() {
+        return Stream.of(
+                parentRelations == null ?
+                        new ArrayList<InstanceToInstanceRelation>() : parentRelations,
+                childRelations == null ?
+                        new ArrayList<InstanceToInstanceRelation>() : childRelations,
+                precedingTitles == null ?
+                        new ArrayList<InstanceToInstanceRelation>() : precedingTitles,
+                succeedingTitles == null ?
+                        new ArrayList<InstanceToInstanceRelation>() : succeedingTitles
+        ).flatMap(Collection::stream).collect(Collectors.toList());
+    }
+
+    public boolean hasThisRelation(InstanceToInstanceRelation relation) {
+        for (InstanceToInstanceRelation relationHere : getInstanceToInstanceRelations()) {
+            if (relation.equals(relationHere)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * A relation is considered omitted if the list it would be in exists but the relation is not in the list.
+     *
+     * Can be used to signal that relations of a given type should be deleted from the Instance by providing an
+     * empty list of that type. When no such list is provided, on the other hand, then existing relations of that type
+     * should be retained.
+     *
+     * @param relation Relationship to check
+     * @return true if the relation is not in a provides list of relations, false if its present or if no list was provided
+     */
+    public boolean isThisRelationOmitted(InstanceToInstanceRelation relation) {
+        switch (relation.instanceRelationClass) {
+            case TO_PARENT:
+                return ((instanceRelationsJson.containsKey(PARENT_INSTANCES)
+                        && instanceRelationsJson.getJsonArray(PARENT_INSTANCES).isEmpty())
+                        || isThisRelationOmitted(parentRelations, relation));
+            case TO_CHILD:
+                return ((instanceRelationsJson.containsKey(CHILD_INSTANCES)
+                        && instanceRelationsJson.getJsonArray(CHILD_INSTANCES).isEmpty())
+                        || isThisRelationOmitted(childRelations, relation));
+            case TO_PRECEDING:
+                return ((instanceRelationsJson.containsKey(PRECEDING_TITLES)
+                        && instanceRelationsJson.getJsonArray(PRECEDING_TITLES).isEmpty())
+                        || isThisRelationOmitted(precedingTitles, relation));
+            case TO_SUCCEEDING:
+                return ((instanceRelationsJson.containsKey(SUCCEEDING_TITLES)
+                        && instanceRelationsJson.getJsonArray(SUCCEEDING_TITLES).isEmpty())
+                        || isThisRelationOmitted(succeedingTitles, relation));
+        }
+        return false;
+    }
+
+    /**
+     * Create Instance relationship records from incoming Instance references by HRIDs, by looking
+     * up the corresponding UUIDs for those HRIDs in the repository.
+     * Requires that the Instance is already assigned a UUID and that the repository is loaded.
+     * @param repository cache containing prefetched referenced Instances.
+     */
+    public void resolveIncomingInstanceRelations(Repository repository) {
+        if (instanceRelationsJson.getJsonArray(PARENT_INSTANCES) != null) {
+            for (Object o : instanceRelationsJson.getJsonArray(PARENT_INSTANCES)) {
+                JsonObject rel = (JsonObject) o;
+                if (rel.containsKey(INSTANCE_IDENTIFIER)) {
+                    String hrid = rel.getJsonObject(INSTANCE_IDENTIFIER).getString(HRID_IDENTIFIER_KEY);
+                    if (hrid != null) {
+                        Instance referencedInstance = repository.referencedInstancesByHrid.get(hrid);
+                        if (referencedInstance != null) {
+                            InstanceRelationship relationship = InstanceRelationship.makeRelationship(
+                                    getInstanceUUID(),
+                                    getInstanceUUID(),
+                                    repository.referencedInstancesByHrid.get(hrid).getUUID(),
+                                    rel.getString(INSTANCE_RELATIONSHIP_TYPE_ID));
+                            if (parentRelations == null) {
+                                parentRelations = new ArrayList<>();
+                            }
+                            parentRelations.add(relationship);
+                            logger.info("Created relationship: " + relationship.asJsonString());
+                        } else {
+                            logger.info("Referenced Instance with HRID " + hrid + " not found");
+                        }
+                    } else {
+                        logger.info("Has 'instanceIdentifier' but no 'hrid'");
+                    }
+                } else {
+                    logger.info("Has 'parentInstances' but no 'instanceIdentifier'");
+                }
+            }
+        }
+        if (instanceRelationsJson.getJsonArray(CHILD_INSTANCES) != null) {
+            for (Object o : instanceRelationsJson.getJsonArray(CHILD_INSTANCES)) {
+                JsonObject rel = (JsonObject) o;
+                if (rel.containsKey(INSTANCE_IDENTIFIER)) {
+                    String hrid = rel.getJsonObject(INSTANCE_IDENTIFIER).getString(HRID_IDENTIFIER_KEY);
+                    if (hrid != null) {
+                        Instance referencedInstance = repository.referencedInstancesByHrid.get(hrid);
+                        if (referencedInstance != null) {
+                            InstanceRelationship relationship =
+                                    InstanceRelationship.makeRelationship(
+                                            getInstanceUUID(),
+                                            repository.referencedInstancesByHrid.get(hrid).getUUID(),
+                                            getInstanceUUID(),
+                                    rel.getString(INSTANCE_RELATIONSHIP_TYPE_ID));
+                            if (childRelations == null) {
+                                childRelations = new ArrayList<>();
+                            }
+                            childRelations.add(relationship);
+                            logger.info("Created relationship: " + relationship.asJsonString());
+                        } else {
+                            logger.info("Referenced Instance with HRID " + hrid + " not found");
+                        }
+                    } else {
+                        logger.info("Has 'instanceIdentifier' but no 'hrid'");
+                    }
+                } else {
+                    logger.info("Has 'parentInstances' but no 'instanceIdentifier'");
+                }
+            }
+        }
+        if (instanceRelationsJson.getJsonArray(PRECEDING_TITLES) != null) {
+            for (Object o : instanceRelationsJson.getJsonArray(PRECEDING_TITLES)) {
+                JsonObject rel = (JsonObject) o;
+                if (rel.containsKey(INSTANCE_IDENTIFIER)) {
+                    String hrid = rel.getJsonObject(INSTANCE_IDENTIFIER).getString(HRID_IDENTIFIER_KEY);
+                    if (hrid != null) {
+                        Instance referencedInstance = repository.referencedInstancesByHrid.get(hrid);
+                        if (referencedInstance != null) {
+                            InstanceTitleSuccession title =
+                                    InstanceTitleSuccession.makeInstanceTitleSuccession(
+                                            getInstanceUUID(),
+                                            referencedInstance.getUUID(),
+                                            getInstanceUUID());
+                            if (precedingTitles == null) {
+                                precedingTitles = new ArrayList<>();
+                            }
+                            precedingTitles.add(title);
+                        }
+                    }
+                }
+            }
+        }
+        if (instanceRelationsJson.getJsonArray(SUCCEEDING_TITLES) != null) {
+            for (Object o : instanceRelationsJson.getJsonArray(SUCCEEDING_TITLES)) {
+                JsonObject rel = (JsonObject) o;
+                if (rel.containsKey(INSTANCE_IDENTIFIER)) {
+                    String hrid = rel.getJsonObject(INSTANCE_IDENTIFIER).getString(HRID_IDENTIFIER_KEY);
+                    if (hrid != null) {
+                        Instance referencedInstance = repository.referencedInstancesByHrid.get(hrid);
+                        if (referencedInstance != null) {
+                            InstanceTitleSuccession title =
+                                    InstanceTitleSuccession.makeInstanceTitleSuccession(
+                                            getInstanceUUID(),
+                                            getInstanceUUID(),
+                                            referencedInstance.getUUID());
+                            if (succeedingTitles == null) {
+                                succeedingTitles = new ArrayList<>();
+                            }
+                            succeedingTitles.add(title);
+                        }
+                    }
+                }
+            }
+        }
+
+    }
+    /**
+     * A relation is considered omitted from the list if the list exists (is not null) but the relation is not in it.
+     * @param list list of relations to check the relation against
+     * @param relation the relation to check
+     * @return true if a list was provided and the relation is not in the list
+     */
+    private boolean isThisRelationOmitted(
+            List<InstanceToInstanceRelation> list, InstanceToInstanceRelation relation) {
+        return ( list != null && !list.contains( relation ) );
     }
 
     public String getLocalIdentifierTypeId () {

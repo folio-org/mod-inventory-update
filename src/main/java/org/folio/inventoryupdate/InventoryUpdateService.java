@@ -75,10 +75,12 @@ public class InventoryUpdateService {
     repository
             .setIncomingRecordSets(inventoryRecordSets)
             .buildRepositoryFromStorage(routingCtx).onComplete(result ->{
-                logger.info(repository.getIncomingRecordSets().get(0).asJson().encodePrettily());
-                InventoryRecordSet incomingSet = new InventoryRecordSet(incomingJson);
-                UpdatePlan updatePlan = UpdatePlanAllHRIDs.getUpsertPlan(incomingSet);
-                runPlan(updatePlan, routingCtx);
+              logger.info(repository.getIncomingRecordSets().get(0).asJson().encodePrettily());
+              InventoryRecordSet incomingSet = new InventoryRecordSet(incomingJson);
+              UpdatePlan updatePlan = UpdatePlanAllHRIDs.getUpsertPlan(incomingSet);
+              UpdatePlanAllHRIDs updatePlanByRepo = new UpdatePlanAllHRIDs(repository);
+              updatePlanByRepo.planInventoryUpdatesFromRepo();
+              runPlan(updatePlan, routingCtx);
             });
   }
 

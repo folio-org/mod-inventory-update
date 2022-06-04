@@ -12,13 +12,16 @@ import org.folio.okapi.common.OkapiClient;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import static org.folio.inventoryupdate.entities.InstanceRelations.*;
-import static org.folio.inventoryupdate.entities.InventoryRecordSet.HRID_IDENTIFIER_KEY;
-import static org.folio.inventoryupdate.entities.InventoryRecordSet.INSTANCE;
+import static org.folio.inventoryupdate.entities.InstanceRelationship.INSTANCE_RELATIONSHIP_TYPE_ID;
+import static org.folio.inventoryupdate.entities.InventoryRecordSet.*;
 
 
 public class Repository {
@@ -27,11 +30,11 @@ public class Repository {
   private final Map<String,Instance> existingInstancesByHrid = new HashMap<>();
   private final Map<String,Instance> existingInstancesByUUID = new HashMap<>();
 
-  private final Map<String,Map<String,InstanceRelationship>> existingParentRelationsByChildId = new HashMap<>();
-  private final Map<String,Map<String,InstanceRelationship>> existingChildRelationsByParentId = new HashMap<>();
-  private final Map<String,Map<String,InstanceTitleSuccession>> existingSucceedingRelationsByPrecedingId = new HashMap<>();
-  private final Map<String,Map<String,InstanceTitleSuccession>> existingPrecedingRelationsBySucceedingId = new HashMap<>();
-  private final Map<String,Instance> referencedInstancesByHrid = new HashMap<>();
+  private final Map<String,Map<String,InstanceToInstanceRelation>> existingParentRelationsByChildId = new HashMap<>();
+  private final Map<String,Map<String,InstanceToInstanceRelation>> existingChildRelationsByParentId = new HashMap<>();
+  private final Map<String,Map<String,InstanceToInstanceRelation>> existingSucceedingRelationsByPrecedingId = new HashMap<>();
+  private final Map<String,Map<String,InstanceToInstanceRelation>> existingPrecedingRelationsBySucceedingId = new HashMap<>();
+  public final Map<String,Instance> referencedInstancesByHrid = new HashMap<>();
   private final Map<String,Instance> referencedInstancesByUUID = new HashMap<>();
   private final Map<String,HoldingsRecord> existingHoldingsRecordsByHrid = new HashMap<>();
   private final Map<String,HoldingsRecord> existingHoldingsRecordsByUUID = new HashMap<>();
@@ -47,6 +50,11 @@ public class Repository {
 
   public Repository setIncomingRecordSets (JsonArray incomingInventoryRecordSets) {
     for (Object inventoryRecordSet : incomingInventoryRecordSets) {
+      JsonObject recordSetJson = (JsonObject) inventoryRecordSet;
+      if (recordSetJson.containsKey(INSTANCE_RELATIONS)
+              && !((JsonObject) inventoryRecordSet).getJsonObject(INSTANCE_RELATIONS).isEmpty()) {
+        logger.info("Incoming relations: " + ((JsonObject) inventoryRecordSet).getJsonObject(INSTANCE_RELATIONS).encodePrettily());
+      }
       PairedRecordSets pair = new PairedRecordSets();
       InventoryRecordSet recordSet = new InventoryRecordSet((JsonObject) inventoryRecordSet);
       pair.setIncomingRecordSet(recordSet);
@@ -115,7 +123,6 @@ public class Repository {
     });
     return promise.future();
   }
-
   private void setExistingRecordSets () {
     for (PairedRecordSets pair : pairsOfRecordSets) {
       String incomingInstanceHrid = pair.getIncomingRecordSet().getInstanceHRID();
@@ -129,16 +136,29 @@ public class Repository {
                   existingInstance.getUUID()).values()) {
             JsonObject jsonRecord = holdingsRecord.asJson();
             if (existingItemsByHoldingsRecordId.containsKey(holdingsRecord.getUUID())) {
-              jsonRecord.put("items", new JsonArray());
+              jsonRecord.put(ITEMS, new JsonArray());
               for (Item item : existingItemsByHoldingsRecordId.get(holdingsRecord.getUUID()).values()) {
-                jsonRecord.getJsonArray("items").add(item.asJson());
+                jsonRecord.getJsonArray(ITEMS).add(item.asJson());
               }
             }
             holdingsWithItems.add(jsonRecord);
           }
-          existingRecordSet.put("holdingsRecords", holdingsWithItems);
+          existingRecordSet.put(HOLDINGS_RECORDS, holdingsWithItems);
+          InventoryRecordSet existingSet = new InventoryRecordSet(existingRecordSet);
+          if (!existingParentRelationsByChildId.isEmpty() && existingParentRelationsByChildId.get(existingInstance.getUUID()) != null) {
+            existingSet.parentRelations = new ArrayList<>(existingParentRelationsByChildId.get(existingInstance.getUUID()).values());
+          }
+          if (!existingChildRelationsByParentId.isEmpty() && existingChildRelationsByParentId.get(existingInstance.getUUID()) != null) {
+            existingSet.childRelations = new ArrayList<>(existingChildRelationsByParentId.get(existingInstance.getUUID()).values());
+          }
+          if (!existingPrecedingRelationsBySucceedingId.isEmpty() && existingPrecedingRelationsBySucceedingId.get(existingInstance.getUUID()) != null) {
+            existingSet.precedingTitles = new ArrayList<>(existingPrecedingRelationsBySucceedingId.get(existingInstance.getUUID()).values());
+          }
+          if (!existingSucceedingRelationsByPrecedingId.isEmpty() && existingSucceedingRelationsByPrecedingId.get(existingInstance.getUUID()) != null) {
+            existingSet.succeedingTitles = new ArrayList<>(existingSucceedingRelationsByPrecedingId.get(existingInstance.getUUID()).values());
+          }
+          pair.setExistingRecordSet(existingSet);
         }
-        pair.setExistingRecordSet(new InventoryRecordSet(existingRecordSet));
       }
     }
   }
@@ -179,8 +199,10 @@ public class Repository {
                 if (instances.result() != null) {
                   for (Object o : instances.result()) {
                     Instance instance = new Instance((JsonObject) o);
+                    logger.info("Repository: Adding referenced instance " + instance.asJsonString());
                     referencedInstancesByHrid.put(instance.getHRID(), instance);
                     referencedInstancesByUUID.put(instance.getUUID(), instance);
+                    logger.info("Referenced instance added to maps by hrid and uuid");
                   }
                 }
                 promise.complete();

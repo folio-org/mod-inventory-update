@@ -58,6 +58,8 @@ public abstract class UpdatePlan {
     protected final Logger logger = LoggerFactory.getLogger("inventory-update");
     protected boolean isDeletion = false;
 
+    protected Repository repository;
+
     /**
      * Constructor for plan for creating or updating an Inventory record set
      * @param incomingSet  The inventory record set from the request
@@ -66,6 +68,10 @@ public abstract class UpdatePlan {
     public UpdatePlan (InventoryRecordSet incomingSet, InventoryQuery existingInstanceQuery) {
         this.updatingSet = incomingSet;
         this.instanceQuery = existingInstanceQuery;
+    }
+
+    public UpdatePlan(Repository repository) {
+        this.repository = repository;
     }
 
     public boolean foundExistingRecordSet () {

@@ -36,35 +36,20 @@ public class UpdatePlanAllHRIDs extends UpdatePlan {
         return updatePlan;
     }
 
-    public void planInventoryUpdatesFromRepo () {
+    public void planInventoryUpdatesFromRepository() {
         try {
-            planInstancesFromRepo();
-            planInstanceRelationsFromRepo();
+            for (PairedRecordSets pair : repository.getPairsOfRecordSets()) {
+                planInstanceHoldingsAndItemsUsingRepository(pair);
+            }
+            planInstanceRelationsUsingRepository();
+
         } catch (NullPointerException npe) {
             logger.error("Null pointer in planInventoryUpdatesFromRepo");
             npe.printStackTrace();
         }
     }
 
-    private void planInstancesFromRepo () {
-        for (PairedRecordSets pair : repository.getPairsOfRecordSets()) {
-            Instance incomingInstance = pair.getIncomingRecordSet().getInstance();
-            if (pair.hasExistingRecordSet()) {
-                Instance existingInstance = pair.getExistingRecordSet().getInstance();
-                incomingInstance.setUUID(existingInstance.getUUID());
-                incomingInstance.setTransition(Transaction.UPDATE);
-                incomingInstance.setVersion(existingInstance.getVersion());
-                prepareUpdatesDeletesAndLocalMoves(pair);
-            } else {
-                if (!incomingInstance.hasUUID()) {
-                    incomingInstance.generateUUID();
-                }
-                incomingInstance.setTransition(Transaction.CREATE);
-            }
-        }
-    }
-
-    private void planInstanceRelationsFromRepo() {
+    private void planInstanceRelationsUsingRepository() {
         // Get Instance UUIDs from incoming HRIDs and create Instance relation records.
         for (PairedRecordSets pair : repository.getPairsOfRecordSets()) {
             if (pair.hasIncomingRecordSet()) {
@@ -198,6 +183,12 @@ public class UpdatePlanAllHRIDs extends UpdatePlan {
         return promise.future();
     }
 
+    public Future<Void> doInventoryUpdatesFromRepository (OkapiClient okapiClient) {
+        Promise<Void> promise = Promise.promise();
+        promise.complete();
+        return promise.future();
+    }
+
     @Override
     public RequestValidation validateIncomingRecordSet(JsonObject inventoryRecordSet) {
         RequestValidation validationErrors = new RequestValidation();
@@ -242,34 +233,100 @@ public class UpdatePlanAllHRIDs extends UpdatePlan {
 
     /* PLANNING METHODS */
 
-    private void prepareUpdatesDeletesAndLocalMoves(PairedRecordSets pair) {
-        Instance incomingInstance = pair.getIncomingRecordSet().getInstance();
-        Instance existingInstance = pair.getExistingRecordSet().getInstance();
-        if (incomingInstance.ignoreHoldings()) { // If a record set came in with a list of holdings records (even if it was an empty list)
-            for (HoldingsRecord existingHoldingsRecord : existingInstance.getHoldingsRecords()) {
-                HoldingsRecord incomingHoldingsRecord = incomingInstance.getHoldingsRecordByHRID(existingHoldingsRecord.getHRID());
-                // HoldingsRecord gone, mark for deletion and check for existing items to delete with it
-                if (incomingHoldingsRecord == null) {
-                    existingHoldingsRecord.setTransition(Transaction.DELETE);
-                } else {
-                    // There is an existing holdings record with the same HRID, on the same Instance
-                    incomingHoldingsRecord.setUUID(existingHoldingsRecord.getUUID());
-                    incomingHoldingsRecord.setTransition(Transaction.UPDATE);
-                    incomingHoldingsRecord.setVersion( existingHoldingsRecord.getVersion() );
-                }
-                for (Item existingItem : existingHoldingsRecord.getItems()) {
-                    Item incomingItem = pair.getIncomingRecordSet().getItemByHRID(existingItem.getHRID());
-                    if (incomingItem == null) {
-                        existingItem.setTransition(Transaction.DELETE);
-                    } else {
-                        incomingItem.setUUID(existingItem.getUUID());
-                        incomingItem.setVersion( existingItem.getVersion() );
-                        incomingItem.setTransition(Transaction.UPDATE);
-                        ProcessingInstructions instr = new ProcessingInstructions(
-                                pair.getIncomingRecordSet().getProcessingInfoAsJson());
-                        if (instr.retainThisStatus(existingItem.getStatusName())) {
-                            incomingItem.setStatus(existingItem.getStatusName());
+    private void planInstanceHoldingsAndItemsUsingRepository(PairedRecordSets pair) {
+        if (pair.hasIncomingRecordSet()) {
+            InventoryRecordSet incomingSet = pair.getIncomingRecordSet();
+            Instance incomingInstance = incomingSet.getInstance();
+            if (pair.hasExistingRecordSet()) {
+                // Updates, deletes
+                Instance existingInstance = pair.getExistingRecordSet().getInstance();
+                incomingInstance.setUUID(existingInstance.getUUID());
+                incomingInstance.setTransition(Transaction.UPDATE);
+                incomingInstance.setVersion(existingInstance.getVersion());
+                if (!incomingInstance.ignoreHoldings()) {
+                    // If a record set came in with a list of holdings records (even if it was an empty list)
+                    for (HoldingsRecord existingHoldingsRecord :
+                            pair.getExistingRecordSet().getInstance().getHoldingsRecords()) {
+                        HoldingsRecord incomingHoldingsRecord = incomingInstance.getHoldingsRecordByHRID(
+                                existingHoldingsRecord.getHRID());
+                        // HoldingsRecord gone, mark for deletion and check for existing items to delete with it
+                        if (incomingHoldingsRecord == null) {
+                            existingHoldingsRecord.setTransition(Transaction.DELETE);
+                        } else {
+                            // There is an existing holdings record with the same HRID,
+                            // on the same Instance, update
+                            incomingHoldingsRecord.setUUID(existingHoldingsRecord.getUUID());
+                            incomingHoldingsRecord.setTransition(Transaction.UPDATE);
+                            incomingHoldingsRecord.setVersion(existingHoldingsRecord.getVersion());
                         }
+                        for (Item existingItem : existingHoldingsRecord.getItems()) {
+                            Item incomingItem = pair.getIncomingRecordSet().getItemByHRID(
+                                    existingItem.getHRID());
+                            if (incomingItem == null) {
+                                // An existing Item is gone from the Instance, delete
+                                existingItem.setTransition(Transaction.DELETE);
+                            } else {
+                                // Existing Item still exists in incoming record (possibly under
+                                // a different holdings record), update
+                                incomingItem.setUUID(existingItem.getUUID());
+                                incomingItem.setVersion(existingItem.getVersion());
+                                incomingItem.setTransition(Transaction.UPDATE);
+                                ProcessingInstructions instr = new ProcessingInstructions(
+                                        pair.getIncomingRecordSet().getProcessingInfoAsJson());
+                                if (instr.retainThisStatus(existingItem.getStatusName())) {
+                                    incomingItem.setStatus(existingItem.getStatusName());
+                                }
+                            }
+                        }
+                    }
+                }
+            } else {
+                if (!incomingInstance.hasUUID()) {
+                    incomingInstance.generateUUID();
+                }
+                incomingInstance.setTransition(Transaction.CREATE);
+            }
+            // Remaining holdings and item transactions: Creates, imports from other Instance(s)
+            // Find incoming holdings we didn't already resolve above
+            List<HoldingsRecord> holdingsRecords =
+                    incomingSet.getHoldingsRecordsByTransactionType(Transaction.UNKNOWN);
+            for (HoldingsRecord holdingsRecord : holdingsRecords) {
+                if (repository.existingHoldingsRecordsByHrid.containsKey(holdingsRecord.getHRID())) {
+                    // Import from different Instance
+                    HoldingsRecord existing = repository.existingHoldingsRecordsByHrid.get(
+                            holdingsRecord.getHRID());
+                    holdingsRecord.setTransition(Transaction.UPDATE);
+                    holdingsRecord.setUUID(existing.getUUID());
+                    holdingsRecord.setVersion(existing.getVersion());
+                } else {
+                    // The HRID does not exist in Inventory, create
+                    holdingsRecord.setTransition(Transaction.CREATE);
+                    if (!holdingsRecord.hasUUID()) {
+                        holdingsRecord.generateUUID();
+                    }
+                }
+
+            }
+            // Find incoming items we didn't already resolve (update or delete) above
+            List<Item> items = incomingSet.getItemsByTransactionType(Transaction.UNKNOWN);
+            for (Item item : items) {
+                if (repository.existingItemsByHrid.containsKey(item.getHRID())) {
+                    // Import from different Instance
+                    Item existing = repository.existingItemsByHrid.get(item.getHRID());
+                    item.setTransition(Transaction.UPDATE);
+                    item.setUUID(existing.getUUID());
+                    item.setVersion(existing.getVersion());
+                    ProcessingInstructions instr = new ProcessingInstructions(
+                            pair.getIncomingRecordSet().getProcessingInfoAsJson());
+                    if (instr.retainThisStatus(existing.getStatusName())) {
+                        item.setStatus(existing.getStatusName());
+                    }
+
+                } else {
+                    // The HRID does not exist in Inventory, create
+                    item.setTransition(Transaction.CREATE);
+                    if (!item.hasUUID()) {
+                        item.generateUUID();
                     }
                 }
             }
@@ -313,6 +370,7 @@ public class UpdatePlanAllHRIDs extends UpdatePlan {
             }
         }
     }
+
 
     /**
      * Catch up records that were not matched within an existing Instance (Transition = UNKNOWN)

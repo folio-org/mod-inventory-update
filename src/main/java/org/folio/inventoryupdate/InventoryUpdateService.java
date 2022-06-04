@@ -79,7 +79,7 @@ public class InventoryUpdateService {
               InventoryRecordSet incomingSet = new InventoryRecordSet(incomingJson);
               UpdatePlan updatePlan = UpdatePlanAllHRIDs.getUpsertPlan(incomingSet);
               UpdatePlanAllHRIDs updatePlanByRepo = new UpdatePlanAllHRIDs(repository);
-              updatePlanByRepo.planInventoryUpdatesFromRepo();
+              updatePlanByRepo.planInventoryUpdatesFromRepository();
               runPlan(updatePlan, routingCtx);
             });
   }

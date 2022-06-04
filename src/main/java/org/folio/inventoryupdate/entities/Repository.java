@@ -36,12 +36,12 @@ public class Repository {
   private final Map<String,Map<String,InstanceToInstanceRelation>> existingPrecedingRelationsBySucceedingId = new HashMap<>();
   public final Map<String,Instance> referencedInstancesByHrid = new HashMap<>();
   private final Map<String,Instance> referencedInstancesByUUID = new HashMap<>();
-  private final Map<String,HoldingsRecord> existingHoldingsRecordsByHrid = new HashMap<>();
+  public final Map<String,HoldingsRecord> existingHoldingsRecordsByHrid = new HashMap<>();
   private final Map<String,HoldingsRecord> existingHoldingsRecordsByUUID = new HashMap<>();
 
   private final Map<String, Map<String,HoldingsRecord>> existingHoldingsRecordsByInstanceId = new HashMap<>();
 
-  private final Map<String,Item> existingItemsByHrid = new HashMap<>();
+  public final Map<String,Item> existingItemsByHrid = new HashMap<>();
   private final Map<String,Item> existingItemsByUUID = new HashMap<>();
   private final Map<String,Map<String,Item>> existingItemsByHoldingsRecordId = new HashMap<>();
 

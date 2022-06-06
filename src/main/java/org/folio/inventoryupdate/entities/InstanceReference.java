@@ -1,0 +1,141 @@
+package org.folio.inventoryupdate.entities;
+
+import io.vertx.core.json.JsonObject;
+
+import java.util.UUID;
+
+import static org.folio.inventoryupdate.entities.InstanceRelations.INSTANCE_IDENTIFIER;
+import static org.folio.inventoryupdate.entities.InstanceRelationship.INSTANCE_RELATIONSHIP_TYPE_ID;
+import static org.folio.inventoryupdate.entities.InstanceToInstanceRelation.PROVISIONAL_INSTANCE;
+import static org.folio.inventoryupdate.entities.InventoryRecordSet.HRID_IDENTIFIER_KEY;
+
+public class InstanceReference {
+
+  String fromInstanceId = null;
+  String referencedInstanceId;
+  JsonObject instanceReferenceJson;
+  InstanceToInstanceRelation.InstanceRelationsClass typeOfRelation;
+
+  public InstanceReference (JsonObject referenceJson, InstanceToInstanceRelation.InstanceRelationsClass typeOfRelation ) {
+    instanceReferenceJson = referenceJson;
+    this.typeOfRelation = typeOfRelation;
+  }
+
+  public InstanceToInstanceRelation.InstanceRelationsClass getTypeOfRelation() {
+    return typeOfRelation;
+  }
+
+  public boolean hasReferenceHrid () {
+    return instanceReferenceJson.containsKey(INSTANCE_IDENTIFIER)
+            && instanceReferenceJson.getJsonObject(INSTANCE_IDENTIFIER).containsKey("hrid");
+  }
+
+  public String getReferenceHrid () {
+    return instanceReferenceJson.getJsonObject(INSTANCE_IDENTIFIER).getString("hrid");
+  }
+
+  public void setFromInstanceId(String uuid) {
+    this.fromInstanceId = uuid;
+  }
+
+  public String getRelationshipTypeId () {
+    return instanceReferenceJson.getString(INSTANCE_RELATIONSHIP_TYPE_ID);
+  }
+
+  public String getFromInstanceId () {
+    return fromInstanceId;
+  }
+
+  public boolean referencesParentInstance () {
+    return (typeOfRelation == InstanceToInstanceRelation.InstanceRelationsClass.TO_PARENT);
+  }
+
+  public boolean referencesChildInstance () {
+    return (typeOfRelation == InstanceToInstanceRelation.InstanceRelationsClass.TO_CHILD);
+  }
+
+  public boolean referencesSucceedingInstance () {
+    return (typeOfRelation == InstanceToInstanceRelation.InstanceRelationsClass.TO_SUCCEEDING);
+  }
+
+  public boolean referencesPrecedingInstance () {
+    return (typeOfRelation == InstanceToInstanceRelation.InstanceRelationsClass.TO_PRECEDING);
+  }
+  public void setReferencedInstanceId(String uuid) {
+    this.referencedInstanceId = uuid;
+  }
+
+  public boolean hasProvisionalInstance () {
+    return instanceReferenceJson.containsKey(PROVISIONAL_INSTANCE);
+  }
+
+  public boolean provisionalInstanceIsValid() {
+    return hasProvisionalInstance()
+            && validateProvisionalInstanceProperties(
+                    instanceReferenceJson.getJsonObject(PROVISIONAL_INSTANCE));
+  }
+
+  private JsonObject getProvisionalInstanceJson () {
+    return instanceReferenceJson.containsKey(PROVISIONAL_INSTANCE) ?
+            instanceReferenceJson.getJsonObject(PROVISIONAL_INSTANCE) :
+            new JsonObject();
+  }
+
+  public static boolean validateProvisionalInstanceProperties (JsonObject provisionalInstanceProperties) {
+    if (provisionalInstanceProperties == null) {
+      return false;
+    } else {
+      if (provisionalInstanceProperties.getString( InstanceRelations.TITLE) != null
+              && provisionalInstanceProperties.getString( InstanceRelations.SOURCE) != null
+              && provisionalInstanceProperties.getString( InstanceRelations.INSTANCE_TYPE_ID) != null) {
+        return true;
+      } else {
+        return false;
+      }
+    }
+  }
+
+  public Instance getProvisionalInstance () {
+    JsonObject json = new JsonObject(getProvisionalInstanceJson().toString());
+    if (! json.containsKey( HRID_IDENTIFIER_KEY )) {
+      json.put( HRID_IDENTIFIER_KEY, getReferenceHrid());
+    }
+    if (! json.containsKey("id")) {
+      json.put("id", UUID.randomUUID().toString());
+    }
+    return new Instance(json);
+
+  }
+
+  public InstanceToInstanceRelation getInstanceToInstanceRelation () {
+    InstanceToInstanceRelation relation = null;
+    String toInstanceId;
+    Instance provisionalInstance = null;
+
+    if (referencedInstanceId != null) { // Found existing Instance for HRID to link to
+      toInstanceId = referencedInstanceId;
+    } else {  // Create provisional Instance to link to
+      provisionalInstance = getProvisionalInstance();
+      toInstanceId = provisionalInstance.getUUID();
+    }
+    if (typeOfRelation == InstanceToInstanceRelation.InstanceRelationsClass.TO_PARENT) {
+      relation = InstanceRelationship.makeParentRelationship(fromInstanceId, toInstanceId, getRelationshipTypeId());
+    } else if (typeOfRelation == InstanceToInstanceRelation.InstanceRelationsClass.TO_CHILD) {
+      relation = InstanceRelationship.makeChildRelationship(fromInstanceId, toInstanceId, getRelationshipTypeId());
+    } else if (typeOfRelation == InstanceToInstanceRelation.InstanceRelationsClass.TO_SUCCEEDING) {
+      relation = InstanceTitleSuccession.makeRelationToSucceeding(fromInstanceId, toInstanceId);
+    } else if (typeOfRelation == InstanceToInstanceRelation.InstanceRelationsClass.TO_PRECEDING) {
+      relation = InstanceTitleSuccession.makeRelationToPreceding(fromInstanceId, toInstanceId);
+    }
+    if (referencedInstanceId == null) {
+      relation.requiresProvisionalInstanceToBeCreated(true);
+      if (!provisionalInstanceIsValid()) {
+        provisionalInstance.fail();
+        relation.fail();
+      }
+      relation.setProvisionalInstance(provisionalInstance);
+    }
+    return relation;
+  }
+
+}

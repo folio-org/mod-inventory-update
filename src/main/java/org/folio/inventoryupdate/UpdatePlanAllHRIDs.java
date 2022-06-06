@@ -50,15 +50,13 @@ public class UpdatePlanAllHRIDs extends UpdatePlan {
     }
 
     private void planInstanceRelationsUsingRepository() {
-        // Get Instance UUIDs from incoming HRIDs and create Instance relation records.
-        for (PairedRecordSets pair : repository.getPairsOfRecordSets()) {
-            if (pair.hasIncomingRecordSet()) {
-                pair.getIncomingRecordSet().resolveIncomingInstanceRelations(repository);
-            }
-        }
         // Plan creates and deletes
         for (PairedRecordSets pair : repository.getPairsOfRecordSets()) {
             if (pair.hasIncomingRecordSet()) {
+                // Set UUIDs for from-instance and to-instance, create provisional instance if required and possible
+                pair.getIncomingRecordSet().resolveIncomingInstanceRelationsUsingRepository(repository);
+
+                // Plan storage transactions
                 for (InstanceToInstanceRelation incomingRelation : pair.getIncomingRecordSet().getInstanceToInstanceRelations()) {
                     if (pair.hasExistingRecordSet()) {
                         if (pair.getExistingRecordSet().hasThisRelation(incomingRelation)) {
@@ -124,7 +122,7 @@ public class UpdatePlanAllHRIDs extends UpdatePlan {
                         Future<Void> prepareNewRecordsAndImportsFuture = prepareNewRecordsAndImports(okapiClient);
                         CompositeFuture.join(relationsFuture, prepareNewRecordsAndImportsFuture).onComplete(done -> {
                             if (done.succeeded()) {
-                                getUpdatingRecordSet().getInstanceRelationsController().prepareIncomingInstanceRelations(updatingSet, existingSet);
+                                getUpdatingRecordSet().getInstanceRelationsController().prepareInstanceRelationTransactions(updatingSet, existingSet);
                                 promisedPlan.complete();
                             } else {
                                 promisedPlan.fail("There was a problem fetching existing relations, holdings and/or items from storage:" + LF + "  " + done.cause().getMessage());

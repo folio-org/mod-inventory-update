@@ -53,14 +53,15 @@ public class InstanceRelations extends JsonRepresentation {
 
     public InstanceRelations(InventoryRecordSet inventoryRecordSet) {
         this.irs = inventoryRecordSet;
-        if (hasRelationshipRecords(irs.sourceJson)) {
+        if (hasExistingRelationshipRecords(irs.sourceJson)) { // existing relations from storage
             registerRelationshipJsonRecords(irs.getInstance().getUUID(),irs.sourceJson.getJsonObject(
                     InstanceRelations.INSTANCE_RELATIONS));
-            logger.debug("InventoryRecordSet initialized with existing instance relationships: " + this );
+            logger.info("InventoryRecordSet initialized with existing instance relationships: " + this );
         }
-        if (hasRelationshipIdentifiers(irs.sourceJson)) {
+        if (irs.sourceJson.containsKey(InstanceRelations.INSTANCE_RELATIONS)) { // intended relations from request
             irs.instanceRelationsJson = irs.sourceJson.getJsonObject( InstanceRelations.INSTANCE_RELATIONS);
-            logger.debug("InventoryRecordSet initialized with incoming instance relationships JSON (relations to be built.");
+            irs.instanceReferences = new InstanceReferences(irs.instanceRelationsJson);
+            logger.info("InventoryRecordSet initialized with incoming instance relationships JSON (relations to be built.");
         }
     }
 
@@ -69,27 +70,16 @@ public class InstanceRelations extends JsonRepresentation {
      * @param irsJson  Source JSON for InventoryRecordSet
      * @return true if there are stored relations for this Instance
      */
-    boolean hasRelationshipRecords(JsonObject irsJson) {
+    boolean hasExistingRelationshipRecords(JsonObject irsJson) {
         return (irsJson.containsKey(INSTANCE_RELATIONS)
                 && irsJson.getJsonObject(INSTANCE_RELATIONS).containsKey(EXISTING_PARENT_CHILD_RELATIONS));
     }
 
     /**
      * Checks if JSON contains requests for creating relations (got updating/incoming record set)
-     * @param irsJson Source JSON for InventoryRecordSet
+     * // @param irsJson Source JSON for InventoryRecordSet
      * @return true if identifiers for building relationship objects are provided
      */
-    private boolean hasRelationshipIdentifiers (JsonObject irsJson) {
-        JsonObject relationsJson = irsJson.getJsonObject(INSTANCE_RELATIONS);
-        if (relationsJson != null) {
-            return (relationsJson.containsKey(PARENT_INSTANCES) ||
-                    relationsJson.containsKey(CHILD_INSTANCES) ||
-                    relationsJson.containsKey(PRECEDING_TITLES) ||
-                    relationsJson.containsKey(SUCCEEDING_TITLES));
-        } else {
-            return false;
-        }
-    }
 
     public List<InstanceToInstanceRelation> getInstanceRelationsByTransactionType (InventoryRecord.Transaction transition) {
         List<InstanceToInstanceRelation> records = new ArrayList<>();
@@ -114,7 +104,7 @@ public class InstanceRelations extends JsonRepresentation {
      */
     public Future<Void> makeInstanceRelationRecordsFromIdentifiers(OkapiClient client, String instanceId) {
         Promise<Void> promise = Promise.promise();
-        if (hasRelationshipIdentifiers(irs.sourceJson)) {
+        if (irs.instanceReferences != null && irs.instanceReferences.hasRelationsArrays()) {
             makeRelationsFromIdentifiers(client, instanceId, irs.instanceRelationsJson.getJsonArray(PARENT_INSTANCES), InstanceRelationsClass.TO_PARENT).onComplete(parents -> {
                     makeRelationsFromIdentifiers(client, instanceId, irs.instanceRelationsJson.getJsonArray(CHILD_INSTANCES), InstanceRelationsClass.TO_CHILD).onComplete (children -> {
                         makeRelationsFromIdentifiers(client, instanceId, irs.instanceRelationsJson.getJsonArray(SUCCEEDING_TITLES), InstanceRelationsClass.TO_SUCCEEDING).onComplete(succeedingTitles -> {
@@ -276,9 +266,9 @@ public class InstanceRelations extends JsonRepresentation {
                     if (gotHrid) {
                         JsonObject provisionalInstanceJson = relatedObject.getJsonObject(
                                 InstanceToInstanceRelation.PROVISIONAL_INSTANCE );
-                        if ( validateProvisionalInstanceProperties( provisionalInstanceJson ) )
+                        if ( InstanceReference.validateProvisionalInstanceProperties( provisionalInstanceJson ) )
                         {
-                            provisionalInstance = prepareProvisionalInstance( ((QueryByHrid) queryById).hrid, provisionalInstanceJson );
+                            provisionalInstance = InstanceToInstanceRelation.prepareProvisionalInstance( ((QueryByHrid) queryById).hrid, provisionalInstanceJson );
                             relateToThisId = provisionalInstance.getUUID();
                         }
                     }
@@ -339,42 +329,6 @@ public class InstanceRelations extends JsonRepresentation {
     }
 
     /**
-     * Planning: Checks that the required information for creating a provisional Instance is available.
-     * @param provisionalInstanceProperties Set of properties for creating a new Instance
-     * @return true if the minimum requirements are met
-     */
-    private static boolean validateProvisionalInstanceProperties (JsonObject provisionalInstanceProperties) {
-        if (provisionalInstanceProperties == null) {
-            return false;
-        } else {
-            if (provisionalInstanceProperties.getString( InstanceRelations.TITLE) != null
-                && provisionalInstanceProperties.getString( InstanceRelations.SOURCE) != null
-                && provisionalInstanceProperties.getString( InstanceRelations.INSTANCE_TYPE_ID) != null) {
-                return true;
-            } else {
-                return false;
-            }
-        }
-    }
-
-    /**
-     * Planning Create a temporary Instance to create a relationship to.
-     * @param hrid human readable ID of the temporary Instance to create
-     * @param provisionalInstanceJson other properties of the Instance to create
-     * @return Instance POJO
-     */
-    protected static Instance prepareProvisionalInstance (String hrid, JsonObject provisionalInstanceJson) {
-        JsonObject json = new JsonObject(provisionalInstanceJson.toString());
-        if (! json.containsKey( HRID_IDENTIFIER_KEY )) {
-            json.put( HRID_IDENTIFIER_KEY, hrid);
-        }
-        if (! json.containsKey( InstanceRelations.ID)) {
-            json.put( InstanceRelations.ID, UUID.randomUUID().toString());
-        }
-        return new Instance(json);
-    }
-
-    /**
      * Planning: Takes Instance relation records from storage and creates Instance relations objects
      * @param instanceId The ID of the Instance to create relationship objects for
      * @param instanceRelations a set of relations from storage
@@ -408,13 +362,14 @@ public class InstanceRelations extends JsonRepresentation {
         }
     }
 
+
     /**
      * Checks if requested/incoming Instance relations already exists, marks them for creation if they don't
      * and checks if existing Instance relations came in with the request, marks them for deletion if they did not.
      * @param updatingRecordSet The Inventory record set that is being prepared for updating Inventory
      * @param existingRecordSet The existing record set in Inventory
      */
-    public void prepareIncomingInstanceRelations(InventoryRecordSet updatingRecordSet, InventoryRecordSet existingRecordSet) {
+    public void prepareInstanceRelationTransactions(InventoryRecordSet updatingRecordSet, InventoryRecordSet existingRecordSet) {
         if (updatingRecordSet != null) {
             for (InstanceToInstanceRelation incomingRelation : updatingRecordSet.getInstanceRelationsController().getInstanceToInstanceRelations()) {
                 if (existingRecordSet != null) {

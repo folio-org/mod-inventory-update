@@ -4,6 +4,7 @@ import io.vertx.core.impl.logging.Logger;
 import io.vertx.core.impl.logging.LoggerFactory;
 import io.vertx.core.json.JsonObject;
 
+
 public class InstanceTitleSuccession extends InstanceToInstanceRelation {
 
     public static final String ID = "id";
@@ -29,6 +30,14 @@ public class InstanceTitleSuccession extends InstanceToInstanceRelation {
         instanceTitleSuccession.entityType = Entity.INSTANCE_TITLE_SUCCESSION;
         instanceTitleSuccession.setInstanceRelationsClass( instanceId.equals(precedingInstanceId) ? InstanceRelationsClass.TO_SUCCEEDING : InstanceRelationsClass.TO_PRECEDING);
         return instanceTitleSuccession;
+    }
+
+    public static InstanceTitleSuccession makeRelationToSucceeding (String instanceId, String succeedingInstanceId) {
+        return makeInstanceTitleSuccession(instanceId, instanceId, succeedingInstanceId);
+    }
+
+    public static InstanceTitleSuccession makeRelationToPreceding (String instanceId, String precedingInstanceId) {
+        return makeInstanceTitleSuccession(instanceId, instanceId, precedingInstanceId);
     }
 
     public String getSucceedingInstanceId () {

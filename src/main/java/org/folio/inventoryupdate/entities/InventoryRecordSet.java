@@ -14,7 +14,6 @@ import io.vertx.core.json.JsonObject;
 import org.folio.okapi.common.OkapiClient;
 
 import static org.folio.inventoryupdate.entities.InstanceRelations.*;
-import static org.folio.inventoryupdate.entities.InstanceRelationship.INSTANCE_RELATIONSHIP_TYPE_ID;
 import static org.folio.inventoryupdate.entities.RecordIdentifiers.OAI_IDENTIFIER;
 
 public class InventoryRecordSet extends JsonRepresentation {
@@ -47,7 +46,10 @@ public class InventoryRecordSet extends JsonRepresentation {
     public List<InstanceToInstanceRelation> childRelations = null;
     public List<InstanceToInstanceRelation> succeedingTitles = null;
     public List<InstanceToInstanceRelation> precedingTitles = null;
+
+    // Incoming, intended relations
     public JsonObject instanceRelationsJson = new JsonObject();
+    public InstanceReferences instanceReferences;
     public JsonObject processing = new JsonObject();
 
 
@@ -266,112 +268,45 @@ public class InventoryRecordSet extends JsonRepresentation {
      * Requires that the Instance is already assigned a UUID and that the repository is loaded.
      * @param repository cache containing prefetched referenced Instances.
      */
-    public void resolveIncomingInstanceRelations(Repository repository) {
-        if (instanceRelationsJson.getJsonArray(PARENT_INSTANCES) != null) {
-            for (Object o : instanceRelationsJson.getJsonArray(PARENT_INSTANCES)) {
-                JsonObject rel = (JsonObject) o;
-                if (rel.containsKey(INSTANCE_IDENTIFIER)) {
-                    String hrid = rel.getJsonObject(INSTANCE_IDENTIFIER).getString(HRID_IDENTIFIER_KEY);
-                    if (hrid != null) {
-                        Instance referencedInstance = repository.referencedInstancesByHrid.get(hrid);
-                        if (referencedInstance != null) {
-                            InstanceRelationship relationship = InstanceRelationship.makeRelationship(
-                                    getInstanceUUID(),
-                                    getInstanceUUID(),
-                                    repository.referencedInstancesByHrid.get(hrid).getUUID(),
-                                    rel.getString(INSTANCE_RELATIONSHIP_TYPE_ID));
-                            if (parentRelations == null) {
-                                parentRelations = new ArrayList<>();
-                            }
-                            parentRelations.add(relationship);
-                            logger.info("Created relationship: " + relationship.asJsonString());
-                        } else {
-                            logger.info("Referenced Instance with HRID " + hrid + " not found");
-                        }
-                    } else {
-                        logger.info("Has 'instanceIdentifier' but no 'hrid'");
+    public void resolveIncomingInstanceRelationsUsingRepository(Repository repository) {
+        if (instanceReferences != null) {
+            for (InstanceReference reference : instanceReferences.references) {
+                Instance referencedInstance = repository.referencedInstancesByHrid.get(reference.getReferenceHrid());
+                reference.setFromInstanceId(getInstanceUUID());
+                if (referencedInstance != null) {
+                    reference.setReferencedInstanceId(referencedInstance.getUUID());
+                }
+            }
+            for (InstanceReference reference : instanceReferences.references) {
+                InstanceToInstanceRelation relation = reference.getInstanceToInstanceRelation();
+                if (relation.instanceRelationClass == InstanceToInstanceRelation.InstanceRelationsClass.TO_PARENT) {
+                    if (parentRelations == null) {
+                        parentRelations = new ArrayList<>();
                     }
-                } else {
-                    logger.info("Has 'parentInstances' but no 'instanceIdentifier'");
+                    parentRelations.add(relation);
+                }
+                if (relation.instanceRelationClass == InstanceToInstanceRelation.InstanceRelationsClass.TO_CHILD) {
+                    if (childRelations == null) {
+                        childRelations = new ArrayList<>();
+                    }
+                    childRelations.add(relation);
+                }
+                if (relation.instanceRelationClass == InstanceToInstanceRelation.InstanceRelationsClass.TO_SUCCEEDING) {
+                    if (succeedingTitles == null) {
+                        succeedingTitles = new ArrayList<>();
+                    }
+                    succeedingTitles.add(relation);
+                }
+                if (relation.instanceRelationClass == InstanceToInstanceRelation.InstanceRelationsClass.TO_PRECEDING) {
+                    if (precedingTitles == null) {
+                        precedingTitles = new ArrayList<>();
+                    }
+                    precedingTitles.add(relation);
                 }
             }
         }
-        if (instanceRelationsJson.getJsonArray(CHILD_INSTANCES) != null) {
-            for (Object o : instanceRelationsJson.getJsonArray(CHILD_INSTANCES)) {
-                JsonObject rel = (JsonObject) o;
-                if (rel.containsKey(INSTANCE_IDENTIFIER)) {
-                    String hrid = rel.getJsonObject(INSTANCE_IDENTIFIER).getString(HRID_IDENTIFIER_KEY);
-                    if (hrid != null) {
-                        Instance referencedInstance = repository.referencedInstancesByHrid.get(hrid);
-                        if (referencedInstance != null) {
-                            InstanceRelationship relationship =
-                                    InstanceRelationship.makeRelationship(
-                                            getInstanceUUID(),
-                                            repository.referencedInstancesByHrid.get(hrid).getUUID(),
-                                            getInstanceUUID(),
-                                    rel.getString(INSTANCE_RELATIONSHIP_TYPE_ID));
-                            if (childRelations == null) {
-                                childRelations = new ArrayList<>();
-                            }
-                            childRelations.add(relationship);
-                            logger.info("Created relationship: " + relationship.asJsonString());
-                        } else {
-                            logger.info("Referenced Instance with HRID " + hrid + " not found");
-                        }
-                    } else {
-                        logger.info("Has 'instanceIdentifier' but no 'hrid'");
-                    }
-                } else {
-                    logger.info("Has 'parentInstances' but no 'instanceIdentifier'");
-                }
-            }
-        }
-        if (instanceRelationsJson.getJsonArray(PRECEDING_TITLES) != null) {
-            for (Object o : instanceRelationsJson.getJsonArray(PRECEDING_TITLES)) {
-                JsonObject rel = (JsonObject) o;
-                if (rel.containsKey(INSTANCE_IDENTIFIER)) {
-                    String hrid = rel.getJsonObject(INSTANCE_IDENTIFIER).getString(HRID_IDENTIFIER_KEY);
-                    if (hrid != null) {
-                        Instance referencedInstance = repository.referencedInstancesByHrid.get(hrid);
-                        if (referencedInstance != null) {
-                            InstanceTitleSuccession title =
-                                    InstanceTitleSuccession.makeInstanceTitleSuccession(
-                                            getInstanceUUID(),
-                                            referencedInstance.getUUID(),
-                                            getInstanceUUID());
-                            if (precedingTitles == null) {
-                                precedingTitles = new ArrayList<>();
-                            }
-                            precedingTitles.add(title);
-                        }
-                    }
-                }
-            }
-        }
-        if (instanceRelationsJson.getJsonArray(SUCCEEDING_TITLES) != null) {
-            for (Object o : instanceRelationsJson.getJsonArray(SUCCEEDING_TITLES)) {
-                JsonObject rel = (JsonObject) o;
-                if (rel.containsKey(INSTANCE_IDENTIFIER)) {
-                    String hrid = rel.getJsonObject(INSTANCE_IDENTIFIER).getString(HRID_IDENTIFIER_KEY);
-                    if (hrid != null) {
-                        Instance referencedInstance = repository.referencedInstancesByHrid.get(hrid);
-                        if (referencedInstance != null) {
-                            InstanceTitleSuccession title =
-                                    InstanceTitleSuccession.makeInstanceTitleSuccession(
-                                            getInstanceUUID(),
-                                            getInstanceUUID(),
-                                            referencedInstance.getUUID());
-                            if (succeedingTitles == null) {
-                                succeedingTitles = new ArrayList<>();
-                            }
-                            succeedingTitles.add(title);
-                        }
-                    }
-                }
-            }
-        }
-
     }
+
     /**
      * A relation is considered omitted from the list if the list exists (is not null) but the relation is not in it.
      * @param list list of relations to check the relation against

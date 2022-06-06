@@ -4,6 +4,9 @@ import io.vertx.core.impl.logging.Logger;
 import io.vertx.core.impl.logging.LoggerFactory;
 import io.vertx.core.json.JsonObject;
 
+import static org.folio.inventoryupdate.entities.InstanceRelations.INSTANCE_IDENTIFIER;
+import static org.folio.inventoryupdate.entities.InventoryRecordSet.HRID_IDENTIFIER_KEY;
+
 public class InstanceRelationship extends InstanceToInstanceRelation {
 
     private String instanceId;
@@ -14,7 +17,7 @@ public class InstanceRelationship extends InstanceToInstanceRelation {
     protected static final Logger logger = LoggerFactory.getLogger("inventory-update");
 
     /**
-     * Builds an Instance relationship object from a JSON record.
+     * Builds an Instance relationship object from a JSON record from storage.
      * @param instanceId The UUID of the Instance to link from
      * @param instanceRelationJson Instance relation JSON object from storage
      * @return Relationship object
@@ -47,6 +50,15 @@ public class InstanceRelationship extends InstanceToInstanceRelation {
         relation.instanceRelationClass = (relation.isRelationToChild() ? InstanceRelationsClass.TO_CHILD : InstanceRelationsClass.TO_PARENT);
         return relation;
     }
+
+    public static InstanceRelationship makeParentRelationship(String instanceId,  String superInstanceId, String instanceRelationshipTypeId) {
+        return makeRelationship(instanceId, instanceId, superInstanceId, instanceRelationshipTypeId);
+    }
+
+    public static InstanceRelationship makeChildRelationship(String instanceId,  String subInstanceId, String instanceRelationshipTypeId) {
+        return makeRelationship(instanceId, subInstanceId, instanceId, instanceRelationshipTypeId);
+    }
+
 
     public boolean isRelationToChild () {
         return instanceId.equals(getSuperInstanceId());

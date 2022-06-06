@@ -22,6 +22,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static org.folio.inventoryupdate.entities.InstanceRelationship.INSTANCE_RELATIONSHIP_TYPE_ID;
+import static org.folio.inventoryupdate.entities.InstanceToInstanceRelation.prepareProvisionalInstance;
 import static org.folio.inventoryupdate.entities.InventoryRecordSet.HRID_IDENTIFIER_KEY;
 import static org.folio.inventoryupdate.entities.InventoryRecordSet.UUID_IDENTIFIER_KEY;
 import static org.folio.inventoryupdate.entities.InstanceToInstanceRelation.InstanceRelationsClass;
@@ -105,10 +106,15 @@ public class InstanceRelations extends JsonRepresentation {
     public Future<Void> makeInstanceRelationRecordsFromIdentifiers(OkapiClient client, String instanceId) {
         Promise<Void> promise = Promise.promise();
         if (irs.instanceReferences != null && irs.instanceReferences.hasRelationsArrays()) {
-            makeRelationsFromIdentifiers(client, instanceId, irs.instanceRelationsJson.getJsonArray(PARENT_INSTANCES), InstanceRelationsClass.TO_PARENT).onComplete(parents -> {
-                    makeRelationsFromIdentifiers(client, instanceId, irs.instanceRelationsJson.getJsonArray(CHILD_INSTANCES), InstanceRelationsClass.TO_CHILD).onComplete (children -> {
-                        makeRelationsFromIdentifiers(client, instanceId, irs.instanceRelationsJson.getJsonArray(SUCCEEDING_TITLES), InstanceRelationsClass.TO_SUCCEEDING).onComplete(succeedingTitles -> {
-                            makeRelationsFromIdentifiers(client, instanceId, irs.instanceRelationsJson.getJsonArray(PRECEDING_TITLES), InstanceRelationsClass.TO_PRECEDING).onComplete(precedingTitles -> {
+            for (InstanceReference reference : irs.instanceReferences.references) {
+                reference.setFromInstanceId(instanceId);
+            }
+        }
+        if (irs.instanceReferences != null && irs.instanceReferences.hasRelationsArrays()) {
+            makeRelationsFromIdentifiers(client, irs.instanceReferences.getReferencesToParentInstances()).onComplete(parents -> {
+                    makeRelationsFromIdentifiers(client, irs.instanceReferences.getReferencesToChildInstances()).onComplete (children -> {
+                        makeRelationsFromIdentifiers(client, irs.instanceReferences.getReferencesToSucceedingTitles()).onComplete(succeedingTitles -> {
+                            makeRelationsFromIdentifiers(client, irs.instanceReferences.getReferencesToPrecedingTitles()).onComplete(precedingTitles -> {
                                 StringBuilder errorMessages = new StringBuilder();
                                 if (parents.succeeded()) {
                                     if (parents.result() != null) {
@@ -169,41 +175,20 @@ public class InstanceRelations extends JsonRepresentation {
         return promise.future();
     }
 
-    private static InventoryQuery makeInstanceQueryUsingIdentifierObject( JsonObject instanceIdentifierJson) {
-        InventoryQuery queryByUniqueId = null;
-        if (instanceIdentifierJson.containsKey( HRID_IDENTIFIER_KEY )) {
-            queryByUniqueId = new QueryByHrid( instanceIdentifierJson.getString( HRID_IDENTIFIER_KEY ) );
-        } else if ( instanceIdentifierJson.containsKey( UUID_IDENTIFIER_KEY )) {
-            try {
-                UUID uuid = UUID.fromString( instanceIdentifierJson.getString(UUID_IDENTIFIER_KEY) );
-                queryByUniqueId = new QueryByUUID(uuid);
-            } catch (IllegalArgumentException iae) {
-                logger.error("Could not parse provided 'uuid' property as a UUID for an Instance query, query will probably not find an Instance record:  " + instanceIdentifierJson.getString("uuid"));
-                queryByUniqueId = new QueryByUUID(instanceIdentifierJson.getString( UUID_IDENTIFIER_KEY ));
-            }
-        }
-        return queryByUniqueId;
-    }
     /**
      * Planning. Use incoming identifiers (HRIDs or UUIDs) for creating relationship objects.
      * @param client Okapi client used for look-ups
-     * @param instanceId The Instance to prepare relationship objects for
-     * @param identifiers Provided unique Instance identifiers (HRID or UUID) to prepare relationship objects from
-     * @param classOfRelations Type of relation (parent, child, succeeding, preceding)
      * @return A future list of prepared Instance relationship objects.
      */
-    private static Future<List<InstanceToInstanceRelation>> makeRelationsFromIdentifiers(OkapiClient client, String instanceId, JsonArray identifiers, InstanceRelationsClass classOfRelations) {
+    private static Future<List<InstanceToInstanceRelation>> makeRelationsFromIdentifiers(
+            OkapiClient client, List<InstanceReference> references) {
         Promise<List<InstanceToInstanceRelation>> promise = Promise.promise();
-        if (identifiers != null) {
+        if (references != null) {
             @SuppressWarnings("rawtypes")
             List<Future> relationsFutures = new ArrayList<>();
-            for (Object o : identifiers) {
-                JsonObject relationJson = (JsonObject) o;
-                JsonObject instanceIdentifier = relationJson.getJsonObject( INSTANCE_IDENTIFIER );
-                if (instanceIdentifier != null && !instanceIdentifier.isEmpty()) {
-                    InventoryQuery queryByUniqueId = makeInstanceQueryUsingIdentifierObject(instanceIdentifier);
-                    relationsFutures.add(makeInstanceRelationWithInstanceIdentifier(
-                                client, instanceId, relationJson, queryByUniqueId, classOfRelations ) );
+            for (InstanceReference reference : references) {
+                if (reference.hasReferenceHrid() || reference.hasReferenceUuid()) {
+                    relationsFutures.add(makeInstanceRelationWithInstanceIdentifier(client, reference));
                 }
             }
             if (relationsFutures.isEmpty()) {
@@ -218,8 +203,7 @@ public class InstanceRelations extends JsonRepresentation {
                             List<InstanceToInstanceRelation> relations = new ArrayList<>();
                             for ( Object o : relatedInstances.result().list() )
                             {
-                                InstanceToInstanceRelation relation = (InstanceToInstanceRelation) o;
-                                relations.add( relation );
+                                relations.add((InstanceToInstanceRelation) o);
                             }
                             promise.complete( relations );
                         }
@@ -242,87 +226,29 @@ public class InstanceRelations extends JsonRepresentation {
      * If no existing Instance was found and if the provided identifier was an HRID and if the request also contains the
      * minimum required information for creating an Instance, a 'provisional' Instance is prepared to fulfill the relationship.
      * @param client  The Okapi client for the look-up
-     * @param instanceId The current Instance to build a relation from
-     * @param relatedObject The provided information about the Instance to build a relation to.
-     * @param classOfRelations Type of relation (to parent, child, preceding or succeeding)
      * @return The prepared Instance to Instance relationship object
      */
     private static Future<InstanceToInstanceRelation> makeInstanceRelationWithInstanceIdentifier(OkapiClient client,
-                                                                                                 String instanceId,
-                                                                                                 JsonObject relatedObject,
-                                                                                                 InventoryQuery queryById,
-                                                                                                 InstanceRelationsClass classOfRelations) {
+                                                                                                 InstanceReference reference) {
         Promise<InstanceToInstanceRelation> promise = Promise.promise();
-        boolean gotHrid = queryById instanceof QueryByHrid;
-        InventoryStorage.lookupInstance(client, queryById).onComplete(existingInstance -> {
+        InventoryQuery query = null;
+        if (reference.hasReferenceHrid()) {
+            query = new QueryByHrid(reference.getReferenceHrid());
+        } else {
+            query = new QueryByUUID(reference.getReferenceUuid());
+        }
+        InventoryStorage.lookupInstance(client, query).onComplete(existingInstance -> {
             if (existingInstance.succeeded()) {
-                Instance provisionalInstance = null;
-                String relateToThisId = null;
                 if (existingInstance.result() != null) {
                     JsonObject relatedInstanceJson = existingInstance.result();
-                    relateToThisId = relatedInstanceJson.getString( InstanceRelations.ID);
-                } else {
-                    // The instance to relate to, does not exist. if an HRID was provided we might be able to create a provisional Instance
-                    if (gotHrid) {
-                        JsonObject provisionalInstanceJson = relatedObject.getJsonObject(
-                                InstanceToInstanceRelation.PROVISIONAL_INSTANCE );
-                        if ( InstanceReference.validateProvisionalInstanceProperties( provisionalInstanceJson ) )
-                        {
-                            provisionalInstance = InstanceToInstanceRelation.prepareProvisionalInstance( ((QueryByHrid) queryById).hrid, provisionalInstanceJson );
-                            relateToThisId = provisionalInstance.getUUID();
-                        }
-                    }
+                    reference.setReferencedInstanceId(relatedInstanceJson.getString("id"));
                 }
-                InstanceToInstanceRelation relation = null;
-                switch (classOfRelations) {
-                    case TO_PARENT:
-                        relation = InstanceRelationship.makeRelationship(
-                                instanceId, instanceId, relateToThisId,
-                                relatedObject.getString(INSTANCE_RELATIONSHIP_TYPE_ID));
-                        break;
-                    case TO_CHILD:
-                        relation = InstanceRelationship.makeRelationship(
-                                instanceId, relateToThisId, instanceId,
-                                relatedObject.getString(INSTANCE_RELATIONSHIP_TYPE_ID));
-                        break;
-                    case TO_PRECEDING:
-                        logger.debug("Creating preceding");
-                        relation = InstanceTitleSuccession.makeInstanceTitleSuccession(
-                                instanceId, relateToThisId, instanceId);
-                        logger.debug("Relation class: " + relation.instanceRelationClass);
-                        break;
-                    case TO_SUCCEEDING:
-                        logger.debug("Creating succeeding");
-                        relation = InstanceTitleSuccession.makeInstanceTitleSuccession(
-                                instanceId, instanceId, relateToThisId);
-                        logger.debug("Relation class: " + relation.instanceRelationClass);
-                        break;
-                }
+                InstanceToInstanceRelation relation = reference.getInstanceToInstanceRelation();
                 relation.setTransition(InventoryRecord.Transaction.CREATE);
-
-                // If the related Instance does not already exist, and it cannot be created, register the
-                // problem but don't fail it here, in the planning phase, since that would abort the entire update.
-                // Rather give the update plan a chance to continue to successful completion and then let the
-                // record(s) in question fail eventually during execution of the plan.
-                // @see: handleInstanceRelationCreatesIfAny and failRelationCreation
-                if (existingInstance.result() == null) {
-                    relation.requiresProvisionalInstanceToBeCreated(true);
-                    if (provisionalInstance == null) {
-                        Instance failedProvisionalInstance = new Instance(new JsonObject());
-                        failedProvisionalInstance.fail();
-                        failedProvisionalInstance.logError("Missing required properties for creating required provisional instance", 422);
-                        relation.setProvisionalInstance(failedProvisionalInstance);
-                        relation.logError("Referenced parent Instance not found and required provisional Instance " +
-                                "info for potentially creating one is missing; cannot create relation to non-existing Instance, HRID: [" +
-                                (gotHrid ? ((QueryByHrid) queryById).hrid : "no HRID provided") +"], got:" + InstanceRelations.LF + relatedObject.encodePrettily(), 422);
-                        relation.fail(); // mark relation failed but don't fail the promise.
-                    } else {
-                        relation.setProvisionalInstance(provisionalInstance);
-                    }
-                }
                 promise.complete(relation);
             } else {
-                promise.fail("Error looking up Instance for creating Instance to Instance relation to it: " + existingInstance.cause().getMessage());
+                promise.fail(
+                        "Error looking up Instance for creating Instance to Instance relation to it: " + existingInstance.cause().getMessage());
             }
         });
         return promise.future();

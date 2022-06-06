@@ -1270,9 +1270,13 @@ logger.info("Parent: " + parentResponse.encodePrettily());
                             .add(new InputInstanceTitleSuccession().setInstanceIdentifierHrid(succeeding2Hrid).getJson()))));
 
     testContext.assertEquals(getMetric(secondResponseJson, INSTANCE_RELATIONSHIP, DELETE , COMPLETED), 2,
-            "After upsert of Instance with some relations removed, metrics should report [2] instance relationship successfully deleted " + firstResponseJson.encodePrettily());
+            "After upsert of Instance with some relations removed, " +
+                    "metrics should report [2] instance relationship successfully deleted "
+                    + secondResponseJson.encodePrettily());
     testContext.assertEquals(getMetric(secondResponseJson, INSTANCE_TITLE_SUCCESSION, DELETE , COMPLETED), 2,
-            "After upsert of Instance with some relations removed, metrics should report [2] instance title successions successfully deleted " + firstResponseJson.encodePrettily());
+            "After upsert of Instance with some relations removed, " +
+                    "metrics should report [2] instance title successions successfully deleted "
+                    + secondResponseJson.encodePrettily());
 
 
   }

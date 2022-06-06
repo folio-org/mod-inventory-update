@@ -1,6 +1,7 @@
 package org.folio.inventoryupdate.entities;
 
 import io.vertx.core.json.JsonObject;
+import org.folio.inventoryupdate.QueryByUUID;
 
 import java.util.UUID;
 
@@ -8,6 +9,7 @@ import static org.folio.inventoryupdate.entities.InstanceRelations.INSTANCE_IDEN
 import static org.folio.inventoryupdate.entities.InstanceRelationship.INSTANCE_RELATIONSHIP_TYPE_ID;
 import static org.folio.inventoryupdate.entities.InstanceToInstanceRelation.PROVISIONAL_INSTANCE;
 import static org.folio.inventoryupdate.entities.InventoryRecordSet.HRID_IDENTIFIER_KEY;
+import static org.folio.inventoryupdate.entities.InventoryRecordSet.UUID_IDENTIFIER_KEY;
 
 public class InstanceReference {
 
@@ -27,11 +29,20 @@ public class InstanceReference {
 
   public boolean hasReferenceHrid () {
     return instanceReferenceJson.containsKey(INSTANCE_IDENTIFIER)
-            && instanceReferenceJson.getJsonObject(INSTANCE_IDENTIFIER).containsKey("hrid");
+            && instanceReferenceJson.getJsonObject(INSTANCE_IDENTIFIER).containsKey(HRID_IDENTIFIER_KEY);
+  }
+
+  public boolean hasReferenceUuid () {
+    return (instanceReferenceJson.containsKey(INSTANCE_IDENTIFIER)
+            && instanceReferenceJson.getJsonObject(INSTANCE_IDENTIFIER).containsKey(UUID_IDENTIFIER_KEY));
   }
 
   public String getReferenceHrid () {
-    return instanceReferenceJson.getJsonObject(INSTANCE_IDENTIFIER).getString("hrid");
+    return instanceReferenceJson.getJsonObject(INSTANCE_IDENTIFIER).getString(HRID_IDENTIFIER_KEY);
+  }
+
+  public String getReferenceUuid ()  {
+    return instanceReferenceJson.getJsonObject(INSTANCE_IDENTIFIER).getString(UUID_IDENTIFIER_KEY);
   }
 
   public void setFromInstanceId(String uuid) {
@@ -97,7 +108,7 @@ public class InstanceReference {
 
   public Instance getProvisionalInstance () {
     JsonObject json = new JsonObject(getProvisionalInstanceJson().toString());
-    if (! json.containsKey( HRID_IDENTIFIER_KEY )) {
+    if (! json.containsKey( HRID_IDENTIFIER_KEY ) && hasReferenceHrid()) {
       json.put( HRID_IDENTIFIER_KEY, getReferenceHrid());
     }
     if (! json.containsKey("id")) {
@@ -114,20 +125,22 @@ public class InstanceReference {
 
     if (referencedInstanceId != null) { // Found existing Instance for HRID to link to
       toInstanceId = referencedInstanceId;
-    } else {  // Create provisional Instance to link to
+    } else { // Create provisional Instance to link to
       provisionalInstance = getProvisionalInstance();
       toInstanceId = provisionalInstance.getUUID();
     }
     if (typeOfRelation == InstanceToInstanceRelation.InstanceRelationsClass.TO_PARENT) {
-      relation = InstanceRelationship.makeParentRelationship(fromInstanceId, toInstanceId, getRelationshipTypeId());
+      relation = InstanceRelationship.makeParentRelationship(fromInstanceId, toInstanceId,
+              getRelationshipTypeId());
     } else if (typeOfRelation == InstanceToInstanceRelation.InstanceRelationsClass.TO_CHILD) {
-      relation = InstanceRelationship.makeChildRelationship(fromInstanceId, toInstanceId, getRelationshipTypeId());
+      relation = InstanceRelationship.makeChildRelationship(fromInstanceId, toInstanceId,
+              getRelationshipTypeId());
     } else if (typeOfRelation == InstanceToInstanceRelation.InstanceRelationsClass.TO_SUCCEEDING) {
       relation = InstanceTitleSuccession.makeRelationToSucceeding(fromInstanceId, toInstanceId);
     } else if (typeOfRelation == InstanceToInstanceRelation.InstanceRelationsClass.TO_PRECEDING) {
       relation = InstanceTitleSuccession.makeRelationToPreceding(fromInstanceId, toInstanceId);
     }
-    if (referencedInstanceId == null) {
+    if (referencedInstanceId == null && relation != null) {
       relation.requiresProvisionalInstanceToBeCreated(true);
       if (!provisionalInstanceIsValid()) {
         provisionalInstance.fail();

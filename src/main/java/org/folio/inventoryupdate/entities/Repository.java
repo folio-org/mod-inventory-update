@@ -35,7 +35,7 @@ public class Repository {
   private final Map<String,Map<String,InstanceToInstanceRelation>> existingSucceedingRelationsByPrecedingId = new HashMap<>();
   private final Map<String,Map<String,InstanceToInstanceRelation>> existingPrecedingRelationsBySucceedingId = new HashMap<>();
   public final Map<String,Instance> referencedInstancesByHrid = new HashMap<>();
-  private final Map<String,Instance> referencedInstancesByUUID = new HashMap<>();
+  public final Map<String,Instance> referencedInstancesByUUID = new HashMap<>();
   public final Map<String,HoldingsRecord> existingHoldingsRecordsByHrid = new HashMap<>();
   private final Map<String,HoldingsRecord> existingHoldingsRecordsByUUID = new HashMap<>();
 
@@ -77,6 +77,9 @@ public class Repository {
     }
     for (List<String> idList : getSubListsOfFifty(getIncomingReferencedInstanceHrids())) {
       existingRecordsByHridsFutures.add(requestReferencedInstancesByHRIDs(routingContext, idList));
+    }
+    for (List<String> idList : getSubListsOfFifty(getIncomingReferencedInstanceIds())) {
+      existingRecordsByHridsFutures.add(requestReferencedInstancesByUUIDs(routingContext, idList));
     }
     CompositeFuture.join(existingRecordsByHridsFutures).onComplete(recordsByHrids -> {
       if (recordsByHrids.succeeded()) {
@@ -194,6 +197,33 @@ public class Repository {
     OkapiClient okapiClient = InventoryStorage.getOkapiClient(routingContext);
     InventoryStorage.lookupInstances(okapiClient,
                     new QueryByListOfIds("hrid", hrids))
+            .onComplete(instances -> {
+              if (instances.succeeded()) {
+                if (instances.result() != null) {
+                  for (Object o : instances.result()) {
+                    Instance instance = new Instance((JsonObject) o);
+                    logger.info("Repository: Adding referenced instance " + instance.asJsonString());
+                    referencedInstancesByHrid.put(instance.getHRID(), instance);
+                    referencedInstancesByUUID.put(instance.getUUID(), instance);
+                    logger.info("Referenced instance added to maps by hrid and uuid");
+                  }
+                }
+                promise.complete();
+              } else {
+                promise.fail("There was a problem fetching existing Instances by incoming HRIDs "
+                        + instances.cause().getMessage());
+              }
+
+            });
+    return promise.future();
+  }
+
+  private Future<Void> requestReferencedInstancesByUUIDs(RoutingContext routingContext,
+                                                         List<String> uuids) {
+    Promise<Void> promise = Promise.promise();
+    OkapiClient okapiClient = InventoryStorage.getOkapiClient(routingContext);
+    InventoryStorage.lookupInstances(okapiClient,
+                    new QueryByListOfIds("id", uuids))
             .onComplete(instances -> {
               if (instances.succeeded()) {
                 if (instances.result() != null) {
@@ -498,6 +528,30 @@ public class Repository {
     return hrids;
   }
 
+  private List<String> getIncomingReferencedInstanceIds () {
+    List<String> uuids = new ArrayList<>();
+    for (PairedRecordSets pair : pairsOfRecordSets) {
+      JsonObject instanceRelations = pair.getIncomingRecordSet().instanceRelationsJson;
+      for (JsonArray array :
+              Arrays.asList(
+                      instanceRelations.getJsonArray(PARENT_INSTANCES),
+                      instanceRelations.getJsonArray(CHILD_INSTANCES),
+                      instanceRelations.getJsonArray(SUCCEEDING_TITLES),
+                      instanceRelations.getJsonArray(PRECEDING_TITLES))) {
+        if (array != null && ! array.isEmpty()) {
+          for (Object o : array) {
+            JsonObject rel = (JsonObject) o;
+            JsonObject instanceIdentifier = rel.getJsonObject( INSTANCE_IDENTIFIER );
+            if (instanceIdentifier != null && instanceIdentifier.containsKey( UUID_IDENTIFIER_KEY )) {
+              uuids.add(instanceIdentifier.getString(UUID_IDENTIFIER_KEY));
+            }
+          }
+        }
+      }
+    }
+    return uuids;
+
+  }
   private List<String> getIncomingHoldingsRecordHRIDs () {
     List<String> hrids = new ArrayList<>();
     for (PairedRecordSets pair : pairsOfRecordSets) {

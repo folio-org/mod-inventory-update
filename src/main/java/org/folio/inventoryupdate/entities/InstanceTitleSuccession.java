@@ -37,7 +37,7 @@ public class InstanceTitleSuccession extends InstanceToInstanceRelation {
     }
 
     public static InstanceTitleSuccession makeRelationToPreceding (String instanceId, String precedingInstanceId) {
-        return makeInstanceTitleSuccession(instanceId, instanceId, precedingInstanceId);
+        return makeInstanceTitleSuccession(instanceId, precedingInstanceId, instanceId);
     }
 
     public String getSucceedingInstanceId () {

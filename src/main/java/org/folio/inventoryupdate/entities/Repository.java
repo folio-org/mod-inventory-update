@@ -12,20 +12,14 @@ import org.folio.okapi.common.OkapiClient;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import static org.folio.inventoryupdate.entities.InstanceRelations.*;
-import static org.folio.inventoryupdate.entities.InstanceRelationship.INSTANCE_RELATIONSHIP_TYPE_ID;
 import static org.folio.inventoryupdate.entities.InventoryRecordSet.*;
 
-
 public class Repository {
-
 
   private final Map<String,Instance> existingInstancesByHrid = new HashMap<>();
   private final Map<String,Instance> existingInstancesByUUID = new HashMap<>();
@@ -615,5 +609,143 @@ public class Repository {
     return getSubLists(list, 50);
   }
 
+  public List<Instance> getInstancesToCreate () {
+    List<Instance> list = new ArrayList<>();
+    for (PairedRecordSets pair : pairsOfRecordSets) {
+      if (pair.hasIncomingRecordSet()) {
+        Instance instance = pair.getIncomingRecordSet().getInstance();
+        if (instance.isCreating()) {
+          list.add(instance);
+        }
+      }
+    }
+    return list;
+  }
+
+  public List<Instance> getInstancesToUpdate() {
+    List<Instance> list = new ArrayList<>();
+    for (PairedRecordSets pair : pairsOfRecordSets) {
+      if (pair.hasIncomingRecordSet()) {
+        Instance instance = pair.getIncomingRecordSet().getInstance();
+        if (instance.isUpdating()) {
+          list.add(instance);
+        }
+      }
+    }
+    return list;
+  }
+
+  public List<HoldingsRecord> getHoldingsToCreate () {
+    List<HoldingsRecord> list = new ArrayList<>();
+    for (PairedRecordSets pair : pairsOfRecordSets) {
+      if (pair.hasIncomingRecordSet()) {
+        for (HoldingsRecord holdingsRecord : pair.getIncomingRecordSet().getHoldingsRecords()) {
+          if (holdingsRecord.isCreating()) {
+            list.add(holdingsRecord);
+          }
+        }
+      }
+    }
+    return list;
+  }
+
+  public List<HoldingsRecord> getHoldingsToUpdate () {
+    List<HoldingsRecord> list = new ArrayList<>();
+    for (PairedRecordSets pair : pairsOfRecordSets) {
+      if (pair.hasIncomingRecordSet()) {
+        for (HoldingsRecord holdingsRecord : pair.getIncomingRecordSet().getHoldingsRecords()) {
+          if (holdingsRecord.isUpdating()) {
+            list.add(holdingsRecord);
+          }
+        }
+      }
+    }
+    return list;
+  }
+
+  public List<HoldingsRecord> getHoldingsToDelete () {
+    List<HoldingsRecord> list = new ArrayList<>();
+    for (PairedRecordSets pair : pairsOfRecordSets) {
+      if (pair.hasIncomingRecordSet()) {
+        for (HoldingsRecord holdingsRecord : pair.getIncomingRecordSet().getHoldingsRecords()) {
+          if (holdingsRecord.isDeleting()) {
+            list.add(holdingsRecord);
+          }
+        }
+      }
+    }
+    return list;
+  }
+
+
+  public List<Item> getItemsToUpdate () {
+    List<Item> list = new ArrayList<>();
+    for (PairedRecordSets pair : pairsOfRecordSets) {
+      if (pair.hasIncomingRecordSet()) {
+        for (Item item : pair.getIncomingRecordSet().getItems()) {
+          if (item.isUpdating()) {
+            list.add(item);
+          }
+        }
+      }
+    }
+    return list;
+  }
+
+  public List<Item> getItemsToCreate () {
+    List<Item> list = new ArrayList<>();
+    for (PairedRecordSets pair : pairsOfRecordSets) {
+      if (pair.hasIncomingRecordSet()) {
+        for (Item item : pair.getIncomingRecordSet().getItems()) {
+          if (item.isCreating()) {
+            list.add(item);
+          }
+        }
+      }
+    }
+    return list;
+  }
+
+  public List<Item> getItemsToDelete () {
+    List<Item> list = new ArrayList<>();
+    for (PairedRecordSets pair : pairsOfRecordSets) {
+      if (pair.hasIncomingRecordSet()) {
+        for (Item item : pair.getIncomingRecordSet().getItems()) {
+          if (item.isDeleting()) {
+            list.add(item);
+          }
+        }
+      }
+    }
+    return list;
+  }
+
+  public List<InstanceToInstanceRelation> getInstanceRelationsToCreate () {
+    List<InstanceToInstanceRelation> list = new ArrayList<>();
+    for (PairedRecordSets pair : pairsOfRecordSets) {
+      if (pair.hasIncomingRecordSet()) {
+        for (InstanceToInstanceRelation relation : pair.getIncomingRecordSet().getInstanceToInstanceRelations()) {
+          if (relation.isCreating()) {
+            list.add(relation);
+          }
+        }
+      }
+    }
+    return list;
+  }
+
+  public List<InstanceToInstanceRelation> getInstanceRelationsToDelete () {
+    List<InstanceToInstanceRelation> list = new ArrayList<>();
+    for (PairedRecordSets pair : pairsOfRecordSets) {
+      if (pair.hasIncomingRecordSet()) {
+        for (InstanceToInstanceRelation relation : pair.getIncomingRecordSet().getInstanceToInstanceRelations()) {
+          if (relation.isDeleting()) {
+            list.add(relation);
+          }
+        }
+      }
+    }
+    return list;
+  }
 
 }

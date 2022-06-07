@@ -78,8 +78,8 @@ public class InventoryUpdateService {
               logger.info(repository.getIncomingRecordSets().get(0).asJson().encodePrettily());
               InventoryRecordSet incomingSet = new InventoryRecordSet(incomingJson);
               UpdatePlan updatePlan = UpdatePlanAllHRIDs.getUpsertPlan(incomingSet);
-              UpdatePlanAllHRIDs updatePlanByRepo = new UpdatePlanAllHRIDs(repository);
-              updatePlanByRepo.planInventoryUpdatesFromRepository();
+              //UpdatePlanAllHRIDs updatePlanByRepo = new UpdatePlanAllHRIDs(repository);
+              //updatePlanByRepo.planInventoryUpdatesFromRepository();
               runPlan(updatePlan, routingCtx);
             });
   }

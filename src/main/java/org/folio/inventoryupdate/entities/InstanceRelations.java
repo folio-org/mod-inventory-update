@@ -360,7 +360,7 @@ public class InstanceRelations extends JsonRepresentation {
      * provisional record to relate to.
      * @param relation  the problematic Instance relation
      */
-    private Future<Void> failRelationCreation(InstanceToInstanceRelation relation) {
+    public static Future<Void> failRelationCreation(InstanceToInstanceRelation relation) {
         Promise<Void> promise = Promise.promise();
         promise.fail(relation.getError().encodePrettily());
         return promise.future();

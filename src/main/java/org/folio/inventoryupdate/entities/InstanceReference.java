@@ -23,10 +23,6 @@ public class InstanceReference {
     this.typeOfRelation = typeOfRelation;
   }
 
-  public InstanceToInstanceRelation.InstanceRelationsClass getTypeOfRelation() {
-    return typeOfRelation;
-  }
-
   public boolean hasReferenceHrid () {
     return instanceReferenceJson.containsKey(INSTANCE_IDENTIFIER)
             && instanceReferenceJson.getJsonObject(INSTANCE_IDENTIFIER).containsKey(HRID_IDENTIFIER_KEY);
@@ -49,38 +45,34 @@ public class InstanceReference {
     this.fromInstanceId = uuid;
   }
 
-  public String getRelationshipTypeId () {
+  private String getRelationshipTypeId () {
     return instanceReferenceJson.getString(INSTANCE_RELATIONSHIP_TYPE_ID);
   }
 
-  public String getFromInstanceId () {
-    return fromInstanceId;
-  }
-
-  public boolean referencesParentInstance () {
+  protected boolean referencesParentInstance () {
     return (typeOfRelation == InstanceToInstanceRelation.InstanceRelationsClass.TO_PARENT);
   }
 
-  public boolean referencesChildInstance () {
+  protected boolean referencesChildInstance () {
     return (typeOfRelation == InstanceToInstanceRelation.InstanceRelationsClass.TO_CHILD);
   }
 
-  public boolean referencesSucceedingInstance () {
+  protected boolean referencesSucceedingInstance () {
     return (typeOfRelation == InstanceToInstanceRelation.InstanceRelationsClass.TO_SUCCEEDING);
   }
 
-  public boolean referencesPrecedingInstance () {
+  protected boolean referencesPrecedingInstance () {
     return (typeOfRelation == InstanceToInstanceRelation.InstanceRelationsClass.TO_PRECEDING);
   }
   public void setReferencedInstanceId(String uuid) {
     this.referencedInstanceId = uuid;
   }
 
-  public boolean hasProvisionalInstance () {
+  private boolean hasProvisionalInstance () {
     return instanceReferenceJson.containsKey(PROVISIONAL_INSTANCE);
   }
 
-  public boolean provisionalInstanceIsValid() {
+  private boolean provisionalInstanceIsValid() {
     return hasProvisionalInstance()
             && validateProvisionalInstanceProperties(
                     instanceReferenceJson.getJsonObject(PROVISIONAL_INSTANCE));
@@ -92,7 +84,7 @@ public class InstanceReference {
             new JsonObject();
   }
 
-  public static boolean validateProvisionalInstanceProperties (JsonObject provisionalInstanceProperties) {
+  private static boolean validateProvisionalInstanceProperties (JsonObject provisionalInstanceProperties) {
     if (provisionalInstanceProperties == null) {
       return false;
     } else {
@@ -106,7 +98,7 @@ public class InstanceReference {
     }
   }
 
-  public Instance getProvisionalInstance () {
+  private Instance getProvisionalInstance () {
     JsonObject json = new JsonObject(getProvisionalInstanceJson().toString());
     if (! json.containsKey( HRID_IDENTIFIER_KEY ) && hasReferenceHrid()) {
       json.put( HRID_IDENTIFIER_KEY, getReferenceHrid());

@@ -64,6 +64,14 @@ public abstract class InventoryRecord {
         return (transaction == Transaction.DELETE);
     }
 
+    public boolean isCreating () {
+        return (transaction == Transaction.CREATE);
+    }
+
+    public boolean isUpdating () {
+        return (transaction == Transaction.UPDATE);
+    }
+
     public String generateUUID () {
         UUID uuid = UUID.randomUUID();
         jsonRecord.put("id", uuid.toString());

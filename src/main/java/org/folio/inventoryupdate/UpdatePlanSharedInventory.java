@@ -302,6 +302,11 @@ public class UpdatePlanSharedInventory extends UpdatePlan {
     }
 
     @Override
+    public Future<Void> doInventoryUpdatesUsingRepository(OkapiClient client) {
+        return null;
+    }
+
+    @Override
     public List<HoldingsRecord> holdingsToDelete () {
         List<HoldingsRecord> holdingsRecords = super.holdingsToDelete();
         if (foundSecondaryExistingSet()) holdingsRecords.addAll( secondaryExistingSet.getHoldingsRecordsByTransactionType(Transaction.DELETE) );

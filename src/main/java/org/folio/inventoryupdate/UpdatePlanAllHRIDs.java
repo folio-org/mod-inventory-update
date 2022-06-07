@@ -12,6 +12,8 @@ import io.vertx.core.CompositeFuture;
 import io.vertx.core.Future;
 import io.vertx.core.Promise;
 
+import static org.folio.inventoryupdate.entities.InstanceRelations.failRelationCreation;
+
 public class UpdatePlanAllHRIDs extends UpdatePlan {
 
 
@@ -31,16 +33,21 @@ public class UpdatePlanAllHRIDs extends UpdatePlan {
     }
 
     public static UpdatePlanAllHRIDs getDeletionPlan(InventoryQuery existingInstanceQuery) {
-        UpdatePlanAllHRIDs updatePlan =  new UpdatePlanAllHRIDs( null, existingInstanceQuery );
+        UpdatePlanAllHRIDs updatePlan =  new UpdatePlanAllHRIDs( null, existingInstanceQuery);
         updatePlan.isDeletion = true;
         return updatePlan;
     }
 
-    public void planInventoryUpdatesFromRepository() {
+    public void planInventoryUpdatesUsingRepository() {
+        logger.info("Planning inventory updates");
         try {
+            int pairs = 0;
             for (PairedRecordSets pair : repository.getPairsOfRecordSets()) {
+                pairs++;
+                logger.info("Plan instance holdings items for pair " + pairs);
                 planInstanceHoldingsAndItemsUsingRepository(pair);
             }
+            logger.info("Plan relations");
             planInstanceRelationsUsingRepository();
 
         } catch (NullPointerException npe) {
@@ -181,9 +188,49 @@ public class UpdatePlanAllHRIDs extends UpdatePlan {
         return promise.future();
     }
 
-    public Future<Void> doInventoryUpdatesFromRepository (OkapiClient okapiClient) {
+    public Future<Void> doInventoryUpdatesUsingRepository(OkapiClient okapiClient) {
         Promise<Void> promise = Promise.promise();
-        promise.complete();
+        Future<Void> promisedPrerequisites = createRecordsWithDependantsUsingRepository(okapiClient);
+        promisedPrerequisites.onComplete(prerequisitesCreated -> {
+            if (prerequisitesCreated.succeeded()) {
+                handleInstanceAndHoldingsUpdatesIfAnyUsingRepository(okapiClient).onComplete(
+                        instancesAndHoldingsUpdated -> {
+                            handleInstanceRelationCreatesIfAnyUsingRepository(okapiClient).onComplete(relationsCreated ->
+                            {
+                                if (relationsCreated.succeeded()) {
+                                    logger.debug("Successfully processed relationship create requests if any");
+                                } else {
+                                    logger.error(relationsCreated.cause().getMessage());
+                                }
+                                handleItemUpdatesAndCreatesIfAnyUsingRepository(okapiClient)
+                                        .onComplete(itemsUpdatedAndCreated ->{
+                                            if (prerequisitesCreated.succeeded() && instancesAndHoldingsUpdated.succeeded() && itemsUpdatedAndCreated.succeeded()) {
+                                                logger.debug("Successfully processed record create requests if any");
+                                                handleDeletionsIfAnyUsingRepository(okapiClient).onComplete(deletes -> {
+                                                    if (deletes.succeeded()) {
+                                                        if (relationsCreated.succeeded()) {
+                                                            promise.complete();
+                                                        } else {
+                                                            promise.fail("There was a problem creating Instance relationships: " + LF + relationsCreated.cause().getMessage());
+                                                        }
+                                                    } else {
+                                                        promise.fail("There was a problem processing Inventory deletes:" + LF + "  " + deletes.cause().getMessage());
+                                                    }
+                                                });
+                                            } else {
+                                                promise.fail("There was a problem creating records, no deletes performed if any requested:" + LF + "  " +
+                                                        (prerequisitesCreated.failed() ? prerequisitesCreated.cause().getMessage() : "")
+                                                        + (instancesAndHoldingsUpdated.failed() ? " " + instancesAndHoldingsUpdated.cause().getMessage() : "")
+                                                        + (itemsUpdatedAndCreated.failed() ? " " + itemsUpdatedAndCreated.cause().getMessage(): ""));
+                                            }
+                                        });
+                            });
+                        });
+
+            } else {
+                promise.fail("Error creating Instances or holdings records");
+            }
+        });
         return promise.future();
     }
 
@@ -220,6 +267,42 @@ public class UpdatePlanAllHRIDs extends UpdatePlan {
         }
         return validationErrors;
     }
+
+    public Future<Void> handleInstanceRelationCreatesIfAnyUsingRepository (OkapiClient okapiClient){
+        Promise<Void> promise = Promise.promise();
+
+        @SuppressWarnings("rawtypes")
+        List<Future> provisionalInstancesFutures = new ArrayList<>();
+        for (InstanceToInstanceRelation relation : repository.getInstanceRelationsToCreate()) {
+            if (relation.requiresProvisionalInstanceToBeCreated() && relation.hasPreparedProvisionalInstance()) {
+                provisionalInstancesFutures.add(InventoryStorage.postInventoryRecord(okapiClient, relation.getProvisionalInstance()));
+            }
+        }
+        CompositeFuture.join(provisionalInstancesFutures).onComplete( allProvisionalInstancesCreated -> {
+            if (allProvisionalInstancesCreated.succeeded()) {
+                @SuppressWarnings("rawtypes")
+                List<Future> createFutures = new ArrayList<>();
+                for (InstanceToInstanceRelation relation : repository.getInstanceRelationsToCreate()) {
+                    if (!relation.requiresProvisionalInstanceToBeCreated() || relation.hasPreparedProvisionalInstance()) {
+                        createFutures.add(InventoryStorage.postInventoryRecord(okapiClient, relation));
+                    } else {
+                        createFutures.add(failRelationCreation(relation));
+                    }
+                }
+                CompositeFuture.join(createFutures).onComplete( allRelationsCreated -> {
+                    if (allRelationsCreated.succeeded()) {
+                        promise.complete();
+                    } else {
+                        promise.fail("There was an error creating instance relations:" + LF + "  " + allRelationsCreated.cause().getMessage());
+                    }
+                });
+            } else {
+                promise.fail("There was an error creating provisional Instances:" + LF + "  " + allProvisionalInstancesCreated.cause().getMessage());
+            }
+        });
+        return promise.future();
+    }
+
 
     public Future<Void> handleInstanceRelationCreatesIfAny (OkapiClient okapiClient) {
         if (!isDeletion) {

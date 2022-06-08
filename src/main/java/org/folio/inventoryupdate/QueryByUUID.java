@@ -4,11 +4,18 @@ import java.util.UUID;
 
 public class QueryByUUID extends InventoryQuery
 {
-    public QueryByUUID ( UUID uuid) {
-        queryString = "(id==\"" + uuid.toString() + "\")";
+    private final String uuid;
+
+    public QueryByUUID (UUID uuid) {
+        this(uuid.toString());
     }
 
-    public QueryByUUID ( String uuid) {
+    public QueryByUUID (String uuid) {
+        this.uuid = uuid;
         queryString = "(id==\"" + uuid + "\")";
+    }
+
+    public String getUuid() {
+      return uuid;
     }
 }

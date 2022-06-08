@@ -27,7 +27,6 @@ import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
 
 import java.util.Arrays;
-
 import static org.folio.inventoryupdate.test.fakestorage.FakeInventoryStorage.RESULT_SET_HOLDINGS_RECORDS;
 
 

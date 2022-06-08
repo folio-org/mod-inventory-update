@@ -228,6 +228,7 @@
                     "type": "object",
                     "properties": {
                       "name": {
+                        "description": "status name",
                         "type": "string",
                         "enum": [
                           "Aged to lost",

@@ -57,12 +57,12 @@ public class InstanceRelations extends JsonRepresentation {
         if (hasExistingRelationshipRecords(irs.sourceJson)) { // existing relations from storage
             registerRelationshipJsonRecords(irs.getInstance().getUUID(),irs.sourceJson.getJsonObject(
                     InstanceRelations.INSTANCE_RELATIONS));
-            logger.info("InventoryRecordSet initialized with existing instance relationships: " + this );
+            logger.debug("InventoryRecordSet initialized with existing instance relationships: " + this );
         }
         if (irs.sourceJson.containsKey(InstanceRelations.INSTANCE_RELATIONS)) { // intended relations from request
             irs.instanceRelationsJson = irs.sourceJson.getJsonObject( InstanceRelations.INSTANCE_RELATIONS);
             irs.instanceReferences = new InstanceReferences(irs.instanceRelationsJson);
-            logger.info("InventoryRecordSet initialized with incoming instance relationships JSON (relations to be built.");
+            logger.debug("InventoryRecordSet initialized with incoming instance relationships JSON (relations to be built).");
         }
     }
 

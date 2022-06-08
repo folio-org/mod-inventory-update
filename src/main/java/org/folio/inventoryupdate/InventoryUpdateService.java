@@ -69,18 +69,45 @@ public class InventoryUpdateService {
       responseError(routingCtx, 400, "Did not recognize input as an Inventory record set: " + incomingJson.encodePrettily());
       return;
     }
+    InventoryRecordSet incomingSet = new InventoryRecordSet(incomingJson);
+    UpdatePlan updatePlan = UpdatePlanAllHRIDs.getUpsertPlan(incomingSet);
+    runPlan(updatePlan, routingCtx);
+}
+
+  public void handleInventoryUpsertByHRIDUsingRepository(RoutingContext routingCtx) {
+    if (! contentTypeIsJson(routingCtx)) {
+      return;
+    }
+    JsonObject incomingJson = getIncomingJsonBody(routingCtx);
+    if (incomingJson == null) {
+      return;
+    }
+    if (! InventoryRecordSet.isValidInventoryRecordSet(incomingJson)) {
+      responseError(routingCtx, 400, "Did not recognize input as an Inventory record set: " + incomingJson.encodePrettily());
+      return;
+    }
     JsonArray inventoryRecordSets = new JsonArray();
     inventoryRecordSets.add(new JsonObject(incomingJson.encodePrettily()));
     Repository repository = new Repository();
     repository
             .setIncomingRecordSets(inventoryRecordSets)
             .buildRepositoryFromStorage(routingCtx).onComplete(result ->{
-              logger.info(repository.getIncomingRecordSets().get(0).asJson().encodePrettily());
-              InventoryRecordSet incomingSet = new InventoryRecordSet(incomingJson);
-              UpdatePlan updatePlan = UpdatePlanAllHRIDs.getUpsertPlan(incomingSet);
-              //UpdatePlanAllHRIDs updatePlanByRepo = new UpdatePlanAllHRIDs(repository);
-              //updatePlanByRepo.planInventoryUpdatesFromRepository();
-              runPlan(updatePlan, routingCtx);
+              UpdatePlanAllHRIDs plan = new UpdatePlanAllHRIDs(repository);
+
+              plan.planInventoryUpdatesUsingRepository()
+                      .doInventoryUpdatesUsingRepository(
+                              InventoryStorage.getOkapiClient(routingCtx)).onComplete(inventoryUpdated -> {
+                                if (inventoryUpdated.succeeded()) {
+                                  JsonObject pushedRecordSetWithStats = plan.getUpdatingRecordSetJsonFromRepository();
+                                  pushedRecordSetWithStats.put("metrics", plan.getUpdateStatsFromRepository());
+                                  responseJson(routingCtx, 200).end(pushedRecordSetWithStats.encodePrettily());
+                                } else {
+                                  JsonObject pushedRecordSetWithStats = plan.getUpdatingRecordSetJsonFromRepository();
+                                  pushedRecordSetWithStats.put("metrics", plan.getUpdateStatsFromRepository());
+                                  pushedRecordSetWithStats.put("errors", plan.getErrors());
+                                  responseJson(routingCtx, 422).end(pushedRecordSetWithStats.encodePrettily());
+                                }
+                      });
             });
   }
 

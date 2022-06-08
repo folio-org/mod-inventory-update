@@ -38,7 +38,7 @@ public class UpdatePlanAllHRIDs extends UpdatePlan {
         return updatePlan;
     }
 
-    public void planInventoryUpdatesUsingRepository() {
+    public UpdatePlanAllHRIDs planInventoryUpdatesUsingRepository() {
         logger.info("Planning inventory updates");
         try {
             int pairs = 0;
@@ -49,11 +49,11 @@ public class UpdatePlanAllHRIDs extends UpdatePlan {
             }
             logger.info("Plan relations");
             planInstanceRelationsUsingRepository();
-
         } catch (NullPointerException npe) {
             logger.error("Null pointer in planInventoryUpdatesFromRepo");
             npe.printStackTrace();
         }
+        return this;
     }
 
     private void planInstanceRelationsUsingRepository() {

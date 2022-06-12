@@ -36,7 +36,6 @@ public class Repository {
   private final Map<String, Map<String,HoldingsRecord>> existingHoldingsRecordsByInstanceId = new HashMap<>();
 
   public final Map<String,Item> existingItemsByHrid = new HashMap<>();
-  private final Map<String,Item> existingItemsByUUID = new HashMap<>();
   private final Map<String,Map<String,Item>> existingItemsByHoldingsRecordId = new HashMap<>();
 
   // List of incoming record sets paired with existing record sets
@@ -47,7 +46,6 @@ public class Repository {
       JsonObject recordSetJson = (JsonObject) inventoryRecordSet;
       if (recordSetJson.containsKey(INSTANCE_RELATIONS)
               && !((JsonObject) inventoryRecordSet).getJsonObject(INSTANCE_RELATIONS).isEmpty()) {
-        logger.info("Incoming relations: " + ((JsonObject) inventoryRecordSet).getJsonObject(INSTANCE_RELATIONS).encodePrettily());
       }
       PairedRecordSets pair = new PairedRecordSets();
       InventoryRecordSet recordSet = new InventoryRecordSet((JsonObject) inventoryRecordSet);
@@ -91,31 +89,36 @@ public class Repository {
           instanceRelationsFutures.add(requestPrecedingBySucceedingIds(routingContext, idList));
         }
         CompositeFuture.join(instanceRelationsFutures).onComplete(instanceRelations -> {
-          List<Future> holdingsRecordsFutures = new ArrayList<>();
-          for (List<String> idList : getSubListsOfFifty(getExistingInstanceIds())) {
-            holdingsRecordsFutures.add(requestHoldingsRecordsByInstanceIds(routingContext, idList));
-          }
-          CompositeFuture.join(holdingsRecordsFutures).onComplete(holdingsRecordsByInstanceIds -> {
-            if (holdingsRecordsByInstanceIds.succeeded()) {
-              List<Future> itemsFutures = new ArrayList<>();
-              for (List<String> idList : getSubListsOfFifty(getExistingHoldingsRecordIds())) {
-                itemsFutures.add(requestItemsByHoldingsRecordIds(routingContext, idList));
-              }
-              CompositeFuture.join(itemsFutures).onComplete(itemsByHoldingsRecordIds -> {
-                if (itemsByHoldingsRecordIds.succeeded()) {
-                  setExistingRecordSets();
-                  promise.complete();
-                } else {
-                  promise.fail("There was an error fetching items by holdings record IDs: " + itemsByHoldingsRecordIds.cause().getMessage());
-                }
-              });
-            } else {
-              promise.fail("There was an error fetching holdings by instance IDs: " + recordsByHrids.cause().getMessage());
+          if (instanceRelations.succeeded()) {
+            List<Future> holdingsRecordsFutures = new ArrayList<>();
+            for (List<String> idList : getSubListsOfFifty(getExistingInstanceIds())) {
+              holdingsRecordsFutures.add(requestHoldingsRecordsByInstanceIds(routingContext, idList));
             }
-          });
+            CompositeFuture.join(holdingsRecordsFutures).onComplete(holdingsRecordsByInstanceIds -> {
+              if (holdingsRecordsByInstanceIds.succeeded()) {
+                List<Future> itemsFutures = new ArrayList<>();
+                for (List<String> idList : getSubListsOfFifty(getExistingHoldingsRecordIds())) {
+                  itemsFutures.add(requestItemsByHoldingsRecordIds(routingContext, idList));
+                }
+                CompositeFuture.join(itemsFutures).onComplete(itemsByHoldingsRecordIds -> {
+                  if (itemsByHoldingsRecordIds.succeeded()) {
+                    setExistingRecordSets();
+                    promise.complete();
+                  } else {
+                    promise.fail("There was an error fetching items by holdings record IDs: " + itemsByHoldingsRecordIds.cause().getMessage());
+                  }
+                });
+              } else {
+                promise.fail("There was an error fetching holdings by instance IDs: " + recordsByHrids.cause().getMessage());
+              }
+            });
+          } else {
+            promise.fail("There was an error fetching instance relations by instance IDs: " + instanceRelations.cause().getMessage());
+          }
         });
+
       } else {
-        promise.fail("There was an fetching inventory records by incoming HRIDss: " + recordsByHrids.cause().getMessage());
+        promise.fail("There was an error fetching inventory records by incoming HRIDs: " + recordsByHrids.cause().getMessage());
       }
     });
     return promise.future();
@@ -124,9 +127,9 @@ public class Repository {
     for (PairedRecordSets pair : pairsOfRecordSets) {
       String incomingInstanceHrid = pair.getIncomingRecordSet().getInstanceHRID();
       if (existingInstancesByHrid.containsKey(incomingInstanceHrid)) {
-        JsonObject existingRecordSet = new JsonObject();
+        JsonObject existingRecordSetJson = new JsonObject();
         Instance existingInstance = existingInstancesByHrid.get(incomingInstanceHrid);
-        existingRecordSet.put(INSTANCE,existingInstance.asJson());
+        existingRecordSetJson.put(INSTANCE,existingInstance.asJson());
         if (existingHoldingsRecordsByInstanceId.containsKey(existingInstance.getUUID())) {
           JsonArray holdingsWithItems = new JsonArray();
           for (HoldingsRecord holdingsRecord : existingHoldingsRecordsByInstanceId.get(
@@ -140,22 +143,25 @@ public class Repository {
             }
             holdingsWithItems.add(jsonRecord);
           }
-          existingRecordSet.put(HOLDINGS_RECORDS, holdingsWithItems);
-          InventoryRecordSet existingSet = new InventoryRecordSet(existingRecordSet);
-          if (!existingParentRelationsByChildId.isEmpty() && existingParentRelationsByChildId.get(existingInstance.getUUID()) != null) {
-            existingSet.parentRelations = new ArrayList<>(existingParentRelationsByChildId.get(existingInstance.getUUID()).values());
-          }
-          if (!existingChildRelationsByParentId.isEmpty() && existingChildRelationsByParentId.get(existingInstance.getUUID()) != null) {
-            existingSet.childRelations = new ArrayList<>(existingChildRelationsByParentId.get(existingInstance.getUUID()).values());
-          }
-          if (!existingPrecedingRelationsBySucceedingId.isEmpty() && existingPrecedingRelationsBySucceedingId.get(existingInstance.getUUID()) != null) {
-            existingSet.precedingTitles = new ArrayList<>(existingPrecedingRelationsBySucceedingId.get(existingInstance.getUUID()).values());
-          }
-          if (!existingSucceedingRelationsByPrecedingId.isEmpty() && existingSucceedingRelationsByPrecedingId.get(existingInstance.getUUID()) != null) {
-            existingSet.succeedingTitles = new ArrayList<>(existingSucceedingRelationsByPrecedingId.get(existingInstance.getUUID()).values());
-          }
-          pair.setExistingRecordSet(existingSet);
+          existingRecordSetJson.put(HOLDINGS_RECORDS, holdingsWithItems);
         }
+        InventoryRecordSet existingSet = new InventoryRecordSet(existingRecordSetJson);
+        if (!existingParentRelationsByChildId.isEmpty() && existingParentRelationsByChildId.get(existingInstance.getUUID()) != null) {
+          existingSet.parentRelations = new ArrayList<>(existingParentRelationsByChildId.get(existingInstance.getUUID()).values());
+        }
+        if (!existingChildRelationsByParentId.isEmpty() && existingChildRelationsByParentId.get(existingInstance.getUUID()) != null) {
+          existingSet.childRelations = new ArrayList<>(existingChildRelationsByParentId.get(existingInstance.getUUID()).values());
+        }
+        if (!existingPrecedingRelationsBySucceedingId.isEmpty() && existingPrecedingRelationsBySucceedingId.get(existingInstance.getUUID()) != null) {
+          existingSet.precedingTitles = new ArrayList<>(existingPrecedingRelationsBySucceedingId.get(existingInstance.getUUID()).values());
+        }
+        if (!existingSucceedingRelationsByPrecedingId.isEmpty() && existingSucceedingRelationsByPrecedingId.get(existingInstance.getUUID()) != null) {
+          existingSet.succeedingTitles = new ArrayList<>(existingSucceedingRelationsByPrecedingId.get(existingInstance.getUUID()).values());
+        }
+        pair.setExistingRecordSet(existingSet);
+
+      } else {
+        logger.debug("No existing Instance HRID [" + incomingInstanceHrid + "] found in repo.");
       }
     }
   }
@@ -174,6 +180,8 @@ public class Repository {
                     existingInstancesByHrid.put(instance.getHRID(), instance);
                     existingInstancesByUUID.put(instance.getUUID(), instance);
                   }
+                } else {
+                  logger.debug("Instances by HRIDs, result was null");
                 }
                 promise.complete();
               } else {
@@ -196,10 +204,8 @@ public class Repository {
                 if (instances.result() != null) {
                   for (Object o : instances.result()) {
                     Instance instance = new Instance((JsonObject) o);
-                    logger.info("Repository: Adding referenced instance " + instance.asJsonString());
                     referencedInstancesByHrid.put(instance.getHRID(), instance);
                     referencedInstancesByUUID.put(instance.getUUID(), instance);
-                    logger.info("Referenced instance added to maps by hrid and uuid");
                   }
                 }
                 promise.complete();
@@ -223,10 +229,8 @@ public class Repository {
                 if (instances.result() != null) {
                   for (Object o : instances.result()) {
                     Instance instance = new Instance((JsonObject) o);
-                    logger.info("Repository: Adding referenced instance " + instance.asJsonString());
                     referencedInstancesByHrid.put(instance.getHRID(), instance);
                     referencedInstancesByUUID.put(instance.getUUID(), instance);
-                    logger.info("Referenced instance added to maps by hrid and uuid");
                   }
                 }
                 promise.complete();
@@ -310,7 +314,6 @@ public class Repository {
                   for (Object o : records.result()) {
                     Item item = new Item((JsonObject) o);
                     existingItemsByHrid.put(item.getHRID(), item);
-                    existingItemsByUUID.put(item.getUUID(), item);
                     if (!existingItemsByHoldingsRecordId.containsKey(item.getHoldingsRecordId())) {
                       existingItemsByHoldingsRecordId.put(item.getHoldingsRecordId(), new HashMap<>());
                     }
@@ -338,7 +341,6 @@ public class Repository {
                   for (Object o : records.result()) {
                     Item item = new Item((JsonObject) o);
                     existingItemsByHrid.put(item.getHRID(), item);
-                    existingItemsByUUID.put(item.getUUID(), item);
                     if (!existingItemsByHoldingsRecordId.containsKey(item.getHoldingsRecordId())) {
                       existingItemsByHoldingsRecordId.put(item.getHoldingsRecordId(), new HashMap<>());
                     }
@@ -666,8 +668,8 @@ public class Repository {
   public List<HoldingsRecord> getHoldingsToDelete () {
     List<HoldingsRecord> list = new ArrayList<>();
     for (PairedRecordSets pair : pairsOfRecordSets) {
-      if (pair.hasIncomingRecordSet()) {
-        for (HoldingsRecord holdingsRecord : pair.getIncomingRecordSet().getHoldingsRecords()) {
+      if (pair.hasExistingRecordSet()) {
+        for (HoldingsRecord holdingsRecord : pair.getExistingRecordSet().getHoldingsRecords()) {
           if (holdingsRecord.isDeleting()) {
             list.add(holdingsRecord);
           }
@@ -709,8 +711,8 @@ public class Repository {
   public List<Item> getItemsToDelete () {
     List<Item> list = new ArrayList<>();
     for (PairedRecordSets pair : pairsOfRecordSets) {
-      if (pair.hasIncomingRecordSet()) {
-        for (Item item : pair.getIncomingRecordSet().getItems()) {
+      if (pair.hasExistingRecordSet()) {
+        for (Item item : pair.getExistingRecordSet().getItems()) {
           if (item.isDeleting()) {
             list.add(item);
           }
@@ -726,7 +728,7 @@ public class Repository {
       if (pair.hasIncomingRecordSet()) {
         for (InstanceToInstanceRelation relation : pair.getIncomingRecordSet().getInstanceToInstanceRelations()) {
           if (relation.isCreating()) {
-            list.add(relation);
+              list.add(relation);
           }
         }
       }
@@ -737,8 +739,8 @@ public class Repository {
   public List<InstanceToInstanceRelation> getInstanceRelationsToDelete () {
     List<InstanceToInstanceRelation> list = new ArrayList<>();
     for (PairedRecordSets pair : pairsOfRecordSets) {
-      if (pair.hasIncomingRecordSet()) {
-        for (InstanceToInstanceRelation relation : pair.getIncomingRecordSet().getInstanceToInstanceRelations()) {
+      if (pair.hasExistingRecordSet()) {
+        for (InstanceToInstanceRelation relation : pair.getExistingRecordSet().getInstanceToInstanceRelations()) {
           if (relation.isDeleting()) {
             list.add(relation);
           }

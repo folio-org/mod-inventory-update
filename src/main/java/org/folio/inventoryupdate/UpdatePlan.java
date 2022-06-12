@@ -272,9 +272,17 @@ public abstract class UpdatePlan {
     public Future<Void> createRecordsWithDependantsUsingRepository (OkapiClient okapiClient) {
         Promise<Void> promise = Promise.promise();
         createNewInstancesIfAnyUsingRepository(okapiClient).onComplete(instances -> {
-            createNewHoldingsIfAnyUsingRepository(okapiClient).onComplete(holdings -> {
-                promise.complete();
-            });
+            if (instances.succeeded()) {
+                createNewHoldingsIfAnyUsingRepository(okapiClient).onComplete(holdings -> {
+                    if (holdings.succeeded()) {
+                        promise.complete();
+                    } else {
+                        promise.fail("Failed to create new holdings records: " + holdings.cause().getMessage());
+                    }
+                });
+            } else {
+                promise.fail("There was an error trying to create instances: " + instances.cause().getMessage());
+            }
         });
         return promise.future();
     }
@@ -287,7 +295,6 @@ public abstract class UpdatePlan {
         }
         CompositeFuture.join(instanceCreates).onComplete(handler -> {
             if (handler.succeeded()) {
-                logger.info("InstanceCreates complete");
                 promise.complete();
             } else {
                 promise.fail("Failed to create new instances: " + handler.cause().toString());
@@ -543,7 +550,24 @@ public abstract class UpdatePlan {
             for (InventoryRecord record : holdingsRecordsAndItemsInUpdatingSet) {
                 metrics.entity(record.entityType()).transaction(record.getTransaction()).outcomes.increment(record.getOutcome());
             }
-            updatingSet.getInstanceRelationsController().writeToStats(metrics);
+            if (! updatingSet.getInstanceToInstanceRelations().isEmpty()) {
+                for ( InstanceToInstanceRelation record : updatingSet.getInstanceToInstanceRelations() ) {
+                    if ( !record.getTransaction().equals( InventoryRecord.Transaction.NONE ) ) {
+                        if (record.getTransaction().equals(Transaction.UNKNOWN)) {
+                            logger.debug("Cannot increment outcome for transaction UNKNOWN");
+                        } else {
+                            metrics.entity(record.entityType()).transaction(record.getTransaction()).outcomes.increment(
+                                    record.getOutcome());
+                            if (record.getProvisionalInstance() != null) {
+                                ( (UpdateMetrics.InstanceRelationsMetrics) metrics
+                                        .entity(record.entityType()) )
+                                        .provisionalInstanceMetrics.increment(
+                                        record.getProvisionalInstance().getOutcome());
+                            }
+                        }
+                    }
+                }
+            }
         }
         if (repository.getPairsOfRecordSets().get(0).hasExistingRecordSet()) {
             InventoryRecordSet existingSet = repository.getPairsOfRecordSets().get(0).getExistingRecordSet();
@@ -561,7 +585,19 @@ public abstract class UpdatePlan {
                     metrics.entity(record.entityType()).transaction(record.getTransaction()).outcomes.increment(record.getOutcome());
                 }
             }
-            existingSet.getInstanceRelationsController().writeToStats(metrics);
+            if (! existingSet.getInstanceToInstanceRelations().isEmpty()) {
+                for ( InstanceToInstanceRelation record : existingSet.getInstanceToInstanceRelations() ) {
+                    if ( !record.getTransaction().equals( InventoryRecord.Transaction.NONE ) ) {
+                        metrics.entity( record.entityType() ).transaction( record.getTransaction() ).outcomes.increment(
+                                record.getOutcome() );
+                        if ( record.getProvisionalInstance() != null && ! record.getProvisionalInstance().failed() ) {
+                            Instance provisionalInstance = record.getProvisionalInstance();
+                            ( (UpdateMetrics.InstanceRelationsMetrics) metrics.entity( record.entityType() ) ).provisionalInstanceMetrics.increment(
+                                    provisionalInstance.getOutcome() );
+                        }
+                    }
+                }
+            }
 
         }
         return metrics.asJson();
@@ -620,5 +656,10 @@ public abstract class UpdatePlan {
     public JsonArray getErrors () {
         // todo: combine error sets?
         return isDeletion ? getExistingRecordSet().getErrors() : getUpdatingRecordSet().getErrors();
+    }
+
+    public JsonArray getErrorsUsingRepository() {
+        return isDeletion ? repository.getPairsOfRecordSets().get(0).getExistingRecordSet().getErrors() :
+                repository.getPairsOfRecordSets().get(0).getIncomingRecordSet().getErrors();
     }
 }

@@ -12,6 +12,7 @@ import io.vertx.core.CompositeFuture;
 import io.vertx.core.Future;
 import io.vertx.core.Promise;
 
+import static org.folio.inventoryupdate.entities.InstanceRelations.failProvisionalInstanceCreation;
 import static org.folio.inventoryupdate.entities.InstanceRelations.failRelationCreation;
 
 public class UpdatePlanAllHRIDs extends UpdatePlan {
@@ -39,16 +40,15 @@ public class UpdatePlanAllHRIDs extends UpdatePlan {
     }
 
     public UpdatePlanAllHRIDs planInventoryUpdatesUsingRepository() {
-        logger.info("Planning inventory updates");
+        logger.debug("Planning inventory updates using repository");
+        logger.debug( "Got " + repository.getPairsOfRecordSets().size() + " pair(s)");
         try {
             int pairs = 0;
             for (PairedRecordSets pair : repository.getPairsOfRecordSets()) {
                 pairs++;
-                logger.info("Plan instance holdings items for pair " + pairs);
                 planInstanceHoldingsAndItemsUsingRepository(pair);
+                planInstanceRelationsUsingRepository(pair);
             }
-            logger.info("Plan relations");
-            planInstanceRelationsUsingRepository();
         } catch (NullPointerException npe) {
             logger.error("Null pointer in planInventoryUpdatesFromRepo");
             npe.printStackTrace();
@@ -56,33 +56,31 @@ public class UpdatePlanAllHRIDs extends UpdatePlan {
         return this;
     }
 
-    private void planInstanceRelationsUsingRepository() {
+    private void planInstanceRelationsUsingRepository(PairedRecordSets pair) {
         // Plan creates and deletes
-        for (PairedRecordSets pair : repository.getPairsOfRecordSets()) {
-            if (pair.hasIncomingRecordSet()) {
-                // Set UUIDs for from-instance and to-instance, create provisional instance if required and possible
-                pair.getIncomingRecordSet().resolveIncomingInstanceRelationsUsingRepository(repository);
+        if (pair.hasIncomingRecordSet()) {
+            // Set UUIDs for from-instance and to-instance, create provisional instance if required and possible
+            pair.getIncomingRecordSet().resolveIncomingInstanceRelationsUsingRepository(repository);
 
-                // Plan storage transactions
-                for (InstanceToInstanceRelation incomingRelation : pair.getIncomingRecordSet().getInstanceToInstanceRelations()) {
-                    if (pair.hasExistingRecordSet()) {
-                        if (pair.getExistingRecordSet().hasThisRelation(incomingRelation)) {
-                            incomingRelation.skip();
-                        } else {
-                            incomingRelation.setTransition(Transaction.CREATE);
-                        }
+            // Plan storage transactions
+            for (InstanceToInstanceRelation incomingRelation : pair.getIncomingRecordSet().getInstanceToInstanceRelations()) {
+                if (pair.hasExistingRecordSet()) {
+                    if (pair.getExistingRecordSet().hasThisRelation(incomingRelation)) {
+                        incomingRelation.skip();
                     } else {
                         incomingRelation.setTransition(Transaction.CREATE);
                     }
+                } else {
+                    incomingRelation.setTransition(Transaction.CREATE);
                 }
             }
-            if (pair.hasExistingRecordSet()) {
-                for (InstanceToInstanceRelation existingRelation : pair.getExistingRecordSet().getInstanceToInstanceRelations()) {
-                    if (pair.getIncomingRecordSet().isThisRelationOmitted(existingRelation)) {
-                        existingRelation.setTransition(Transaction.DELETE);
-                    } else {
-                        existingRelation.setTransition(Transaction.NONE);
-                    }
+        }
+        if (pair.hasExistingRecordSet()) {
+            for (InstanceToInstanceRelation existingRelation : pair.getExistingRecordSet().getInstanceToInstanceRelations()) {
+                if (pair.getIncomingRecordSet().isThisRelationOmitted(existingRelation)) {
+                    existingRelation.setTransition(Transaction.DELETE);
+                } else {
+                    existingRelation.setTransition(Transaction.NONE);
                 }
             }
         }
@@ -197,15 +195,9 @@ public class UpdatePlanAllHRIDs extends UpdatePlan {
                         instancesAndHoldingsUpdated -> {
                             handleInstanceRelationCreatesIfAnyUsingRepository(okapiClient).onComplete(relationsCreated ->
                             {
-                                if (relationsCreated.succeeded()) {
-                                    logger.debug("Successfully processed relationship create requests if any");
-                                } else {
-                                    logger.error(relationsCreated.cause().getMessage());
-                                }
                                 handleItemUpdatesAndCreatesIfAnyUsingRepository(okapiClient)
                                         .onComplete(itemsUpdatedAndCreated ->{
                                             if (prerequisitesCreated.succeeded() && instancesAndHoldingsUpdated.succeeded() && itemsUpdatedAndCreated.succeeded()) {
-                                                logger.debug("Successfully processed record create requests if any");
                                                 handleDeletionsIfAnyUsingRepository(okapiClient).onComplete(deletes -> {
                                                     if (deletes.succeeded()) {
                                                         if (relationsCreated.succeeded()) {
@@ -274,8 +266,15 @@ public class UpdatePlanAllHRIDs extends UpdatePlan {
         @SuppressWarnings("rawtypes")
         List<Future> provisionalInstancesFutures = new ArrayList<>();
         for (InstanceToInstanceRelation relation : repository.getInstanceRelationsToCreate()) {
-            if (relation.requiresProvisionalInstanceToBeCreated() && relation.hasPreparedProvisionalInstance()) {
-                provisionalInstancesFutures.add(InventoryStorage.postInventoryRecord(okapiClient, relation.getProvisionalInstance()));
+            if (relation.getProvisionalInstance() != null) {
+                if (relation.getProvisionalInstance().failed()) {
+                    provisionalInstancesFutures.add(
+                            failProvisionalInstanceCreation(relation.getProvisionalInstance()));
+                } else {
+                    provisionalInstancesFutures.add(
+                            InventoryStorage.postInventoryRecord(
+                                    okapiClient, relation.getProvisionalInstance()));
+                }
             }
         }
         CompositeFuture.join(provisionalInstancesFutures).onComplete( allProvisionalInstancesCreated -> {
@@ -283,7 +282,7 @@ public class UpdatePlanAllHRIDs extends UpdatePlan {
                 @SuppressWarnings("rawtypes")
                 List<Future> createFutures = new ArrayList<>();
                 for (InstanceToInstanceRelation relation : repository.getInstanceRelationsToCreate()) {
-                    if (!relation.requiresProvisionalInstanceToBeCreated() || relation.hasPreparedProvisionalInstance()) {
+                    if (!relation.failed()) {
                         createFutures.add(InventoryStorage.postInventoryRecord(okapiClient, relation));
                     } else {
                         createFutures.add(failRelationCreation(relation));
@@ -293,7 +292,7 @@ public class UpdatePlanAllHRIDs extends UpdatePlan {
                     if (allRelationsCreated.succeeded()) {
                         promise.complete();
                     } else {
-                        promise.fail("There was an error creating instance relations:" + LF + "  " + allRelationsCreated.cause().getMessage());
+                        promise.fail("UpdatePlan using repository: There was an error creating instance relations:" + LF + "  " + allRelationsCreated.cause().getMessage());
                     }
                 });
             } else {
@@ -517,7 +516,7 @@ public class UpdatePlanAllHRIDs extends UpdatePlan {
      * @param record The incoming record to match with an existing record if any
      * @return empty future for determining when look-up is complete
      */
-    private Future<Void> flagAndIdItemsByStorageLookup (OkapiClient okapiClient, InventoryRecord record) {
+    private Future<Void> flagAndIdItemsByStorageLookup (OkapiClient okapiClient, Item record) {
         Promise<Void> promise = Promise.promise();
         InventoryQuery hridQuery = new QueryByHrid(record.getHRID());
         InventoryStorage.lookupItemByHRID(okapiClient, hridQuery).onComplete( result -> {
@@ -532,7 +531,11 @@ public class UpdatePlanAllHRIDs extends UpdatePlan {
                     record.setUUID(existingItem.getString("id"));
                     record.setVersion( existingItem.getInteger( InventoryRecord.VERSION ));
                     record.setTransition(Transaction.UPDATE);
-                    //TODO: apply item status override rules
+                    ProcessingInstructions instr = new ProcessingInstructions(updatingSet.getProcessingInfoAsJson());
+                    String existingStatus = existingItem.getJsonObject("status").getString("name");
+                    if (instr.retainThisStatus(existingStatus)) {
+                        record.setStatus(existingStatus);
+                    }
                 }
                 promise.complete();
             } else {

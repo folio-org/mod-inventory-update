@@ -25,12 +25,15 @@ public class RequestValidation {
         return errorString.toString();
     }
 
-    public class ValidationError {
+    public static class ValidationError {
         public ValidationError(String message) {
             this.message = message;
         }
         public String message;
     }
 
+    public void addValidation (RequestValidation validation) {
+        errors.addAll(validation.errors);
+    }
 
 }

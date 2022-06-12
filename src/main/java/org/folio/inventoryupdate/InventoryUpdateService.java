@@ -6,6 +6,7 @@ import static org.folio.okapi.common.HttpResponse.responseJson;
 import io.vertx.core.impl.logging.Logger;
 import io.vertx.core.impl.logging.LoggerFactory;
 import io.vertx.core.json.DecodeException;
+import io.vertx.core.json.Json;
 import io.vertx.core.json.JsonArray;
 import org.folio.inventoryupdate.entities.RecordIdentifiers;
 import org.folio.inventoryupdate.entities.InventoryRecordSet;
@@ -86,29 +87,50 @@ public class InventoryUpdateService {
       responseError(routingCtx, 400, "Did not recognize input as an Inventory record set: " + incomingJson.encodePrettily());
       return;
     }
+    // Fake a batch of one for now
     JsonArray inventoryRecordSets = new JsonArray();
     inventoryRecordSets.add(new JsonObject(incomingJson.encodePrettily()));
-    Repository repository = new Repository();
-    repository
-            .setIncomingRecordSets(inventoryRecordSets)
-            .buildRepositoryFromStorage(routingCtx).onComplete(result ->{
-              UpdatePlanAllHRIDs plan = new UpdatePlanAllHRIDs(repository);
 
-              plan.planInventoryUpdatesUsingRepository()
-                      .doInventoryUpdatesUsingRepository(
-                              InventoryStorage.getOkapiClient(routingCtx)).onComplete(inventoryUpdated -> {
-                                if (inventoryUpdated.succeeded()) {
-                                  JsonObject pushedRecordSetWithStats = plan.getUpdatingRecordSetJsonFromRepository();
-                                  pushedRecordSetWithStats.put("metrics", plan.getUpdateStatsFromRepository());
-                                  responseJson(routingCtx, 200).end(pushedRecordSetWithStats.encodePrettily());
-                                } else {
-                                  JsonObject pushedRecordSetWithStats = plan.getUpdatingRecordSetJsonFromRepository();
-                                  pushedRecordSetWithStats.put("metrics", plan.getUpdateStatsFromRepository());
-                                  pushedRecordSetWithStats.put("errors", plan.getErrors());
-                                  responseJson(routingCtx, 422).end(pushedRecordSetWithStats.encodePrettily());
-                                }
-                      });
-            });
+    Repository repository = new Repository();
+    UpdatePlanAllHRIDs plan = new UpdatePlanAllHRIDs(repository);
+    RequestValidation validations = validateIncomingRecordSets (plan, inventoryRecordSets);
+
+    if (validations.passed()) {
+      repository.setIncomingRecordSets(inventoryRecordSets).buildRepositoryFromStorage(
+              routingCtx).onComplete(result -> {
+        if (result.succeeded()) {
+          plan.planInventoryUpdatesUsingRepository()
+              .doInventoryUpdatesUsingRepository(
+                  InventoryStorage.getOkapiClient(routingCtx)).onComplete(inventoryUpdated -> {
+            if (inventoryUpdated.succeeded()) {
+              JsonObject pushedRecordSetWithStats = plan.getUpdatingRecordSetJsonFromRepository();
+              pushedRecordSetWithStats.put("metrics", plan.getUpdateStatsFromRepository());
+              responseJson(routingCtx, 200).end(pushedRecordSetWithStats.encodePrettily());
+            } else {
+              JsonObject pushedRecordSetWithStats = plan.getUpdatingRecordSetJsonFromRepository();
+              pushedRecordSetWithStats.put("metrics", plan.getUpdateStatsFromRepository());
+              pushedRecordSetWithStats.put("errors", plan.getErrorsUsingRepository());
+              responseJson(routingCtx, 422).end(pushedRecordSetWithStats.encodePrettily());
+            }
+          });
+        } else {
+          responseJson(routingCtx, 422).end("{}");
+        }
+      });
+    } else {
+      responseJson(routingCtx, 422).end("The incoming record set(s) had errors and were not processed " + validations);
+    }
+  }
+
+  public RequestValidation validateIncomingRecordSets (UpdatePlan plan, JsonArray incomingRecordSets) {
+    RequestValidation validations = new RequestValidation();
+    for (Object recordSetObject : incomingRecordSets) {
+      RequestValidation validation = plan.validateIncomingRecordSet((JsonObject) recordSetObject);
+      if (validation.hasErrors()) {
+        validations.addValidation(validation);
+      }
+    }
+    return validations;
   }
 
   public void handleInventoryRecordSetDeleteByHRID(RoutingContext routingCtx) {

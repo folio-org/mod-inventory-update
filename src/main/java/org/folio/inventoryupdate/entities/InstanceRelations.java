@@ -228,10 +228,11 @@ public class InstanceRelations extends JsonRepresentation {
      * @param client  The Okapi client for the look-up
      * @return The prepared Instance to Instance relationship object
      */
-    private static Future<InstanceToInstanceRelation> makeInstanceRelationWithInstanceIdentifier(OkapiClient client,
-                                                                                                 InstanceReference reference) {
+    private static Future<InstanceToInstanceRelation> makeInstanceRelationWithInstanceIdentifier(
+            OkapiClient client,
+            InstanceReference reference) {
         Promise<InstanceToInstanceRelation> promise = Promise.promise();
-        InventoryQuery query = null;
+        InventoryQuery query;
         if (reference.hasReferenceHrid()) {
             query = new QueryByHrid(reference.getReferenceHrid());
         } else {
@@ -363,6 +364,12 @@ public class InstanceRelations extends JsonRepresentation {
     public static Future<Void> failRelationCreation(InstanceToInstanceRelation relation) {
         Promise<Void> promise = Promise.promise();
         promise.fail(relation.getError().encodePrettily());
+        return promise.future();
+    }
+
+    public static Future<Void> failProvisionalInstanceCreation (Instance provisionalInstance) {
+        Promise<Void> promise = Promise.promise();
+        promise.fail(provisionalInstance.getError().encodePrettily());
         return promise.future();
     }
 

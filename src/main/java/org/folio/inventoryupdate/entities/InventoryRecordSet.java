@@ -7,6 +7,7 @@ import java.util.stream.Stream;
 import io.vertx.core.Future;
 import io.vertx.core.impl.logging.Logger;
 import io.vertx.core.impl.logging.LoggerFactory;
+import org.folio.inventoryupdate.UpdateMetrics;
 import org.folio.inventoryupdate.entities.InventoryRecord.Transaction;
 
 import io.vertx.core.json.JsonArray;
@@ -19,7 +20,6 @@ import static org.folio.inventoryupdate.entities.RecordIdentifiers.OAI_IDENTIFIE
 public class InventoryRecordSet extends JsonRepresentation {
 
     private Instance anInstance = null;
-    private final Map<String,HoldingsRecord> holdingsRecordsByHRID = new HashMap<>();
     private final Map<String,Item> itemsByHRID = new HashMap<>();
     private final List<HoldingsRecord> allHoldingsRecords = new ArrayList<>();
     private final List<Item> allItems = new ArrayList<>();
@@ -51,6 +51,8 @@ public class InventoryRecordSet extends JsonRepresentation {
     public JsonObject instanceRelationsJson = new JsonObject();
     public InstanceReferences instanceReferences;
     public JsonObject processing = new JsonObject();
+
+    private boolean relationsMaintainedInRepository = false;
 
 
     public InventoryRecordSet (JsonObject inventoryRecordSet) {
@@ -107,9 +109,6 @@ public class InventoryRecordSet extends JsonRepresentation {
                     allItems.add(item);
                 }
                 String holdingsRecordHrid = holdingsRecordJson.getString( HRID_IDENTIFIER_KEY );
-                if (holdingsRecordHrid != null && !holdingsRecordHrid.isEmpty()) {
-                    holdingsRecordsByHRID.put(holdingsRecordHrid, holdingsRecord);
-                }
                 allHoldingsRecords.add(holdingsRecord);
                 anInstance.addHoldingsRecord(holdingsRecord);
             }
@@ -269,53 +268,56 @@ public class InventoryRecordSet extends JsonRepresentation {
      * @param repository cache containing prefetched referenced Instances.
      */
     public void resolveIncomingInstanceRelationsUsingRepository(Repository repository) {
+        relationsMaintainedInRepository = true;
         if (instanceReferences != null) {
             for (InstanceReference reference : instanceReferences.references) {
-                reference.setFromInstanceId(getInstanceUUID());
-                if (reference.hasReferenceHrid()) {
-                    Instance referencedInstance = repository.referencedInstancesByHrid.get(
-                            reference.getReferenceHrid());
-                    if (referencedInstance != null) {
-                        reference.setReferencedInstanceId(referencedInstance.getUUID());
-                    }
-                } else if (reference.hasReferenceUuid()) {
-                    if (reference.getReferenceUuid() != null) {
-                        Instance referencedInstance = repository.referencedInstancesByUUID.get(
-                                reference.getReferenceUuid());
+                if (reference.hasReferenceHrid() || reference.hasReferenceUuid()) {
+                    reference.setFromInstanceId(getInstanceUUID());
+                    if (reference.hasReferenceHrid()) {
+                        Instance referencedInstance = repository.referencedInstancesByHrid.get(
+                                reference.getReferenceHrid());
                         if (referencedInstance != null) {
                             reference.setReferencedInstanceId(referencedInstance.getUUID());
                         }
+                    } else if (reference.hasReferenceUuid()) {
+                        if (reference.getReferenceUuid() != null) {
+                            Instance referencedInstance = repository.referencedInstancesByUUID.get(
+                                    reference.getReferenceUuid());
+                            if (referencedInstance != null) {
+                                reference.setReferencedInstanceId(referencedInstance.getUUID());
+                            }
+                        }
+                    }
+                    InstanceToInstanceRelation relation = reference.getInstanceToInstanceRelation();
+                    if (relation != null) {
+                        if (relation.instanceRelationClass == InstanceToInstanceRelation.InstanceRelationsClass.TO_PARENT) {
+                            if (parentRelations == null) {
+                                parentRelations = new ArrayList<>();
+                            }
+                            parentRelations.add(relation);
+                        }
+                        if (relation.instanceRelationClass == InstanceToInstanceRelation.InstanceRelationsClass.TO_CHILD) {
+                            if (childRelations == null) {
+                                childRelations = new ArrayList<>();
+                            }
+                            childRelations.add(relation);
+
+                        }
+                        if (relation.instanceRelationClass == InstanceToInstanceRelation.InstanceRelationsClass.TO_SUCCEEDING) {
+                            if (succeedingTitles == null) {
+                                succeedingTitles = new ArrayList<>();
+                            }
+                            succeedingTitles.add(relation);
+                        }
+                        if (relation.instanceRelationClass == InstanceToInstanceRelation.InstanceRelationsClass.TO_PRECEDING) {
+                            if (precedingTitles == null) {
+                                precedingTitles = new ArrayList<>();
+                            }
+                            precedingTitles.add(relation);
+                        }
                     }
                 }
-            }
-            for (InstanceReference reference : instanceReferences.references) {
-                InstanceToInstanceRelation relation = reference.getInstanceToInstanceRelation();
-                if (relation != null) {
-                    if (relation.instanceRelationClass == InstanceToInstanceRelation.InstanceRelationsClass.TO_PARENT) {
-                        if (parentRelations == null) {
-                            parentRelations = new ArrayList<>();
-                        }
-                        parentRelations.add(relation);
-                    }
-                    if (relation.instanceRelationClass == InstanceToInstanceRelation.InstanceRelationsClass.TO_CHILD) {
-                        if (childRelations == null) {
-                            childRelations = new ArrayList<>();
-                        }
-                        childRelations.add(relation);
-                    }
-                    if (relation.instanceRelationClass == InstanceToInstanceRelation.InstanceRelationsClass.TO_SUCCEEDING) {
-                        if (succeedingTitles == null) {
-                            succeedingTitles = new ArrayList<>();
-                        }
-                        succeedingTitles.add(relation);
-                    }
-                    if (relation.instanceRelationClass == InstanceToInstanceRelation.InstanceRelationsClass.TO_PRECEDING) {
-                        if (precedingTitles == null) {
-                            precedingTitles = new ArrayList<>();
-                        }
-                        precedingTitles.add(relation);
-                    }
-                }
+
             }
         }
     }
@@ -382,7 +384,39 @@ public class InventoryRecordSet extends JsonRepresentation {
             holdingsAndItemsArray.add(holdingsRecordJson);
         }
         recordSetJson.put(HOLDINGS_RECORDS, holdingsAndItemsArray);
-        recordSetJson.put( InstanceRelations.INSTANCE_RELATIONS, instanceRelations.asJson());
+        if (relationsMaintainedInRepository) {
+            JsonObject json = new JsonObject();
+            for (InstanceToInstanceRelation relation : getInstanceToInstanceRelations()) {
+                JsonObject relationJson = new JsonObject(relation.asJsonString());
+                if (relation.hasPreparedProvisionalInstance() && relation.getProvisionalInstance().getHRID() != null) {
+                    relationJson.put("CREATE_PROVISIONAL_INSTANCE", relation.getProvisionalInstance().asJson());
+                }
+                if (!relation.failed() && !(relation.hasPreparedProvisionalInstance() && relation.getProvisionalInstance().getHRID()==null)) {
+                    switch ( relation.instanceRelationClass ) {
+                        case TO_PARENT:
+                            if (!json.containsKey(PARENT_INSTANCES)) json.put(PARENT_INSTANCES, new JsonArray());
+                            json.getJsonArray(PARENT_INSTANCES).add(relationJson);
+                            break;
+                        case TO_CHILD:
+                            if (!json.containsKey(CHILD_INSTANCES)) json.put(CHILD_INSTANCES, new JsonArray());
+                            json.getJsonArray(CHILD_INSTANCES).add(relationJson);
+                            break;
+                        case TO_PRECEDING:
+                            if (!json.containsKey(PRECEDING_TITLES)) json.put(PRECEDING_TITLES, new JsonArray());
+                            json.getJsonArray(PRECEDING_TITLES).add(relationJson);
+                            break;
+                        case TO_SUCCEEDING:
+                            if (!json.containsKey(SUCCEEDING_TITLES)) json.put(SUCCEEDING_TITLES, new JsonArray());
+                            json.getJsonArray(SUCCEEDING_TITLES).add(relationJson);
+                            break;
+                    }
+                }
+            }
+            recordSetJson.put(INSTANCE_RELATIONS, json);
+
+        } else {
+            recordSetJson.put(InstanceRelations.INSTANCE_RELATIONS, instanceRelations.asJson());
+        }
         recordSetJson.put(PROCESSING, processing);
         return recordSetJson;
     }

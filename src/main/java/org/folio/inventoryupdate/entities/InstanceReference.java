@@ -132,13 +132,16 @@ public class InstanceReference {
     } else if (typeOfRelation == InstanceToInstanceRelation.InstanceRelationsClass.TO_PRECEDING) {
       relation = InstanceTitleSuccession.makeRelationToPreceding(fromInstanceId, toInstanceId);
     }
-    if (referencedInstanceId == null && relation != null) {
-      relation.requiresProvisionalInstanceToBeCreated(true);
-      if (!provisionalInstanceIsValid()) {
-        provisionalInstance.fail();
-        relation.fail();
+    if (referencedInstanceId == null) {
+      if ((relation.getHRID() != null) || provisionalInstance.getHRID() != null) {
+        // Silently omit relation / provisional if no HRID provided, otherwise:
+        relation.requiresProvisionalInstanceToBeCreated(true);
+        if (!provisionalInstanceIsValid()) {
+          provisionalInstance.fail();
+          relation.fail();
+        }
+        relation.setProvisionalInstance(provisionalInstance);
       }
-      relation.setProvisionalInstance(provisionalInstance);
     }
     return relation;
   }

@@ -1107,7 +1107,6 @@ public class InventoryUpdateTestSuite {
     JsonObject parentResponse = upsertByHrid(new JsonObject()
             .put("instance",
                     new InputInstance().setTitle("Parent InputInstance").setInstanceTypeId("12345").setHrid(instanceHrid).getJson()));
-logger.info("Parent: " + parentResponse.encodePrettily());
     JsonObject childResponseJson = upsertByHrid(new JsonObject()
             .put("instance",
                     new InputInstance().setTitle("Child InputInstance").setInstanceTypeId("12345").setHrid(childHrid).getJson())

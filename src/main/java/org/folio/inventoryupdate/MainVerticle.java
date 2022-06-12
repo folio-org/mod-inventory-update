@@ -36,7 +36,7 @@ public class MainVerticle extends AbstractVerticle {
     router.put("/*").handler(BodyHandler.create()); // Tell vertx we want the whole PUT body in the handler
     router.delete("/*").handler(BodyHandler.create()); // Tell vertx we want the whole DELETE body in the handler
 
-    router.put(INVENTORY_UPSERT_HRID_PATH).handler(upsertService::handleInventoryUpsertByHRID);
+    router.put(INVENTORY_UPSERT_HRID_PATH).handler(upsertService::handleInventoryUpsertByHRIDUsingRepository);
     router.put(SHARED_INVENTORY_UPSERT_MATCHKEY_PATH).handler(upsertService::handleSharedInventoryUpsertByMatchKey);
     router.delete(INVENTORY_UPSERT_HRID_PATH).handler(upsertService::handleInventoryRecordSetDeleteByHRID);
     router.delete(SHARED_INVENTORY_UPSERT_MATCHKEY_PATH).handler(upsertService::handleSharedInventoryRecordSetDeleteByIdentifiers);

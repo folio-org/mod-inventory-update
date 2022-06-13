@@ -21,7 +21,7 @@ public class InventoryRecordSet extends JsonRepresentation {
     private boolean isExisting = false;
     private boolean isIncoming = false;
 
-    private Instance anInstance = null;
+    private Instance theInstance = null;
     private final Map<String,Item> itemsByHRID = new HashMap<>();
     private final List<HoldingsRecord> allHoldingsRecords = new ArrayList<>();
     private final List<Item> allItems = new ArrayList<>();
@@ -50,7 +50,7 @@ public class InventoryRecordSet extends JsonRepresentation {
     public List<InstanceToInstanceRelation> precedingTitles = null;
 
     // Incoming, intended relations
-    public JsonObject instanceRelationsJson = new JsonObject();
+    public JsonObject instanceRelationsJson;
     public InstanceReferences instanceReferences;
     public JsonObject processing = new JsonObject();
 
@@ -59,10 +59,9 @@ public class InventoryRecordSet extends JsonRepresentation {
         if (inventoryRecordSet != null) {
             logger.debug("Creating InventoryRecordSet from " + inventoryRecordSet.encodePrettily());
             sourceJson = new JsonObject(inventoryRecordSet.toString());
-            JsonObject instanceJson = inventoryRecordSet.getJsonObject(INSTANCE);
-            anInstance = new Instance(instanceJson);
-            JsonArray holdings = inventoryRecordSet.getJsonArray(HOLDINGS_RECORDS);
-            registerHoldingsRecordsAndItems(holdings);
+            theInstance = new Instance(inventoryRecordSet.getJsonObject(INSTANCE));
+            registerHoldingsRecordsAndItems(inventoryRecordSet.getJsonArray(HOLDINGS_RECORDS));
+            instanceRelationsJson = (sourceJson.containsKey(INSTANCE_RELATIONS) ? sourceJson.getJsonObject(INSTANCE_RELATIONS) : new JsonObject());
             logger.debug("Caching processing info: " + inventoryRecordSet.getJsonObject( PROCESSING ));
             processing = inventoryRecordSet.getJsonObject( PROCESSING );
         }
@@ -79,6 +78,11 @@ public class InventoryRecordSet extends JsonRepresentation {
     public static InventoryRecordSet makeExistingRecordSet(JsonObject inventoryRecordSet) {
         InventoryRecordSet set = new InventoryRecordSet(inventoryRecordSet);
         set.isExisting = true;
+        if (!set.instanceRelationsJson.isEmpty()) {
+            set.registerRelationshipJsonRecords(
+                    set.getInstance().getUUID(),
+                    set.instanceRelationsJson);
+        }
         set.instanceRelations = new InstanceRelations(set);
         return set;
     }
@@ -86,6 +90,9 @@ public class InventoryRecordSet extends JsonRepresentation {
     public static InventoryRecordSet makeIncomingRecordSet(JsonObject inventoryRecordSet) {
         InventoryRecordSet set = new InventoryRecordSet(inventoryRecordSet);
         set.isIncoming = true;
+        if (!set.instanceRelationsJson.isEmpty()) {
+            set.instanceReferences = new InstanceReferences(set.instanceRelationsJson);
+        }
         set.instanceRelations = new InstanceRelations(set);
         return set;
     }
@@ -130,11 +137,11 @@ public class InventoryRecordSet extends JsonRepresentation {
                     allItems.add(item);
                 }
                 allHoldingsRecords.add(holdingsRecord);
-                anInstance.addHoldingsRecord(holdingsRecord);
+                theInstance.addHoldingsRecord(holdingsRecord);
             }
         } else {
             // If no holdings property provided, mark holdings to be ignored (ie don't delete holdings)
-            anInstance.ignoreHoldings(true);
+            theInstance.ignoreHoldings(true);
         }
     }
 
@@ -147,11 +154,11 @@ public class InventoryRecordSet extends JsonRepresentation {
     }
 
     public void modifyInstance (JsonObject updatedInstance) {
-        anInstance.replaceJson(updatedInstance);
+        theInstance.replaceJson(updatedInstance);
     }
 
     public Instance getInstance () {
-        return anInstance;
+        return theInstance;
     }
 
     public String getInstanceHRID () {
@@ -215,16 +222,6 @@ public class InventoryRecordSet extends JsonRepresentation {
         return instanceRelations;
     }
 
-    /**
-     * Checks if JSON contains relationship records from Inventory storage (got existing record set)
-     *
-     * @param irsJson Source JSON for InventoryRecordSet
-     * @return true if there are stored relations for this Instance
-     */
-    boolean hasExistingRelationshipRecords(JsonObject irsJson) {
-        return (irsJson.containsKey(INSTANCE_RELATIONS)
-                && irsJson.getJsonObject(INSTANCE_RELATIONS).containsKey(EXISTING_PRECEDING_SUCCEEDING_TITLES));
-    }
 
     /**
      * Planning: Takes Instance relation records from storage and creates Instance relations objects

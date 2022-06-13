@@ -95,30 +95,32 @@ public class InventoryUpdateService {
     RequestValidation validations = validateIncomingRecordSets (plan, inventoryRecordSets);
 
     if (validations.passed()) {
-      repository.setIncomingRecordSets(inventoryRecordSets).buildRepositoryFromStorage(
-              routingCtx).onComplete(result -> {
-        if (result.succeeded()) {
-          plan.planInventoryUpdatesUsingRepository()
-              .doInventoryUpdatesUsingRepository(
-                  InventoryStorage.getOkapiClient(routingCtx)).onComplete(inventoryUpdated -> {
-            if (inventoryUpdated.succeeded()) {
-              JsonObject pushedRecordSetWithStats = plan.getUpdatingRecordSetJsonFromRepository();
-              pushedRecordSetWithStats.put("metrics", plan.getUpdateStatsFromRepository());
-              responseJson(routingCtx, 200).end(pushedRecordSetWithStats.encodePrettily());
-            } else {
-              JsonObject pushedRecordSetWithStats = plan.getUpdatingRecordSetJsonFromRepository();
-              pushedRecordSetWithStats.put("metrics", plan.getUpdateStatsFromRepository());
-              pushedRecordSetWithStats.put("errors", plan.getErrorsUsingRepository());
-              responseJson(routingCtx, 422).end(pushedRecordSetWithStats.encodePrettily());
-            }
-          });
-        } else {
-          responseJson(routingCtx, 422).end("{}");
-        }
-      });
-    } else {
-      responseJson(routingCtx, 422).end("The incoming record set(s) had errors and were not processed " + validations);
-    }
+      repository
+        .setIncomingRecordSets(inventoryRecordSets)
+        .buildRepositoryFromStorage(routingCtx).onComplete(
+            result -> {
+              if (result.succeeded()) {
+                plan.planInventoryUpdatesUsingRepository()
+                    .doInventoryUpdatesUsingRepository(
+                        InventoryStorage.getOkapiClient(routingCtx)).onComplete(inventoryUpdated -> {
+                  if (inventoryUpdated.succeeded()) {
+                    JsonObject pushedRecordSetWithStats = plan.getUpdatingRecordSetJsonFromRepository();
+                    pushedRecordSetWithStats.put("metrics", plan.getUpdateStatsFromRepository());
+                    responseJson(routingCtx, 200).end(pushedRecordSetWithStats.encodePrettily());
+                  } else {
+                    JsonObject pushedRecordSetWithStats = plan.getUpdatingRecordSetJsonFromRepository();
+                    pushedRecordSetWithStats.put("metrics", plan.getUpdateStatsFromRepository());
+                    pushedRecordSetWithStats.put("errors", plan.getErrorsUsingRepository());
+                    responseJson(routingCtx, 422).end(pushedRecordSetWithStats.encodePrettily());
+                  }
+                });
+              } else {
+                responseJson(routingCtx, 422).end("{}");
+              }
+            });
+          } else {
+            responseJson(routingCtx, 422).end("The incoming record set(s) had errors and were not processed " + validations);
+          }
   }
 
   public RequestValidation validateIncomingRecordSets (UpdatePlan plan, JsonArray incomingRecordSets) {

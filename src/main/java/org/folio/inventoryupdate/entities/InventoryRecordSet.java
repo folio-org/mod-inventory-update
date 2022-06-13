@@ -108,7 +108,6 @@ public class InventoryRecordSet extends JsonRepresentation {
                     holdingsRecord.addItem(item);
                     allItems.add(item);
                 }
-                String holdingsRecordHrid = holdingsRecordJson.getString( HRID_IDENTIFIER_KEY );
                 allHoldingsRecords.add(holdingsRecord);
                 anInstance.addHoldingsRecord(holdingsRecord);
             }
@@ -186,7 +185,7 @@ public class InventoryRecordSet extends JsonRepresentation {
                 Arrays.asList(getInstance()),
                 allHoldingsRecords,
                 allItems,
-                getInstanceRelationsController().getInstanceToInstanceRelations()
+                getInstanceToInstanceRelations()
         ).flatMap(Collection::stream).collect(Collectors.toList());
     }
 
@@ -196,11 +195,20 @@ public class InventoryRecordSet extends JsonRepresentation {
     }
 
     public void prepareAllInstanceRelationsForDeletion() {
-        instanceRelations.markAllRelationsForDeletion();
+        for (InstanceToInstanceRelation relation : getInstanceToInstanceRelations()) {
+            relation.setTransition(InventoryRecord.Transaction.DELETE);
+        }
     }
 
     public List<InstanceToInstanceRelation> getInstanceRelationsByTransactionType (Transaction transition) {
-        return instanceRelations.getInstanceRelationsByTransactionType(transition);
+        List<InstanceToInstanceRelation> records = new ArrayList<>();
+        for (InstanceToInstanceRelation record : getInstanceToInstanceRelations())  {
+            if (record.getTransaction() == transition && ! record.skipped()) {
+                records.add(record);
+            }
+        }
+        return records;
+
     }
 
     public Future<Void> prepareIncomingInstanceRelationRecords(OkapiClient client, String instanceId) {
@@ -384,41 +392,82 @@ public class InventoryRecordSet extends JsonRepresentation {
             holdingsAndItemsArray.add(holdingsRecordJson);
         }
         recordSetJson.put(HOLDINGS_RECORDS, holdingsAndItemsArray);
-        if (relationsMaintainedInRepository) {
-            JsonObject json = new JsonObject();
-            for (InstanceToInstanceRelation relation : getInstanceToInstanceRelations()) {
-                JsonObject relationJson = new JsonObject(relation.asJsonString());
-                if (relation.hasPreparedProvisionalInstance() && relation.getProvisionalInstance().getHRID() != null) {
-                    relationJson.put("CREATE_PROVISIONAL_INSTANCE", relation.getProvisionalInstance().asJson());
-                }
-                if (!relation.failed() && !(relation.hasPreparedProvisionalInstance() && relation.getProvisionalInstance().getHRID()==null)) {
-                    switch ( relation.instanceRelationClass ) {
-                        case TO_PARENT:
-                            if (!json.containsKey(PARENT_INSTANCES)) json.put(PARENT_INSTANCES, new JsonArray());
-                            json.getJsonArray(PARENT_INSTANCES).add(relationJson);
-                            break;
-                        case TO_CHILD:
-                            if (!json.containsKey(CHILD_INSTANCES)) json.put(CHILD_INSTANCES, new JsonArray());
-                            json.getJsonArray(CHILD_INSTANCES).add(relationJson);
-                            break;
-                        case TO_PRECEDING:
-                            if (!json.containsKey(PRECEDING_TITLES)) json.put(PRECEDING_TITLES, new JsonArray());
-                            json.getJsonArray(PRECEDING_TITLES).add(relationJson);
-                            break;
-                        case TO_SUCCEEDING:
-                            if (!json.containsKey(SUCCEEDING_TITLES)) json.put(SUCCEEDING_TITLES, new JsonArray());
-                            json.getJsonArray(SUCCEEDING_TITLES).add(relationJson);
-                            break;
-                    }
+        JsonObject relationsJson = new JsonObject();
+        for (InstanceToInstanceRelation relation : getInstanceToInstanceRelations()) {
+            JsonObject relationJson = new JsonObject(relation.asJsonString());
+            if (relation.hasPreparedProvisionalInstance() && relation.getProvisionalInstance().getHRID() != null) {
+                relationJson.put("CREATE_PROVISIONAL_INSTANCE", relation.getProvisionalInstance().asJson());
+            }
+            if (!relation.failed() && !(relation.hasPreparedProvisionalInstance() && relation.getProvisionalInstance().getHRID()==null)) {
+                switch ( relation.instanceRelationClass ) {
+                    case TO_PARENT:
+                        if (!relationsJson.containsKey(PARENT_INSTANCES)) relationsJson.put(PARENT_INSTANCES, new JsonArray());
+                        relationsJson.getJsonArray(PARENT_INSTANCES).add(relationJson);
+                        break;
+                    case TO_CHILD:
+                        if (!relationsJson.containsKey(CHILD_INSTANCES)) relationsJson.put(CHILD_INSTANCES, new JsonArray());
+                        relationsJson.getJsonArray(CHILD_INSTANCES).add(relationJson);
+                        break;
+                    case TO_PRECEDING:
+                        if (!relationsJson.containsKey(PRECEDING_TITLES)) relationsJson.put(PRECEDING_TITLES, new JsonArray());
+                        relationsJson.getJsonArray(PRECEDING_TITLES).add(relationJson);
+                        break;
+                    case TO_SUCCEEDING:
+                        if (!relationsJson.containsKey(SUCCEEDING_TITLES)) relationsJson.put(SUCCEEDING_TITLES, new JsonArray());
+                        relationsJson.getJsonArray(SUCCEEDING_TITLES).add(relationJson);
+                        break;
                 }
             }
-            recordSetJson.put(INSTANCE_RELATIONS, json);
-
-        } else {
-            recordSetJson.put(InstanceRelations.INSTANCE_RELATIONS, instanceRelations.asJson());
         }
+        recordSetJson.put(INSTANCE_RELATIONS, relationsJson);
         recordSetJson.put(PROCESSING, processing);
         return recordSetJson;
     }
 
+
+    /**
+     * Planning: Takes Instance relation records from storage and creates Instance relations objects
+     *
+     * @param instanceId        The ID of the Instance to create relationship objects for
+     * @param instanceRelations a set of relations from storage
+     */
+    public void registerRelationshipJsonRecords(String instanceId, JsonObject instanceRelations) {
+        if (instanceRelations.containsKey(EXISTING_PARENT_CHILD_RELATIONS)) {
+            JsonArray existingRelations = instanceRelations.getJsonArray(EXISTING_PARENT_CHILD_RELATIONS);
+            for (Object o : existingRelations) {
+                InstanceRelationship relationship = InstanceRelationship.makeRelationshipFromJsonRecord(instanceId, (JsonObject) o);
+                if (relationship.isRelationToChild()) {
+                    if (childRelations == null) childRelations = new ArrayList<>();
+                    childRelations.add(relationship);
+                } else {
+                    if (parentRelations == null) parentRelations = new ArrayList<>();
+                    parentRelations.add(relationship);
+                }
+            }
+        }
+        if (instanceRelations.containsKey(EXISTING_PRECEDING_SUCCEEDING_TITLES)) {
+            JsonArray existingTitles = instanceRelations.getJsonArray(EXISTING_PRECEDING_SUCCEEDING_TITLES);
+            for (Object o : existingTitles) {
+                InstanceTitleSuccession relation = InstanceTitleSuccession.makeInstanceTitleSuccessionFromJsonRecord(instanceId, (JsonObject) o);
+                if (relation.isSucceedingTitle()) {
+                    if (succeedingTitles == null) succeedingTitles = new ArrayList<>();
+                    succeedingTitles.add(relation);
+                } else {
+                    if (precedingTitles == null) precedingTitles = new ArrayList<>();
+                    precedingTitles.add(relation);
+                }
+            }
+        }
+    }
+
+    /**
+     * Checks if JSON contains relationship records from Inventory storage (got existing record set)
+     *
+     * @param irsJson Source JSON for InventoryRecordSet
+     * @return true if there are stored relations for this Instance
+     */
+    boolean hasExistingRelationshipRecords(JsonObject irsJson) {
+        return (irsJson.containsKey(INSTANCE_RELATIONS)
+                && irsJson.getJsonObject(INSTANCE_RELATIONS).containsKey(EXISTING_PARENT_CHILD_RELATIONS));
+    }
 }

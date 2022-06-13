@@ -15,17 +15,7 @@ import org.folio.inventoryupdate.UpdateMetrics;
 import org.folio.okapi.common.OkapiClient;
 
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.List;
-import java.util.UUID;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
-
-import static org.folio.inventoryupdate.entities.InstanceRelationship.INSTANCE_RELATIONSHIP_TYPE_ID;
-import static org.folio.inventoryupdate.entities.InstanceToInstanceRelation.prepareProvisionalInstance;
-import static org.folio.inventoryupdate.entities.InventoryRecordSet.HRID_IDENTIFIER_KEY;
-import static org.folio.inventoryupdate.entities.InventoryRecordSet.UUID_IDENTIFIER_KEY;
-import static org.folio.inventoryupdate.entities.InstanceToInstanceRelation.InstanceRelationsClass;
 
 /**
  * Instance-to-Instance relations are held in the InventoryRecordSet class but the planning and update logic
@@ -54,8 +44,8 @@ public class InstanceRelations extends JsonRepresentation {
 
     public InstanceRelations(InventoryRecordSet inventoryRecordSet) {
         this.irs = inventoryRecordSet;
-        if (hasExistingRelationshipRecords(irs.sourceJson)) { // existing relations from storage
-            registerRelationshipJsonRecords(irs.getInstance().getUUID(),irs.sourceJson.getJsonObject(
+        if (irs.hasExistingRelationshipRecords(irs.sourceJson)) { // existing relations from storage
+            irs.registerRelationshipJsonRecords(irs.getInstance().getUUID(),irs.sourceJson.getJsonObject(
                     InstanceRelations.INSTANCE_RELATIONS));
             logger.debug("InventoryRecordSet initialized with existing instance relationships: " + this );
         }
@@ -63,38 +53,6 @@ public class InstanceRelations extends JsonRepresentation {
             irs.instanceRelationsJson = irs.sourceJson.getJsonObject( InstanceRelations.INSTANCE_RELATIONS);
             irs.instanceReferences = new InstanceReferences(irs.instanceRelationsJson);
             logger.debug("InventoryRecordSet initialized with incoming instance relationships JSON (relations to be built).");
-        }
-    }
-
-    /**
-     * Checks if JSON contains relationship records from Inventory storage (got existing record set)
-     * @param irsJson  Source JSON for InventoryRecordSet
-     * @return true if there are stored relations for this Instance
-     */
-    boolean hasExistingRelationshipRecords(JsonObject irsJson) {
-        return (irsJson.containsKey(INSTANCE_RELATIONS)
-                && irsJson.getJsonObject(INSTANCE_RELATIONS).containsKey(EXISTING_PARENT_CHILD_RELATIONS));
-    }
-
-    /**
-     * Checks if JSON contains requests for creating relations (got updating/incoming record set)
-     * // @param irsJson Source JSON for InventoryRecordSet
-     * @return true if identifiers for building relationship objects are provided
-     */
-
-    public List<InstanceToInstanceRelation> getInstanceRelationsByTransactionType (InventoryRecord.Transaction transition) {
-        List<InstanceToInstanceRelation> records = new ArrayList<>();
-        for (InstanceToInstanceRelation record : getInstanceToInstanceRelations())  {
-            if (record.getTransaction() == transition && ! record.skipped()) {
-                records.add(record);
-            }
-        }
-        return records;
-    }
-
-    public void markAllRelationsForDeletion() {
-        for (InstanceToInstanceRelation relation : getInstanceToInstanceRelations()) {
-            relation.setTransition(InventoryRecord.Transaction.DELETE);
         }
     }
 
@@ -255,40 +213,6 @@ public class InstanceRelations extends JsonRepresentation {
         return promise.future();
     }
 
-    /**
-     * Planning: Takes Instance relation records from storage and creates Instance relations objects
-     * @param instanceId The ID of the Instance to create relationship objects for
-     * @param instanceRelations a set of relations from storage
-     */
-    public void registerRelationshipJsonRecords(String instanceId, JsonObject instanceRelations) {
-        if (instanceRelations.containsKey(EXISTING_PARENT_CHILD_RELATIONS)) {
-            JsonArray existingRelations = instanceRelations.getJsonArray(EXISTING_PARENT_CHILD_RELATIONS);
-            for (Object o : existingRelations) {
-                InstanceRelationship relationship = InstanceRelationship.makeRelationshipFromJsonRecord(instanceId, (JsonObject) o);
-                if (relationship.isRelationToChild()) {
-                    if (irs.childRelations == null) irs.childRelations = new ArrayList<>();
-                    irs.childRelations.add(relationship);
-                } else {
-                    if (irs.parentRelations == null) irs.parentRelations = new ArrayList<>();
-                    irs.parentRelations.add(relationship);
-                }
-            }
-        }
-        if (instanceRelations.containsKey(EXISTING_PRECEDING_SUCCEEDING_TITLES)) {
-            JsonArray existingTitles = instanceRelations.getJsonArray(EXISTING_PRECEDING_SUCCEEDING_TITLES);
-            for (Object o : existingTitles) {
-                InstanceTitleSuccession relation = InstanceTitleSuccession.makeInstanceTitleSuccessionFromJsonRecord(instanceId, (JsonObject) o);
-                if (relation.isSucceedingTitle()) {
-                    if (irs.succeedingTitles == null) irs.succeedingTitles = new ArrayList<>();
-                    irs.succeedingTitles.add(relation);
-                } else {
-                    if (irs.precedingTitles == null) irs.precedingTitles = new ArrayList<>();
-                    irs.precedingTitles.add(relation);
-                }
-            }
-        }
-    }
-
 
     /**
      * Checks if requested/incoming Instance relations already exists, marks them for creation if they don't
@@ -296,9 +220,9 @@ public class InstanceRelations extends JsonRepresentation {
      * @param updatingRecordSet The Inventory record set that is being prepared for updating Inventory
      * @param existingRecordSet The existing record set in Inventory
      */
-    public void prepareInstanceRelationTransactions(InventoryRecordSet updatingRecordSet, InventoryRecordSet existingRecordSet) {
+    public static void prepareInstanceRelationTransactions(InventoryRecordSet updatingRecordSet, InventoryRecordSet existingRecordSet) {
         if (updatingRecordSet != null) {
-            for (InstanceToInstanceRelation incomingRelation : updatingRecordSet.getInstanceRelationsController().getInstanceToInstanceRelations()) {
+            for (InstanceToInstanceRelation incomingRelation : updatingRecordSet.getInstanceToInstanceRelations()) {
                 if (existingRecordSet != null) {
                     if (existingRecordSet.hasThisRelation(incomingRelation)) {
                         incomingRelation.skip();
@@ -307,7 +231,7 @@ public class InstanceRelations extends JsonRepresentation {
             }
         }
         if (existingRecordSet != null) {
-            for (InstanceToInstanceRelation existingRelation : existingRecordSet.getInstanceRelationsController().getInstanceToInstanceRelations()) {
+            for (InstanceToInstanceRelation existingRelation : existingRecordSet.getInstanceToInstanceRelations()) {
                 if (updatingRecordSet.isThisRelationOmitted(existingRelation)) {
                     existingRelation.setTransition(InventoryRecord.Transaction.DELETE);
                 } else {
@@ -374,12 +298,12 @@ public class InstanceRelations extends JsonRepresentation {
     }
 
     public List<InstanceToInstanceRelation> instanceRelationsToCreate() {
-        return getInstanceRelationsByTransactionType(InventoryRecord.Transaction.CREATE);
+        return irs.getInstanceRelationsByTransactionType(InventoryRecord.Transaction.CREATE);
     }
 
     public List<Instance> provisionalInstancesToCreate() {
         ArrayList<Instance> provisionalInstances = new ArrayList<>();
-        for (InstanceToInstanceRelation relation: getInstanceRelationsByTransactionType(InventoryRecord.Transaction.CREATE)) {
+        for (InstanceToInstanceRelation relation: irs.getInstanceRelationsByTransactionType(InventoryRecord.Transaction.CREATE)) {
             if (relation.requiresProvisionalInstanceToBeCreated()) {
                 provisionalInstances.add(relation.provisionalInstance);
             }
@@ -390,7 +314,7 @@ public class InstanceRelations extends JsonRepresentation {
     @Override
     public JsonObject asJson() {
         JsonObject json = new JsonObject();
-        for (InstanceToInstanceRelation relation : getInstanceToInstanceRelations()) {
+        for (InstanceToInstanceRelation relation : irs.getInstanceToInstanceRelations()) {
             JsonObject relationJson = new JsonObject(relation.asJsonString());
             if (relation.hasPreparedProvisionalInstance()) {
                 relationJson.put("CREATE_PROVISIONAL_INSTANCE", relation.getProvisionalInstance().asJson());
@@ -427,18 +351,10 @@ public class InstanceRelations extends JsonRepresentation {
         return null;
     }
 
-    public List<InstanceToInstanceRelation> getInstanceToInstanceRelations() {
-        return Stream.of(
-                irs.parentRelations == null ? new ArrayList<InstanceToInstanceRelation>() : irs.parentRelations,
-                irs.childRelations == null ? new ArrayList<InstanceToInstanceRelation>() : irs.childRelations,
-                irs.precedingTitles == null ? new ArrayList<InstanceToInstanceRelation>() : irs.precedingTitles,
-                irs.succeedingTitles == null ? new ArrayList<InstanceToInstanceRelation>() : irs.succeedingTitles
-        ).flatMap(Collection::stream).collect(Collectors.toList());
-    }
 
     public void writeToStats(UpdateMetrics metrics) {
-        if (! getInstanceToInstanceRelations().isEmpty()) {
-            for ( InstanceToInstanceRelation record : getInstanceToInstanceRelations() ) {
+        if (! irs.getInstanceToInstanceRelations().isEmpty()) {
+            for ( InstanceToInstanceRelation record : irs.getInstanceToInstanceRelations() ) {
                 logger.debug("Record: " + record.jsonRecord.encode());
                 logger.debug("Transaction: " + record.getTransaction());
                 logger.debug("Entity type: " + record.entityType);
@@ -458,7 +374,7 @@ public class InstanceRelations extends JsonRepresentation {
     @Override
     public String toString () {
         StringBuilder str = new StringBuilder();
-        for (InstanceToInstanceRelation rel : getInstanceToInstanceRelations()) {
+        for (InstanceToInstanceRelation rel : irs.getInstanceToInstanceRelations()) {
             str.append(rel.toString());
         }
         return str.toString();

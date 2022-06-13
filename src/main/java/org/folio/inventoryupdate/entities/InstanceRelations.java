@@ -44,17 +44,21 @@ public class InstanceRelations extends JsonRepresentation {
 
     public InstanceRelations(InventoryRecordSet inventoryRecordSet) {
         this.irs = inventoryRecordSet;
-        if (irs.hasExistingRelationshipRecords(irs.sourceJson)) { // existing relations from storage
-            irs.registerRelationshipJsonRecords(irs.getInstance().getUUID(),irs.sourceJson.getJsonObject(
-                    InstanceRelations.INSTANCE_RELATIONS));
-            logger.debug("InventoryRecordSet initialized with existing instance relationships: " + this );
-        }
-        if (irs.sourceJson.containsKey(InstanceRelations.INSTANCE_RELATIONS)) { // intended relations from request
-            irs.instanceRelationsJson = irs.sourceJson.getJsonObject( InstanceRelations.INSTANCE_RELATIONS);
-            irs.instanceReferences = new InstanceReferences(irs.instanceRelationsJson);
-            logger.debug("InventoryRecordSet initialized with incoming instance relationships JSON (relations to be built).");
+        if (irs.sourceJson.containsKey(InstanceRelations.INSTANCE_RELATIONS)) {
+            if (irs.isExisting()) {
+                irs.registerRelationshipJsonRecords(irs.getInstance().getUUID(),
+                        irs.sourceJson.getJsonObject(InstanceRelations.INSTANCE_RELATIONS));
+                logger.debug("InventoryRecordSet initialized with existing instance relationships: " + this);
+            } else if (irs.isIncoming()) {
+                irs.instanceRelationsJson = irs.sourceJson.getJsonObject(InstanceRelations.INSTANCE_RELATIONS);
+                irs.instanceReferences = new InstanceReferences(irs.instanceRelationsJson);
+                logger.debug(
+                        "InventoryRecordSet initialized with incoming instance relationships " +
+                                "JSON (relations to be built).");
+            }
         }
     }
+
 
     /**
      * Planning

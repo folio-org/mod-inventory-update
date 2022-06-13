@@ -7,7 +7,6 @@ import java.util.stream.Stream;
 import io.vertx.core.Future;
 import io.vertx.core.impl.logging.Logger;
 import io.vertx.core.impl.logging.LoggerFactory;
-import org.folio.inventoryupdate.UpdateMetrics;
 import org.folio.inventoryupdate.entities.InventoryRecord.Transaction;
 
 import io.vertx.core.json.JsonArray;
@@ -18,6 +17,9 @@ import static org.folio.inventoryupdate.entities.InstanceRelations.*;
 import static org.folio.inventoryupdate.entities.RecordIdentifiers.OAI_IDENTIFIER;
 
 public class InventoryRecordSet extends JsonRepresentation {
+
+    private boolean isExisting = false;
+    private boolean isIncoming = false;
 
     private Instance anInstance = null;
     private final Map<String,Item> itemsByHRID = new HashMap<>();
@@ -52,10 +54,8 @@ public class InventoryRecordSet extends JsonRepresentation {
     public InstanceReferences instanceReferences;
     public JsonObject processing = new JsonObject();
 
-    private boolean relationsMaintainedInRepository = false;
 
-
-    public InventoryRecordSet (JsonObject inventoryRecordSet) {
+    private InventoryRecordSet (JsonObject inventoryRecordSet) {
         if (inventoryRecordSet != null) {
             logger.debug("Creating InventoryRecordSet from " + inventoryRecordSet.encodePrettily());
             sourceJson = new JsonObject(inventoryRecordSet.toString());
@@ -63,10 +63,31 @@ public class InventoryRecordSet extends JsonRepresentation {
             anInstance = new Instance(instanceJson);
             JsonArray holdings = inventoryRecordSet.getJsonArray(HOLDINGS_RECORDS);
             registerHoldingsRecordsAndItems(holdings);
-            instanceRelations = new InstanceRelations(this);
             logger.debug("Caching processing info: " + inventoryRecordSet.getJsonObject( PROCESSING ));
             processing = inventoryRecordSet.getJsonObject( PROCESSING );
         }
+    }
+
+    public boolean isExisting () {
+        return isExisting;
+    }
+
+    public boolean isIncoming () {
+        return isIncoming;
+    }
+
+    public static InventoryRecordSet makeExistingRecordSet(JsonObject inventoryRecordSet) {
+        InventoryRecordSet set = new InventoryRecordSet(inventoryRecordSet);
+        set.isExisting = true;
+        set.instanceRelations = new InstanceRelations(set);
+        return set;
+    }
+
+    public static InventoryRecordSet makeIncomingRecordSet(JsonObject inventoryRecordSet) {
+        InventoryRecordSet set = new InventoryRecordSet(inventoryRecordSet);
+        set.isIncoming = true;
+        set.instanceRelations = new InstanceRelations(set);
+        return set;
     }
 
     public static boolean isValidInventoryRecordSet(JsonObject inventoryRecordSet) {
@@ -189,10 +210,57 @@ public class InventoryRecordSet extends JsonRepresentation {
         ).flatMap(Collection::stream).collect(Collectors.toList());
     }
 
-    // Instance-to-Instance relations methods
+    // INSTANCE-TO-INSTANCE RELATIONS METHODS
     public InstanceRelations getInstanceRelationsController() {
         return instanceRelations;
     }
+
+    /**
+     * Checks if JSON contains relationship records from Inventory storage (got existing record set)
+     *
+     * @param irsJson Source JSON for InventoryRecordSet
+     * @return true if there are stored relations for this Instance
+     */
+    boolean hasExistingRelationshipRecords(JsonObject irsJson) {
+        return (irsJson.containsKey(INSTANCE_RELATIONS)
+                && irsJson.getJsonObject(INSTANCE_RELATIONS).containsKey(EXISTING_PRECEDING_SUCCEEDING_TITLES));
+    }
+
+    /**
+     * Planning: Takes Instance relation records from storage and creates Instance relations objects
+     *
+     * @param instanceId        The ID of the Instance to create relationship objects for
+     * @param instanceRelations a set of relations from storage
+     */
+    public void registerRelationshipJsonRecords(String instanceId, JsonObject instanceRelations) {
+        if (instanceRelations.containsKey(EXISTING_PARENT_CHILD_RELATIONS)) {
+            JsonArray existingRelations = instanceRelations.getJsonArray(EXISTING_PARENT_CHILD_RELATIONS);
+            for (Object o : existingRelations) {
+                InstanceRelationship relationship = InstanceRelationship.makeRelationshipFromJsonRecord(instanceId, (JsonObject) o);
+                if (relationship.isRelationToChild()) {
+                    if (childRelations == null) childRelations = new ArrayList<>();
+                    childRelations.add(relationship);
+                } else {
+                    if (parentRelations == null) parentRelations = new ArrayList<>();
+                    parentRelations.add(relationship);
+                }
+            }
+        }
+        if (instanceRelations.containsKey(EXISTING_PRECEDING_SUCCEEDING_TITLES)) {
+            JsonArray existingTitles = instanceRelations.getJsonArray(EXISTING_PRECEDING_SUCCEEDING_TITLES);
+            for (Object o : existingTitles) {
+                InstanceTitleSuccession relation = InstanceTitleSuccession.makeInstanceTitleSuccessionFromJsonRecord(instanceId, (JsonObject) o);
+                if (relation.isSucceedingTitle()) {
+                    if (succeedingTitles == null) succeedingTitles = new ArrayList<>();
+                    succeedingTitles.add(relation);
+                } else {
+                    if (precedingTitles == null) precedingTitles = new ArrayList<>();
+                    precedingTitles.add(relation);
+                }
+            }
+        }
+    }
+
 
     public void prepareAllInstanceRelationsForDeletion() {
         for (InstanceToInstanceRelation relation : getInstanceToInstanceRelations()) {
@@ -270,13 +338,23 @@ public class InventoryRecordSet extends JsonRepresentation {
     }
 
     /**
+     * A relation is considered omitted from the list if the list exists (is not null) but the relation is not in it.
+     * @param list list of relations to check the relation against
+     * @param relation the relation to check
+     * @return true if a list was provided and the relation is not in the list
+     */
+    private boolean isThisRelationOmitted(
+            List<InstanceToInstanceRelation> list, InstanceToInstanceRelation relation) {
+        return ( list != null && !list.contains( relation ) );
+    }
+
+    /**
      * Create Instance relationship records from incoming Instance references by HRIDs, by looking
      * up the corresponding UUIDs for those HRIDs in the repository.
      * Requires that the Instance is already assigned a UUID and that the repository is loaded.
      * @param repository cache containing prefetched referenced Instances.
      */
     public void resolveIncomingInstanceRelationsUsingRepository(Repository repository) {
-        relationsMaintainedInRepository = true;
         if (instanceReferences != null) {
             for (InstanceReference reference : instanceReferences.references) {
                 if (reference.hasReferenceHrid() || reference.hasReferenceUuid()) {
@@ -330,17 +408,6 @@ public class InventoryRecordSet extends JsonRepresentation {
         }
     }
 
-    /**
-     * A relation is considered omitted from the list if the list exists (is not null) but the relation is not in it.
-     * @param list list of relations to check the relation against
-     * @param relation the relation to check
-     * @return true if a list was provided and the relation is not in the list
-     */
-    private boolean isThisRelationOmitted(
-            List<InstanceToInstanceRelation> list, InstanceToInstanceRelation relation) {
-        return ( list != null && !list.contains( relation ) );
-    }
-
     public String getLocalIdentifierTypeId () {
         return (processing != null ? processing.getString(IDENTIFIER_TYPE_ID) : null);
     }
@@ -353,6 +420,9 @@ public class InventoryRecordSet extends JsonRepresentation {
             return (processing != null ? processing.getString(LOCAL_IDENTIFIER) : null);
         }
     }
+
+
+
 
     // Errors
     @Override
@@ -424,50 +494,4 @@ public class InventoryRecordSet extends JsonRepresentation {
         return recordSetJson;
     }
 
-
-    /**
-     * Planning: Takes Instance relation records from storage and creates Instance relations objects
-     *
-     * @param instanceId        The ID of the Instance to create relationship objects for
-     * @param instanceRelations a set of relations from storage
-     */
-    public void registerRelationshipJsonRecords(String instanceId, JsonObject instanceRelations) {
-        if (instanceRelations.containsKey(EXISTING_PARENT_CHILD_RELATIONS)) {
-            JsonArray existingRelations = instanceRelations.getJsonArray(EXISTING_PARENT_CHILD_RELATIONS);
-            for (Object o : existingRelations) {
-                InstanceRelationship relationship = InstanceRelationship.makeRelationshipFromJsonRecord(instanceId, (JsonObject) o);
-                if (relationship.isRelationToChild()) {
-                    if (childRelations == null) childRelations = new ArrayList<>();
-                    childRelations.add(relationship);
-                } else {
-                    if (parentRelations == null) parentRelations = new ArrayList<>();
-                    parentRelations.add(relationship);
-                }
-            }
-        }
-        if (instanceRelations.containsKey(EXISTING_PRECEDING_SUCCEEDING_TITLES)) {
-            JsonArray existingTitles = instanceRelations.getJsonArray(EXISTING_PRECEDING_SUCCEEDING_TITLES);
-            for (Object o : existingTitles) {
-                InstanceTitleSuccession relation = InstanceTitleSuccession.makeInstanceTitleSuccessionFromJsonRecord(instanceId, (JsonObject) o);
-                if (relation.isSucceedingTitle()) {
-                    if (succeedingTitles == null) succeedingTitles = new ArrayList<>();
-                    succeedingTitles.add(relation);
-                } else {
-                    if (precedingTitles == null) precedingTitles = new ArrayList<>();
-                    precedingTitles.add(relation);
-                }
-            }
-        }
-    }
-
-    /**
-     * Checks if JSON contains relationship records from Inventory storage (got existing record set)
-     *
-     * @param irsJson Source JSON for InventoryRecordSet
-     * @return true if there are stored relations for this Instance
-     */
-    boolean hasExistingRelationshipRecords(JsonObject irsJson) {
-        return (irsJson.containsKey(INSTANCE_RELATIONS)
-                && irsJson.getJsonObject(INSTANCE_RELATIONS).containsKey(EXISTING_PARENT_CHILD_RELATIONS));
-    }
 }

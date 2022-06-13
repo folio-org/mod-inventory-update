@@ -98,7 +98,7 @@ public abstract class UpdatePlan {
             if (recordSet.succeeded()) {
                 JsonObject existingInventoryRecordSetJson = recordSet.result();
                 if (existingInventoryRecordSetJson != null) {
-                    promise.complete(new InventoryRecordSet(existingInventoryRecordSetJson));
+                    promise.complete(InventoryRecordSet.makeExistingRecordSet(existingInventoryRecordSetJson));
                 } else
                 {
                     promise.complete( null );

@@ -37,7 +37,7 @@ public class InventoryUpdateService {
     if (contentTypeIsJson(routingCtx)) {
       JsonObject incomingJson = getIncomingJsonBody(routingCtx);
       if (InventoryRecordSet.isValidInventoryRecordSet(incomingJson)) {
-        InventoryRecordSet incomingSet = new InventoryRecordSet(incomingJson);
+        InventoryRecordSet incomingSet = InventoryRecordSet.makeIncomingRecordSet(incomingJson);
         UpdatePlan updatePlan = UpdatePlanSharedInventory.getUpsertPlan(incomingSet);
         runPlan(updatePlan, routingCtx);
       } else {
@@ -69,7 +69,7 @@ public class InventoryUpdateService {
       responseError(routingCtx, 400, "Did not recognize input as an Inventory record set: " + incomingJson.encodePrettily());
       return;
     }
-    InventoryRecordSet incomingSet = new InventoryRecordSet(incomingJson);
+    InventoryRecordSet incomingSet = InventoryRecordSet.makeIncomingRecordSet(incomingJson);
     UpdatePlan updatePlan = UpdatePlanAllHRIDs.getUpsertPlan(incomingSet);
     runPlan(updatePlan, routingCtx);
 }

@@ -43,12 +43,9 @@ public class Repository {
 
   public Repository setIncomingRecordSets (JsonArray incomingInventoryRecordSets) {
     for (Object inventoryRecordSet : incomingInventoryRecordSets) {
-      JsonObject recordSetJson = (JsonObject) inventoryRecordSet;
-      if (recordSetJson.containsKey(INSTANCE_RELATIONS)
-              && !((JsonObject) inventoryRecordSet).getJsonObject(INSTANCE_RELATIONS).isEmpty()) {
-      }
       PairedRecordSets pair = new PairedRecordSets();
-      InventoryRecordSet recordSet = new InventoryRecordSet((JsonObject) inventoryRecordSet);
+      InventoryRecordSet recordSet =
+              InventoryRecordSet.makeIncomingRecordSet((JsonObject) inventoryRecordSet);
       pair.setIncomingRecordSet(recordSet);
       pairsOfRecordSets.add(pair);
     }
@@ -145,7 +142,7 @@ public class Repository {
           }
           existingRecordSetJson.put(HOLDINGS_RECORDS, holdingsWithItems);
         }
-        InventoryRecordSet existingSet = new InventoryRecordSet(existingRecordSetJson);
+        InventoryRecordSet existingSet = InventoryRecordSet.makeExistingRecordSet(existingRecordSetJson);
         if (!existingParentRelationsByChildId.isEmpty() && existingParentRelationsByChildId.get(existingInstance.getUUID()) != null) {
           existingSet.parentRelations = new ArrayList<>(existingParentRelationsByChildId.get(existingInstance.getUUID()).values());
         }

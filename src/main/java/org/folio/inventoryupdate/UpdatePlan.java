@@ -64,6 +64,15 @@ public abstract class UpdatePlan {
         this.updatingSet = incomingInventoryRecordSet;
         this.instanceQuery = existingInstanceQuery;
     }
+
+    public UpdatePlan(Repository repository) {
+        this.repository = repository;
+    }
+
+    public abstract UpdatePlan planInventoryUpdates();
+    public abstract Future<Void> doInventoryUpdates(OkapiClient client);
+
+    // DELETION
     /**
      * Constructor for plan for creating or updating an Inventory record set
      * @param existingInstanceQuery The query to use for checking if the instance already exists
@@ -72,31 +81,7 @@ public abstract class UpdatePlan {
         this.instanceQuery = existingInstanceQuery;
         this.isDeletion = true;
     }
-
-    public UpdatePlan(Repository repository) {
-        this.repository = repository;
-    }
-
-    public boolean foundExistingRecordSet () {
-      return existingSet != null;
-    }
-
-    public boolean gotUpdatingRecordSet () {
-      return updatingSet != null;
-    }
-
-    protected boolean foundSecondaryExistingSet () {
-        return (secondaryExistingSet != null);
-    }
-
-    public abstract Future<Void> planInventoryUpdates (OkapiClient client);
-
-    public abstract UpdatePlan planInventoryUpdatesUsingRepository ();
-
-    public abstract Future<Void> doInventoryUpdates (OkapiClient client);
-    public abstract Future<Void> doInventoryUpdatesUsingRepository (OkapiClient client);
-    public abstract RequestValidation validateIncomingRecordSet (JsonObject inventoryRecordSet);
-
+    public abstract Future<Void> planInventoryDelete(OkapiClient client);
     protected Future<InventoryRecordSet> lookupExistingRecordSet (OkapiClient okapiClient, InventoryQuery instanceQuery) {
         Promise<InventoryRecordSet> promise = Promise.promise();
         InventoryStorage.lookupSingleInventoryRecordSet(okapiClient, instanceQuery).onComplete( recordSet -> {
@@ -114,6 +99,22 @@ public abstract class UpdatePlan {
         });
         return promise.future();
     }
+    public boolean foundExistingRecordSet () {
+        return existingSet != null;
+    }
+
+    public boolean gotUpdatingRecordSet () {
+        return updatingSet != null;
+    }
+
+    protected boolean foundSecondaryExistingSet () {
+        return (secondaryExistingSet != null);
+    }
+    public abstract Future<Void> doInventoryDelete(OkapiClient client);
+    // DELETION
+
+    public abstract RequestValidation validateIncomingRecordSet (JsonObject inventoryRecordSet);
+
 
     /**
      * Set transaction type and ID for the instance
@@ -157,22 +158,6 @@ public abstract class UpdatePlan {
         return foundExistingRecordSet() ? existingSet.getHoldingsRecordsByTransactionType(Transaction.DELETE) : new ArrayList<>();
     }
 
-    public List<HoldingsRecord> holdingsToCreate () {
-        return gotUpdatingRecordSet() ? updatingSet.getHoldingsRecordsByTransactionType(Transaction.CREATE) : new ArrayList<>();
-    }
-
-    public List<Item> itemsToCreate () {
-        return gotUpdatingRecordSet() ? updatingSet.getItemsByTransactionType(Transaction.CREATE) : new ArrayList<>();
-    }
-
-    public List<HoldingsRecord> holdingsToUpdate () {
-        return gotUpdatingRecordSet() ? updatingSet.getHoldingsRecordsByTransactionType(Transaction.UPDATE) : new ArrayList<>();
-    }
-
-    public List<Item> itemsToUpdate () {
-        return gotUpdatingRecordSet() ? updatingSet.getItemsByTransactionType(Transaction.UPDATE) : new ArrayList<>();
-    }
-
     public List<InstanceToInstanceRelation> instanceRelationsToDelete() {
         return foundExistingRecordSet() ? existingSet.getInstanceRelationsByTransactionType(Transaction.DELETE) : new ArrayList<>();
     }
@@ -181,14 +166,12 @@ public abstract class UpdatePlan {
         return gotUpdatingRecordSet() && updatingSet.getInstance().getTransaction() == Transaction.UPDATE;
     }
 
-    public boolean isInstanceCreating () {
-        return gotUpdatingRecordSet() && updatingSet.getInstance().getTransaction() == Transaction.CREATE;
-    }
 
     public boolean isInstanceDeleting () {
         return foundExistingRecordSet() && existingSet.getInstance().getTransaction() == Transaction.DELETE;
     }
 
+    /*
     public void writePlanToLog () {
         logger.debug("Planning of " + (isDeletion ? " delete " : " create/update ") + " of Inventory records set done: ");
         if (isDeletion) {
@@ -209,71 +192,12 @@ public abstract class UpdatePlan {
             } else {
                 logger.debug("Got delete request but no existing records found with provided identifier(s)");
             }
-        } else {
-            logger.debug("Instance transition: " + getUpdatingInstance().getTransaction());
-            logger.debug("Holdings to create: ");
-            for (HoldingsRecord record : holdingsToCreate()) {
-                logger.debug(record.asJson().encodePrettily());
-            }
-            logger.debug("Holdings to update: ");
-            for (HoldingsRecord record : holdingsToUpdate()) {
-                logger.debug(record.asJson().encodePrettily());
-            }
-            logger.debug("Items to create: ");
-            for (Item record : itemsToCreate()) {
-                logger.debug(record.asJson().encodePrettily());
-            }
-            logger.debug("Items to update: ");
-            for (Item record : itemsToUpdate()) {
-                logger.debug(record.asJson().encodePrettily());
-            }
-            logger.debug("Items to delete: ");
-            for (Item record : itemsToDelete()) {
-                logger.debug(record.asJson().encodePrettily());
-            }
-            logger.debug("Holdings to delete: ");
-            for (HoldingsRecord record : holdingsToDelete()) {
-                logger.debug(record.asJson().encodePrettily());
-            }
-            logger.debug("Instance to Instance relations to create: ");
-            for (InstanceToInstanceRelation record : getUpdatingRecordSet().getInstanceRelationsController().instanceRelationsToCreate()) {
-                logger.debug(record.asJson().encodePrettily());
-            }
-            logger.debug("Provisional Instances to create: ");
-            for (Instance record : getUpdatingRecordSet().getInstanceRelationsController().provisionalInstancesToCreate()) {
-                logger.debug(record.asJson().encodePrettily());
-            }
-            logger.debug("Instance to Instance relationships to delete: ");
-            for (InstanceToInstanceRelation record : instanceRelationsToDelete()) {
-                logger.debug(record.asJson().encodePrettily());
-            }
-
         }
     }
+    */
 
     /* UPDATE METHODS */
 
-    /**
-     * Perform storage creates that other updates will depend on for successful completion
-     * (must by synchronized)
-     */
-    public Future<Void> createRecordsWithDependants (OkapiClient okapiClient) {
-        Promise<Void> promise = Promise.promise();
-        createNewInstanceIfAny(okapiClient).onComplete( instanceResult -> {
-            if (instanceResult.succeeded()) {
-                createNewHoldingsIfAny(okapiClient).onComplete(handler2 -> {
-                    if (handler2.succeeded()) {
-                        promise.complete();
-                    } else {
-                        promise.fail("Failed to create new holdings records: " + handler2.cause().getMessage());
-                    }
-                });
-            } else {
-                promise.fail("There was an error trying to create an instance: " + instanceResult.cause().getMessage());
-            }
-        });
-        return promise.future();
-    }
 
     public Future<Void> createRecordsWithDependantsUsingRepository (OkapiClient okapiClient) {
         Promise<Void> promise = Promise.promise();
@@ -349,16 +273,18 @@ public abstract class UpdatePlan {
      * Perform instance and holdings updates
      * @param okapiClient client for inventory storage requests
      */
-    public Future<Void> handleInstanceAndHoldingsUpdatesIfAny(OkapiClient okapiClient) {
+    public Future<Void> handleSingleInstanceUpdate(OkapiClient okapiClient) {
         Promise<Void> promise = Promise.promise();
         @SuppressWarnings("rawtypes")
         List<Future> instanceAndHoldingsFutures = new ArrayList<>();
         if (isInstanceUpdating()) {
             instanceAndHoldingsFutures.add(InventoryStorage.putInventoryRecord(okapiClient, getUpdatingInstance()));
         }
+        /*
         for (HoldingsRecord holdingsRecord : holdingsToUpdate()) {
             instanceAndHoldingsFutures.add(InventoryStorage.putInventoryRecord(okapiClient, holdingsRecord));
         }
+        */
         CompositeFuture.join(instanceAndHoldingsFutures).onComplete ( allDone -> {
             if (allDone.succeeded()) {
                 promise.complete();
@@ -383,29 +309,6 @@ public abstract class UpdatePlan {
         CompositeFuture.join(itemFutures).onComplete ( allItemsDone -> {
             if (allItemsDone.succeeded()) {
                 promise.complete();
-            } else {
-                promise.fail("There was an error updating/creating items: " + allItemsDone.cause().getMessage());
-            }
-        });
-        return promise.future();
-    }
-
-    public Future<JsonObject> handleItemUpdatesAndCreatesIfAny (OkapiClient okapiClient) {
-        Promise<JsonObject> promise = Promise.promise();
-        @SuppressWarnings("rawtypes")
-        List<Future> itemFutures = new ArrayList<>();
-        for (Item item : itemsToUpdate()) {
-            // Since the items were updated by storage behind the scenes, triggered by the holdings record updates,
-            // the Item's versions have to be bumped again.
-            item.setVersion( item.getVersion() + 1 );
-            itemFutures.add(InventoryStorage.putInventoryRecord(okapiClient, item));
-        }
-        for (Item item : itemsToCreate()) {
-            itemFutures.add((InventoryStorage.postInventoryRecord(okapiClient, item)));
-        }
-        CompositeFuture.join(itemFutures).onComplete ( allItemsDone -> {
-            if (allItemsDone.succeeded()) {
-                promise.complete(new JsonObject());
             } else {
                 promise.fail("There was an error updating/creating items: " + allItemsDone.cause().getMessage());
             }
@@ -458,7 +361,7 @@ public abstract class UpdatePlan {
      * deletions of items, holdings records, instance (if any and in that order)
      */
     @SuppressWarnings("rawtypes")
-    public Future<Void> handleDeletionsIfAny (OkapiClient okapiClient) {
+    public Future<Void> handleSingleSetDelete(OkapiClient okapiClient) {
         Promise<Void> promise = Promise.promise();
         List<Future> deleteRelationsDeleteItems = new ArrayList<>();
         for (InstanceToInstanceRelation relation : instanceRelationsToDelete()) {
@@ -494,39 +397,6 @@ public abstract class UpdatePlan {
                 });
             } else {
                 promise.fail("Failed to delete item(s) and/or instance-to-instance relations: " + allRelationshipsDoneAllItemsDone.cause().getMessage());
-            }
-        });
-        return promise.future();
-    }
-
-    public Future<Void> createNewInstanceIfAny (OkapiClient okapiClient) {
-        Promise<Void> promise = Promise.promise();
-        if (isInstanceCreating()) {
-            InventoryStorage.postInventoryRecord(okapiClient, getUpdatingInstance()).onComplete(handler -> {
-                if (handler.succeeded()) {
-                    promise.complete();
-                } else {
-                    promise.fail("Failed to POST incoming instance: " + handler.cause().getMessage());
-                }
-            });
-        } else {
-            promise.complete();
-        }
-        return promise.future();
-    }
-
-    public Future<Void> createNewHoldingsIfAny (OkapiClient okapiClient) {
-        Promise<Void> promise = Promise.promise();
-        @SuppressWarnings("rawtypes")
-        List<Future> holdingsRecordCreated = new ArrayList<>();
-        for (HoldingsRecord record : holdingsToCreate()) {
-            holdingsRecordCreated.add(InventoryStorage.postInventoryRecord(okapiClient, record));
-        }
-        CompositeFuture.join(holdingsRecordCreated).onComplete( handler -> {
-            if (handler.succeeded()) {
-                promise.complete();
-            } else {
-                promise.fail("Failed to create new holdings records: " + handler.cause().toString());
             }
         });
         return promise.future();

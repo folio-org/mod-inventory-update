@@ -209,42 +209,6 @@ public class InventoryStorage {
 
   }
 
-  public static Future<JsonObject> lookupHoldingsRecordByHRID (OkapiClient okapiClient, InventoryQuery hridQuery) {
-    Promise<JsonObject> promise = Promise.promise();
-    okapiClient.get(queryUri(HOLDINGS_STORAGE_PATH, hridQuery), res -> {
-      if ( res.succeeded()) {
-        JsonObject records = new JsonObject(res.result());
-        int recordCount = records.getInteger(TOTAL_RECORDS);
-        if (recordCount == 1) {
-          promise.complete(records.getJsonArray(HOLDINGS_RECORDS).getJsonObject(0));
-        } else {
-          promise.complete(null);
-        }
-      } else {
-        failure(res.cause(), Entity.HOLDINGS_RECORD, Transaction.GET, okapiClient.getStatusCode(), promise);
-    }
-    });
-    return promise.future();
-  }
-
-  public static Future<JsonObject> lookupItemByHRID (OkapiClient okapiClient, InventoryQuery hridQuery) {
-    Promise<JsonObject> promise = Promise.promise();
-    okapiClient.get(queryUri(ITEM_STORAGE_PATH, hridQuery), res -> {
-      if ( res.succeeded()) {
-        JsonObject records = new JsonObject(res.result());
-        int recordCount = records.getInteger(TOTAL_RECORDS);
-        if (recordCount == 1) {
-          promise.complete(records.getJsonArray(ITEMS).getJsonObject(0));
-        } else {
-          promise.complete(null);
-        }
-      } else {
-        failure(res.cause(), Entity.ITEM, Transaction.GET, okapiClient.getStatusCode(), promise);
-      }
-    });
-    return promise.future();
-  }
-
   public static Future<JsonObject> lookupSingleInventoryRecordSet (OkapiClient okapiClient, InventoryQuery uniqueQuery) {
     Promise<JsonObject> promise = Promise.promise();
     JsonObject inventoryRecordSet = new JsonObject();

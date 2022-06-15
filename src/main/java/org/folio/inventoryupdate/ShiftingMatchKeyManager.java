@@ -37,43 +37,6 @@ public class ShiftingMatchKeyManager
         }
     }
 
-    public Future<InventoryRecordSet> findPreviousMatchKeyByRecordIdentifier( OkapiClient okapiClient) {
-        Promise<InventoryRecordSet> promise = Promise.promise();
-        if (doCheck)
-        {
-            if ( canCheck )
-            {
-                InventoryStorage.lookupSingleInventoryRecordSet( okapiClient, shiftingMatchKeyQuery ).onComplete(
-                        recordSet -> {
-                            if (recordSet.succeeded()) {
-                                JsonObject existingInventoryRecordSetJson = recordSet.result();
-                                if (existingInventoryRecordSetJson != null) {
-                                    secondaryExistingRecordSet = InventoryRecordSet.makeExistingRecordSet( existingInventoryRecordSetJson );
-                                    promise.complete(secondaryExistingRecordSet);
-                                } else {
-                                    promise.complete( null );
-                                }
-                            } else {
-                                promise.fail( "Error looking up existing record set: " + recordSet.cause().getMessage() );
-                            }
-                        } );
-            } else {
-                if ( updatingRecordSet != null)
-                {
-                    logger.info(
-                            "Incoming set does not provide all required record identifiers for looking up previous matches. " +
-                                    "Provided processing info was: " +
-                                    ( updatingRecordSet.getProcessingInfoAsJson() != null ?
-                                            updatingRecordSet.getProcessingInfoAsJson().encode()
-                                            : " None, no 'processing' info element provided " ) );
-                }
-                promise.complete( null );
-            }
-        } else {
-            promise.complete(null);
-        }
-        return promise.future();
-    }
 
     public Future<Void> handleUpdateOfInstanceWithPreviousMatchKeyIfAny (OkapiClient client) {
         Promise<Void> promise = Promise.promise();

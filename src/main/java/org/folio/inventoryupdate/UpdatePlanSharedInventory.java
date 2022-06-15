@@ -38,15 +38,6 @@ public class UpdatePlanSharedInventory extends UpdatePlan {
         super(repository);
     }
 
-    public static UpdatePlanSharedInventory getUpsertPlan(InventoryRecordSet incomingSet) {
-        MatchKey matchKey = new MatchKey(incomingSet.getInstance().asJson());
-        incomingSet.getInstance().asJson().put("matchKey", matchKey.getKey());
-        InventoryQuery instanceByMatchKeyQuery = new QueryMatchKey(matchKey.getKey());
-        UpdatePlanSharedInventory updatePlan = new UpdatePlanSharedInventory( incomingSet, instanceByMatchKeyQuery );
-        updatePlan.shiftingMatchKeyManager = new ShiftingMatchKeyManager( incomingSet, updatePlan.secondaryExistingSet, true );
-        return updatePlan;
-    }
-
     public static UpdatePlanSharedInventory getUpsertPlan () {
         return new UpdatePlanSharedInventory(new RepositoryByMatchKey());
     }
@@ -82,46 +73,27 @@ public class UpdatePlanSharedInventory extends UpdatePlan {
 
 
     @Override
-    public Future<Void> planInventoryUpdates(OkapiClient okapiClient) {
+    public Future<Void> planInventoryDelete(OkapiClient okapiClient) {
         Promise<Void> promise = Promise.promise();
-        validateIncomingRecordSet(isDeletion ? new JsonObject() : updatingSet.getSourceJson());
-        logger.debug((isDeletion ? "Deletion" : "Upsert" ) + ": Look up existing record set. ");
         lookupExistingRecordSet(okapiClient, instanceQuery).onComplete( lookup -> {
             if (lookup.succeeded()) {
                 this.existingSet = lookup.result();
-                if (isDeletion && !foundExistingRecordSet()) {
+                if (!foundExistingRecordSet()) {
                     promise.fail("Record to be deleted was not found");
                 } else  {
                     if (foundExistingRecordSet()) {
-                        if (isDeletion) {
-                            this.updatingSet = createUpdatingRecordSetFromExistingSet(existingSet, deletionIdentifiers );
-                        } else { // create or update
-                            JsonObject mergedInstance = mergeInstances(getExistingInstance().asJson(), getUpdatingInstance().asJson());
-                            getUpdatingRecordSet().modifyInstance(mergedInstance);
-                        }
-                    }
-                    mapLocationsToInstitutions(okapiClient,updatingSet,existingSet,null).onComplete(handler -> {
-                        if (handler.succeeded()) {
-                            // look for abandoned matches here
-                            if (isDeletion) {
+                        this.updatingSet = createUpdatingRecordSetFromExistingSet(existingSet, deletionIdentifiers );
+                        mapLocationsToInstitutions(okapiClient,updatingSet,existingSet,null).onComplete(handler -> {
+                            if (handler.succeeded()) {
+                                // look for abandoned matches here
                                 flagAndIdRecordsForInventoryUpdating(updatingSet,existingSet,null,isDeletion,deletionIdentifiers);
                                 promise.complete();
                             } else {
-                                shiftingMatchKeyManager
-                                        .findPreviousMatchKeyByRecordIdentifier( okapiClient )
-                                        .onComplete(previousMatchKeyLookUp -> {
-                                    if (previousMatchKeyLookUp.succeeded() && previousMatchKeyLookUp.result() != null) {
-                                        secondaryExistingSet = previousMatchKeyLookUp.result();
-                                    }
-                                    Instance secondaryInstance = secondaryExistingSet != null ? secondaryExistingSet.getInstance() : null;
-                                    flagAndIdRecordsForInventoryUpdating(updatingSet,existingSet,secondaryInstance,isDeletion,deletionIdentifiers);
-                                    promise.complete();
-                                });
+                                promise.fail("There was a problem retrieving locations map, cannot perform updates: " + handler.cause().getMessage());
                             }
-                        } else {
-                            promise.fail("There was a problem retrieving locations map, cannot perform updates: " + handler.cause().getMessage());
-                        }
-                    });
+                        });
+                    }
+
                 }
             } else {
                 promise.fail("Error looking up existing record set: " + lookup.cause().getMessage());
@@ -131,7 +103,7 @@ public class UpdatePlanSharedInventory extends UpdatePlan {
     }
 
     @Override
-    public UpdatePlan planInventoryUpdatesUsingRepository() {
+    public UpdatePlan planInventoryUpdates() {
         logger.debug("Planning inventory updates using repository");
         logger.debug( "Got " + repository.getPairsOfRecordSets().size() + " pair(s)");
         try {
@@ -371,25 +343,22 @@ public class UpdatePlanSharedInventory extends UpdatePlan {
     }
 
     @Override
-    public Future<Void> doInventoryUpdates(OkapiClient okapiClient) {
+    public Future<Void> doInventoryDelete(OkapiClient okapiClient) {
         logger.debug("Doing Inventory updates");
         Promise<Void> promise = Promise.promise();
-        handleDeletionsIfAny(okapiClient).onComplete(deletes -> {
+        handleSingleSetDelete(okapiClient).onComplete(deletes -> {
           if (deletes.succeeded()) {
-              createRecordsWithDependants(okapiClient).onComplete(prerequisites -> {
-                  handleInstanceAndHoldingsUpdatesIfAny(okapiClient).onComplete( instanceAndHoldingsUpdates -> {
-                      shiftingMatchKeyManager.handleUpdateOfInstanceWithPreviousMatchKeyIfAny(okapiClient).onComplete( previousInstanceUpdated -> {
-                          handleItemUpdatesAndCreatesIfAny( okapiClient ).onComplete( itemUpdatesAndCreates -> {
-                              if ( prerequisites.succeeded() && instanceAndHoldingsUpdates.succeeded() && itemUpdatesAndCreates.succeeded() )
-                              {
-                                  promise.complete();
-                              } else {
-                                  promise.fail( "One or more errors occurred updating Inventory records" );
-                              }
-                          });
-                      });
+              handleSingleInstanceUpdate(okapiClient).onComplete(instanceAndHoldingsUpdates -> {
+                  shiftingMatchKeyManager.handleUpdateOfInstanceWithPreviousMatchKeyIfAny(okapiClient).onComplete( previousInstanceUpdated -> {
+                      if ( instanceAndHoldingsUpdates.succeeded())
+                      {
+                          promise.complete();
+                      } else {
+                          promise.fail( "One or more errors occurred updating Inventory records" );
+                      }
                   });
-              });
+             });
+
           } else {
               promise.fail("There was a problem processing deletes - all other updates skipped." );
           }
@@ -398,7 +367,7 @@ public class UpdatePlanSharedInventory extends UpdatePlan {
     }
 
     @Override
-    public Future<Void> doInventoryUpdatesUsingRepository(OkapiClient okapiClient) {
+    public Future<Void> doInventoryUpdates(OkapiClient okapiClient) {
         logger.debug("Doing Inventory updates using repository");
         Promise<Void> promise = Promise.promise();
         handleDeletionsIfAnyUsingRepository(okapiClient).onComplete(deletes -> {

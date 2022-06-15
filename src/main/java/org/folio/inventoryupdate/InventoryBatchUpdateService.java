@@ -5,9 +5,6 @@ import io.vertx.core.impl.logging.LoggerFactory;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.RoutingContext;
-import org.folio.inventoryupdate.entities.InventoryRecordSet;
-import org.folio.inventoryupdate.entities.Repository;
-import org.folio.inventoryupdate.entities.RepositoryByHrids;
 import org.folio.okapi.common.OkapiClient;
 
 import static org.folio.okapi.common.HttpResponse.responseError;
@@ -32,8 +29,8 @@ public class InventoryBatchUpdateService {
                 .buildRepositoryFromStorage(routingCtx).onComplete(
                         result -> {
                           if (result.succeeded()) {
-                            plan.planInventoryUpdatesUsingRepository()
-                                    .doInventoryUpdatesUsingRepository(
+                            plan.planInventoryUpdates()
+                                    .doInventoryUpdates(
                                             InventoryStorage.getOkapiClient(routingCtx)).onComplete(inventoryUpdated -> {
                                       if (inventoryUpdated.succeeded()) {
                                         JsonObject pushedRecordSetWithStats = plan.getUpdatingRecordSetJsonFromRepository();

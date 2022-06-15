@@ -7,6 +7,7 @@ import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.RoutingContext;
 import org.folio.inventoryupdate.entities.InventoryRecordSet;
 import org.folio.inventoryupdate.entities.Repository;
+import org.folio.inventoryupdate.entities.RepositoryByHrids;
 import org.folio.okapi.common.OkapiClient;
 
 import static org.folio.okapi.common.HttpResponse.responseError;
@@ -21,23 +22,37 @@ public class InventoryBatchUpdateService {
     long start = System.currentTimeMillis();
     JsonObject requestJson = routingCtx.getBodyAsJson();
     if (requestJson.containsKey("inventoryRecordSets")) {
-      Repository repository = new Repository();
-      repository
-              .setIncomingRecordSets(requestJson.getJsonArray("inventoryRecordSets"))
-              .buildRepositoryFromStorage(routingCtx)
-              .onComplete(Void -> {
-                JsonObject response = new JsonObject();
-                response.put("existingRecordSets", new JsonArray());
-                for (InventoryRecordSet recordSet : repository.getExistingRecordSets()) {
-                  response.getJsonArray("existingRecordSets").add(recordSet.asJson());
-                }
-                response.put("updatingRecordSets", new JsonArray());
-                for (InventoryRecordSet recordSet : repository.getIncomingRecordSets()) {
-                  response.getJsonArray("updatingRecordSets").add(recordSet.asJson());
-                }
-                responseJson(routingCtx, 200).end(response.encodePrettily());
+      JsonArray inventoryRecordSets = requestJson.getJsonArray("inventoryRecordSets");
+      UpdatePlanAllHRIDs plan = UpdatePlanAllHRIDs.getUpsertPlan();
+      RequestValidation validations = InventoryUpdateService.validateIncomingRecordSets (plan, inventoryRecordSets);
 
-              });
+      if (validations.passed()) {
+        plan
+                .setIncomingRecordSets(inventoryRecordSets)
+                .buildRepositoryFromStorage(routingCtx).onComplete(
+                        result -> {
+                          if (result.succeeded()) {
+                            plan.planInventoryUpdatesUsingRepository()
+                                    .doInventoryUpdatesUsingRepository(
+                                            InventoryStorage.getOkapiClient(routingCtx)).onComplete(inventoryUpdated -> {
+                                      if (inventoryUpdated.succeeded()) {
+                                        JsonObject pushedRecordSetWithStats = plan.getUpdatingRecordSetJsonFromRepository();
+                                        pushedRecordSetWithStats.put("metrics", plan.getUpdateStatsFromRepository());
+                                        responseJson(routingCtx, 200).end(pushedRecordSetWithStats.encodePrettily());
+                                      } else {
+                                        JsonObject pushedRecordSetWithStats = plan.getUpdatingRecordSetJsonFromRepository();
+                                        pushedRecordSetWithStats.put("metrics", plan.getUpdateStatsFromRepository());
+                                        pushedRecordSetWithStats.put("errors", plan.getErrorsUsingRepository());
+                                        responseJson(routingCtx, 422).end(pushedRecordSetWithStats.encodePrettily());
+                                      }
+                                    });
+                          } else {
+                            responseJson(routingCtx, 422).end("{}");
+                          }
+                        });
+      } else {
+        responseJson(routingCtx, 422).end("The incoming record set(s) had errors and were not processed " + validations);
+      }
     } else {
       responseError(routingCtx, 400,
               "InventoryBatchUpdateService expected but did not seem to receive " +

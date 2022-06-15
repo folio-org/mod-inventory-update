@@ -3,7 +3,9 @@ package org.folio.inventoryupdate;
 import java.util.ArrayList;
 import java.util.List;
 
+import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
+import io.vertx.ext.web.RoutingContext;
 import org.folio.inventoryupdate.entities.*;
 import org.folio.inventoryupdate.entities.InventoryRecord.Transaction;
 import org.folio.okapi.common.OkapiClient;
@@ -20,32 +22,44 @@ public class UpdatePlanAllHRIDs extends UpdatePlan {
 
     private static final String LF = System.lineSeparator();
 
-    private UpdatePlanAllHRIDs (InventoryRecordSet incomingInventoryRecordSet, InventoryQuery existingInstanceQuery) {
-        super(incomingInventoryRecordSet, existingInstanceQuery);
+    /**
+     * Constructs deletion plane
+     * @param existingInstanceQuery The query by which to find the instance to delete
+     */
+    private UpdatePlanAllHRIDs (InventoryQuery existingInstanceQuery) {
+        super(existingInstanceQuery);
     }
 
-    public UpdatePlanAllHRIDs (Repository repo) {
-        super(repo);
+    /**
+     * Constructs upsert plan
+     * @param repository
+     */
+    private UpdatePlanAllHRIDs (RepositoryByHrids repository) {
+        super(repository);
     }
 
-    public static UpdatePlanAllHRIDs getUpsertPlan(InventoryRecordSet incomingInventoryRecordSet) {
-        InventoryQuery queryByInstanceHrid = new QueryByHrid(incomingInventoryRecordSet.getInstanceHRID());
-        return new UpdatePlanAllHRIDs( incomingInventoryRecordSet, queryByInstanceHrid );
+    public static UpdatePlanAllHRIDs getUpsertPlan() {
+        return new UpdatePlanAllHRIDs( new RepositoryByHrids());
     }
 
     public static UpdatePlanAllHRIDs getDeletionPlan(InventoryQuery existingInstanceQuery) {
-        UpdatePlanAllHRIDs updatePlan =  new UpdatePlanAllHRIDs( null, existingInstanceQuery);
-        updatePlan.isDeletion = true;
-        return updatePlan;
+        return  new UpdatePlanAllHRIDs( existingInstanceQuery);
+    }
+
+    public UpdatePlanAllHRIDs setIncomingRecordSets(JsonArray inventoryRecordSets) {
+        repository.setIncomingRecordSets(inventoryRecordSets);
+        return this;
+    }
+
+    public Future<Void> buildRepositoryFromStorage (RoutingContext routingContext) {
+        return repository.buildRepositoryFromStorage(routingContext);
     }
 
     public UpdatePlanAllHRIDs planInventoryUpdatesUsingRepository() {
         logger.debug("Planning inventory updates using repository");
         logger.debug( "Got " + repository.getPairsOfRecordSets().size() + " pair(s)");
         try {
-            int pairs = 0;
             for (PairedRecordSets pair : repository.getPairsOfRecordSets()) {
-                pairs++;
                 planInstanceHoldingsAndItemsUsingRepository(pair);
                 planInstanceRelationsUsingRepository(pair);
             }
@@ -60,7 +74,7 @@ public class UpdatePlanAllHRIDs extends UpdatePlan {
         // Plan creates and deletes
         if (pair.hasIncomingRecordSet()) {
             // Set UUIDs for from-instance and to-instance, create provisional instance if required and possible
-            pair.getIncomingRecordSet().resolveIncomingInstanceRelationsUsingRepository(repository);
+            pair.getIncomingRecordSet().resolveIncomingInstanceRelationsUsingRepository((RepositoryByHrids) repository);
 
             // Plan storage transactions
             for (InstanceToInstanceRelation incomingRelation : pair.getIncomingRecordSet().getInstanceToInstanceRelations()) {
@@ -93,6 +107,7 @@ public class UpdatePlanAllHRIDs extends UpdatePlan {
      *
      * @return a Future to confirm that plan was created
     */
+
     @Override
     public Future<Void> planInventoryUpdates (OkapiClient okapiClient) {
         Promise<Void> promisedPlan = Promise.promise();
@@ -118,21 +133,7 @@ public class UpdatePlanAllHRIDs extends UpdatePlan {
                         }
 
                     } else {
-                        prepareTheUpdatingInstance();
-                        // Plan holdings/items updates
-                        if (foundExistingRecordSet()) {
-                            prepareUpdatesDeletesAndLocalMoves();
-                        }
-                        Future<Void> relationsFuture = getUpdatingRecordSet().prepareIncomingInstanceRelationRecords(okapiClient, getUpdatingInstance().getUUID());
-                        Future<Void> prepareNewRecordsAndImportsFuture = prepareNewRecordsAndImports(okapiClient);
-                        CompositeFuture.join(relationsFuture, prepareNewRecordsAndImportsFuture).onComplete(done -> {
-                            if (done.succeeded()) {
-                                getUpdatingRecordSet().getInstanceRelationsController().prepareInstanceRelationTransactions(updatingSet, existingSet);
-                                promisedPlan.complete();
-                            } else {
-                                promisedPlan.fail("There was a problem fetching existing relations, holdings and/or items from storage:" + LF + "  " + done.cause().getMessage());
-                            }
-                        });
+                        throw new UnsupportedOperationException("Method should only be invoked for deletes");
                     }
                 } else {
                     promisedPlan.fail("There was a problem looking for an existing instance in Inventory Storage" + lookup.cause().getMessage());

@@ -55,19 +55,22 @@ public abstract class UpdatePlan {
     // A secondary existing set that needs updating too (currently relevant only in the context of a shared index).
     protected InventoryRecordSet secondaryExistingSet;
 
-    protected final Logger logger = LoggerFactory.getLogger("inventory-update");
+    protected static final Logger logger = LoggerFactory.getLogger("inventory-update");
     protected boolean isDeletion = false;
 
     protected Repository repository;
 
+    public UpdatePlan (InventoryRecordSet incomingInventoryRecordSet, InventoryQuery existingInstanceQuery) {
+        this.updatingSet = incomingInventoryRecordSet;
+        this.instanceQuery = existingInstanceQuery;
+    }
     /**
      * Constructor for plan for creating or updating an Inventory record set
-     * @param incomingSet  The inventory record set from the request
      * @param existingInstanceQuery The query to use for checking if the instance already exists
      */
-    public UpdatePlan (InventoryRecordSet incomingSet, InventoryQuery existingInstanceQuery) {
-        this.updatingSet = incomingSet;
+    public UpdatePlan (InventoryQuery existingInstanceQuery) {
         this.instanceQuery = existingInstanceQuery;
+        this.isDeletion = true;
     }
 
     public UpdatePlan(Repository repository) {
@@ -87,6 +90,8 @@ public abstract class UpdatePlan {
     }
 
     public abstract Future<Void> planInventoryUpdates (OkapiClient client);
+
+    public abstract UpdatePlan planInventoryUpdatesUsingRepository ();
 
     public abstract Future<Void> doInventoryUpdates (OkapiClient client);
     public abstract Future<Void> doInventoryUpdatesUsingRepository (OkapiClient client);
@@ -113,17 +118,18 @@ public abstract class UpdatePlan {
     /**
      * Set transaction type and ID for the instance
      */
-    protected void prepareTheUpdatingInstance() {
-      if (foundExistingRecordSet()) {
-        getUpdatingInstance().setUUID(getExistingInstance().getUUID());
-        getUpdatingInstance().setTransition(Transaction.UPDATE);
-        getUpdatingInstance().setVersion( getExistingInstance().getVersion() );
+    protected static void prepareTheUpdatingInstance(
+            InventoryRecordSet incomingSet, InventoryRecordSet existingSet) {
+      if (existingSet != null) {
+        incomingSet.getInstance().setUUID(existingSet.getInstance().getUUID());
+        incomingSet.getInstance().setTransition(Transaction.UPDATE);
+        incomingSet.getInstance().setVersion( existingSet.getInstance().getVersion() );
       } else {
         // Use UUID on incoming record if any, otherwise generate
-        if (!getUpdatingInstance().hasUUID()) {
-          getUpdatingInstance().generateUUID();
+        if (!incomingSet.getInstance().hasUUID()) {
+          incomingSet.getInstance().generateUUID();
         }
-        getUpdatingInstance().setTransition(Transaction.CREATE);
+        incomingSet.getInstance().setTransition(Transaction.CREATE);
       }
     }
 

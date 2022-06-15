@@ -1,5 +1,8 @@
 package org.folio.inventoryupdate;
 
+import static org.folio.inventoryupdate.InventoryStorage.INSTANCES;
+import static org.folio.inventoryupdate.InventoryStorage.getOkapiClient;
+import static org.folio.inventoryupdate.entities.InventoryRecordSet.INSTANCE;
 import static org.folio.okapi.common.HttpResponse.responseError;
 import static org.folio.okapi.common.HttpResponse.responseJson;
 
@@ -9,7 +12,6 @@ import io.vertx.core.json.DecodeException;
 import io.vertx.core.json.JsonArray;
 import org.folio.inventoryupdate.entities.RecordIdentifiers;
 import org.folio.inventoryupdate.entities.InventoryRecordSet;
-import org.folio.inventoryupdate.entities.Repository;
 import org.folio.okapi.common.OkapiClient;
 
 import io.vertx.core.json.JsonObject;
@@ -47,6 +49,60 @@ public class InventoryUpdateService {
     }
   }
 
+  public void handleSharedInventoryUpsertByMatchKeyUsingRepository(RoutingContext routingContext) {
+    try {
+      if (contentTypeIsJson(routingContext)) {
+        JsonObject incomingJson = getIncomingJsonBody(routingContext);
+
+        // Fake a batch of one for now
+        JsonArray inventoryRecordSets = new JsonArray();
+        inventoryRecordSets.add(new JsonObject(incomingJson.encodePrettily()));
+
+        UpdatePlanSharedInventory plan = UpdatePlanSharedInventory.getUpsertPlan();
+        RequestValidation validations = validateIncomingRecordSets(plan, inventoryRecordSets);
+        if (validations.passed()) {
+          plan.setIncomingRecordSets(inventoryRecordSets)
+                  .buildRepositoryFromStorage(routingContext).onComplete(result -> {
+            if (result.succeeded()) {
+              plan.planInventoryUpdatesUsingRepository()
+                      .doInventoryUpdatesUsingRepository(getOkapiClient(routingContext))
+                      .onComplete(inventoryUpdated -> {
+                if (inventoryUpdated.succeeded()) {
+                  JsonObject pushedRecordSetWithStats = plan.getUpdatingRecordSetJsonFromRepository();
+                  pushedRecordSetWithStats.put("metrics", plan.getUpdateStatsFromRepository());
+                  responseJson(routingContext, 200).end(pushedRecordSetWithStats.encodePrettily());
+                } else {
+                  JsonObject pushedRecordSetWithStats = plan.getUpdatingRecordSetJsonFromRepository();
+                  pushedRecordSetWithStats.put("metrics", plan.getUpdateStatsFromRepository());
+                  pushedRecordSetWithStats.put("errors", plan.getErrorsUsingRepository());
+                  responseJson(routingContext, 422).end(pushedRecordSetWithStats.encodePrettily());
+                }
+              });
+            } else {
+              responseJson(routingContext, 422).end("{\"failed\": \"upsertByMatchKey\"}");
+            }
+          });
+        } else {
+          responseJson(routingContext, 422).end(
+                  "The incoming record set(s) had errors and were not processed " + validations);
+        }
+      }
+    } catch (NullPointerException npe) {
+      npe.printStackTrace();
+      responseJson(routingContext, 500).end(
+              "Application had a null pointer exception.");
+
+    } catch (Exception e) {
+      e.printStackTrace();
+      responseJson(routingContext, 500).end(
+              "Application had an exception: " + e.getMessage());
+
+    }
+  }
+
+
+
+
   public void handleSharedInventoryRecordSetDeleteByIdentifiers(RoutingContext routingCtx) {
     logger.debug("Handling delete request for shared index " + routingCtx.getBodyAsString());
     if (contentTypeIsJson(routingCtx)) {
@@ -57,6 +113,7 @@ public class InventoryUpdateService {
     }
   }
 
+  /*
   public void handleInventoryUpsertByHRID(RoutingContext routingCtx) {
     if (! contentTypeIsJson(routingCtx)) {
       return;
@@ -72,7 +129,8 @@ public class InventoryUpdateService {
     InventoryRecordSet incomingSet = InventoryRecordSet.makeIncomingRecordSet(incomingJson);
     UpdatePlan updatePlan = UpdatePlanAllHRIDs.getUpsertPlan(incomingSet);
     runPlan(updatePlan, routingCtx);
-}
+   }
+   */
 
   public void handleInventoryUpsertByHRIDUsingRepository(RoutingContext routingCtx) {
     if (! contentTypeIsJson(routingCtx)) {
@@ -90,19 +148,18 @@ public class InventoryUpdateService {
     JsonArray inventoryRecordSets = new JsonArray();
     inventoryRecordSets.add(new JsonObject(incomingJson.encodePrettily()));
 
-    Repository repository = new Repository();
-    UpdatePlanAllHRIDs plan = new UpdatePlanAllHRIDs(repository);
+    UpdatePlanAllHRIDs plan = UpdatePlanAllHRIDs.getUpsertPlan();
     RequestValidation validations = validateIncomingRecordSets (plan, inventoryRecordSets);
 
     if (validations.passed()) {
-      repository
+      plan
         .setIncomingRecordSets(inventoryRecordSets)
         .buildRepositoryFromStorage(routingCtx).onComplete(
             result -> {
               if (result.succeeded()) {
                 plan.planInventoryUpdatesUsingRepository()
                     .doInventoryUpdatesUsingRepository(
-                        InventoryStorage.getOkapiClient(routingCtx)).onComplete(inventoryUpdated -> {
+                        getOkapiClient(routingCtx)).onComplete(inventoryUpdated -> {
                   if (inventoryUpdated.succeeded()) {
                     JsonObject pushedRecordSetWithStats = plan.getUpdatingRecordSetJsonFromRepository();
                     pushedRecordSetWithStats.put("metrics", plan.getUpdateStatsFromRepository());
@@ -115,7 +172,7 @@ public class InventoryUpdateService {
                   }
                 });
               } else {
-                responseJson(routingCtx, 422).end("{}");
+                responseJson(routingCtx, 422).end("\"{\\\"failed\\\": \\\"upsertByHRIDs\\\"}\"");
               }
             });
           } else {
@@ -123,7 +180,7 @@ public class InventoryUpdateService {
           }
   }
 
-  public RequestValidation validateIncomingRecordSets (UpdatePlan plan, JsonArray incomingRecordSets) {
+  public static RequestValidation validateIncomingRecordSets (UpdatePlan plan, JsonArray incomingRecordSets) {
     RequestValidation validations = new RequestValidation();
     for (Object recordSetObject : incomingRecordSets) {
       RequestValidation validation = plan.validateIncomingRecordSet((JsonObject) recordSetObject);
@@ -146,7 +203,7 @@ public class InventoryUpdateService {
   //TODO: invert not-found conditions in case of deletion?
   private void runPlan(UpdatePlan updatePlan, RoutingContext routingCtx) {
 
-    OkapiClient okapiClient = InventoryStorage.getOkapiClient(routingCtx);
+    OkapiClient okapiClient = getOkapiClient(routingCtx);
     updatePlan.planInventoryUpdates(okapiClient).onComplete( planDone -> {
       if (planDone.succeeded()) {
         updatePlan.writePlanToLog();

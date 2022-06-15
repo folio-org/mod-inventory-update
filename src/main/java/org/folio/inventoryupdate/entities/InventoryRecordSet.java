@@ -351,7 +351,7 @@ public class InventoryRecordSet extends JsonRepresentation {
      * Requires that the Instance is already assigned a UUID and that the repository is loaded.
      * @param repository cache containing prefetched referenced Instances.
      */
-    public void resolveIncomingInstanceRelationsUsingRepository(Repository repository) {
+    public void resolveIncomingInstanceRelationsUsingRepository(RepositoryByHrids repository) {
         if (instanceReferences != null) {
             for (InstanceReference reference : instanceReferences.references) {
                 if (reference.hasReferenceHrid() || reference.hasReferenceUuid()) {

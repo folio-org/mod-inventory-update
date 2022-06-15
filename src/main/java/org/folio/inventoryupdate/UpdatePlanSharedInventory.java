@@ -6,11 +6,16 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
+import io.vertx.ext.web.RoutingContext;
+import org.folio.inventoryupdate.entities.Instance;
+import org.folio.inventoryupdate.entities.InventoryRecord;
+import org.folio.inventoryupdate.entities.PairedRecordSets;
 import org.folio.inventoryupdate.entities.RecordIdentifiers;
 import org.folio.inventoryupdate.entities.HoldingsRecord;
 import org.folio.inventoryupdate.entities.InventoryRecordSet;
 import org.folio.inventoryupdate.entities.Item;
 import org.folio.inventoryupdate.entities.InventoryRecord.Transaction;
+import org.folio.inventoryupdate.entities.RepositoryByMatchKey;
 import org.folio.okapi.common.OkapiClient;
 
 import io.vertx.core.Future;
@@ -29,6 +34,10 @@ public class UpdatePlanSharedInventory extends UpdatePlan {
         super(incomingSet, existingInstanceQuery);
     }
 
+    private UpdatePlanSharedInventory (RepositoryByMatchKey repository) {
+        super(repository);
+    }
+
     public static UpdatePlanSharedInventory getUpsertPlan(InventoryRecordSet incomingSet) {
         MatchKey matchKey = new MatchKey(incomingSet.getInstance().asJson());
         incomingSet.getInstance().asJson().put("matchKey", matchKey.getKey());
@@ -36,6 +45,10 @@ public class UpdatePlanSharedInventory extends UpdatePlan {
         UpdatePlanSharedInventory updatePlan = new UpdatePlanSharedInventory( incomingSet, instanceByMatchKeyQuery );
         updatePlan.shiftingMatchKeyManager = new ShiftingMatchKeyManager( incomingSet, updatePlan.secondaryExistingSet, true );
         return updatePlan;
+    }
+
+    public static UpdatePlanSharedInventory getUpsertPlan () {
+        return new UpdatePlanSharedInventory(new RepositoryByMatchKey());
     }
 
     public static UpdatePlanSharedInventory getDeletionPlan(RecordIdentifiers deletionIdentifiers) {
@@ -48,11 +61,31 @@ public class UpdatePlanSharedInventory extends UpdatePlan {
         return updatePlan;
     }
 
+    public UpdatePlanSharedInventory setIncomingRecordSets (JsonArray inventoryRecordSets) {
+        repository.setIncomingRecordSets(inventoryRecordSets);
+        return this;
+
+
+    }
+
+    public Future<Void> buildRepositoryFromStorage (RoutingContext routingContext) {
+        Promise<Void> promise = Promise.promise();
+        repository.buildRepositoryFromStorage(routingContext).onComplete(repositoryBuilt -> {
+            if (repositoryBuilt.succeeded()) {
+                promise.complete();
+            } else {
+                promise.fail(repositoryBuilt.cause().getMessage());
+            }
+        });
+        return promise.future();
+    }
+
+
     @Override
     public Future<Void> planInventoryUpdates(OkapiClient okapiClient) {
         Promise<Void> promise = Promise.promise();
         validateIncomingRecordSet(isDeletion ? new JsonObject() : updatingSet.getSourceJson());
-        logger.debug((isDeletion ? "Deletion" : "Upsert" ) + ": Look up existing record set ");
+        logger.debug((isDeletion ? "Deletion" : "Upsert" ) + ": Look up existing record set. ");
         lookupExistingRecordSet(okapiClient, instanceQuery).onComplete( lookup -> {
             if (lookup.succeeded()) {
                 this.existingSet = lookup.result();
@@ -67,11 +100,11 @@ public class UpdatePlanSharedInventory extends UpdatePlan {
                             getUpdatingRecordSet().modifyInstance(mergedInstance);
                         }
                     }
-                    mapLocationsToInstitutions(okapiClient).onComplete(handler -> {
+                    mapLocationsToInstitutions(okapiClient,updatingSet,existingSet,null).onComplete(handler -> {
                         if (handler.succeeded()) {
                             // look for abandoned matches here
                             if (isDeletion) {
-                                flagAndIdRecordsForInventoryUpdating();
+                                flagAndIdRecordsForInventoryUpdating(updatingSet,existingSet,null,isDeletion,deletionIdentifiers);
                                 promise.complete();
                             } else {
                                 shiftingMatchKeyManager
@@ -80,7 +113,8 @@ public class UpdatePlanSharedInventory extends UpdatePlan {
                                     if (previousMatchKeyLookUp.succeeded() && previousMatchKeyLookUp.result() != null) {
                                         secondaryExistingSet = previousMatchKeyLookUp.result();
                                     }
-                                    flagAndIdRecordsForInventoryUpdating();
+                                    Instance secondaryInstance = secondaryExistingSet != null ? secondaryExistingSet.getInstance() : null;
+                                    flagAndIdRecordsForInventoryUpdating(updatingSet,existingSet,secondaryInstance,isDeletion,deletionIdentifiers);
                                     promise.complete();
                                 });
                             }
@@ -96,6 +130,49 @@ public class UpdatePlanSharedInventory extends UpdatePlan {
         return promise.future();
     }
 
+    @Override
+    public UpdatePlan planInventoryUpdatesUsingRepository() {
+        logger.debug("Planning inventory updates using repository");
+        logger.debug( "Got " + repository.getPairsOfRecordSets().size() + " pair(s)");
+        try {
+            for (PairedRecordSets pair : repository.getPairsOfRecordSets()) {
+                Instance secondaryInstance = null;
+                if (pair.hasIncomingRecordSet()) {
+                    secondaryInstance = ((RepositoryByMatchKey) repository).secondaryInstancesByLocalIdentifier.get(pair.getIncomingRecordSet().getLocalIdentifier());
+                    if (secondaryInstance != null) {
+                        for (HoldingsRecord holdingsRecord : repository.existingHoldingsRecordsByInstanceId.get(secondaryInstance.getUUID()).values()) {
+                            for (Item item : repository.existingItemsByHoldingsRecordId.get(holdingsRecord.getUUID()).values()) {
+                                holdingsRecord.addItem(item);
+                            }
+                            secondaryInstance.addHoldingsRecord(holdingsRecord);
+                        }
+                    }
+                }
+                planInstanceHoldingsAndItemsUsingRepository(pair, secondaryInstance, isDeletion, deletionIdentifiers);
+            }
+        } catch (NullPointerException npe) {
+            logger.error("Null pointer in planInventoryUpdatesFromRepo");
+            npe.printStackTrace();
+        }
+        return this;
+
+    }
+
+    private static void planInstanceHoldingsAndItemsUsingRepository(
+            PairedRecordSets pair, Instance secondaryInstance, boolean deletion, RecordIdentifiers deletionIdentifiers) {
+        if (pair.hasExistingRecordSet()) {
+            JsonObject mergedInstance = mergeInstances(pair.getExistingRecordSet().getInstance().asJson(),
+                    pair.getIncomingRecordSet().getInstance().asJson());
+            pair.getIncomingRecordSet().modifyInstance(mergedInstance);
+        }
+        flagAndIdRecordsForInventoryUpdating(
+                pair.getIncomingRecordSet(),
+                pair.getExistingRecordSet(),
+                secondaryInstance,
+                deletion,
+                deletionIdentifiers);
+
+    }
 
     /**
      * In case of a delete request, build a 'updating record set' from the existing set from which records should be
@@ -172,14 +249,14 @@ public class UpdatePlanSharedInventory extends UpdatePlan {
         return false;
     }
 
-    private Future<Void> mapLocationsToInstitutions (OkapiClient okapiClient) {
+    private static Future<Void> mapLocationsToInstitutions (OkapiClient okapiClient, InventoryRecordSet incomingSet, InventoryRecordSet existingSet, Instance secondaryInstance) {
         Promise<Void> mapReady = Promise.promise();
         boolean missMappings = false;
         List<HoldingsRecord> allHoldingsRecords = new ArrayList<>();
-        if (gotUpdatingRecordSet()) allHoldingsRecords.addAll(updatingSet.getHoldingsRecords());
-        if (foundExistingRecordSet()) allHoldingsRecords.addAll(existingSet.getHoldingsRecords());
-        if (foundSecondaryExistingSet()) allHoldingsRecords.addAll( secondaryExistingSet.getHoldingsRecords() );
-        if (gotUpdatingRecordSet()) {
+        if (incomingSet != null) allHoldingsRecords.addAll(incomingSet.getHoldingsRecords());
+        if (existingSet != null) allHoldingsRecords.addAll(existingSet.getHoldingsRecords());
+        if (secondaryInstance != null) allHoldingsRecords.addAll( secondaryInstance.getHoldingsRecords() );
+        if (incomingSet != null) {
           for (HoldingsRecord record : allHoldingsRecords) {
               if (! (locationsToInstitutionsMap.containsKey(record.getPermanentLocationId()))) {
                   missMappings = true;
@@ -214,33 +291,52 @@ public class UpdatePlanSharedInventory extends UpdatePlan {
         return mapReady.future();
     }
 
-    protected void flagAndIdRecordsForInventoryUpdating () {
+    protected static void flagAndIdRecordsForInventoryUpdating (
+            InventoryRecordSet updatingSet,
+            InventoryRecordSet existingSet,
+            Instance secondaryInstance,
+            boolean deletion,
+            RecordIdentifiers deletionIdentifiers) {
       // Plan instance update/deletion
-      if (isDeletion && foundExistingRecordSet()) {
-        getUpdatingInstance().setTransition(Transaction.UPDATE);
-        flagExistingHoldingsAndItemsForDeletion();
-      } else if (!isDeletion) {
-          logger.debug("Not a deletion");
-        prepareTheUpdatingInstance();
-        if (foundExistingRecordSet() || foundSecondaryExistingSet()) {
+      if (deletion && existingSet != null) {
+        updatingSet.getInstance().setTransition(Transaction.UPDATE);
+        flagExistingHoldingsAndItemsForDeletion(updatingSet,existingSet,secondaryInstance,true,deletionIdentifiers);
+      } else if (!deletion) {
+        prepareTheUpdatingInstance(updatingSet,existingSet);
+        if (existingSet != null || secondaryInstance != null) {
           // Plan to clean out existing holdings and items
-          flagExistingHoldingsAndItemsForDeletion();
+          flagExistingHoldingsAndItemsForDeletion(updatingSet,existingSet,secondaryInstance,false,deletionIdentifiers);
         }
-        if (gotUpdatingRecordSet()) {
+        if (updatingSet != null) {
           // Plan to (re-)create holdings and items
-          flagAndIdIncomingHoldingsAndItemsForCreation();
+          flagAndIdIncomingHoldingsAndItemsForCreation(updatingSet);
         }
+      }
+      if (secondaryInstance != null) {
+        RecordIdentifiers identifiers =
+                  RecordIdentifiers.identifiersWithLocalIdentifier(
+                          null,
+                          updatingSet.getLocalIdentifierTypeId(),
+                          updatingSet.getLocalIdentifier() );
+        UpdatePlanSharedInventory.removeIdentifierFromInstanceForInstitution(
+                identifiers, secondaryInstance.asJson() );
+        secondaryInstance.setTransition( InventoryRecord.Transaction.UPDATE );
       }
     }
 
-    private void flagExistingHoldingsAndItemsForDeletion () {
-        String institutionId = (isDeletion ? deletionIdentifiers.institutionId() : updatingSet.getInstitutionIdFromArbitraryHoldingsRecord(locationsToInstitutionsMap));
+    private static void flagExistingHoldingsAndItemsForDeletion (
+            InventoryRecordSet updatingSet,
+            InventoryRecordSet existingSet,
+            Instance secondaryInstance,
+            boolean deletion,
+            RecordIdentifiers deletionIdentifiers) {
+        String institutionId = (deletion ? deletionIdentifiers.institutionId() : updatingSet.getInstitutionIdFromArbitraryHoldingsRecord(locationsToInstitutionsMap));
         List<HoldingsRecord> existingHoldingsRecords = new ArrayList<>();
-        if (foundExistingRecordSet()) {
+        if (existingSet != null) {
             existingHoldingsRecords.addAll( existingSet.getHoldingsRecords() );
         }
-        if (foundSecondaryExistingSet()) {
-            existingHoldingsRecords.addAll(secondaryExistingSet.getHoldingsRecords());
+        if (secondaryInstance != null) {
+            existingHoldingsRecords.addAll(secondaryInstance.getHoldingsRecords());
         }
         for (HoldingsRecord existingHoldingsRecord : existingHoldingsRecords) {
             if (existingHoldingsRecord.getInstitutionId(locationsToInstitutionsMap) != null
@@ -259,8 +355,8 @@ public class UpdatePlanSharedInventory extends UpdatePlan {
         }
     }
 
-    private void flagAndIdIncomingHoldingsAndItemsForCreation () {
-        for (HoldingsRecord holdingsRecord : updatingSet.getHoldingsRecords()) {
+    private static void flagAndIdIncomingHoldingsAndItemsForCreation (InventoryRecordSet incomingSet) {
+        for (HoldingsRecord holdingsRecord : incomingSet.getHoldingsRecords()) {
             if (!holdingsRecord.hasUUID()) {
                 holdingsRecord.generateUUID();
             }
@@ -302,8 +398,29 @@ public class UpdatePlanSharedInventory extends UpdatePlan {
     }
 
     @Override
-    public Future<Void> doInventoryUpdatesUsingRepository(OkapiClient client) {
-        return null;
+    public Future<Void> doInventoryUpdatesUsingRepository(OkapiClient okapiClient) {
+        logger.debug("Doing Inventory updates using repository");
+        Promise<Void> promise = Promise.promise();
+        handleDeletionsIfAnyUsingRepository(okapiClient).onComplete(deletes -> {
+            if (deletes.succeeded()) {
+                createRecordsWithDependantsUsingRepository(okapiClient).onComplete(prerequisites -> {
+                    handleInstanceAndHoldingsUpdatesIfAnyUsingRepository(okapiClient).onComplete(instanceAndHoldingsUpdates -> {
+                        handleItemUpdatesAndCreatesIfAnyUsingRepository(okapiClient).onComplete( itemUpdatesAndCreates -> {
+                            if ( prerequisites.succeeded() && instanceAndHoldingsUpdates.succeeded() && itemUpdatesAndCreates.succeeded() )
+                            {
+                                promise.complete();
+                            } else {
+                                promise.fail( "One or more errors occurred updating Inventory records" );
+                            }
+
+                        });
+                    });
+                });
+            } else {
+                promise.fail("There was a problem processing deletes - all other updates skipped." );
+            }
+        });
+        return promise.future();
     }
 
     @Override

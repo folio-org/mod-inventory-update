@@ -5,7 +5,7 @@ public class QueryShiftingMatchKey extends InventoryQuery
 {
     String matchKey;
     String identifierTypeId;
-    String localIdentifier;
+    public String localIdentifier;
 
     public QueryShiftingMatchKey(String localIdentifier, String identifierTypeId, String matchKey) {
         this.identifierTypeId = identifierTypeId;

@@ -19,6 +19,8 @@ import io.vertx.core.Promise;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 
+import static org.folio.inventoryupdate.InventoryStorage.INSTANCES;
+
 /**
  * Base class for implementing update plans
  *
@@ -70,7 +72,48 @@ public abstract class UpdatePlan {
     }
 
     public abstract UpdatePlan planInventoryUpdates();
-    public abstract Future<Void> doInventoryUpdates(OkapiClient client);
+
+    public abstract Future<Void> doInventoryUpdates(OkapiClient okapiClient);
+    /*
+    public Future<Void> doInventoryUpdates(OkapiClient okapiClient) {
+        Promise<Void> promise = Promise.promise();
+        doCreateRecordsWithDependants(okapiClient).onComplete(prerequisitesCreated -> {
+            if (prerequisitesCreated.succeeded()) {
+                doUpdateInstancesAndHoldings(okapiClient).onComplete(instancesAndHoldingsUpdated -> {
+                    doCreateInstanceRelations(okapiClient).onComplete(relationsCreated -> {
+                        doUpdateOrCreateItems(okapiClient).onComplete(itemsUpdatedAndCreated ->{
+                            if (prerequisitesCreated.succeeded() && instancesAndHoldingsUpdated.succeeded() && itemsUpdatedAndCreated.succeeded()) {
+                                doDeleteRelationsItemsHoldings(okapiClient).onComplete(deletes -> {
+                                    if (deletes.succeeded()) {
+                                        if (relationsCreated.succeeded()) {
+                                            promise.complete();
+                                        } else {
+                                            promise.fail("There was a problem creating Instance relationships: " +  relationsCreated.cause().getMessage());
+                                        }
+                                    } else {
+                                        promise.fail("There was a problem processing Inventory deletes:" + "  " + deletes.cause().getMessage());
+                                    }
+                                });
+                            } else {
+                                promise.fail("There was a problem creating records, no deletes performed if any requested:" + "  " +
+                                        (prerequisitesCreated.failed() ? prerequisitesCreated.cause().getMessage() : "")
+                                        + (instancesAndHoldingsUpdated.failed() ? " " + instancesAndHoldingsUpdated.cause().getMessage() : "")
+                                        + (itemsUpdatedAndCreated.failed() ? " " + itemsUpdatedAndCreated.cause().getMessage(): ""));
+                            }
+                        });
+                    });
+                });
+
+            } else {
+                promise.fail("Error creating Instances or holdings records");
+            }
+        });
+        return promise.future();
+    }
+
+     */
+
+    public abstract Future<Void> doCreateInstanceRelations (OkapiClient okapiClient);
 
     // DELETION
     /**
@@ -81,7 +124,9 @@ public abstract class UpdatePlan {
         this.instanceQuery = existingInstanceQuery;
         this.isDeletion = true;
     }
+
     public abstract Future<Void> planInventoryDelete(OkapiClient client);
+
     protected Future<InventoryRecordSet> lookupExistingRecordSet (OkapiClient okapiClient, InventoryQuery instanceQuery) {
         Promise<InventoryRecordSet> promise = Promise.promise();
         InventoryStorage.lookupSingleInventoryRecordSet(okapiClient, instanceQuery).onComplete( recordSet -> {
@@ -199,11 +244,11 @@ public abstract class UpdatePlan {
     /* UPDATE METHODS */
 
 
-    public Future<Void> createRecordsWithDependantsUsingRepository (OkapiClient okapiClient) {
+    public Future<Void> doCreateRecordsWithDependants(OkapiClient okapiClient) {
         Promise<Void> promise = Promise.promise();
-        createNewInstancesIfAnyUsingRepository(okapiClient).onComplete(instances -> {
+        doCreateNewInstancesInBatch(okapiClient).onComplete(instances -> {
             if (instances.succeeded()) {
-                createNewHoldingsIfAnyUsingRepository(okapiClient).onComplete(holdings -> {
+                doCreateNewHoldingsInBatch(okapiClient).onComplete(holdings -> {
                     if (holdings.succeeded()) {
                         promise.complete();
                     } else {
@@ -217,7 +262,7 @@ public abstract class UpdatePlan {
         return promise.future();
     }
 
-    public Future<Void> createNewInstancesIfAnyUsingRepository (OkapiClient okapiClient) {
+    public Future<Void> doCreateNewInstances(OkapiClient okapiClient) {
         Promise<Void> promise = Promise.promise();
         List<Future> instanceCreates = new ArrayList<>();
         for (Instance instance : repository.getInstancesToCreate()) {
@@ -233,7 +278,20 @@ public abstract class UpdatePlan {
         return promise.future();
     }
 
-    public Future<Void> createNewHoldingsIfAnyUsingRepository (OkapiClient okapiClient) {
+    public Future<Void> doCreateNewInstancesInBatch(OkapiClient okapiClient) {
+        Promise<Void> promise = Promise.promise();
+        InventoryStorage.postInstances(okapiClient, repository.getInstancesToCreate()).onComplete(
+                handler -> {
+                    if (handler.succeeded()) {
+                        promise.complete();
+                    } else {
+                        promise.fail("Failed batch creation of instances " + handler.cause().toString());
+                    }
+                });
+        return promise.future();
+    }
+
+    public Future<Void> doCreateNewHoldings(OkapiClient okapiClient) {
         Promise<Void> promise = Promise.promise();
         @SuppressWarnings("rawtypes")
         List<Future> holdingsRecordCreates = new ArrayList<>();
@@ -250,7 +308,35 @@ public abstract class UpdatePlan {
         return promise.future();
     }
 
-    public Future<Void> handleInstanceAndHoldingsUpdatesIfAnyUsingRepository(OkapiClient okapiClient) {
+    public Future<Void> doCreateNewHoldingsInBatch (OkapiClient okapiClient) {
+        Promise<Void> promise = Promise.promise();
+        InventoryStorage.postHoldingsRecords(okapiClient, repository.getHoldingsToCreate()).onComplete(
+                handler -> {
+                    if (handler.succeeded()) {
+                        promise.complete();
+                    } else {
+                        promise.fail("Failed batch creation of holdings " + handler.cause().toString());
+                    }
+                });
+        return promise.future();
+    }
+
+    public Future<Void> doUpdateInstancesAndHoldingsInBatch(OkapiClient okapiClient) {
+        Promise<Void> promise = Promise.promise();
+        List<Future> updates = new ArrayList<>();
+        updates.add(InventoryStorage.postInstances(okapiClient,repository.getInstancesToUpdate()));
+        updates.add(InventoryStorage.postHoldingsRecords(okapiClient,repository.getHoldingsToUpdate()));
+        CompositeFuture.join(updates).onComplete(handler -> {
+            if (handler.succeeded()) {
+                promise.complete();
+            } else {
+                promise.fail("Error updating instances or holdings records");
+            }
+        });
+        return promise.future();
+    }
+
+    public Future<Void> doUpdateInstancesAndHoldings(OkapiClient okapiClient) {
         Promise<Void> promise = Promise.promise();
         List<Future> updates = new ArrayList<>();
         for (Instance instance : repository.getInstancesToUpdate()) {
@@ -269,34 +355,24 @@ public abstract class UpdatePlan {
         return promise.future();
     }
 
-    /**
-     * Perform instance and holdings updates
-     * @param okapiClient client for inventory storage requests
-     */
-    public Future<Void> handleSingleInstanceUpdate(OkapiClient okapiClient) {
-        Promise<Void> promise = Promise.promise();
-        @SuppressWarnings("rawtypes")
-        List<Future> instanceAndHoldingsFutures = new ArrayList<>();
-        if (isInstanceUpdating()) {
-            instanceAndHoldingsFutures.add(InventoryStorage.putInventoryRecord(okapiClient, getUpdatingInstance()));
-        }
-        /*
-        for (HoldingsRecord holdingsRecord : holdingsToUpdate()) {
-            instanceAndHoldingsFutures.add(InventoryStorage.putInventoryRecord(okapiClient, holdingsRecord));
-        }
-        */
-        CompositeFuture.join(instanceAndHoldingsFutures).onComplete ( allDone -> {
-            if (allDone.succeeded()) {
-                promise.complete();
-            } else {
-                promise.fail("Failed to update some non-prerequisite records: " + allDone.cause().getMessage());
-            }
-        });
 
+    public Future<Void> doUpdateOrCreateItemsInBatch(OkapiClient okapiClient) {
+        Promise<Void> promise = Promise.promise();
+        List<Item> itemsToUpdateOrCreate = new ArrayList<>();
+        itemsToUpdateOrCreate.addAll(repository.getItemsToUpdate());
+        itemsToUpdateOrCreate.addAll(repository.getItemsToCreate());
+        InventoryStorage.postItems(okapiClient, itemsToUpdateOrCreate).onComplete(
+                handler -> {
+                    if (handler.succeeded()) {
+                        promise.complete();
+                    } else {
+                        promise.fail("Failed batch creation of holdings " + handler.cause().toString());
+                    }
+                });
         return promise.future();
     }
 
-    public Future<Void> handleItemUpdatesAndCreatesIfAnyUsingRepository (OkapiClient okapiClient) {
+    public Future<Void> doUpdateOrCreateItems(OkapiClient okapiClient) {
         Promise<Void> promise = Promise.promise();
         List<Future> itemFutures = new ArrayList<>();
         for (Item item: repository.getItemsToUpdate()) {
@@ -316,7 +392,7 @@ public abstract class UpdatePlan {
         return promise.future();
     }
 
-    public Future<Void> handleDeletionsIfAnyUsingRepository (OkapiClient okapiClient) {
+    public Future<Void> doDeleteRelationsItemsHoldings(OkapiClient okapiClient) {
         Promise<Void> promise = Promise.promise();
         List<Future> deleteRelationsDeleteItems = new ArrayList<>();
         for (InstanceToInstanceRelation relation : repository.getInstanceRelationsToDelete()) {
@@ -333,17 +409,7 @@ public abstract class UpdatePlan {
                 }
                 CompositeFuture.join(deleteHoldingsRecords).onComplete( holdingsDeleted -> {
                     if (holdingsDeleted.succeeded()) {
-                        if (isInstanceDeleting()) {
-                            InventoryStorage.deleteInventoryRecord(okapiClient, getExistingRecordSet().getInstance()).onComplete( handler -> {
-                                if (handler.succeeded()) {
-                                    promise.complete();
-                                } else {
-                                    promise.fail("Failed to delete instance: " + handler.cause().getMessage());
-                                }
-                            });
-                        } else {
-                            promise.complete();
-                        }
+                        promise.complete();
                     } else {
                         promise.fail("There was a problem deleting holdings record(s): " + holdingsDeleted.cause().getMessage());
                     }
@@ -356,6 +422,29 @@ public abstract class UpdatePlan {
         return promise.future();
 
     }
+
+    /**
+     * Perform instance and holdings updates
+     * @param okapiClient client for inventory storage requests
+     */
+    public Future<Void> handleSingleInstanceUpdate(OkapiClient okapiClient) {
+        Promise<Void> promise = Promise.promise();
+        @SuppressWarnings("rawtypes")
+        List<Future> instanceAndHoldingsFutures = new ArrayList<>();
+        if (isInstanceUpdating()) {
+            instanceAndHoldingsFutures.add(InventoryStorage.putInventoryRecord(okapiClient, getUpdatingInstance()));
+        }
+        CompositeFuture.join(instanceAndHoldingsFutures).onComplete ( allDone -> {
+            if (allDone.succeeded()) {
+                promise.complete();
+            } else {
+                promise.fail("Failed to update some non-prerequisite records: " + allDone.cause().getMessage());
+            }
+        });
+
+        return promise.future();
+    }
+
     /**
      * Perform deletions of any relations to other instances and
      * deletions of items, holdings records, instance (if any and in that order)

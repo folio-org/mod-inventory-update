@@ -8,11 +8,14 @@ import java.util.Map;
 import io.vertx.core.impl.logging.Logger;
 import io.vertx.core.impl.logging.LoggerFactory;
 import io.vertx.ext.web.RoutingContext;
+import org.folio.inventoryupdate.entities.HoldingsRecord;
+import org.folio.inventoryupdate.entities.Instance;
 import org.folio.inventoryupdate.entities.InstanceRelations;
 import org.folio.inventoryupdate.entities.InventoryRecord;
 import org.folio.inventoryupdate.entities.InventoryRecord.Entity;
 import org.folio.inventoryupdate.entities.InventoryRecord.Transaction;
 import org.folio.inventoryupdate.entities.InventoryRecordSet;
+import org.folio.inventoryupdate.entities.Item;
 import org.folio.okapi.common.OkapiClient;
 
 import io.vertx.core.CompositeFuture;
@@ -30,10 +33,13 @@ public class InventoryStorage {
 
   private static final Logger logger = LoggerFactory.getLogger("inventory-update");
   private static final String INSTANCE_STORAGE_PATH = "/instance-storage/instances";
+  public static final String INSTANCE_STORAGE_BATCH_PATH = "/instance-storage/batch/synchronous";
   private static final String INSTANCE_RELATIONSHIP_STORAGE_PATH = "/instance-storage/instance-relationships";
   private static final String PRECEDING_SUCCEEDING_TITLE_STORAGE_PATH = "/preceding-succeeding-titles";
   private static final String HOLDINGS_STORAGE_PATH = "/holdings-storage/holdings";
+  public static final String HOLDINGS_STORAGE_BATCH_PATH = "/holdings-storage/batch/synchronous";
   private static final String ITEM_STORAGE_PATH = "/item-storage/items";
+  public static final String ITEM_STORAGE_BATCH_PATH = "/item-storage/batch/synchronous";
   private static final String LOCATION_STORAGE_PATH = "/locations";
 
   // Property keys, JSON responses
@@ -63,6 +69,52 @@ public class InventoryStorage {
       }
     });
     return promise.future();
+  }
+
+  public static Future<JsonObject> postInstances(OkapiClient okapiClient, List<Instance> records) {
+    return postInventoryRecords(okapiClient, new ArrayList<>(records), INSTANCES);
+  }
+
+  public static Future<JsonObject> postHoldingsRecords (OkapiClient okapiClient, List<HoldingsRecord> records) {
+    return postInventoryRecords(okapiClient, new ArrayList<>(records), HOLDINGS_RECORDS);
+  }
+
+  public static Future<JsonObject> postItems (OkapiClient okapiClient, List<Item> records) {
+    return postInventoryRecords(okapiClient, new ArrayList<>(records), ITEMS);
+  }
+
+  private static Future<JsonObject> postInventoryRecords (OkapiClient okapiClient, List<InventoryRecord> records, String arrayName) {
+    Promise<JsonObject> promise = Promise.promise();
+    JsonObject request = new JsonObject();
+    request.put(arrayName, jsonArrayFromInventoryRecordList(records));
+    logger.info("Posting request: " + request.encodePrettily() + " to " + getBatchApi(arrayName));
+    okapiClient.post(getBatchApi(arrayName), request.encode(), postResult -> {
+      if (postResult.succeeded()) {
+        String result = postResult.result();
+        JsonObject responseJson = new JsonObject(result);
+        for (InventoryRecord record : records) {
+          record.complete();
+        }
+        promise.complete(responseJson);
+      } else {
+        for (InventoryRecord record : records) {
+          record.fail();
+          record.skipDependants();
+          record.logError(okapiClient.getResponsebody(), okapiClient.getStatusCode());
+        }
+        promise.fail(records.get(0).getError().encodePrettily());
+      }
+    });
+    return promise.future();
+  }
+
+  private static JsonArray jsonArrayFromInventoryRecordList (List<InventoryRecord> records) {
+    JsonArray array = new JsonArray();
+    for (InventoryRecord record : records) {
+      array.add(record.asJson());
+    }
+    logger.info("Created JSON array to POST: " + array.encodePrettily());
+    return array;
   }
 
   public static Future<JsonObject> putInventoryRecord (OkapiClient okapiClient, InventoryRecord record) {
@@ -382,8 +434,6 @@ public class InventoryStorage {
       case ITEM:
         api = ITEM_STORAGE_PATH;
         break;
-      case LOCATION:
-        break;
       case INSTANCE_RELATIONSHIP:
         api = INSTANCE_RELATIONSHIP_STORAGE_PATH;
         break;
@@ -395,6 +445,24 @@ public class InventoryStorage {
     }
     return api;
   }
+  private static String getBatchApi(String entityArrayName) {
+    String api = "";
+    switch (entityArrayName) {
+      case INSTANCES:
+        api = INSTANCE_STORAGE_BATCH_PATH;
+        break;
+      case HOLDINGS_RECORDS:
+        api = HOLDINGS_STORAGE_BATCH_PATH;
+        break;
+      case ITEMS:
+        api = ITEM_STORAGE_BATCH_PATH;
+        break;
+      default:
+        break;
+    }
+    return api;
+  }
+
 
   private static String queryUri(String path, InventoryQuery inventoryQuery) {
     return path + "?query=" + inventoryQuery.getURLEncodedQueryString();

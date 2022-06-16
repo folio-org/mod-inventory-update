@@ -18,6 +18,10 @@ public class FakeInventoryStorage {
     public static final String ITEM_STORAGE_PATH = "/item-storage/items";
     public static final String LOCATION_STORAGE_PATH = "/locations";
 
+    public static final String INSTANCE_STORAGE_BATCH_PATH = "/instance-storage/batch/synchronous";
+    public static final String HOLDINGS_STORAGE_BATCH_PATH = "/holdings-storage/batch/synchronous";
+    public static final String ITEM_STORAGE_BATCH_PATH = "/item-storage/batch/synchronous";
+
     public static final String RESULT_SET_INSTANCES = "instances";
     public static final String RESULT_SET_HOLDINGS_RECORDS = "holdingsRecords";
     public static final String RESULT_SET_ITEMS = "items";
@@ -54,9 +58,12 @@ public class FakeInventoryStorage {
         router.post(LOCATION_STORAGE_PATH).handler(locationStorage::createRecord);
         router.post(INSTANCE_STORAGE_PATH).handler(instanceStorage::createRecord);
         router.post(HOLDINGS_STORAGE_PATH).handler(holdingsStorage::createRecord);
+        router.post(HOLDINGS_STORAGE_BATCH_PATH).handler(holdingsStorage::upsertRecords);
         router.post(ITEM_STORAGE_PATH).handler(itemStorage::createRecord);
+        router.post(ITEM_STORAGE_BATCH_PATH).handler(itemStorage::upsertRecords);
         router.post(INSTANCE_RELATIONSHIP_STORAGE_PATH).handler(instanceRelationshipStorage::createRecord);
         router.post(PRECEDING_SUCCEEDING_TITLE_STORAGE_PATH).handler(precedingSucceedingStorage::createRecord);
+        router.post(INSTANCE_STORAGE_BATCH_PATH).handler(instanceStorage::upsertRecords);
         router.put("/*").handler(BodyHandler.create());
         router.put(LOCATION_STORAGE_PATH + "/:id").handler(locationStorage::updateRecord);
         router.put(INSTANCE_STORAGE_PATH + "/:id").handler(instanceStorage::updateRecord);
@@ -69,6 +76,7 @@ public class FakeInventoryStorage {
         router.delete(INSTANCE_RELATIONSHIP_STORAGE_PATH + "/:id").handler(instanceRelationshipStorage::deleteRecord);
         router.delete(PRECEDING_SUCCEEDING_TITLE_STORAGE_PATH + "/:id").handler(precedingSucceedingStorage::deleteRecord);
         router.delete(LOCATION_STORAGE_PATH).handler(locationStorage::deleteAll);
+
         HttpServerOptions so = new HttpServerOptions().setHandle100ContinueAutomatically(true);
         vertx.createHttpServer(so)
                 .requestHandler(router)

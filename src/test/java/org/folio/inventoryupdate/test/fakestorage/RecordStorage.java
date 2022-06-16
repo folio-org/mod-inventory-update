@@ -51,7 +51,6 @@ public abstract class RecordStorage {
         }
         if (!record.hasId()) {
             record.generateId();
-
         }
         if (records.containsKey(record.getId())) {
             logger.error("Fake record storage already contains a record with id " + record.getId() + ", cannot create " + record.getJson().encodePrettily());
@@ -94,6 +93,22 @@ public abstract class RecordStorage {
         }
         records.put(id, record);
         return 204;
+    }
+
+    protected void rollback (UUID transaction) {
+        for (InventoryRecord record : records.values()) {
+            if (record.transactionIs(transaction)) {
+                records.remove(record);
+            }
+        }
+    }
+
+    protected void commit (UUID transaction) {
+        for (InventoryRecord record : records.values()) {
+            if (record.transactionIs(transaction)) {
+                record.setTransaction(null);
+            }
+        }
     }
 
     protected int delete (String id) {
@@ -226,12 +241,23 @@ public abstract class RecordStorage {
      */
     protected void createRecord(RoutingContext routingContext) {
         JsonObject recordJson = new JsonObject(routingContext.getBodyAsString());
-        StorageResponse response = insert(new InventoryRecord(recordJson)); // provide STORAGE_NAME to tailor error responses
+        StorageResponse response = insert(new InventoryRecord(recordJson));
         if (response.statusCode == 201) {
             respond(routingContext, recordJson, response.statusCode);
         } else {
             respondWithMessage(routingContext, response.responseBody, response.statusCode);
         }
+    }
+
+    protected boolean createRecordFromBatch(RoutingContext routingContext, InventoryRecord record, UUID transaction) {
+        record.setTransaction(transaction);
+        StorageResponse response = insert(record);
+        if (response.statusCode != 201) {
+            rollback(transaction);
+            respondWithMessage(routingContext, response.responseBody, response.statusCode);
+            return false;
+        }
+        return true;
     }
 
     /**
@@ -249,7 +275,36 @@ public abstract class RecordStorage {
         }
     }
 
+    protected boolean updateRecordFromBatch(RoutingContext routingContext, InventoryRecord record, UUID transaction) {
+        record.setTransaction(transaction);
+        int code = update(record.getId(), record);
+        if (! (code == 204)) {
+            rollback(transaction);
+            respondWithMessage(routingContext, (failOnUpdate ? "Forced " : "") + "Error updating record in " + STORAGE_NAME, code);
+            return false;
+        }
+        return true;
+    }
 
+    protected void upsertRecords (RoutingContext routingContext) {
+        UUID transaction = UUID.randomUUID();
+        JsonObject requestJson = new JsonObject(routingContext.getBodyAsString());
+        JsonArray recordsJson = requestJson.getJsonArray(getResultSetName());
+        boolean success = true;
+        for (Object o : recordsJson) {
+            InventoryRecord record = new InventoryRecord((JsonObject) o);
+            if (hasId(record.getId())) {
+                success = updateRecordFromBatch(routingContext, record, transaction);
+            } else {
+                success = createRecordFromBatch(routingContext, record, transaction);
+            }
+            if (!success) break;
+        }
+        if (success) {
+            commit(transaction);
+            respond(routingContext, requestJson, 201);
+        }
+    }
     // HELPERS FOR RESPONSE PROCESSING
 
     private JsonObject buildJsonRecordsResponse(String optionalQuery) {
@@ -321,9 +376,9 @@ public abstract class RecordStorage {
 
     public static class ForeignKey {
 
-        private RecordStorage dependentStorage;
-        private String dependentPropertyName;
-        private RecordStorage masterStorage;
+        private final RecordStorage dependentStorage;
+        private final String dependentPropertyName;
+        private final RecordStorage masterStorage;
 
         public ForeignKey (RecordStorage dependentStorage, String dependentPropertyName, RecordStorage masterStorage) {
             this.dependentStorage = dependentStorage;

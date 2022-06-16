@@ -120,7 +120,7 @@ public class UpdatePlanSharedInventory extends UpdatePlan {
                         }
                     }
                 }
-                planInstanceHoldingsAndItemsUsingRepository(pair, secondaryInstance, isDeletion, deletionIdentifiers);
+                planInstanceHoldingsAndItems(pair, secondaryInstance, isDeletion, deletionIdentifiers);
             }
         } catch (NullPointerException npe) {
             logger.error("Null pointer in planInventoryUpdatesFromRepo");
@@ -130,7 +130,7 @@ public class UpdatePlanSharedInventory extends UpdatePlan {
 
     }
 
-    private static void planInstanceHoldingsAndItemsUsingRepository(
+    private static void planInstanceHoldingsAndItems(
             PairedRecordSets pair, Instance secondaryInstance, boolean deletion, RecordIdentifiers deletionIdentifiers) {
         if (pair.hasExistingRecordSet()) {
             JsonObject mergedInstance = mergeInstances(pair.getExistingRecordSet().getInstance().asJson(),
@@ -366,22 +366,27 @@ public class UpdatePlanSharedInventory extends UpdatePlan {
         return promise.future();
     }
 
-    @Override
+    public Future<Void> doCreateInstanceRelations(OkapiClient okapiClient) {
+        return Future.succeededFuture();
+    }
+
     public Future<Void> doInventoryUpdates(OkapiClient okapiClient) {
         logger.debug("Doing Inventory updates using repository");
         Promise<Void> promise = Promise.promise();
-        handleDeletionsIfAnyUsingRepository(okapiClient).onComplete(deletes -> {
+        doDeleteRelationsItemsHoldings(okapiClient).onComplete(deletes -> {
             if (deletes.succeeded()) {
-                createRecordsWithDependantsUsingRepository(okapiClient).onComplete(prerequisites -> {
-                    handleInstanceAndHoldingsUpdatesIfAnyUsingRepository(okapiClient).onComplete(instanceAndHoldingsUpdates -> {
-                        handleItemUpdatesAndCreatesIfAnyUsingRepository(okapiClient).onComplete( itemUpdatesAndCreates -> {
-                            if ( prerequisites.succeeded() && instanceAndHoldingsUpdates.succeeded() && itemUpdatesAndCreates.succeeded() )
-                            {
-                                promise.complete();
-                            } else {
-                                promise.fail( "One or more errors occurred updating Inventory records" );
-                            }
+                doCreateRecordsWithDependants(okapiClient).onComplete(prerequisites -> {
+                    doUpdateInstancesAndHoldingsInBatch(okapiClient).onComplete(instanceAndHoldingsUpdates -> {
+                        doCreateInstanceRelations(okapiClient).onComplete(relationsCreated -> {
+                            doUpdateOrCreateItemsInBatch(okapiClient).onComplete(itemUpdatesAndCreates -> {
+                                if (prerequisites.succeeded() && instanceAndHoldingsUpdates.succeeded() && itemUpdatesAndCreates.succeeded()) {
+                                    promise.complete();
+                                } else {
+                                    promise.fail(
+                                            "One or more errors occurred updating Inventory records");
+                                }
 
+                            });
                         });
                     });
                 });

@@ -1878,8 +1878,8 @@ public class InventoryUpdateTestSuite {
     JsonObject upsertResponseJson = new JsonObject(upsertResponse.getBody().asString());
     testContext.assertTrue(upsertResponseJson.containsKey("errors"),
             "After upsert with holdings record with bad location id, the response should contain error reports");
-    testContext.assertEquals(getMetric(upsertResponseJson, HOLDINGS_RECORD, CREATE , FAILED), 1,
-            "Upsert metrics response should report [1] holdings records update failure for wrong location ID " + upsertResponseJson.encodePrettily());
+    testContext.assertEquals(getMetric(upsertResponseJson, HOLDINGS_RECORD, CREATE , FAILED), 2,
+            "Upsert metrics response should report [2] holdings records create failure for wrong location ID on one of them (whole batch fails) " + upsertResponseJson.encodePrettily());
   }
 
   @Test

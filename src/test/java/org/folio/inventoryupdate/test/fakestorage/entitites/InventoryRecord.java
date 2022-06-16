@@ -13,6 +13,8 @@ public class InventoryRecord {
     public static final String VERSION = "_version";
     protected JsonObject recordJson;
 
+    public UUID transaction;
+
     private Logger logger = io.vertx.core.impl.logging.LoggerFactory.getLogger("InventoryRecord");
 
     public InventoryRecord() {
@@ -22,6 +24,7 @@ public class InventoryRecord {
     public InventoryRecord(JsonObject record) {
         recordJson = record;
     }
+
 
     public JsonObject getJson() {
         return recordJson;
@@ -57,6 +60,17 @@ public class InventoryRecord {
     public InventoryRecord setVersion (Integer version) {
         recordJson.put( VERSION,  version);
         return this;
+    }
+
+    public void setTransaction (UUID transaction) {
+        this.transaction = transaction;
+    }
+
+    public boolean transactionIs(UUID transaction) {
+        return (inTransaction() && this.transaction.equals(transaction));
+    }
+    public boolean inTransaction() {
+        return transaction != null;
     }
 
     public boolean match(String query) {

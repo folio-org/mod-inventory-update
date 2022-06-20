@@ -151,6 +151,51 @@ public class InventoryUpdateTestSuite {
   }
 
   @Test
+  public void batchUpsertByMatchKeyWillCreateNewInstance (TestContext testContext) {
+    createInitialInstanceWithMatchKey();
+    InputInstance instance = new InputInstance()
+            .setTitle("New title")
+            .setInstanceTypeId("12345");
+    MatchKey matchKey = new MatchKey(instance.getJson());
+    instance.setMatchKeyAsString(matchKey.getKey());
+    BatchOfInventoryRecordSets batch = new BatchOfInventoryRecordSets().addRecordSet(new InventoryRecordSet(instance));
+    logger.info(batch.getJson().encodePrettily());
+
+    JsonObject instancesBeforePutJson = getRecordsFromStorage(FakeInventoryStorage.INSTANCE_STORAGE_PATH, "matchKey==\"" + matchKey.getKey() + "\"");
+    testContext.assertEquals(instancesBeforePutJson.getInteger("totalRecords"), 0,
+            "Number of instance records for query by matchKey 'new_title___(etc)' before PUT expected: 0" );
+
+    batchUpsertByMatchKey(batch.getJson());
+
+    JsonObject instancesAfterPutJson = getRecordsFromStorage(FakeInventoryStorage.INSTANCE_STORAGE_PATH, "matchKey==\"" + matchKey.getKey() + "\"");
+    testContext.assertEquals(instancesAfterPutJson.getInteger("totalRecords"), 1,
+            "Number of instance records for query by matchKey 'new_title' after PUT expected: 1" );
+
+  }
+
+  @Test
+  public void batchUpsertByMatchKeyWillCreateXNewInstances (TestContext testContext) {
+    createInitialInstanceWithMatchKey();
+    BatchOfInventoryRecordSets batch = new BatchOfInventoryRecordSets();
+    for (int i=0; i<5; i++) {
+      InputInstance instance = new InputInstance()
+              .setTitle("New title " + i)
+              .setInstanceTypeId("12345");
+      MatchKey matchKey = new MatchKey(instance.getJson());
+      instance.setMatchKeyAsString(matchKey.getKey());
+      batch.addRecordSet(new InventoryRecordSet(instance));
+    }
+    JsonObject instancesBeforePutJson = getRecordsFromStorage(FakeInventoryStorage.INSTANCE_STORAGE_PATH, null);
+    testContext.assertEquals(instancesBeforePutJson.getInteger("totalRecords"), 1,
+            "Number of instance records for before PUT expected: 1" );
+    batchUpsertByMatchKey(batch.getJson());
+    JsonObject instancesAfterPutJson = getRecordsFromStorage(FakeInventoryStorage.INSTANCE_STORAGE_PATH, null);
+    testContext.assertEquals(instancesAfterPutJson.getInteger("totalRecords"), 6,
+            "Number of instance records after PUT expected: 6" );
+
+  }
+
+  @Test
   public void upsertByMatchKeyWithMultipleMatchKeyPartsWillCreateNewInstance (TestContext testContext) {
     final String GOV_DOC_NUMBER_TYPE = "9075b5f8-7d97-49e1-a431-73fdd468d476";
     createInitialInstanceWithMatchKey();
@@ -2255,8 +2300,16 @@ public class InventoryUpdateTestSuite {
     return putJsonObject(MainVerticle.SHARED_INVENTORY_UPSERT_MATCHKEY_PATH, inventoryRecordSet, expectedStatusCode);
   }
 
+  private JsonObject batchUpsertByMatchKey(JsonObject batchOfInventoryRecordSets) {
+    return putJsonObject(MainVerticle.SHARED_INVENTORY_BATCH_UPSERT_MATCHKEY_PATH, batchOfInventoryRecordSets);
+  }
+
   private JsonObject upsertByHrid (JsonObject inventoryRecordSet) {
     return putJsonObject(MainVerticle.INVENTORY_UPSERT_HRID_PATH, inventoryRecordSet);
+  }
+
+  private JsonObject batchUpsertByHrid (JsonObject batchOfInventoryRecordSets) {
+    return putJsonObject(MainVerticle.INVENTORY_BATCH_UPSERT_HRID_PATH, batchOfInventoryRecordSets);
   }
 
   private JsonObject fetchRecordSetFromUpsertHrid (String hridOrUuid) {

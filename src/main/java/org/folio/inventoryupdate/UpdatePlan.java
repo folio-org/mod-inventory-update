@@ -498,36 +498,37 @@ public abstract class UpdatePlan {
     }
 
     public JsonObject getUpdatingRecordSetJsonFromRepository () {
-        return repository.getPairsOfRecordSets().get(0).hasIncomingRecordSet() ?
-                repository.getPairsOfRecordSets().get(0).getIncomingRecordSet().asJson() : new JsonObject();
+        return (repository.getPairsOfRecordSets().size() == 1
+                && repository.getPairsOfRecordSets().get(0).hasIncomingRecordSet()) ?
+                repository.getPairsOfRecordSets().get(0).getIncomingRecordSet().asJson()
+                : new JsonObject();
     }
 
     public JsonObject getUpdateStatsFromRepository() {
         UpdateMetrics metrics = new UpdateMetrics();
-        if (repository.getPairsOfRecordSets().get(0).hasIncomingRecordSet()) {
-            InventoryRecordSet updatingSet = repository.getPairsOfRecordSets().get(0).getIncomingRecordSet();
-            Instance updatingInstance = repository.getPairsOfRecordSets().get(0).getIncomingRecordSet().getInstance();
-            metrics.entity(Entity.INSTANCE).transaction(updatingInstance.getTransaction()).outcomes.increment(updatingInstance.getOutcome());
-            List<InventoryRecord> holdingsRecordsAndItemsInUpdatingSet = Stream.of(
-                    updatingSet.getHoldingsRecords(),
-                    updatingSet.getItems())
-                    .flatMap(Collection::stream).collect(Collectors.toList());
-            for (InventoryRecord record : holdingsRecordsAndItemsInUpdatingSet) {
-                metrics.entity(record.entityType()).transaction(record.getTransaction()).outcomes.increment(record.getOutcome());
-            }
-            if (! updatingSet.getInstanceToInstanceRelations().isEmpty()) {
-                for ( InstanceToInstanceRelation record : updatingSet.getInstanceToInstanceRelations() ) {
-                    if ( !record.getTransaction().equals( InventoryRecord.Transaction.NONE ) ) {
-                        if (record.getTransaction().equals(Transaction.UNKNOWN)) {
-                            logger.debug("Cannot increment outcome for transaction UNKNOWN");
-                        } else {
-                            metrics.entity(record.entityType()).transaction(record.getTransaction()).outcomes.increment(
-                                    record.getOutcome());
-                            if (record.getProvisionalInstance() != null) {
-                                ( (UpdateMetrics.InstanceRelationsMetrics) metrics
-                                        .entity(record.entityType()) )
-                                        .provisionalInstanceMetrics.increment(
-                                        record.getProvisionalInstance().getOutcome());
+        for (PairedRecordSets pair : repository.getPairsOfRecordSets()) {
+            if (pair.hasIncomingRecordSet()) {
+                InventoryRecordSet updatingSet = pair.getIncomingRecordSet();
+                Instance updatingInstance = pair.getIncomingRecordSet().getInstance();
+                metrics.entity(Entity.INSTANCE).transaction(updatingInstance.getTransaction()).outcomes.increment(
+                        updatingInstance.getOutcome());
+                List<InventoryRecord> holdingsRecordsAndItemsInUpdatingSet = Stream.of(updatingSet.getHoldingsRecords(),
+                        updatingSet.getItems()).flatMap(Collection::stream).collect(Collectors.toList());
+                for (InventoryRecord record : holdingsRecordsAndItemsInUpdatingSet) {
+                    metrics.entity(record.entityType()).transaction(record.getTransaction()).outcomes.increment(record.getOutcome());
+                }
+                if (!updatingSet.getInstanceToInstanceRelations().isEmpty()) {
+                    for (InstanceToInstanceRelation record : updatingSet.getInstanceToInstanceRelations()) {
+                        if (!record.getTransaction().equals(InventoryRecord.Transaction.NONE)) {
+                            if (record.getTransaction().equals(Transaction.UNKNOWN)) {
+                                logger.debug("Cannot increment outcome for transaction UNKNOWN");
+                            } else {
+                                metrics.entity(record.entityType()).transaction(record.getTransaction()).outcomes.increment(
+                                        record.getOutcome());
+                                if (record.getProvisionalInstance() != null) {
+                                    ( (UpdateMetrics.InstanceRelationsMetrics) metrics.entity(record.entityType()) ).provisionalInstanceMetrics.increment(
+                                            record.getProvisionalInstance().getOutcome());
+                                }
                             }
                         }
                     }

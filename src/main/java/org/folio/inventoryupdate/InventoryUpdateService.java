@@ -33,6 +33,21 @@ public class InventoryUpdateService {
     responseJson(routingContext, 200).end("{ \"status\": \"UP\" }");
   }
 
+  public void handleSharedInventoryUpsertByMatchKeyBatch(RoutingContext routingContext) {
+    long start = System.currentTimeMillis();
+    JsonObject requestJson = routingContext.getBodyAsJson();
+    if (requestJson.containsKey("inventoryRecordSets")) {
+      JsonArray inventoryRecordSets = requestJson.getJsonArray("inventoryRecordSets");
+      sharedInventoryUpsertByMatchKeyBatch(routingContext, inventoryRecordSets);
+    } else {
+      responseError(routingContext, 400,
+              "InventoryBatchUpdateService expected but did not seem to receive " +
+                      "a batch of Inventory record sets");
+    }
+  }
+
+
+
   public void handleSharedInventoryUpsertByMatchKey(RoutingContext routingContext) {
     try {
       if (contentTypeIsJson(routingContext)) {
@@ -41,35 +56,7 @@ public class InventoryUpdateService {
         // Fake a batch of one for now
         JsonArray inventoryRecordSets = new JsonArray();
         inventoryRecordSets.add(new JsonObject(incomingJson.encodePrettily()));
-
-        UpdatePlanSharedInventory plan = UpdatePlanSharedInventory.getUpsertPlan();
-        RequestValidation validations = validateIncomingRecordSets(plan, inventoryRecordSets);
-        if (validations.passed()) {
-          plan.setIncomingRecordSets(inventoryRecordSets)
-                  .buildRepositoryFromStorage(routingContext).onComplete(result -> {
-            if (result.succeeded()) {
-              plan.planInventoryUpdates()
-                      .doInventoryUpdates(getOkapiClient(routingContext))
-                      .onComplete(inventoryUpdated -> {
-                if (inventoryUpdated.succeeded()) {
-                  JsonObject pushedRecordSetWithStats = plan.getUpdatingRecordSetJsonFromRepository();
-                  pushedRecordSetWithStats.put("metrics", plan.getUpdateStatsFromRepository());
-                  responseJson(routingContext, 200).end(pushedRecordSetWithStats.encodePrettily());
-                } else {
-                  JsonObject pushedRecordSetWithStats = plan.getUpdatingRecordSetJsonFromRepository();
-                  pushedRecordSetWithStats.put("metrics", plan.getUpdateStatsFromRepository());
-                  pushedRecordSetWithStats.put("errors", plan.getErrorsUsingRepository());
-                  responseJson(routingContext, 422).end(pushedRecordSetWithStats.encodePrettily());
-                }
-              });
-            } else {
-              responseJson(routingContext, 422).end("{\"failed\": \"upsertByMatchKey\"}");
-            }
-          });
-        } else {
-          responseJson(routingContext, 422).end(
-                  "The incoming record set(s) had errors and were not processed " + validations);
-        }
+        sharedInventoryUpsertByMatchKeyBatch(routingContext, inventoryRecordSets);
       }
     } catch (NullPointerException npe) {
       npe.printStackTrace();
@@ -84,6 +71,36 @@ public class InventoryUpdateService {
     }
   }
 
+  private void sharedInventoryUpsertByMatchKeyBatch(RoutingContext routingContext, JsonArray inventoryRecordSets) {
+      UpdatePlanSharedInventory plan = UpdatePlanSharedInventory.getUpsertPlan();
+      RequestValidation validations = validateIncomingRecordSets(plan, inventoryRecordSets);
+      if (validations.passed()) {
+        plan.setIncomingRecordSets(inventoryRecordSets)
+                .buildRepositoryFromStorage(routingContext).onComplete(result -> {
+                  if (result.succeeded()) {
+                    plan.planInventoryUpdates()
+                            .doInventoryUpdates(getOkapiClient(routingContext))
+                            .onComplete(inventoryUpdated -> {
+                              if (inventoryUpdated.succeeded()) {
+                                JsonObject pushedRecordSetWithStats = plan.getUpdatingRecordSetJsonFromRepository();
+                                pushedRecordSetWithStats.put("metrics", plan.getUpdateStatsFromRepository());
+                                responseJson(routingContext, 200).end(pushedRecordSetWithStats.encodePrettily());
+                              } else {
+                                JsonObject pushedRecordSetWithStats = plan.getUpdatingRecordSetJsonFromRepository();
+                                pushedRecordSetWithStats.put("metrics", plan.getUpdateStatsFromRepository());
+                                pushedRecordSetWithStats.put("errors", plan.getErrorsUsingRepository());
+                                responseJson(routingContext, 422).end(pushedRecordSetWithStats.encodePrettily());
+                              }
+                            });
+                  } else {
+                    responseJson(routingContext, 422).end("{\"failed\": \"upsertByMatchKey\"}");
+                  }
+                });
+      } else {
+        responseJson(routingContext, 422).end(
+                "The incoming record set(s) had errors and were not processed " + validations);
+      }
+  }
 
 
 
@@ -95,6 +112,19 @@ public class InventoryUpdateService {
       UpdatePlan updatePlan = UpdatePlanSharedInventory.getDeletionPlan(deletionIdentifiers);
       runDeletionPlan(updatePlan, routingCtx);
     }
+  }
+
+  public void handleInventoryUpsertByHRIDBatch(RoutingContext routingContext) {
+    JsonObject requestJson = routingContext.getBodyAsJson();
+    if (requestJson.containsKey("inventoryRecordSets")) {
+      JsonArray inventoryRecordSets = requestJson.getJsonArray("inventoryRecordSets");
+      inventoryUpsertByHRIDBatch(routingContext, inventoryRecordSets);
+    } else {
+      responseError(routingContext, 400,
+              "InventoryBatchUpdateService expected but did not seem to receive " +
+                      "a batch of Inventory record sets");
+    }
+
   }
 
   public void handleInventoryUpsertByHRID(RoutingContext routingCtx) {
@@ -112,37 +142,7 @@ public class InventoryUpdateService {
     // Fake a batch of one for now
     JsonArray inventoryRecordSets = new JsonArray();
     inventoryRecordSets.add(new JsonObject(incomingJson.encodePrettily()));
-
-    UpdatePlanAllHRIDs plan = UpdatePlanAllHRIDs.getUpsertPlan();
-    RequestValidation validations = validateIncomingRecordSets (plan, inventoryRecordSets);
-
-    if (validations.passed()) {
-      plan
-        .setIncomingRecordSets(inventoryRecordSets)
-        .buildRepositoryFromStorage(routingCtx).onComplete(
-            result -> {
-              if (result.succeeded()) {
-                plan.planInventoryUpdates()
-                    .doInventoryUpdates(
-                        getOkapiClient(routingCtx)).onComplete(inventoryUpdated -> {
-                  if (inventoryUpdated.succeeded()) {
-                    JsonObject pushedRecordSetWithStats = plan.getUpdatingRecordSetJsonFromRepository();
-                    pushedRecordSetWithStats.put("metrics", plan.getUpdateStatsFromRepository());
-                    responseJson(routingCtx, 200).end(pushedRecordSetWithStats.encodePrettily());
-                  } else {
-                    JsonObject pushedRecordSetWithStats = plan.getUpdatingRecordSetJsonFromRepository();
-                    pushedRecordSetWithStats.put("metrics", plan.getUpdateStatsFromRepository());
-                    pushedRecordSetWithStats.put("errors", plan.getErrorsUsingRepository());
-                    responseJson(routingCtx, 422).end(pushedRecordSetWithStats.encodePrettily());
-                  }
-                });
-              } else {
-                responseJson(routingCtx, 422).end("\"{\\\"failed\\\": \\\"upsertByHRIDs\\\"}\"");
-              }
-            });
-          } else {
-            responseJson(routingCtx, 422).end("The incoming record set(s) had errors and were not processed " + validations);
-          }
+    inventoryUpsertByHRIDBatch(routingCtx, inventoryRecordSets);
   }
 
   public static RequestValidation validateIncomingRecordSets (UpdatePlan plan, JsonArray incomingRecordSets) {
@@ -155,6 +155,40 @@ public class InventoryUpdateService {
     }
     return validations;
   }
+
+  private void inventoryUpsertByHRIDBatch(RoutingContext routingContext, JsonArray inventoryRecordSets) {
+    UpdatePlanAllHRIDs plan = UpdatePlanAllHRIDs.getUpsertPlan();
+    RequestValidation validations = validateIncomingRecordSets (plan, inventoryRecordSets);
+
+    if (validations.passed()) {
+      plan
+              .setIncomingRecordSets(inventoryRecordSets)
+              .buildRepositoryFromStorage(routingContext).onComplete(
+                      result -> {
+                        if (result.succeeded()) {
+                          plan.planInventoryUpdates()
+                                  .doInventoryUpdates(
+                                          getOkapiClient(routingContext)).onComplete(inventoryUpdated -> {
+                                    if (inventoryUpdated.succeeded()) {
+                                      JsonObject pushedRecordSetWithStats = plan.getUpdatingRecordSetJsonFromRepository();
+                                      pushedRecordSetWithStats.put("metrics", plan.getUpdateStatsFromRepository());
+                                      responseJson(routingContext, 200).end(pushedRecordSetWithStats.encodePrettily());
+                                    } else {
+                                      JsonObject pushedRecordSetWithStats = plan.getUpdatingRecordSetJsonFromRepository();
+                                      pushedRecordSetWithStats.put("metrics", plan.getUpdateStatsFromRepository());
+                                      pushedRecordSetWithStats.put("errors", plan.getErrorsUsingRepository());
+                                      responseJson(routingContext, 422).end(pushedRecordSetWithStats.encodePrettily());
+                                    }
+                                  });
+                        } else {
+                          responseJson(routingContext, 422).end("\"{\\\"failed\\\": \\\"upsertByHRIDs\\\"}\"");
+                        }
+                      });
+    } else {
+      responseJson(routingContext, 422).end("The incoming record set(s) had errors and were not processed " + validations);
+    }
+  }
+
 
   public void handleInventoryRecordSetDeleteByHRID(RoutingContext routingCtx) {
     if (contentTypeIsJson(routingCtx)) {

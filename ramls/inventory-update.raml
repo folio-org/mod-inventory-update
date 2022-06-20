@@ -68,15 +68,15 @@ traits:
   put:
     body:
         application/json:
-            type: inventory-record-set-with-hrids
+            type: inventory-record-sets-with-hrids
     responses:
         200:
-            description: "Inventory record set successfully created or updated by HRIDs"
+            description: "Batch of Inventory record sets successfully created or updated by HRIDs"
             body:
                 application/json:
                     type: upsert-response-200
         422:
-            description: "One or more problems encountered when creating/updating an Inventory record set by HRIDs"
+            description: "One or more problems encountered when creating/updating a batch of Inventory record sets by HRIDs"
             body:
                 application/json:
                     type: upsert-response-422
@@ -139,4 +139,22 @@ traits:
          body:
             application/json:
                 type: get-recordset-response
+
+/shared-inventory-batch-upsert-matchkey:
+  displayName: Create or update a batch of instances with holdings and items, based on the match-key for the incoming Instance
+  put:
+    body:
+        application/json:
+            type: inventory-record-sets
+    responses:
+        200:
+            description: "Batch of Inventory record sets successfully created or updated by match-key"
+            body:
+                application/json:
+                    type: upsert-response-200
+        422:
+            description: "One or more problems encountered when creating/updating a batch of Inventory record sets by match-keys"
+            body:
+                application/json:
+                    type: upsert-response-422
 

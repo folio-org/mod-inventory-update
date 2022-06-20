@@ -15,6 +15,8 @@ public class MainVerticle extends AbstractVerticle {
   public final static String HEALTH_CHECK = "/admin/health";
   public final static String INVENTORY_UPSERT_HRID_PATH = "/inventory-upsert-hrid";
   public final static String INVENTORY_BATCH_UPSERT_HRID_PATH = "/inventory-batch-upsert-hrid";
+
+  public final static String SHARED_INVENTORY_BATCH_UPSERT_MATCHKEY_PATH = "/shared-inventory-batch-upsert-matchkey";
   public final static String SHARED_INVENTORY_UPSERT_MATCHKEY_PATH = "/shared-inventory-upsert-matchkey";
 
   public final static String FETCH_INVENTORY_RECORD_SETS_ID_PATH = INVENTORY_UPSERT_HRID_PATH+"/fetch/:id";
@@ -22,7 +24,6 @@ public class MainVerticle extends AbstractVerticle {
 
   private final Logger logger = LoggerFactory.getLogger("inventory-update");
   private final InventoryUpdateService upsertService = new InventoryUpdateService();
-  private final InventoryBatchUpdateService batchUpsertService = new InventoryBatchUpdateService();
   private final InventoryFetchService fetchService = new InventoryFetchService();
 
   @Override
@@ -41,7 +42,8 @@ public class MainVerticle extends AbstractVerticle {
     router.delete(INVENTORY_UPSERT_HRID_PATH).handler(upsertService::handleInventoryRecordSetDeleteByHRID);
     router.delete(SHARED_INVENTORY_UPSERT_MATCHKEY_PATH).handler(upsertService::handleSharedInventoryRecordSetDeleteByIdentifiers);
 
-    router.put(INVENTORY_BATCH_UPSERT_HRID_PATH).handler(batchUpsertService::handleInventoryBatchUpsertByHrid);
+    router.put(INVENTORY_BATCH_UPSERT_HRID_PATH).handler(upsertService::handleInventoryUpsertByHRIDBatch);
+    router.put(SHARED_INVENTORY_BATCH_UPSERT_MATCHKEY_PATH).handler(upsertService::handleSharedInventoryUpsertByMatchKeyBatch);
 
     router.get( FETCH_SHARED_INVENTORY_RECORD_SETS_ID_PATH ).handler(fetchService::handleSharedInventoryRecordSetFetch );
     router.get( FETCH_INVENTORY_RECORD_SETS_ID_PATH ).handler(fetchService::handleInventoryRecordSetFetchHrid );

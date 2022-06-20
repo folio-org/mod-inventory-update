@@ -71,40 +71,42 @@ public class InventoryStorage {
     return promise.future();
   }
 
-  public static Future<JsonObject> postInstances(OkapiClient okapiClient, List<Instance> records) {
+  public static Future<Void> postInstances(OkapiClient okapiClient, List<Instance> records) {
     return postInventoryRecords(okapiClient, new ArrayList<>(records), INSTANCES);
   }
 
-  public static Future<JsonObject> postHoldingsRecords (OkapiClient okapiClient, List<HoldingsRecord> records) {
+  public static Future<Void> postHoldingsRecords (OkapiClient okapiClient, List<HoldingsRecord> records) {
     return postInventoryRecords(okapiClient, new ArrayList<>(records), HOLDINGS_RECORDS);
   }
 
-  public static Future<JsonObject> postItems (OkapiClient okapiClient, List<Item> records) {
+  public static Future<Void> postItems (OkapiClient okapiClient, List<Item> records) {
     return postInventoryRecords(okapiClient, new ArrayList<>(records), ITEMS);
   }
 
-  private static Future<JsonObject> postInventoryRecords (OkapiClient okapiClient, List<InventoryRecord> records, String arrayName) {
-    Promise<JsonObject> promise = Promise.promise();
-    JsonObject request = new JsonObject();
-    request.put(arrayName, jsonArrayFromInventoryRecordList(records));
-    logger.info("Posting request: " + request.encodePrettily() + " to " + getBatchApi(arrayName));
-    okapiClient.post(getBatchApi(arrayName), request.encode(), postResult -> {
-      if (postResult.succeeded()) {
-        String result = postResult.result();
-        JsonObject responseJson = new JsonObject(result);
-        for (InventoryRecord record : records) {
-          record.complete();
+  private static Future<Void> postInventoryRecords (OkapiClient okapiClient, List<InventoryRecord> records, String arrayName) {
+    Promise<Void> promise = Promise.promise();
+    if (!records.isEmpty()) {
+      JsonObject request = new JsonObject();
+      request.put(arrayName, jsonArrayFromInventoryRecordList(records));
+      logger.info("Posting request: " + request.encodePrettily() + " to " + getBatchApi(arrayName));
+      okapiClient.post(getBatchApi(arrayName) + "?upsert=true", request.encode(), postResult -> {
+        if (postResult.succeeded()) {
+          for (InventoryRecord record : records) {
+            record.complete();
+          }
+          promise.complete();
+        } else {
+          for (InventoryRecord record : records) {
+            record.fail();
+            record.skipDependants();
+            record.logError(okapiClient.getResponsebody(), okapiClient.getStatusCode());
+          }
+          promise.fail(records.get(0).getError().encodePrettily());
         }
-        promise.complete(responseJson);
-      } else {
-        for (InventoryRecord record : records) {
-          record.fail();
-          record.skipDependants();
-          record.logError(okapiClient.getResponsebody(), okapiClient.getStatusCode());
-        }
-        promise.fail(records.get(0).getError().encodePrettily());
-      }
-    });
+      });
+    } else {
+      promise.complete();
+    }
     return promise.future();
   }
 

@@ -535,7 +535,7 @@ public abstract class UpdatePlan {
                 }
             }
         }
-        if (repository.getPairsOfRecordSets().get(0).hasExistingRecordSet()) {
+        if (!repository.getPairsOfRecordSets().isEmpty() && repository.getPairsOfRecordSets().get(0).hasExistingRecordSet()) {
             InventoryRecordSet existingSet = repository.getPairsOfRecordSets().get(0).getExistingRecordSet();
             if (existingSet.getInstance().isDeleting()) {
                 InventoryRecord record = existingSet.getInstance();

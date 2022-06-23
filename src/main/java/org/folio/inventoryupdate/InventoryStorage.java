@@ -88,7 +88,7 @@ public class InventoryStorage {
     if (!records.isEmpty()) {
       JsonObject request = new JsonObject();
       request.put(arrayName, jsonArrayFromInventoryRecordList(records));
-      logger.info("Posting request: " + request.encodePrettily() + " to " + getBatchApi(arrayName));
+      logger.debug("Posting request: " + request.encodePrettily() + " to " + getBatchApi(arrayName));
       okapiClient.post(getBatchApi(arrayName) + "?upsert=true", request.encode(), postResult -> {
         if (postResult.succeeded()) {
           for (InventoryRecord record : records) {
@@ -115,7 +115,6 @@ public class InventoryStorage {
     for (InventoryRecord record : records) {
       array.add(record.asJson());
     }
-    logger.info("Created JSON array to POST: " + array.encodePrettily());
     return array;
   }
 

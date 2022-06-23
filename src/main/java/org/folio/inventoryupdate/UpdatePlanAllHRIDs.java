@@ -32,7 +32,7 @@ public class UpdatePlanAllHRIDs extends UpdatePlan {
 
     /**
      * Constructs upsert plan
-     * @param repository
+     * @param repository Cache of Inventory records to build plan from.
      */
     private UpdatePlanAllHRIDs (RepositoryByHrids repository) {
         super(repository);
@@ -70,8 +70,8 @@ public class UpdatePlanAllHRIDs extends UpdatePlan {
                     .map( rec -> (JsonObject) rec)
                     .forEach( record -> {
                         if (!record.containsKey("hrid")) {
-                            logger.error("Holdings Records must have a HRID to be processed by this API");
-                            validationErrors.registerError("Holdings Records must have a HRID to be processed by this API, received: " + record.encodePrettily());
+                            logger.error("Holdings Records must have a HRID to be processed by this API. Received: " + record.encodePrettily());
+                            validationErrors.registerError("Holdings Records must have a HRID to be processed by this API. Received: " + record.encodePrettily());
                         }
                         if (record.containsKey("items")) {
                             record.getJsonArray("items")
@@ -79,8 +79,8 @@ public class UpdatePlanAllHRIDs extends UpdatePlan {
                                     .map(item -> (JsonObject) item)
                                     .forEach(item -> {
                                         if (!item.containsKey("hrid")) {
-                                            logger.error("Items must have a HRID to be processed by this API");
-                                            validationErrors.registerError("Items must have a HRID to be processed by this API, received: " + item.encodePrettily());
+                                            logger.error("Items must have a HRID to be processed by this API. Received: " + item.encodePrettily());
+                                            validationErrors.registerError("Items must have a HRID to be processed by this API. Received: " + item.encodePrettily());
                                         }
                                     });
                         }

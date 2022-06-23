@@ -35,7 +35,12 @@ public class InventoryUpdateService {
 
   public void handleSharedInventoryUpsertByMatchKeyBatch(RoutingContext routingContext) {
     long start = System.currentTimeMillis();
-    JsonObject requestJson = routingContext.getBodyAsJson();
+    JsonObject requestJson = getIncomingJsonBody(routingContext);
+    if (requestJson == null) {
+      return;
+    }
+    long gotJsonMs = System.currentTimeMillis() - start;
+    logger.debug("Got input JSON in " + gotJsonMs + " ms.");
     if (requestJson.containsKey("inventoryRecordSets")) {
       JsonArray inventoryRecordSets = requestJson.getJsonArray("inventoryRecordSets");
       sharedInventoryUpsertByMatchKeyBatch(routingContext, inventoryRecordSets);
@@ -52,7 +57,9 @@ public class InventoryUpdateService {
     try {
       if (contentTypeIsJson(routingContext)) {
         JsonObject incomingJson = getIncomingJsonBody(routingContext);
-
+        if (incomingJson == null) {
+          return;
+        }
         // Fake a batch of one for now
         JsonArray inventoryRecordSets = new JsonArray();
         inventoryRecordSets.add(new JsonObject(incomingJson.encodePrettily()));
@@ -72,6 +79,7 @@ public class InventoryUpdateService {
   }
 
   private void sharedInventoryUpsertByMatchKeyBatch(RoutingContext routingContext, JsonArray inventoryRecordSets) {
+      long siUpsertBatchStart = System.currentTimeMillis();
       UpdatePlanSharedInventory plan = UpdatePlanSharedInventory.getUpsertPlan();
       RequestValidation validations = validateIncomingRecordSets(plan, inventoryRecordSets);
       if (validations.passed()) {
@@ -84,6 +92,8 @@ public class InventoryUpdateService {
                               if (inventoryUpdated.succeeded()) {
                                 JsonObject pushedRecordSetWithStats = plan.getUpdatingRecordSetJsonFromRepository();
                                 pushedRecordSetWithStats.put("metrics", plan.getUpdateStatsFromRepository());
+                                long siUpsertDone = System.currentTimeMillis()-siUpsertBatchStart;
+                                logger.debug("SI batch upsert done in " + siUpsertDone + " ms.");
                                 responseJson(routingContext, 200).end(pushedRecordSetWithStats.encodePrettily());
                               } else {
                                 JsonObject pushedRecordSetWithStats = plan.getUpdatingRecordSetJsonFromRepository();
@@ -108,6 +118,9 @@ public class InventoryUpdateService {
     logger.debug("Handling delete request for shared index " + routingCtx.getBodyAsString());
     if (contentTypeIsJson(routingCtx)) {
       JsonObject deletionJson = getIncomingJsonBody(routingCtx);
+      if (deletionJson == null) {
+        return;
+      }
       RecordIdentifiers deletionIdentifiers = RecordIdentifiers.identifiersFromDeleteRequestJson(deletionJson);
       UpdatePlan updatePlan = UpdatePlanSharedInventory.getDeletionPlan(deletionIdentifiers);
       runDeletionPlan(updatePlan, routingCtx);
@@ -115,7 +128,10 @@ public class InventoryUpdateService {
   }
 
   public void handleInventoryUpsertByHRIDBatch(RoutingContext routingContext) {
-    JsonObject requestJson = routingContext.getBodyAsJson();
+    JsonObject requestJson = getIncomingJsonBody(routingContext);
+    if (requestJson == null) {
+      return;
+    }
     if (requestJson.containsKey("inventoryRecordSets")) {
       JsonArray inventoryRecordSets = requestJson.getJsonArray("inventoryRecordSets");
       inventoryUpsertByHRIDBatch(routingContext, inventoryRecordSets);
@@ -199,7 +215,6 @@ public class InventoryUpdateService {
     }
   }
 
-  //TODO: invert not-found conditions in case of deletion?
   private void runDeletionPlan(UpdatePlan updatePlan, RoutingContext routingCtx) {
 
     OkapiClient okapiClient = getOkapiClient(routingCtx);
@@ -238,14 +253,15 @@ public class InventoryUpdateService {
   }
 
   private JsonObject getIncomingJsonBody(RoutingContext routingCtx) {
-    String bodyAsString = "no body";
+    String bodyAsString;
     try {
       bodyAsString = routingCtx.getBodyAsString("UTF-8");
       JsonObject bodyAsJson = new JsonObject(bodyAsString);
       logger.debug("Request body " + bodyAsJson.encodePrettily());
       return bodyAsJson;
     } catch (DecodeException de) {
-      responseError(routingCtx, 400, "Only accepts json, content was: "+ bodyAsString);
+      responseError(routingCtx, 400,
+              "Could not parse the JSON body of the request " + de.getMessage());
       return null;
     }
   }

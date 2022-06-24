@@ -47,6 +47,11 @@ traits:
             body:
                 application/json:
                     type: upsert-response-422
+        400:
+            description: "Bad request, for example: empty request body, non-JSON or invalid JSON in request body or JSON not recognized as an inventory record set"
+            body:
+                application/json:
+                    type: upsert-response-400
   delete:
     body:
         application/json:
@@ -74,12 +79,17 @@ traits:
             description: "Batch of Inventory record sets successfully created or updated by HRIDs"
             body:
                 application/json:
-                    type: upsert-response-200
+                    type: batch-upsert-response-200
         422:
             description: "One or more problems encountered when creating/updating a batch of Inventory record sets by HRIDs"
             body:
                 application/json:
-                    type: upsert-response-422
+                    type: batch-upsert-response-422
+        400:
+            description: "Bad request, for example: empty request body, non-JSON or invalid JSON in request body or JSON does not contain inventory record sets"
+            body:
+                application/json:
+                    type: batch-upsert-response-400
 
 
 /inventory-upsert-hrid/fetch/{id}:
@@ -113,6 +123,10 @@ traits:
               type: upsert-response-422
         400:
           description: "Bad request, for example: non-JSON in request body; inventory record set without an Instance"
+          body:
+            application/json:
+              type: upsert-response-400
+
 
   delete:
     body:
@@ -151,10 +165,14 @@ traits:
             description: "Batch of Inventory record sets successfully created or updated by match-key"
             body:
                 application/json:
-                    type: upsert-response-200
+                    type: batch-upsert-response-200
         422:
             description: "One or more problems encountered when creating/updating a batch of Inventory record sets by match-keys"
             body:
                 application/json:
-                    type: upsert-response-422
-
+                    type: batch-upsert-response-422
+        400:
+            description: "Bad request, for example: empty request body, non-JSON or invalid JSON in request body or JSON does not contain inventory record sets"
+            body:
+                application/json:
+                    type: batch-upsert-response-400

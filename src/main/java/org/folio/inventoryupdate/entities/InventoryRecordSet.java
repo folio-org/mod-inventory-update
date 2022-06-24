@@ -433,9 +433,6 @@ public class InventoryRecordSet extends JsonRepresentation {
     @Override
     public JsonArray getErrors () {
         JsonArray errors = new JsonArray();
-        if (getInstance().failed()) {
-            errors.add(getInstance().getError());
-        }
         for (InventoryRecord record : getAllInventoryRecords()) {
             if (record.failed()) {
                 errors.add(record.getError());

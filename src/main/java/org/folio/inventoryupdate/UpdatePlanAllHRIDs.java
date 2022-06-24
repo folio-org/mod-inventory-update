@@ -1,7 +1,9 @@
 package org.folio.inventoryupdate;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
@@ -62,7 +64,10 @@ public class UpdatePlanAllHRIDs extends UpdatePlan {
         if (!inventoryRecordSet.getJsonObject("instance").containsKey("hrid")
             || inventoryRecordSet.getJsonObject("instance").getString("hrid").isEmpty()) {
             logger.error("Missing or empty HRID. Instances must have a HRID to be processed by this API");
-            validationErrors.registerError("Missing or empty HRID. Instances must have a HRID to be processed by this API " + inventoryRecordSet.encodePrettily());
+            JsonObject errorJson = new JsonObject();
+            errorJson.put("error", "Missing or empty HRID. Instances must have a HRID to be processed by this API ");
+            errorJson.put("details", inventoryRecordSet);
+            validationErrors.registerError(errorJson);
         }
         if (inventoryRecordSet.containsKey("holdingsRecords")) {
             inventoryRecordSet.getJsonArray("holdingsRecords")
@@ -71,7 +76,7 @@ public class UpdatePlanAllHRIDs extends UpdatePlan {
                     .forEach( record -> {
                         if (!record.containsKey("hrid")) {
                             logger.error("Holdings Records must have a HRID to be processed by this API. Received: " + record.encodePrettily());
-                            validationErrors.registerError("Holdings Records must have a HRID to be processed by this API. Received: " + record.encodePrettily());
+                            validationErrors.registerError("Holdings records must have a HRID to be processed by this API. Received holdings record: " + record.encodePrettily());
                         }
                         if (record.containsKey("items")) {
                             record.getJsonArray("items")
@@ -87,6 +92,49 @@ public class UpdatePlanAllHRIDs extends UpdatePlan {
                     });
         }
         return validationErrors;
+    }
+
+    public static void checkForUniqueHRIDsInBatch(RequestValidation validation, JsonArray inventoryRecordSets) {
+        Set<String> instanceHrids = new HashSet<>();
+        Set<String> holdingsHrids = new HashSet<>();
+        Set<String> itemHrids = new HashSet<>();
+
+        for (Object recordSetObject : inventoryRecordSets) {
+            JsonObject recordSet = (JsonObject) recordSetObject;
+            String instanceHrid = recordSet.getJsonObject("instance").getString("hrid");
+            if (instanceHrid != null) {
+                if (instanceHrids.contains(instanceHrid)) {
+                    validation.registerError("Instance HRID " + instanceHrid + " appears more that once in batch.");
+                } else {
+                    instanceHrids.add(instanceHrid);
+                }
+            }
+            if (recordSet.containsKey("holdingsRecords")) {
+                for (Object holdingsObject : recordSet.getJsonArray("holdingsRecords")) {
+                    JsonObject holdingsRecord = ((JsonObject) holdingsObject);
+                    String holdingsHrid = holdingsRecord.getString("hrid");
+                    if (holdingsHrid != null) {
+                        if (holdingsHrids.contains(holdingsHrid)) {
+                            validation.registerError("Holdings record HRID " + holdingsHrid + " appears more that once in batch.");
+                        } else {
+                            holdingsHrids.add(holdingsHrid);
+                        }
+                    }
+                    if (holdingsRecord.containsKey("items")) {
+                        for (Object itemObject : holdingsRecord.getJsonArray("items")) {
+                            String itemHrid = ((JsonObject) itemObject).getString("hrid");
+                            if (itemHrid != null) {
+                                if (itemHrids.contains(itemHrid)) {
+                                    validation.registerError("Item HRID " + itemHrid + " appears more that once in batch.");
+                                } else {
+                                    itemHrids.add(itemHrid);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
     }
 
     /* PLANNING CREATES, UPDATES, DELETES */

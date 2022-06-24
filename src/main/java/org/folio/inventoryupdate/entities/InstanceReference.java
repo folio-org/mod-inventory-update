@@ -138,7 +138,9 @@ public class InstanceReference {
         relation.requiresProvisionalInstanceToBeCreated(true);
         if (!provisionalInstanceIsValid()) {
           provisionalInstance.fail();
+          provisionalInstance.logError("Provided data not sufficient for creating provisional Instance",422);
           relation.fail();
+          relation.logError("Cannot create relation; Instance not found and miss data for provisional instance", 422);
         }
         relation.setProvisionalInstance(provisionalInstance);
       }

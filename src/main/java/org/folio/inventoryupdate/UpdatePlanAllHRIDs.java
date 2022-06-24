@@ -18,6 +18,7 @@ import io.vertx.core.Promise;
 
 import static org.folio.inventoryupdate.entities.InstanceRelations.failProvisionalInstanceCreation;
 import static org.folio.inventoryupdate.entities.InstanceRelations.failRelationCreation;
+import static org.folio.inventoryupdate.entities.InventoryRecordSet.INSTANCE;
 
 public class UpdatePlanAllHRIDs extends UpdatePlan {
 
@@ -64,10 +65,13 @@ public class UpdatePlanAllHRIDs extends UpdatePlan {
         String instanceHRID = inventoryRecordSet.getJsonObject("instance").getString("hrid");
         if (instanceHRID == null || instanceHRID.isEmpty()) {
             logger.error("Missing or empty HRID. Instances must have a HRID to be processed by this API");
-            JsonObject errorJson = new JsonObject();
-            errorJson.put("error", "Missing or empty HRID. Instances must have a HRID to be processed by this API ");
-            errorJson.put("details", inventoryRecordSet);
-            validationErrors.registerError(errorJson);
+            InventoryUpdateError error =
+                    new InventoryUpdateError(
+                            InventoryUpdateError.ErrorCategory.VALIDATION,
+                            "HRID is missing or empty.")
+                            .setEntityType(InventoryRecord.Entity.INSTANCE)
+                            .setEntity(inventoryRecordSet.getJsonObject(INSTANCE));
+            validationErrors.registerError(error);
         }
         if (inventoryRecordSet.containsKey("holdingsRecords")) {
             inventoryRecordSet.getJsonArray("holdingsRecords")
@@ -76,7 +80,12 @@ public class UpdatePlanAllHRIDs extends UpdatePlan {
                     .forEach( record -> {
                         if (!record.containsKey("hrid")) {
                             logger.error("Holdings Records must have a HRID to be processed by this API. Received: " + record.encodePrettily());
-                            validationErrors.registerError("Holdings records must have a HRID to be processed by this API. Received holdings record for Instance HRID [" + instanceHRID + "]: " + record.encodePrettily());
+                            InventoryUpdateError error = new InventoryUpdateError(
+                                    InventoryUpdateError.ErrorCategory.VALIDATION,"Missing HRID in incoming record set")
+                                    .setEntityType(InventoryRecord.Entity.HOLDINGS_RECORD)
+                                    .setEntity(record)
+                                    .setDetails(inventoryRecordSet);
+                            validationErrors.registerError(error);
                         }
                         if (record.containsKey("items")) {
                             record.getJsonArray("items")
@@ -104,7 +113,14 @@ public class UpdatePlanAllHRIDs extends UpdatePlan {
             String instanceHrid = recordSet.getJsonObject("instance").getString("hrid");
             if (instanceHrid != null) {
                 if (instanceHrids.contains(instanceHrid)) {
-                    validation.registerError("Instance HRID " + instanceHrid + " appears more that once in batch.");
+                    InventoryUpdateError error =
+                            new InventoryUpdateError(
+                                    InventoryUpdateError.ErrorCategory.VALIDATION,
+                                    "Instance HRID " + instanceHrid + " occurs more that once in this batch.")
+                                    .setShortMessage("Instance HRID is repeated in this batch")
+                                    .setEntityType(InventoryRecord.Entity.INSTANCE)
+                                    .setEntity(recordSet.getJsonObject("instance"));
+                    validation.registerError(error);
                 } else {
                     instanceHrids.add(instanceHrid);
                 }
@@ -188,7 +204,6 @@ public class UpdatePlanAllHRIDs extends UpdatePlan {
                 }
             }
         }
-
     }
 
     @Override

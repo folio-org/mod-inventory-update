@@ -23,10 +23,9 @@ public class RequestValidation {
         errors.add(new ValidationError(message));
     }
 
-    public void registerError(JsonObject jsonMessage) {
-        errors.add(new ValidationError(jsonMessage));
+    public void registerError(InventoryUpdateError error) {
+        errors.add(new ValidationError(error.asJson()));
     }
-
     public String toString () {
         StringBuilder errorString = new StringBuilder();
         errors.stream().forEach(error -> errorString.append(System.lineSeparator() + error.messageJson.encode()));
@@ -53,7 +52,7 @@ public class RequestValidation {
             messageJson.put("message", message);
         }
         public ValidationError(JsonObject message) {
-            messageJson.put("message", message);
+            messageJson = message;
         }
     }
 

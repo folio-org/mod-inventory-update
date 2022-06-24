@@ -5,6 +5,7 @@ import java.util.UUID;
 import io.vertx.core.json.DecodeException;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
+import org.folio.inventoryupdate.InventoryUpdateError;
 
 
 /**
@@ -43,7 +44,7 @@ public abstract class InventoryRecord {
 
     protected JsonObject jsonRecord;
     public static final String VERSION = "_version";
-    protected JsonObject error = new JsonObject();
+    protected InventoryUpdateError error;
     protected Entity entityType;
     protected Transaction transaction = Transaction.UNKNOWN;
     protected Outcome outcome = Outcome.PENDING;
@@ -149,12 +150,22 @@ public abstract class InventoryRecord {
     }
 
     public void logError (String error, int statusCode, String shortMessage) {
-        this.error.put("entityType", entityType());
-        this.error.put("transaction", getTransaction());
-        this.error.put("statusCode", statusCode);
-        this.error.put("shortMessage", shortMessage);
-        this.error.put(MESSAGE, maybeJson(error));
-        this.error.put("entity", jsonRecord);
+        Object message = maybeJson(error);
+
+        if (message instanceof JsonObject) {
+            this.error = new InventoryUpdateError(
+                    InventoryUpdateError.ErrorCategory.STORAGE,
+                    (JsonObject) message);
+        } else {
+            this.error = new InventoryUpdateError(
+                    InventoryUpdateError.ErrorCategory.STORAGE,
+                    (String) message);
+        }
+        this.error.setEntityType(entityType())
+                .setTransaction(getTransaction() == null ? "" : getTransaction().toString())
+                .setStatusCode(statusCode)
+                .setShortMessage(shortMessage)
+                .setEntity(jsonRecord);
     }
 
     protected static Object maybeJson (String message) {
@@ -209,7 +220,11 @@ public abstract class InventoryRecord {
     }
 
     public JsonObject getError () {
-        return error;
+        return error.asJson();
+    }
+
+    public String getErrorPrettily () {
+        return error.asJsonPrettily();
     }
 
     public abstract void skipDependants ();

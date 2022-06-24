@@ -40,7 +40,14 @@ public class InventoryUpdateService {
       return;
     }
     if (! InventoryRecordSet.isValidInventoryRecordSet(incomingJson)) {
-      respondWithBadRequest(routingCtx,"Did not recognize input as an Inventory record set: " + incomingJson.encode());
+      InventoryUpdateError error =
+              new InventoryUpdateError(
+                      InventoryUpdateError.ErrorCategory.VALIDATION,
+                      "Did not recognize input as an Inventory record set")
+                      .setShortMessage("Not an Inventory record set.")
+                      .setEntity(incomingJson)
+                      .setStatusCode(BAD_REQUEST);
+      respondWithBadRequest(routingCtx,error);
       return;
     }
     JsonArray inventoryRecordSets = new JsonArray();
@@ -57,9 +64,13 @@ public class InventoryUpdateService {
       JsonArray inventoryRecordSets = requestJson.getJsonArray("inventoryRecordSets");
       inventoryUpsertByHRIDBatch(routingContext, inventoryRecordSets);
     } else {
-      respondWithBadRequest(routingContext,
-              "InventoryBatchUpdateService expected but did not seem to receive " +
-                      "a batch of Inventory record sets");
+      InventoryUpdateError error = new InventoryUpdateError(
+              InventoryUpdateError.ErrorCategory.VALIDATION,
+              "Did not recognize request body as a batch of Inventory record sets")
+              .setShortMessage("Not a batch of Inventory record sets")
+              .setEntity(requestJson)
+              .setStatusCode(BAD_REQUEST);
+      respondWithBadRequest(routingContext, error);
     }
   }
 
@@ -90,15 +101,16 @@ public class InventoryUpdateService {
                                     }
                                   });
                         } else {
-                          JsonObject jo = new JsonObject();
-                          jo.put("problem", "Upsert by HRIDs failed");
-                          jo.put("message", result.cause().getMessage());
-                          respondWithUnprocessableEntity(routingContext,jo);
+                          InventoryUpdateError error = new InventoryUpdateError(
+                                  InventoryUpdateError.ErrorCategory.STORAGE,
+                                  result.cause().getMessage())
+                                  .setShortMessage("Upsert by HRIDs failed");
+                          respondWithUnprocessableEntity(routingContext,error.asJson());
                         }
                       });
     } else {
       JsonObject jo = new JsonObject();
-      jo.put("message","The incoming record "
+      jo.put("problem","The incoming record "
               + (inventoryRecordSets.size() == 1 ? "set" : "sets")
               + " had one or more errors."
               + (inventoryRecordSets.size() == 1 ? " The records were not processed: " : " The batch was not processed."));
@@ -152,9 +164,13 @@ public class InventoryUpdateService {
       JsonArray inventoryRecordSets = requestJson.getJsonArray("inventoryRecordSets");
       sharedInventoryUpsertByMatchKeyBatch(routingContext, inventoryRecordSets);
     } else {
-      respondWithBadRequest(routingContext,
-              "InventoryBatchUpdateService expected but did not seem to receive " +
-                      "a batch of Inventory record sets");
+      InventoryUpdateError error = new InventoryUpdateError(
+              InventoryUpdateError.ErrorCategory.VALIDATION,
+              "Did not recognize request body as a batch of Inventory record sets")
+              .setShortMessage("Not a batch of Inventory record sets")
+              .setEntity(requestJson)
+              .setStatusCode(BAD_REQUEST);
+      respondWithBadRequest(routingContext, error);
     }
   }
 
@@ -253,7 +269,11 @@ public class InventoryUpdateService {
     String contentType = routingCtx.request().getHeader("Content-Type");
     if (contentType != null && !contentType.startsWith("application/json")) {
       logger.error("Only accepts Content-Type application/json, was: " + contentType);
-      respondWithBadRequest(routingCtx, "Only accepts Content-Type application/json, content type was: "+ contentType);
+      new InventoryUpdateError(
+              InventoryUpdateError.ErrorCategory.VALIDATION,
+              "Only accepts Content-Type application/json, content type was: "+ contentType)
+              .setShortMessage("Only accepts application/json")
+              .setStatusCode(BAD_REQUEST);
       return false;
     } else {
       return true;
@@ -265,14 +285,21 @@ public class InventoryUpdateService {
     try {
       bodyAsString = routingCtx.getBodyAsString("UTF-8");
       if (bodyAsString == null) {
-        respondWithBadRequest(routingCtx,"No request body provided.");
+        respondWithBadRequest(routingCtx,
+                new InventoryUpdateError(
+                        InventoryUpdateError.ErrorCategory.VALIDATION,
+                        "No request body provided."));
         return null;
       }
       JsonObject bodyAsJson = new JsonObject(bodyAsString);
       logger.debug("Request body " + bodyAsJson.encodePrettily());
       return bodyAsJson;
     } catch (DecodeException de) {
-      respondWithBadRequest(routingCtx,"Could not parse the JSON body of the request: " + de.getMessage());
+      respondWithBadRequest(routingCtx,
+              new InventoryUpdateError(InventoryUpdateError.ErrorCategory.VALIDATION,
+                      "Could not parse JSON body of the request: " + de.getMessage())
+                      .setShortMessage("Could not parse request JSON")
+                      .setStatusCode(BAD_REQUEST));
       return null;
     }
   }
@@ -296,25 +323,24 @@ public class InventoryUpdateService {
     responseJson(routingContext, UNPROCESSABLE_ENTITY).end(message.encodePrettily());
   }
 
-  public void respondWithBadRequest(RoutingContext routingContext, String message ) {
-    JsonObject jo = new JsonObject();
-    jo.put("problem", "Bad request");
-    jo.put("message", message);
-    responseJson(routingContext, BAD_REQUEST).end(jo.encode());
+  public void respondWithBadRequest(RoutingContext routingContext, InventoryUpdateError error ) {
+    responseJson(routingContext, BAD_REQUEST).end(error.asJsonString());
   }
 
   public void respondWithNotFound(RoutingContext routingContext, String message) {
-    JsonObject jo = new JsonObject();
-    jo.put("problem", "Not found");
-    jo.put("message", message);
-    responseJson(routingContext, NOT_FOUND).end(jo.encode());
+    InventoryUpdateError error = new InventoryUpdateError(
+            InventoryUpdateError.ErrorCategory.STORAGE,
+            message)
+            .setStatusCode(NOT_FOUND);
+    responseJson(routingContext, NOT_FOUND).end(error.asJsonString());
   }
 
   public void respondWithInternalServerError(RoutingContext routingContext, String message) {
-    JsonObject jo = new JsonObject();
-    jo.put("problem", "Internal server error");
-    jo.put("message", message);
-    responseJson(routingContext,INTERNAL_SERVER_ERROR).end(jo.encode());
+    InventoryUpdateError error = new InventoryUpdateError(
+            InventoryUpdateError.ErrorCategory.STORAGE,
+            message)
+            .setStatusCode(INTERNAL_SERVER_ERROR);
+    responseJson(routingContext,INTERNAL_SERVER_ERROR).end(error.asJsonString());
   }
 
 }

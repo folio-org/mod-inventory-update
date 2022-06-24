@@ -61,8 +61,8 @@ public class UpdatePlanAllHRIDs extends UpdatePlan {
     public RequestValidation validateIncomingRecordSet(JsonObject inventoryRecordSet) {
         RequestValidation validationErrors = new RequestValidation();
         if (isDeletion) return validationErrors;
-        if (!inventoryRecordSet.getJsonObject("instance").containsKey("hrid")
-            || inventoryRecordSet.getJsonObject("instance").getString("hrid").isEmpty()) {
+        String instanceHRID = inventoryRecordSet.getJsonObject("instance").getString("hrid");
+        if (instanceHRID == null || instanceHRID.isEmpty()) {
             logger.error("Missing or empty HRID. Instances must have a HRID to be processed by this API");
             JsonObject errorJson = new JsonObject();
             errorJson.put("error", "Missing or empty HRID. Instances must have a HRID to be processed by this API ");
@@ -76,7 +76,7 @@ public class UpdatePlanAllHRIDs extends UpdatePlan {
                     .forEach( record -> {
                         if (!record.containsKey("hrid")) {
                             logger.error("Holdings Records must have a HRID to be processed by this API. Received: " + record.encodePrettily());
-                            validationErrors.registerError("Holdings records must have a HRID to be processed by this API. Received holdings record: " + record.encodePrettily());
+                            validationErrors.registerError("Holdings records must have a HRID to be processed by this API. Received holdings record for Instance HRID [" + instanceHRID + "]: " + record.encodePrettily());
                         }
                         if (record.containsKey("items")) {
                             record.getJsonArray("items")
@@ -85,7 +85,7 @@ public class UpdatePlanAllHRIDs extends UpdatePlan {
                                     .forEach(item -> {
                                         if (!item.containsKey("hrid")) {
                                             logger.error("Items must have a HRID to be processed by this API. Received: " + item.encodePrettily());
-                                            validationErrors.registerError("Items must have a HRID to be processed by this API. Received: " + item.encodePrettily());
+                                            validationErrors.registerError("Items must have a HRID to be processed by this API. Received item for Instance HRID [" + instanceHRID + "]: " + item.encodePrettily());
                                         }
                                     });
                         }

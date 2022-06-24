@@ -43,7 +43,6 @@ public class InventoryUpdateService {
       respondWithBadRequest(routingCtx,"Did not recognize input as an Inventory record set: " + incomingJson.encode());
       return;
     }
-    // Fake a batch of one for now
     JsonArray inventoryRecordSets = new JsonArray();
     inventoryRecordSets.add(new JsonObject(incomingJson.encodePrettily()));
     inventoryUpsertByHRIDBatch(routingCtx, inventoryRecordSets);
@@ -101,8 +100,8 @@ public class InventoryUpdateService {
       JsonObject jo = new JsonObject();
       jo.put("message","The incoming record "
               + (inventoryRecordSets.size() == 1 ? "set" : "sets")
-              + " had one or more errors, and "
-              + (inventoryRecordSets.size() == 1 ? " was not processed: " : " the batch was not processed: "));
+              + " had one or more errors."
+              + (inventoryRecordSets.size() == 1 ? " The records were not processed: " : " The batch was not processed."));
       jo.mergeIn(validations.asJson());
       respondWithUnprocessableEntity(routingContext,jo);
     }

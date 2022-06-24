@@ -269,11 +269,12 @@ public class InventoryUpdateService {
     String contentType = routingCtx.request().getHeader("Content-Type");
     if (contentType != null && !contentType.startsWith("application/json")) {
       logger.error("Only accepts Content-Type application/json, was: " + contentType);
-      new InventoryUpdateError(
-              InventoryUpdateError.ErrorCategory.VALIDATION,
-              "Only accepts Content-Type application/json, content type was: "+ contentType)
-              .setShortMessage("Only accepts application/json")
-              .setStatusCode(BAD_REQUEST);
+      respondWithBadRequest(routingCtx,
+              new InventoryUpdateError(
+                      InventoryUpdateError.ErrorCategory.VALIDATION,
+                      "Only accepts Content-Type application/json, content type was: "+ contentType)
+                      .setShortMessage("Only accepts application/json")
+                      .setStatusCode(BAD_REQUEST));
       return false;
     } else {
       return true;

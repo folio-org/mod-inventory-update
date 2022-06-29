@@ -1,15 +1,24 @@
 package org.folio.inventoryupdate;
 
 import io.vertx.core.json.JsonObject;
+import io.vertx.ext.web.RoutingContext;
 import org.folio.inventoryupdate.entities.InventoryRecord;
 
-public class InventoryUpdateError {
+import static org.folio.okapi.common.HttpResponse.responseJson;
+
+public class ErrorResponse {
 
   public enum ErrorCategory {
     VALIDATION,
     STORAGE,
     INTERNAL
   }
+
+  public static final int BAD_REQUEST = 400;
+  public static final int NOT_FOUND = 404;
+  public static final int UNPROCESSABLE_ENTITY = 422;
+  public static final int INTERNAL_SERVER_ERROR = 500;
+
 
   private static final String CATEGORY = "category";
   private static final String TRANSACTION = "transaction";
@@ -34,7 +43,7 @@ public class InventoryUpdateError {
 
 
 
-  public InventoryUpdateError (ErrorCategory category, String message) {
+  public ErrorResponse(ErrorCategory category, int statusCode, String message) {
     this.category = category;
     this.messageAsString = message;
     if (message != null) {
@@ -42,15 +51,17 @@ public class InventoryUpdateError {
     } else {
       this.shortMessage = "";
     }
+    this.statusCode = statusCode;
   }
 
-  public InventoryUpdateError (ErrorCategory category, JsonObject message) {
+  public ErrorResponse(ErrorCategory category, int statusCode, JsonObject message) {
     this.category = category;
     this.messageAsJson = message;
     this.shortMessage = "";
+    this.statusCode = statusCode;
   }
 
-  public String getEntityType() {
+  public String getEntityTypeAsString() {
     if (entityType != null) {
       return entityType.toString();
     } else {
@@ -58,7 +69,11 @@ public class InventoryUpdateError {
     }
   }
 
-  public InventoryUpdateError setEntityType(InventoryRecord.Entity entityType) {
+  public InventoryRecord.Entity getEntityType () {
+    return entityType;
+  }
+
+  public ErrorResponse setEntityType(InventoryRecord.Entity entityType) {
     this.entityType = entityType;
     return this;
   }
@@ -67,7 +82,7 @@ public class InventoryUpdateError {
     return transaction;
   }
 
-  public InventoryUpdateError setTransaction(String transaction) {
+  public ErrorResponse setTransaction(String transaction) {
     this.transaction = transaction;
     return this;
   }
@@ -76,7 +91,7 @@ public class InventoryUpdateError {
     return statusCode;
   }
 
-  public InventoryUpdateError setStatusCode(int statusCode) {
+  public ErrorResponse setStatusCode(int statusCode) {
     this.statusCode = statusCode;
     return this;
   }
@@ -85,7 +100,7 @@ public class InventoryUpdateError {
     return shortMessage;
   }
 
-  public InventoryUpdateError setShortMessage(String shortMessage) {
+  public ErrorResponse setShortMessage(String shortMessage) {
     this.shortMessage = shortMessage;
     return this;
   }
@@ -94,13 +109,13 @@ public class InventoryUpdateError {
     return messageAsString;
   }
 
-  public InventoryUpdateError setMessageAsString(String messageAsString) {
+  public ErrorResponse setMessageAsString(String messageAsString) {
     this.messageAsString = messageAsString;
     this.messageAsJson = null;
     return this;
   }
 
-  public InventoryUpdateError setMessageAsJson (JsonObject messageAsJson) {
+  public ErrorResponse setMessageAsJson (JsonObject messageAsJson) {
     this.messageAsJson = messageAsJson;
     this.messageAsString = null;
     return this;
@@ -114,7 +129,7 @@ public class InventoryUpdateError {
     return entity;
   }
 
-  public InventoryUpdateError setEntity(JsonObject entity) {
+  public ErrorResponse setEntity(JsonObject entity) {
     this.entity = entity;
     return this;
   }
@@ -123,7 +138,7 @@ public class InventoryUpdateError {
     return details;
   }
 
-  public InventoryUpdateError setDetails(JsonObject details) {
+  public ErrorResponse setDetails(JsonObject details) {
     this.details = details;
     return this;
   }
@@ -150,5 +165,9 @@ public class InventoryUpdateError {
 
   public String asJsonPrettily () {
     return asJson().encodePrettily();
+  }
+
+  public void respond(RoutingContext routingContext) {
+    responseJson(routingContext, getStatusCode()).end(asJsonString());
   }
 }

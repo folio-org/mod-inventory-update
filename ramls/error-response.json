@@ -1,0 +1,57 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "description": "Response on a unsuccessful or partly successful upsert request",
+  "type": "object",
+  "properties": {
+    "category": {
+      "type": "string",
+      "description": "Type of problem, usually error category STORAGE."
+    },
+    "statusCode": {
+      "type": "string",
+      "description": "The HTTP status code assigned to the error."
+    },
+    "message": {
+      "description": "Error message returned by Inventory storage.",
+      "anyOf": [
+        {
+          "type": "string",
+          "description": "Error text returned by Inventory storage."
+        },
+        {
+          "type": "object",
+          "description": "JSON object of one or more structured error messages returned by Inventory storage."
+        }
+      ]
+    },
+    "shortMessage": {
+      "type": "string",
+      "description": "A short error message that might be used by the client to count similar error occurrences."
+    },
+    "entityType": {
+      "type": "string",
+      "description": "The record type for which a problem occurred."
+    },
+    "transaction": {
+      "type": "string",
+      "description": "Type of REST operation for which the problem occurred."
+    },
+    "entity": {
+      "type": "object",
+      "description": "The JSON object that was pushed to Inventory storage when the problem occurred."
+    },
+    "details": {
+      "description": "Any further details, i.e. additional context for the problem.",
+      "anyOf": [
+        {
+          "type": "array",
+          "description": "I.e. array of error objects"
+        },
+        {
+          "type": "object",
+          "description": "Details supplementing the main error message."
+        }
+      ]
+    }
+  }
+}

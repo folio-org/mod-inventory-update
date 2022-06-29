@@ -1,15 +1,15 @@
 package org.folio.inventoryupdate;
 
-import io.vertx.core.json.Json;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
+import org.folio.inventoryupdate.entities.InventoryRecord;
 
 import java.util.ArrayList;
 import java.util.List;
 
 public class RequestValidation {
 
-    List<ValidationError> errors = new ArrayList<>();
+    List<ErrorResponse> errors = new ArrayList<>();
 
     public boolean hasErrors () {
         return errors.size()>0;
@@ -19,47 +19,43 @@ public class RequestValidation {
         return ! hasErrors();
     }
 
-    public void registerError(String message) {
-        errors.add(new ValidationError(message));
+    public void registerError(ErrorResponse error) {
+        errors.add(error);
     }
 
-    public void registerError(InventoryUpdateError error) {
-        errors.add(new ValidationError(error.asJson()));
-    }
     public String toString () {
         StringBuilder errorString = new StringBuilder();
-        errors.stream().forEach(error -> errorString.append(System.lineSeparator() + error.messageJson.encode()));
+        errors.stream().forEach(error -> errorString.append(System.lineSeparator() + error.asJsonString()));
         return errorString.toString();
-    }
-
-    public String asJsonString () {
-        return asJson().encode();
     }
 
     public JsonObject asJson () {
         JsonObject errorJson = new JsonObject();
         JsonArray errorArray = new JsonArray();
         errorJson.put("errors", errorArray);
-        errors.stream().forEach(error -> errorArray.add(error.messageJson));
+        errors.stream().forEach(error -> errorArray.add(error.asJson()));
         return errorJson;
     }
-
-    public static class ValidationError {
-
-        JsonObject messageJson = new JsonObject();
-
-        public ValidationError(String message) {
-            messageJson.put("message", message);
-        }
-        public ValidationError(JsonObject message) {
-            messageJson = message;
-        }
-    }
-
-
 
     public void addValidation (RequestValidation validation) {
         errors.addAll(validation.errors);
     }
+
+    public InventoryRecord.Entity firstEntityType () {
+        return (hasErrors() ? errors.get(0).getEntityType() : null);
+    }
+
+    public String firstMessage() {
+        return (hasErrors() ? errors.get(0).getMessageAsString() : "");
+    }
+
+    public String firstShortMessage() {
+        return (hasErrors() ? errors.get(0).getShortMessage() : "");
+    }
+
+    public JsonObject firstEntity () {
+        return (hasErrors() ? errors.get(0).getEntity() : new JsonObject());
+    }
+
 
 }

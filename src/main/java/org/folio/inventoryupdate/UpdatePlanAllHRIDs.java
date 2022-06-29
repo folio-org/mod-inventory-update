@@ -16,6 +16,7 @@ import io.vertx.core.CompositeFuture;
 import io.vertx.core.Future;
 import io.vertx.core.Promise;
 
+import static org.folio.inventoryupdate.ErrorResponse.UNPROCESSABLE_ENTITY;
 import static org.folio.inventoryupdate.entities.InstanceRelations.failProvisionalInstanceCreation;
 import static org.folio.inventoryupdate.entities.InstanceRelations.failRelationCreation;
 import static org.folio.inventoryupdate.entities.InventoryRecordSet.INSTANCE;
@@ -63,15 +64,16 @@ public class UpdatePlanAllHRIDs extends UpdatePlan {
         RequestValidation validationErrors = new RequestValidation();
         if (isDeletion) return validationErrors;
         String instanceHRID = inventoryRecordSet.getJsonObject("instance").getString("hrid");
+        String instanceTitle = inventoryRecordSet.getJsonObject("instance").getString("title");
         if (instanceHRID == null || instanceHRID.isEmpty()) {
-            logger.error("Missing or empty HRID. Instances must have a HRID to be processed by this API");
-            InventoryUpdateError error =
-                    new InventoryUpdateError(
-                            InventoryUpdateError.ErrorCategory.VALIDATION,
+            logger.error("Missing or empty HRID. Instances must have a HRID to be processed by this API. Title: " + instanceTitle);
+            validationErrors.registerError(
+                    new ErrorResponse(
+                            ErrorResponse.ErrorCategory.VALIDATION,
+                            UNPROCESSABLE_ENTITY,
                             "HRID is missing or empty.")
                             .setEntityType(InventoryRecord.Entity.INSTANCE)
-                            .setEntity(inventoryRecordSet.getJsonObject(INSTANCE));
-            validationErrors.registerError(error);
+                            .setEntity(inventoryRecordSet.getJsonObject(INSTANCE)));
         }
         if (inventoryRecordSet.containsKey("holdingsRecords")) {
             inventoryRecordSet.getJsonArray("holdingsRecords")
@@ -80,12 +82,15 @@ public class UpdatePlanAllHRIDs extends UpdatePlan {
                     .forEach( record -> {
                         if (!record.containsKey("hrid")) {
                             logger.error("Holdings Records must have a HRID to be processed by this API. Received: " + record.encodePrettily());
-                            InventoryUpdateError error = new InventoryUpdateError(
-                                    InventoryUpdateError.ErrorCategory.VALIDATION,"Missing HRID in incoming record set")
+                            validationErrors.registerError(
+                                new ErrorResponse(
+                                    ErrorResponse.ErrorCategory.VALIDATION,
+                                    UNPROCESSABLE_ENTITY,
+                                    "Holdings must have a HRID to be processed by this API. Title: " + instanceTitle)
+                                    .setShortMessage("Missing HRID in holdings record")
                                     .setEntityType(InventoryRecord.Entity.HOLDINGS_RECORD)
                                     .setEntity(record)
-                                    .setDetails(inventoryRecordSet);
-                            validationErrors.registerError(error);
+                                    .setDetails(inventoryRecordSet));
                         }
                         if (record.containsKey("items")) {
                             record.getJsonArray("items")
@@ -94,7 +99,14 @@ public class UpdatePlanAllHRIDs extends UpdatePlan {
                                     .forEach(item -> {
                                         if (!item.containsKey("hrid")) {
                                             logger.error("Items must have a HRID to be processed by this API. Received: " + item.encodePrettily());
-                                            validationErrors.registerError("Items must have a HRID to be processed by this API. Received item for Instance HRID [" + instanceHRID + "]: " + item.encodePrettily());
+                                            validationErrors.registerError(
+                                                 new ErrorResponse(
+                                                    ErrorResponse.ErrorCategory.VALIDATION,
+                                                    UNPROCESSABLE_ENTITY,
+                                                    "Items must have a HRID to be processed by this API. Title: " + instanceTitle)
+                                                    .setShortMessage("Missing HRID in Item")
+                                                    .setEntity(item)
+                                                    .setDetails(inventoryRecordSet));
                                         }
                                     });
                         }
@@ -113,14 +125,14 @@ public class UpdatePlanAllHRIDs extends UpdatePlan {
             String instanceHrid = recordSet.getJsonObject("instance").getString("hrid");
             if (instanceHrid != null) {
                 if (instanceHrids.contains(instanceHrid)) {
-                    InventoryUpdateError error =
-                            new InventoryUpdateError(
-                                    InventoryUpdateError.ErrorCategory.VALIDATION,
+                    validation.registerError(
+                            new ErrorResponse(
+                                    ErrorResponse.ErrorCategory.VALIDATION,
+                                    UNPROCESSABLE_ENTITY,
                                     "Instance HRID " + instanceHrid + " occurs more that once in this batch.")
                                     .setShortMessage("Instance HRID is repeated in this batch")
                                     .setEntityType(InventoryRecord.Entity.INSTANCE)
-                                    .setEntity(recordSet.getJsonObject("instance"));
-                    validation.registerError(error);
+                                    .setEntity(recordSet.getJsonObject("instance")));
                 } else {
                     instanceHrids.add(instanceHrid);
                 }
@@ -131,7 +143,16 @@ public class UpdatePlanAllHRIDs extends UpdatePlan {
                     String holdingsHrid = holdingsRecord.getString("hrid");
                     if (holdingsHrid != null) {
                         if (holdingsHrids.contains(holdingsHrid)) {
-                            validation.registerError("Holdings record HRID " + holdingsHrid + " appears more that once in batch.");
+                            validation.registerError(
+                               new ErrorResponse(
+                                    ErrorResponse.ErrorCategory.VALIDATION,
+                                    UNPROCESSABLE_ENTITY,
+                                    "Holdings record HRID " + holdingsHrid
+                                            + " appears more that once in batch.")
+                                    .setShortMessage("Recurring HRID detected in batch")
+                                    .setEntity(holdingsRecord)
+                                    .setEntityType(InventoryRecord.Entity.HOLDINGS_RECORD)
+                            );
                         } else {
                             holdingsHrids.add(holdingsHrid);
                         }
@@ -141,7 +162,15 @@ public class UpdatePlanAllHRIDs extends UpdatePlan {
                             String itemHrid = ((JsonObject) itemObject).getString("hrid");
                             if (itemHrid != null) {
                                 if (itemHrids.contains(itemHrid)) {
-                                    validation.registerError("Item HRID " + itemHrid + " appears more that once in batch.");
+                                    validation.registerError(
+                                            new ErrorResponse(
+                                                    ErrorResponse.ErrorCategory.VALIDATION,
+                                                    UNPROCESSABLE_ENTITY,
+                                                    "Item HRID " + itemHrid
+                                                            + " appears more than once in batch.")
+                                                    .setShortMessage("Recurring HRID detected in batch")
+                                                    .setEntityType(InventoryRecord.Entity.ITEM)
+                                                    .setEntity((JsonObject) itemObject));
                                 } else {
                                     itemHrids.add(itemHrid);
                                 }

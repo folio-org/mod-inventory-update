@@ -1,0 +1,21 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "description": "Response on a successful batch upsert request",
+  "type": "object",
+  "properties": {
+    "metrics": {
+      "type": "object",
+      "description": "Report of the number of operations performed by record type, transaction type, and outcome",
+      "$ref": "metrics.json"
+    },
+    "errors": {
+      "type": "array",
+      "description": "List of problems encountered during an Inventory update or delete request.",
+      "items": {
+        "type": "object",
+        "description": "Description of an individual error conditions",
+        "$ref": "error-response.json"
+      }
+    }
+  }
+}

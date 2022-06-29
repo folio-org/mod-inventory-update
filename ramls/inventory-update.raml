@@ -20,7 +20,10 @@ types:
   hrid-deletion: !include hrid-deletion.json
   shared-index-deletion: !include shared-index-deletion.json
   upsert-response-200: !include upsert-response-200.json
-  upsert-response-422: !include upsert-response-422.json
+  upsert-response-207: !include upsert-response-207.json
+  batch-upsert-response-207: !include batch-upsert-response-207.json
+  error-response: !include error-response.json
+  metrics: !include metrics.json
   get-recordset-response: !include get-recordset-response.json
 
 resourceTypes:
@@ -38,35 +41,61 @@ traits:
             type: inventory-record-set-with-hrids
     responses:
         200:
-            description: "Inventory recordset successfully created or updated by HRIDs"
+            description: "Inventory recordset successfully created or updated by HRIDs."
             body:
                 application/json:
                     type: upsert-response-200
+        207:
+            description: "Partially successful update of record set. Errors listed in response."
+            body:
+                application/json
+                    type: upsert-response-207
         422:
-            description: "One or more problems encountered when creating/updating an Inventory record set by HRIDs"
+            description: "One or more validation errors found in incoming record set. No updates performed."
             body:
                 application/json:
-                    type: upsert-response-422
+                    type: error-response
         400:
             description: "Bad request, for example: empty request body, non-JSON or invalid JSON in request body or JSON not recognized as an inventory record set"
             body:
                 application/json:
-                    type: upsert-response-400
+                    type: error-response
+        500:
+            description: "Internal errors in the module itself or in the modules that it uses."
+            body:
+                application/json:
+                    type: error-response
+
   delete:
     body:
         application/json:
             type: hrid-deletion
     responses:
         200:
-          description: "Record set was successfully found by HRID and deleted"
-        404:
-          description: "Did not find existing Instance (record set) to delete for provided HRID "
-        422:
-          description: "One or more problems were encountered when attempting to delete inventory record set"
+            description: "Record set was successfully found by HRID and deleted"
+            body:
+                application/json:
+                    type: upsert-response-200
         400:
-          description: "Bad request, for example: non-JSON in request body; inventory record set without an Instance"
+            description: "Bad request, for example: non-JSON in request body; inventory record set without an Instance"
+            body:
+                application/json:
+                    type: error-response
+        404:
+            description: "Did not find existing Instance (record set) to delete for provided HRID "
+            body:
+                application/json:
+                    type: error-response
+        422:
+            description: "One or more validation errors encountered. No deletion performed."
+            body:
+                application/json:
+                    type: error-response
         500:
-          description: "Error during delete by HRID"
+            description: "Internal error in the module or in storage during delete by HRID"
+            body:
+                application/json:
+                    type: error-response
 
 /inventory-batch-upsert-hrid:
   displayName: Create or update a batch of instances with holdings and items, based on incoming HRIDs on all three record types
@@ -76,20 +105,30 @@ traits:
             type: inventory-record-sets-with-hrids
     responses:
         200:
-            description: "Batch of Inventory record sets successfully created or updated by HRIDs"
+            description: "Batch of Inventory record sets successfully created or updated by HRIDs."
             body:
                 application/json:
-                    type: batch-upsert-response-200
-        422:
-            description: "One or more problems encountered when creating/updating a batch of Inventory record sets by HRIDs"
+                    type: metrics
+        207:
+            description: "Partially successful update of record set. Errors enumerated in response."
             body:
                 application/json:
-                    type: batch-upsert-response-422
+                    type: batch-upsert-response-207
         400:
             description: "Bad request, for example: empty request body, non-JSON or invalid JSON in request body or JSON does not contain inventory record sets"
             body:
                 application/json:
-                    type: batch-upsert-response-400
+                    type: error-response
+        422:
+            description: "One or more validation errors found in incoming record set. No updates performed."
+            body:
+                application/json:
+                    type: error-response
+        500:
+            description: "Internal error in the module or in storage during delete by HRID"
+            body:
+                application/json:
+                    type: error-response
 
 
 /inventory-upsert-hrid/fetch/{id}:
@@ -112,21 +151,30 @@ traits:
             type: inventory-record-set
     responses:
         200:
-          description: "Inventory recordset successfully created or updated by match key"
-          body:
-             application/json:
-               type: upsert-response-200
-        422:
-          description: "One or more problems encountered when creating/updating an Inventory record set by match key"
-          body:
-            application/json:
-              type: upsert-response-422
+            description: "Inventory recordset successfully created or updated by match key"
+            body:
+                 application/json:
+                   type: upsert-response-200
+        207:
+            description: "Partially successful update of record set. Errors listed in response."
+            body:
+                application/json
+                    type: upsert-response-207
         400:
-          description: "Bad request, for example: non-JSON in request body; inventory record set without an Instance"
+          description: "Bad request, for example: non-JSON in request body; inventory record set without an Instance."
           body:
             application/json:
-              type: upsert-response-400
-
+              type: error-response
+        422:
+          description: "One or more validation errors encountered. No updates performed."
+          body:
+            application/json:
+              type: error-response
+        500:
+            description: "Internal error in the module or in storage module."
+            body:
+                application/json:
+                    type: error-response
 
   delete:
     body:
@@ -134,15 +182,30 @@ traits:
           type: shared-index-deletion
     responses:
         200:
-          description: "Record set was successfully deleted"
-        404:
-          description: "Did not find existing Instance (record set) to delete"
-        422:
-          description: "One or more problems were encountered when attempting to delete inventory record set"
+            description: "Record set was successfully found by local ID and cleaned up."
+            body:
+                application/json:
+                    type: upsert-response-200
         400:
-          description: "Bad request, for example non-JSON in request body"
+            description: "Bad request, for example: non-JSON in request body."
+            body:
+                application/json:
+                    type: error-response
+        404:
+            description: "Did not find existing Instance (record set) to clean up for given local ID."
+            body:
+                application/json:
+                    type: error-response
+        422:
+            description: "One or more validation errors encountered. No deletion performed."
+            body:
+                application/json:
+                    type: error-response
         500:
-          description: "Error during delete by institution ID and record identifier"
+            description: "Internal error in the module or in storage during delete by local ID."
+            body:
+                application/json:
+                    type: error-response
 
 /shared-inventory-upsert-matchkey/fetch/{id}:
   displayName: Retrieve single Inventory record set either by Instance UUID or HRID
@@ -162,17 +225,27 @@ traits:
             type: inventory-record-sets
     responses:
         200:
-            description: "Batch of Inventory record sets successfully created or updated by match-key"
+            description: "Batch of Inventory record sets successfully created or updated by match-key."
             body:
                 application/json:
-                    type: batch-upsert-response-200
-        422:
-            description: "One or more problems encountered when creating/updating a batch of Inventory record sets by match-keys"
+                    type: metrics
+        207:
+            description: "Partially successful update of record set. Errors enumerated in response."
             body:
                 application/json:
-                    type: batch-upsert-response-422
+                    type: batch-upsert-response-207
         400:
-            description: "Bad request, for example: empty request body, non-JSON or invalid JSON in request body or JSON does not contain inventory record sets"
+            description: "Bad request, for example: empty request body, non-JSON or invalid JSON in request body or JSON does not contain inventory record sets."
             body:
                 application/json:
-                    type: batch-upsert-response-400
+                    type: error-response
+        422:
+            description: "One or more problems encountered when creating/updating a batch of Inventory record sets by match-keys."
+            body:
+                application/json:
+                    type: error-response
+        500:
+            description: "Internal error in the module or in the storage module."
+            body:
+                application/json:
+                    type: error-response

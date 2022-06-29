@@ -5,7 +5,9 @@ import java.util.UUID;
 import io.vertx.core.json.DecodeException;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
-import org.folio.inventoryupdate.InventoryUpdateError;
+import org.folio.inventoryupdate.ErrorResponse;
+
+import static org.folio.inventoryupdate.ErrorResponse.UNPROCESSABLE_ENTITY;
 
 
 /**
@@ -44,7 +46,7 @@ public abstract class InventoryRecord {
 
     protected JsonObject jsonRecord;
     public static final String VERSION = "_version";
-    protected InventoryUpdateError error;
+    protected ErrorResponse error;
     protected Entity entityType;
     protected Transaction transaction = Transaction.UNKNOWN;
     protected Outcome outcome = Outcome.PENDING;
@@ -153,12 +155,14 @@ public abstract class InventoryRecord {
         Object message = maybeJson(error);
 
         if (message instanceof JsonObject) {
-            this.error = new InventoryUpdateError(
-                    InventoryUpdateError.ErrorCategory.STORAGE,
+            this.error = new ErrorResponse(
+                    ErrorResponse.ErrorCategory.STORAGE,
+                    UNPROCESSABLE_ENTITY,
                     (JsonObject) message);
         } else {
-            this.error = new InventoryUpdateError(
-                    InventoryUpdateError.ErrorCategory.STORAGE,
+            this.error = new ErrorResponse(
+                    ErrorResponse.ErrorCategory.STORAGE,
+                    UNPROCESSABLE_ENTITY,
                     (String) message);
         }
         this.error.setEntityType(entityType())

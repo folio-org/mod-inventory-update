@@ -1519,7 +1519,7 @@ public class InventoryUpdateTestSuite {
     String childHrid = "002";
     String parentHrid = "001";
 
-    Response childResponse = upsertByHrid(422, new JsonObject()
+    Response childResponse = upsertByHrid(207, new JsonObject()
             .put("instance",
                     new InputInstance().setTitle("Child InputInstance").setInstanceTypeId("12345").setHrid(childHrid).getJson())
             .put("instanceRelations", new JsonObject()
@@ -1530,7 +1530,7 @@ public class InventoryUpdateTestSuite {
     testContext.assertEquals(getMetric(responseJson, INSTANCE_RELATIONSHIP, CREATE, FAILED), 1,
             "Upsert metrics response should report [1] relation creation failure due to missing provisional instance  " + responseJson.encodePrettily());
 
-    childResponse = upsertByHrid(422, new JsonObject()
+    childResponse = upsertByHrid(207, new JsonObject()
             .put("instance",
                     new InputInstance().setTitle("Child InputInstance").setInstanceTypeId("12345").setHrid(childHrid).getJson())
             .put("instanceRelations", new JsonObject()
@@ -1592,7 +1592,7 @@ public class InventoryUpdateTestSuite {
     String childHrid = "002";
     String badUuid = "bad";
 
-    Response childResponse = upsertByHrid(422, new JsonObject()
+    Response childResponse = upsertByHrid(207, new JsonObject()
             .put("instance",
                     new InputInstance().setTitle("Child InputInstance").setInstanceTypeId("12345").setHrid(childHrid).getJson())
             .put("instanceRelations", new JsonObject()
@@ -1855,7 +1855,7 @@ public class InventoryUpdateTestSuite {
                             .put("items", new JsonArray()
                                     .add(new InputItem().setBarcode("BC-003").getJson())))));
 
-    upsertByHrid(422, new JsonObject()
+    Response response = upsertByHrid(422, new JsonObject()
             .put("instance",
                     new InputInstance().setTitle("Initial InputInstance").setInstanceTypeId("12345").setHrid("").getJson())
             .put("holdingsRecords", new JsonArray()
@@ -1866,6 +1866,7 @@ public class InventoryUpdateTestSuite {
                     .add(new InputHoldingsRecord().setHrid("HOL-002").setPermanentLocationId(LOCATION_ID_1).setCallNumber("test-cn-2").getJson()
                             .put("items", new JsonArray()
                                     .add(new InputItem().setBarcode("BC-003").getJson())))));
+    logger.info(response.asPrettyString());
 
   }
 
@@ -1908,8 +1909,7 @@ public class InventoryUpdateTestSuite {
   @Test
   public void upsertByHridWillHaveErrorsWithWrongHoldingsLocation (TestContext testContext) {
     String instanceHrid = "1";
-    // fail if response status code is not 422
-    Response upsertResponse = upsertByHrid(422, new JsonObject()
+    Response upsertResponse = upsertByHrid(207, new JsonObject()
             .put("instance",
                     new InputInstance().setTitle("Initial InputInstance").setInstanceTypeId("12345").setHrid(instanceHrid).getJson())
             .put("holdingsRecords", new JsonArray()
@@ -1993,7 +1993,7 @@ public class InventoryUpdateTestSuite {
   @Test
   public void testForcedItemCreateFailure (TestContext testContext) {
     fakeInventoryStorage.itemStorage.failOnCreate = true;
-    Response response = upsertByHrid(422,new JsonObject()
+    Response response = upsertByHrid(207,new JsonObject()
             .put("instance",
                     new InputInstance().setTitle("Initial InputInstance").setInstanceTypeId("12345").setHrid("001").getJson())
             .put("holdingsRecords", new JsonArray()
@@ -2014,7 +2014,7 @@ public class InventoryUpdateTestSuite {
   @Test
   public void testForcedHoldingsCreateFailure (TestContext testContext) {
     fakeInventoryStorage.holdingsStorage.failOnCreate = true;
-    Response response = upsertByHrid(422,new JsonObject()
+    Response response = upsertByHrid(207,new JsonObject()
             .put("instance",
                     new InputInstance().setTitle("Initial InputInstance").setInstanceTypeId("12345").setHrid("001").getJson())
             .put("holdingsRecords", new JsonArray()
@@ -2051,7 +2051,7 @@ public class InventoryUpdateTestSuite {
                             .put("items", new JsonArray()
                                     .add(new InputItem().setHrid("ITM-003").setBarcode("BC-003").getJson()))));
     upsertByHrid (inventoryRecordSet);
-    Response response = upsertByHrid(422,inventoryRecordSet);
+    Response response = upsertByHrid(207,inventoryRecordSet);
     JsonObject responseJson = new JsonObject(response.getBody().asString());
 
     testContext.assertEquals(getMetric(responseJson, ITEM, UPDATE , FAILED), 3,
@@ -2074,7 +2074,7 @@ public class InventoryUpdateTestSuite {
                             .put("items", new JsonArray()
                                     .add(new InputItem().setHrid("ITM-003").setBarcode("BC-003").getJson()))));
     upsertByHrid (inventoryRecordSet);
-    Response response = upsertByHrid(422,inventoryRecordSet);
+    Response response = upsertByHrid(207,inventoryRecordSet);
 
     JsonObject responseJson = new JsonObject(response.getBody().asString());
 
@@ -2098,7 +2098,7 @@ public class InventoryUpdateTestSuite {
                             .put("items", new JsonArray()
                                     .add(new InputItem().setHrid("ITM-003").setBarcode("BC-003").getJson())))));
 
-    Response response = upsertByHrid(422,new JsonObject()
+    Response response = upsertByHrid(207,new JsonObject()
             .put("instance",
                     new InputInstance().setTitle("Initial InputInstance").setInstanceTypeId("12345").setHrid("001").getJson())
             .put("holdingsRecords", new JsonArray()
@@ -2131,7 +2131,7 @@ public class InventoryUpdateTestSuite {
                             .put("items", new JsonArray()
                                     .add(new InputItem().setHrid("ITM-003").setBarcode("BC-003").getJson())))));
 
-    Response response = upsertByHrid(422,new JsonObject()
+    Response response = upsertByHrid(207,new JsonObject()
             .put("instance",
                     new InputInstance().setTitle("Initial InputInstance").setInstanceTypeId("12345").setHrid("001").getJson())
             .put("holdingsRecords", new JsonArray()
@@ -2163,7 +2163,7 @@ public class InventoryUpdateTestSuite {
                     .add(new InputHoldingsRecord().setHrid("HOL-002").setPermanentLocationId(LOCATION_ID_1).setCallNumber("test-cn-2").getJson()
                             .put("items", new JsonArray()
                                     .add(new InputItem().setHrid("ITM-003").setBarcode("BC-003").getJson()))));
-    upsertByHrid (422,inventoryRecordSet);
+    upsertByHrid (500,inventoryRecordSet);
 
   }
 
@@ -2181,7 +2181,7 @@ public class InventoryUpdateTestSuite {
                     .add(new InputHoldingsRecord().setHrid("HOL-002").setPermanentLocationId(LOCATION_ID_1).setCallNumber("test-cn-2").getJson()
                             .put("items", new JsonArray()
                                     .add(new InputItem().setHrid("ITM-003").setBarcode("BC-003").getJson()))));
-    upsertByHrid (422,inventoryRecordSet);
+    upsertByHrid (500,inventoryRecordSet);
 
   }
 
@@ -2199,7 +2199,7 @@ public class InventoryUpdateTestSuite {
                     .add(new InputHoldingsRecord().setHrid("HOL-002").setPermanentLocationId(LOCATION_ID_1).setCallNumber("test-cn-2").getJson()
                             .put("items", new JsonArray()
                                     .add(new InputItem().setHrid("ITM-003").setBarcode("BC-003").getJson()))));
-    upsertByHrid (422,inventoryRecordSet);
+    upsertByHrid (500,inventoryRecordSet);
 
   }
 
@@ -2224,7 +2224,7 @@ public class InventoryUpdateTestSuite {
                     .put("succeedingTitles", new JsonArray())
                     .put("precedingTitles", new JsonArray()));
     upsertByHrid (inventoryRecordSet);
-    upsertByHrid (422,inventoryRecordSet);
+    upsertByHrid (500,inventoryRecordSet);
 
   }
 
@@ -2247,7 +2247,7 @@ public class InventoryUpdateTestSuite {
                     .put("childInstances", new JsonArray())
                     .put("succeedingTitles", new JsonArray())
                     .put("precedingTitles", new JsonArray()));
-    upsertByMatchKey (422, inventoryRecordSet);
+    upsertByMatchKey (500, inventoryRecordSet);
 
   }
 
@@ -2279,7 +2279,7 @@ public class InventoryUpdateTestSuite {
                     .put("childInstances", new JsonArray())
                     .put("succeedingTitles", new JsonArray())
                     .put("precedingTitles", new JsonArray()));
-    upsertByMatchKey (422, inventoryRecordSet);
+    upsertByMatchKey (500, inventoryRecordSet);
 
   }
 

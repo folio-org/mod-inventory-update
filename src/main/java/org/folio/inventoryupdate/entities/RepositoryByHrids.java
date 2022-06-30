@@ -6,6 +6,7 @@ import io.vertx.core.Promise;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.RoutingContext;
+import org.folio.inventoryupdate.ErrorReport;
 import org.folio.inventoryupdate.InventoryStorage;
 import org.folio.inventoryupdate.QueryByListOfIds;
 import org.folio.okapi.common.OkapiClient;
@@ -79,20 +80,24 @@ public class RepositoryByHrids extends Repository {
                     setExistingRecordSets();
                     promise.complete();
                   } else {
-                    promise.fail("There was an error fetching items by holdings record IDs: " + itemsByHoldingsRecordIds.cause().getMessage());
+                    promise.fail(itemsByHoldingsRecordIds.cause().getMessage());
                   }
                 });
               } else {
-                promise.fail("There was an error fetching holdings by instance IDs: " + recordsByHrids.cause().getMessage());
+                promise.fail(
+                        ErrorReport.makeErrorReportFromJsonString(
+                                holdingsRecordsByInstanceIds.cause().getMessage())
+                                .setShortMessage("Problem fetching holdings records from storage before upsert.")
+                                .asJsonString());
               }
             });
           } else {
-            promise.fail("There was an error fetching instance relations by instance IDs: " + instanceRelations.cause().getMessage());
+            promise.fail(instanceRelations.cause().getMessage());
           }
         });
 
       } else {
-        promise.fail("There was an error fetching inventory records by incoming HRIDs: " + recordsByHrids.cause().getMessage());
+        promise.fail(recordsByHrids.cause().getMessage());
       }
     });
     return promise.future();
@@ -159,8 +164,7 @@ public class RepositoryByHrids extends Repository {
                 }
                 promise.complete();
               } else {
-                promise.fail("There was a problem fetching existing Instances by incoming HRIDs "
-                        + instances.cause().getMessage());
+                promise.fail(instances.cause().getMessage());
               }
 
             });
@@ -184,8 +188,7 @@ public class RepositoryByHrids extends Repository {
                 }
                 promise.complete();
               } else {
-                promise.fail("There was a problem fetching existing Instances by incoming HRIDs "
-                        + instances.cause().getMessage());
+                promise.fail(instances.cause().getMessage());
               }
 
             });
@@ -209,8 +212,7 @@ public class RepositoryByHrids extends Repository {
                 }
                 promise.complete();
               } else {
-                promise.fail("There was a problem fetching existing Instances by incoming HRIDs "
-                        + instances.cause().getMessage());
+                promise.fail(instances.cause().getMessage());
               }
 
             });
@@ -239,9 +241,11 @@ public class RepositoryByHrids extends Repository {
                 }
                 promise.complete();
               } else {
-                promise.fail(
-                        "There was a problem fetching existing holdings records by incoming HRIDs "
-                                + records.cause().getMessage());
+                promise.fail(ErrorReport.makeErrorReportFromJsonString(
+                        records.cause().getMessage())
+                        .setShortMessage("Problem fetching holdings records by HRIDs before upsert")
+                        .addDetail("context", "fetching holdings records by HRIDs before upsert")
+                        .asJsonString());
               }
 
             });
@@ -267,7 +271,7 @@ public class RepositoryByHrids extends Repository {
                 }
                 promise.complete();
               } else {
-                promise.fail("There was a problem fetching existing items by incoming HRIDs " + records.cause().getMessage());
+                promise.fail(records.cause().getMessage());
               }
 
             });
@@ -300,8 +304,7 @@ public class RepositoryByHrids extends Repository {
                 }
                 promise.complete();
               } else {
-                promise.fail("There was a problem fetching existing relationships by child instance IDs "
-                        + records.cause().getMessage());
+                promise.fail(records.cause().getMessage());
               }
 
             });
@@ -333,8 +336,7 @@ public class RepositoryByHrids extends Repository {
                 }
                 promise.complete();
               } else {
-                promise.fail("There was a problem fetching existing relationships by parent instance IDs "
-                        + records.cause().getMessage());
+                promise.fail(records.cause().getMessage());
               }
 
             });
@@ -366,8 +368,7 @@ public class RepositoryByHrids extends Repository {
                 }
                 promise.complete();
               } else {
-                promise.fail("There was a problem fetching existing title successions by preceding instance IDs "
-                        + records.cause().getMessage());
+                promise.fail(records.cause().getMessage());
               }
 
             });
@@ -399,8 +400,7 @@ public class RepositoryByHrids extends Repository {
                 }
                 promise.complete();
               } else {
-                promise.fail("There was a problem fetching existing title successions by succeeding instance IDs "
-                        + records.cause().getMessage());
+                promise.fail(records.cause().getMessage());
               }
 
             });

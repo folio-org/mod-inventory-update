@@ -7,6 +7,7 @@ import io.vertx.core.impl.logging.Logger;
 import io.vertx.core.impl.logging.LoggerFactory;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
+import org.folio.inventoryupdate.ErrorReport;
 import org.folio.inventoryupdate.QueryByHrid;
 import org.folio.inventoryupdate.InventoryQuery;
 import org.folio.inventoryupdate.InventoryStorage;
@@ -261,11 +262,17 @@ public class InstanceRelations extends JsonRepresentation {
                     if (allRelationsCreated.succeeded()) {
                         promise.complete();
                     } else {
-                        promise.fail("There was an error creating instance relations:" + LF + "  " + allRelationsCreated.cause().getMessage());
+                        promise.fail(ErrorReport.makeErrorReportFromJsonString(
+                                allRelationsCreated.cause().getMessage())
+                                .addDetail("context", "Creating instance-to-instance relations")
+                                .asJsonString());
                     }
                 });
             } else {
-                promise.fail("There was an error creating provisional Instances:" + LF + "  " + allProvisionalInstancesCreated.cause().getMessage());
+                promise.fail(ErrorReport.makeErrorReportFromJsonString(
+                        allProvisionalInstancesCreated.cause().getMessage())
+                        .addDetail("context","Creating provisional instances")
+                        .asJsonString());
             }
         });
         return promise.future();

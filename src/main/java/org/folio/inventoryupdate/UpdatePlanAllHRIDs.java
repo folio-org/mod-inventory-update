@@ -257,7 +257,12 @@ public class UpdatePlanAllHRIDs extends UpdatePlan {
                     promisedPlan.fail("Instance to delete not found");
                 }
             } else {
-                promisedPlan.fail("There was a problem looking for an existing instance in Inventory Storage" + lookup.cause().getMessage());
+                promisedPlan.fail(
+                        ErrorReport
+                                .makeErrorReportFromJsonString(lookup.cause().getMessage())
+                                .setShortMessage(
+                                        "There was a problem looking for an existing instance in Inventory Storage.")
+                                .asJsonString());
             }
         });
         return promisedPlan.future();
@@ -373,7 +378,7 @@ public class UpdatePlanAllHRIDs extends UpdatePlan {
             if (deletes.succeeded()) {
                 promise.complete();
             } else {
-                promise.fail("There was a problem processing Inventory deletes:" + LF + "  " + deletes.cause().getMessage());
+                promise.fail(deletes.cause().getMessage());
             }
         });
         return promise.future();
@@ -464,11 +469,18 @@ public class UpdatePlanAllHRIDs extends UpdatePlan {
                     if (allRelationsCreated.succeeded()) {
                         promise.complete();
                     } else {
-                        promise.fail("UpdatePlan using repository: There was an error creating instance relations:" + LF + "  " + allRelationsCreated.cause().getMessage());
+                        promise.fail(
+                                ErrorReport.makeErrorReportFromJsonString(
+                                        allRelationsCreated.cause().getMessage())
+                                        .setShortMessage(
+                                                "UpdatePlan using repository: There was an error creating instance relations")
+                                        .asJsonString());
                     }
                 });
             } else {
-                promise.fail("There was an error creating provisional Instances:" + LF + "  " + allProvisionalInstancesCreated.cause().getMessage());
+                promise.fail(ErrorReport.makeErrorReportFromJsonString(allProvisionalInstancesCreated.cause().getMessage())
+                        .setShortMessage("There was an error creating provisional Instances")
+                        .asJsonString());
             }
         });
         return promise.future();

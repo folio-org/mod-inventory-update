@@ -84,6 +84,7 @@ public class InventoryUpdateService {
                     listOfOutcomes -> {
                       listOfOutcomes.result().get(0).respond(routingContext);
                     });
+
           }
         }
       });
@@ -171,9 +172,7 @@ public class InventoryUpdateService {
                                   });
                         } else {
                           InventoryUpdateOutcome outcome = new InventoryUpdateOutcome(
-                                  new ErrorReport(
-                                          ErrorReport.ErrorCategory.STORAGE,
-                                          INTERNAL_SERVER_ERROR,
+                                  ErrorReport.makeErrorReportFromJsonString(
                                           result.cause().getMessage())
                                           .setShortMessage("Fetching from storage before update failed."));
                           promise.complete(outcome);

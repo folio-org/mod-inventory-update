@@ -1,6 +1,8 @@
 package org.folio.inventoryupdate;
 
 import io.vertx.core.json.DecodeException;
+import io.vertx.core.json.Json;
+import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.RoutingContext;
 import org.folio.inventoryupdate.entities.InventoryRecord;
@@ -42,20 +44,7 @@ public class ErrorReport {
   String messageAsString;
   JsonObject messageAsJson;
   JsonObject entity;
-  JsonObject details;
-
-
-
-  public ErrorReport(ErrorCategory category, int statusCode, String message) {
-    this.category = category;
-    this.messageAsString = message;
-    if (message != null) {
-      this.shortMessage = message.substring(0, Math.min(message.length(),40));
-    } else {
-      this.shortMessage = "";
-    }
-    this.statusCode = statusCode;
-  }
+  JsonObject details = new JsonObject();
 
   public ErrorReport(ErrorCategory category, int statusCode, Object message) {
     this.category = category;
@@ -82,7 +71,8 @@ public class ErrorReport {
             json.getValue(MESSAGE))
             .setEntity(json.getJsonObject(ENTITY))
             .setTransaction(json.getString(TRANSACTION))
-            .setEntityType(getEntityTypeFromString(json.getString(ENTITY_TYPE)));
+            .setEntityType(getEntityTypeFromString(json.getString(ENTITY_TYPE)))
+            .setDetails(json.getJsonObject(DETAILS));
   }
 
   public static boolean isAnErrorReportJson (String maybeJson) {
@@ -195,6 +185,21 @@ public class ErrorReport {
 
   public ErrorReport setDetails(JsonObject details) {
     this.details = details;
+    return this;
+  }
+
+  public ErrorReport addDetail (String key, String value) {
+    if (details.containsKey(key)) {
+      if (details.getValue(key) instanceof JsonArray) {
+        JsonArray array = new JsonArray();
+        array.add(value).addAll(details.getJsonArray(key));
+        details.put(key, array);
+      }
+    } else {
+      JsonArray array = new JsonArray();
+      array.add(value);
+      details.put(key, array);
+    }
     return this;
   }
 

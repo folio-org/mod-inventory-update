@@ -212,7 +212,12 @@ public class InventoryStorage {
           promise.complete(null);
         }
       } else {
-        failure(res.cause(), Entity.HOLDINGS_RECORD, Transaction.GET, okapiClient.getStatusCode(), promise);
+        failure(res.cause(),
+                Entity.HOLDINGS_RECORD,
+                Transaction.GET,
+                okapiClient.getStatusCode(),
+                promise,
+                HOLDINGS_STORAGE_PATH+"?limit=100000&query="+inventoryQuery.getURLEncodedQueryString());
       }
     });
     return promise.future();
@@ -230,7 +235,8 @@ public class InventoryStorage {
           promise.complete(null);
         }
       } else {
-        failure(res.cause(), Entity.ITEM, Transaction.GET, okapiClient.getStatusCode(), promise);
+        failure(res.cause(), Entity.ITEM, Transaction.GET, okapiClient.getStatusCode(), promise,
+                ITEM_STORAGE_PATH+"?limit=100000&query="+inventoryQuery.getURLEncodedQueryString());
       }
     });
     return promise.future();
@@ -245,7 +251,8 @@ public class InventoryStorage {
         promise.complete(parentChildRelations);
       } else {
         logger.info("Could not look up existing instance relationships");
-        failure(res.cause(), Entity.INSTANCE_RELATIONSHIP, Transaction.GET, okapiClient.getStatusCode(), promise, "While looking up instance relationships");
+        failure(res.cause(), Entity.INSTANCE_RELATIONSHIP, Transaction.GET, okapiClient.getStatusCode(), promise,
+                INSTANCE_RELATIONSHIP_STORAGE_PATH +"?limit=10000&query=" + inventoryQuery.getURLEncodedQueryString());
       }
     });
     return promise.future();
@@ -260,7 +267,8 @@ public class InventoryStorage {
         logger.debug("Successfully looked up existing title succession relationships, found  " + titleSuccessions.size());
         promise.complete(titleSuccessions);
       } else {
-        failure(res.cause(), Entity.INSTANCE_TITLE_SUCCESSION, Transaction.GET, okapiClient.getStatusCode(), promise, "While looking up instance title succession");
+        failure(res.cause(), Entity.INSTANCE_TITLE_SUCCESSION, Transaction.GET, okapiClient.getStatusCode(), promise,
+                PRECEDING_SUCCEEDING_TITLE_STORAGE_PATH +"?limit=10000&query=" + inventoryQuery.getURLEncodedQueryString());
       }
     });
     return promise.future();
@@ -320,14 +328,20 @@ public class InventoryStorage {
                   if (existingHoldingsResult.succeeded() && existingInstanceTitleSuccessions.succeeded() && existingParentChildRelations.succeeded()) {
                     promise.complete(inventoryRecordSet);
                   } else {
-                    promise.fail(errorMessages.toString());
+                    promise.fail(new ErrorReport(
+                            ErrorReport.ErrorCategory.STORAGE,
+                            ErrorReport.UNPROCESSABLE_ENTITY,
+                            errorMessages.toString())
+                            .setShortMessage("Error looking up existing record set")
+                            .asJsonString());
                   }
                 });
               });
           });
         }
       } else {
-        failure(instanceResult.cause(), Entity.INSTANCE, Transaction.GET, okapiClient.getStatusCode(), promise);
+        failure(instanceResult.cause(), Entity.INSTANCE, Transaction.GET, okapiClient.getStatusCode(), promise,
+                "Looking up single inventory record set");
       }
     });
     return promise.future();
@@ -360,7 +374,13 @@ public class InventoryStorage {
         }
       } else {
         failure(res.cause(), Entity.HOLDINGS_RECORD, Transaction.GET, okapiClient.getStatusCode(), promise, "While looking up holdings by instance ID");
-        promise.fail("There was an error looking up existing holdings and items");
+        promise.fail(new ErrorReport(ErrorReport.ErrorCategory.STORAGE,
+                okapiClient.getStatusCode(),
+                res.cause().getMessage())
+                .setShortMessage("Error looking up holdings by Instance ID")
+                .setEntityType(Entity.HOLDINGS_RECORD)
+                .setTransaction(Transaction.GET.name())
+                .asJsonPrettily());
       }
     });
     return promise.future();
@@ -422,7 +442,8 @@ public class InventoryStorage {
         JsonArray locationsJson = response.getJsonArray(LOCATIONS);
         promise.complete(locationsJson);
       }  else {
-        failure(locs.cause(), Entity.LOCATION, Transaction.GET, okapiClient.getStatusCode(), promise);
+        failure(locs.cause(), Entity.LOCATION, Transaction.GET, okapiClient.getStatusCode(), promise,
+                LOCATION_STORAGE_PATH + "?limit=9999");
       }
     });
     return promise.future();
@@ -484,14 +505,13 @@ public class InventoryStorage {
 
   private static <T> Future<T> failureFuture(Throwable cause, Entity entityType, Transaction transaction,
       int httpStatusCode, String contextNote) {
-
     return Future.failedFuture(
             new ErrorReport(ErrorReport.ErrorCategory.STORAGE,
                     httpStatusCode,
                     cause.getMessage())
                     .setEntityType(entityType)
                     .setTransaction(transaction != null ? transaction.toString() : "")
-                    .setDetails(new JsonObject().put("contextNote", contextNote))
+                    .addDetail("context", contextNote)
                     .asJsonPrettily());
   }
 

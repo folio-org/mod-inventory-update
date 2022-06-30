@@ -47,7 +47,7 @@ public class ShiftingMatchKeyManager
                 {
                     promise.complete();
                 } else {
-                    promise.fail( "Error updating Instance with a previous match key: " );
+                    promise.fail( put.cause().getMessage() );
                 }
             } );
         } else {

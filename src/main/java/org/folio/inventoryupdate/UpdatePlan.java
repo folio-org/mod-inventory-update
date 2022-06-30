@@ -72,44 +72,6 @@ public abstract class UpdatePlan {
     public abstract UpdatePlan planInventoryUpdates();
 
     public abstract Future<Void> doInventoryUpdates(OkapiClient okapiClient, boolean batchOfOne);
-    /*
-    public Future<Void> doInventoryUpdates(OkapiClient okapiClient) {
-        Promise<Void> promise = Promise.promise();
-        doCreateRecordsWithDependants(okapiClient).onComplete(prerequisitesCreated -> {
-            if (prerequisitesCreated.succeeded()) {
-                doUpdateInstancesAndHoldings(okapiClient).onComplete(instancesAndHoldingsUpdated -> {
-                    doCreateInstanceRelations(okapiClient).onComplete(relationsCreated -> {
-                        doUpdateOrCreateItems(okapiClient).onComplete(itemsUpdatedAndCreated ->{
-                            if (prerequisitesCreated.succeeded() && instancesAndHoldingsUpdated.succeeded() && itemsUpdatedAndCreated.succeeded()) {
-                                doDeleteRelationsItemsHoldings(okapiClient).onComplete(deletes -> {
-                                    if (deletes.succeeded()) {
-                                        if (relationsCreated.succeeded()) {
-                                            promise.complete();
-                                        } else {
-                                            promise.fail("There was a problem creating Instance relationships: " +  relationsCreated.cause().getMessage());
-                                        }
-                                    } else {
-                                        promise.fail("There was a problem processing Inventory deletes:" + "  " + deletes.cause().getMessage());
-                                    }
-                                });
-                            } else {
-                                promise.fail("There was a problem creating records, no deletes performed if any requested:" + "  " +
-                                        (prerequisitesCreated.failed() ? prerequisitesCreated.cause().getMessage() : "")
-                                        + (instancesAndHoldingsUpdated.failed() ? " " + instancesAndHoldingsUpdated.cause().getMessage() : "")
-                                        + (itemsUpdatedAndCreated.failed() ? " " + itemsUpdatedAndCreated.cause().getMessage(): ""));
-                            }
-                        });
-                    });
-                });
-
-            } else {
-                promise.fail("Error creating Instances or holdings records");
-            }
-        });
-        return promise.future();
-    }
-
-     */
 
     public abstract Future<Void> doCreateInstanceRelations (OkapiClient okapiClient);
 
@@ -137,7 +99,7 @@ public abstract class UpdatePlan {
                     promise.complete( null );
                 }
             } else {
-                promise.fail("Error looking up existing record set: " + recordSet.cause().getMessage());
+                promise.fail(recordSet.cause().getMessage());
             }
         });
         return promise.future();
@@ -236,22 +198,6 @@ public abstract class UpdatePlan {
         return promise.future();
     }
 
-    public Future<Void> doCreateNewInstances(OkapiClient okapiClient) {
-        Promise<Void> promise = Promise.promise();
-        List<Future> instanceCreates = new ArrayList<>();
-        for (Instance instance : repository.getInstancesToCreate()) {
-            instanceCreates.add(InventoryStorage.postInventoryRecord(okapiClient, instance));
-        }
-        CompositeFuture.join(instanceCreates).onComplete(handler -> {
-            if (handler.succeeded()) {
-                promise.complete();
-            } else {
-                promise.fail(handler.cause().getMessage());
-            }
-        });
-        return promise.future();
-    }
-
     public Future<Void> doCreateNewInstancesInBatch(OkapiClient okapiClient) {
         Promise<Void> promise = Promise.promise();
         InventoryStorage.postInstances(okapiClient, repository.getInstancesToCreate()).onComplete(
@@ -263,23 +209,6 @@ public abstract class UpdatePlan {
                         promise.fail(handler.cause().getMessage());
                     }
                 });
-        return promise.future();
-    }
-
-    public Future<Void> doCreateNewHoldings(OkapiClient okapiClient) {
-        Promise<Void> promise = Promise.promise();
-        @SuppressWarnings("rawtypes")
-        List<Future> holdingsRecordCreates = new ArrayList<>();
-        for (HoldingsRecord record : repository.getHoldingsToCreate()) {
-            holdingsRecordCreates.add(InventoryStorage.postInventoryRecord(okapiClient, record));
-        }
-        CompositeFuture.join(holdingsRecordCreates).onComplete( handler -> {
-            if (handler.succeeded()) {
-                promise.complete();
-            } else {
-                promise.fail(handler.cause().getMessage());
-            }
-        });
         return promise.future();
     }
 
@@ -312,26 +241,6 @@ public abstract class UpdatePlan {
         return promise.future();
     }
 
-    public Future<Void> doUpdateInstancesAndHoldings(OkapiClient okapiClient) {
-        Promise<Void> promise = Promise.promise();
-        List<Future> updates = new ArrayList<>();
-        for (Instance instance : repository.getInstancesToUpdate()) {
-            updates.add(InventoryStorage.putInventoryRecord(okapiClient, instance));
-        }
-        for (HoldingsRecord holdingsRecord : repository.getHoldingsToUpdate()) {
-            updates.add(InventoryStorage.putInventoryRecord(okapiClient, holdingsRecord));
-        }
-        CompositeFuture.join(updates).onComplete(handler -> {
-            if (handler.succeeded()) {
-                promise.complete();
-            } else {
-                promise.fail(handler.cause().getMessage());
-            }
-        });
-        return promise.future();
-    }
-
-
     public Future<Void> doUpdateOrCreateItemsInBatch(OkapiClient okapiClient) {
         Promise<Void> promise = Promise.promise();
         List<Item> itemsToUpdateOrCreate = new ArrayList<>();
@@ -345,26 +254,6 @@ public abstract class UpdatePlan {
                         promise.fail(handler.cause().getMessage());
                     }
                 });
-        return promise.future();
-    }
-
-    public Future<Void> doUpdateOrCreateItems(OkapiClient okapiClient) {
-        Promise<Void> promise = Promise.promise();
-        List<Future> itemFutures = new ArrayList<>();
-        for (Item item: repository.getItemsToUpdate()) {
-            item.setVersion( item.getVersion() + 1 );
-            itemFutures.add(InventoryStorage.putInventoryRecord(okapiClient, item));
-        }
-        for (Item item: repository.getItemsToCreate()) {
-            itemFutures.add((InventoryStorage.postInventoryRecord(okapiClient, item)));
-        }
-        CompositeFuture.join(itemFutures).onComplete ( allItemsDone -> {
-            if (allItemsDone.succeeded()) {
-                promise.complete();
-            } else {
-                promise.fail("There was an error updating/creating items: " + allItemsDone.cause().getMessage());
-            }
-        });
         return promise.future();
     }
 

@@ -69,7 +69,7 @@ public abstract class Repository {
                 }
                 promise.complete();
               } else {
-                promise.fail("There was a problem fetching existing holdings records by instance IDs " + records.cause().getMessage());
+                promise.fail(records.cause().getMessage());
               }
 
             });
@@ -98,8 +98,7 @@ public abstract class Repository {
                 }
                 promise.complete();
               } else {
-                promise.fail("There was a problem fetching existing items by holdings record IDs "
-                        + records.cause().getMessage());
+                promise.fail(records.cause().getMessage());
               }
 
             });

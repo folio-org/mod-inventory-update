@@ -95,14 +95,18 @@ public class UpdatePlanSharedInventory extends UpdatePlan {
                                 flagAndIdRecordsForInventoryUpdating(updatingSet,existingSet,null,isDeletion,deletionIdentifiers);
                                 promise.complete();
                             } else {
-                                promise.fail("There was a problem retrieving locations map, cannot perform updates: " + handler.cause().getMessage());
+                                promise.fail(ErrorReport.makeErrorReportFromJsonString(handler.cause().getMessage())
+                                        .setShortMessage("There was a problem retrieving locations map, cannot perform updates.")
+                                        .asJsonString());
                             }
                         });
                     }
 
                 }
             } else {
-                promise.fail("Error looking up existing record set: " + lookup.cause().getMessage());
+                promise.fail(ErrorReport.makeErrorReportFromJsonString(lookup.cause().getMessage())
+                        .setShortMessage("Error looking up existing record set")
+                        .asJsonString());
             }
         });
         return promise.future();
@@ -363,13 +367,18 @@ public class UpdatePlanSharedInventory extends UpdatePlan {
                       {
                           promise.complete();
                       } else {
-                          promise.fail( "One or more errors occurred updating Inventory records" );
+                          promise.fail(ErrorReport.makeErrorReportFromJsonString(
+                                  instanceAndHoldingsUpdates.cause().getMessage())
+                                  .setShortMessage("One or more errors occurred updating Inventory records")
+                                  .asJsonString());
                       }
                   });
              });
 
           } else {
-              promise.fail("There was a problem processing deletes - all other updates skipped." );
+              promise.fail(ErrorReport.makeErrorReportFromJsonString(deletes.cause().getMessage())
+                      .setShortMessage("There was a problem processing deletes - all other updates skipped." )
+                      .asJsonString());
           }
         });
         return promise.future();
@@ -403,7 +412,12 @@ public class UpdatePlanSharedInventory extends UpdatePlan {
                     });
                 });
             } else {
-                promise.fail("There was a problem processing deletes - all other updates skipped." );
+                promise.fail(
+                        ErrorReport.makeErrorReportFromJsonString(
+                                deletes.cause().getMessage())
+                                .setShortMessage(
+                                        "There was a problem processing deletes - all other updates skipped." )
+                                .asJsonString());
             }
         });
         return promise.future();

@@ -278,13 +278,13 @@ public class InstanceRelations extends JsonRepresentation {
      */
     public static Future<Void> failRelationCreation(InstanceToInstanceRelation relation) {
         Promise<Void> promise = Promise.promise();
-        promise.fail(relation.getError().encodePrettily());
+        promise.fail(relation.getErrorAsJson().encodePrettily());
         return promise.future();
     }
 
     public static Future<Void> failProvisionalInstanceCreation (Instance provisionalInstance) {
         Promise<Void> promise = Promise.promise();
-        promise.fail(provisionalInstance.getError().encodePrettily());
+        promise.fail(provisionalInstance.getErrorAsJson().encodePrettily());
         return promise.future();
     }
 

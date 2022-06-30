@@ -9,7 +9,7 @@ import java.util.List;
 
 public class RequestValidation {
 
-    List<ErrorResponse> errors = new ArrayList<>();
+    List<ErrorReport> errors = new ArrayList<>();
 
     public boolean hasErrors () {
         return errors.size()>0;
@@ -19,7 +19,7 @@ public class RequestValidation {
         return ! hasErrors();
     }
 
-    public void registerError(ErrorResponse error) {
+    public void registerError(ErrorReport error) {
         errors.add(error);
     }
 

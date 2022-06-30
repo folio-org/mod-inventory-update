@@ -19,8 +19,6 @@ import io.vertx.core.Promise;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 
-import static org.folio.inventoryupdate.InventoryStorage.INSTANCES;
-
 /**
  * Base class for implementing update plans
  *
@@ -73,7 +71,7 @@ public abstract class UpdatePlan {
 
     public abstract UpdatePlan planInventoryUpdates();
 
-    public abstract Future<Void> doInventoryUpdates(OkapiClient okapiClient);
+    public abstract Future<Void> doInventoryUpdates(OkapiClient okapiClient, boolean batchOfOne);
     /*
     public Future<Void> doInventoryUpdates(OkapiClient okapiClient) {
         Promise<Void> promise = Promise.promise();
@@ -216,30 +214,6 @@ public abstract class UpdatePlan {
         return foundExistingRecordSet() && existingSet.getInstance().getTransaction() == Transaction.DELETE;
     }
 
-    /*
-    public void writePlanToLog () {
-        logger.debug("Planning of " + (isDeletion ? " delete " : " create/update ") + " of Inventory records set done: ");
-        if (isDeletion) {
-            if (foundExistingRecordSet()) {
-                logger.debug("Instance transition: " + (gotUpdatingRecordSet() ? getUpdatingInstance().getTransaction() : getExistingInstance().getTransaction()));
-                logger.debug("Items to delete: ");
-                for (Item record : itemsToDelete()) {
-                    logger.debug(record.asJson().encodePrettily());
-                }
-                logger.debug("Holdings to delete: ");
-                for (HoldingsRecord record : holdingsToDelete()) {
-                    logger.debug(record.asJson().encodePrettily());
-                }
-                logger.debug("Relationships to delete: ");
-                for (InstanceToInstanceRelation record : instanceRelationsToDelete()) {
-                    logger.debug(record.asJson().encodePrettily());
-                }
-            } else {
-                logger.debug("Got delete request but no existing records found with provided identifier(s)");
-            }
-        }
-    }
-    */
 
     /* UPDATE METHODS */
 
@@ -252,11 +226,11 @@ public abstract class UpdatePlan {
                     if (holdings.succeeded()) {
                         promise.complete();
                     } else {
-                        promise.fail("Failed to create new holdings records: " + holdings.cause().getMessage());
+                        promise.fail(holdings.cause().getMessage());
                     }
                 });
             } else {
-                promise.fail("There was an error trying to create instances: " + instances.cause().getMessage());
+                promise.fail(instances.cause().getMessage());
             }
         });
         return promise.future();
@@ -272,7 +246,7 @@ public abstract class UpdatePlan {
             if (handler.succeeded()) {
                 promise.complete();
             } else {
-                promise.fail("Failed to create new instances: " + handler.cause().toString());
+                promise.fail(handler.cause().getMessage());
             }
         });
         return promise.future();
@@ -285,7 +259,8 @@ public abstract class UpdatePlan {
                     if (handler.succeeded()) {
                         promise.complete();
                     } else {
-                        promise.fail("Failed batch creation of instances " + handler.cause().toString());
+                        logger.error("Message: " + handler.cause().getMessage());
+                        promise.fail(handler.cause().getMessage());
                     }
                 });
         return promise.future();
@@ -302,7 +277,7 @@ public abstract class UpdatePlan {
             if (handler.succeeded()) {
                 promise.complete();
             } else {
-                promise.fail("Failed to create new holdings records: " + handler.cause().toString());
+                promise.fail(handler.cause().getMessage());
             }
         });
         return promise.future();
@@ -315,7 +290,7 @@ public abstract class UpdatePlan {
                     if (handler.succeeded()) {
                         promise.complete();
                     } else {
-                        promise.fail("Failed batch creation of holdings " + handler.cause().toString());
+                        promise.fail(handler.cause().getMessage());
                     }
                 });
         return promise.future();
@@ -330,7 +305,8 @@ public abstract class UpdatePlan {
             if (handler.succeeded()) {
                 promise.complete();
             } else {
-                promise.fail("Error updating instances or holdings records");
+                logger.error("Error updating instances/holdings: " + handler.cause().getMessage());
+                promise.fail(handler.cause().getMessage());
             }
         });
         return promise.future();
@@ -349,7 +325,7 @@ public abstract class UpdatePlan {
             if (handler.succeeded()) {
                 promise.complete();
             } else {
-                promise.fail("Error updating instances or holdings records");
+                promise.fail(handler.cause().getMessage());
             }
         });
         return promise.future();
@@ -366,7 +342,7 @@ public abstract class UpdatePlan {
                     if (handler.succeeded()) {
                         promise.complete();
                     } else {
-                        promise.fail("Failed batch creation of holdings " + handler.cause().toString());
+                        promise.fail(handler.cause().getMessage());
                     }
                 });
         return promise.future();
@@ -411,12 +387,12 @@ public abstract class UpdatePlan {
                     if (holdingsDeleted.succeeded()) {
                         promise.complete();
                     } else {
-                        promise.fail("There was a problem deleting holdings record(s): " + holdingsDeleted.cause().getMessage());
+                        promise.fail(holdingsDeleted.cause().getMessage());
                     }
 
                 });
             } else {
-                promise.fail("Failed to delete item(s) and/or instance-to-instance relations: " + relationshipsAndItemsDeleted.cause().getMessage());
+                promise.fail(relationshipsAndItemsDeleted.cause().getMessage());
             }
         });
         return promise.future();
@@ -438,7 +414,7 @@ public abstract class UpdatePlan {
             if (allDone.succeeded()) {
                 promise.complete();
             } else {
-                promise.fail("Failed to update some non-prerequisite records: " + allDone.cause().getMessage());
+                promise.fail(allDone.cause().getMessage());
             }
         });
 
@@ -473,19 +449,19 @@ public abstract class UpdatePlan {
                                 if (handler.succeeded()) {
                                     promise.complete();
                                 } else {
-                                    promise.fail("Failed to delete instance: " + handler.cause().getMessage());
+                                    promise.fail(handler.cause().getMessage());
                                 }
                             });
                         } else {
                             promise.complete();
                         }
                     } else {
-                        promise.fail("There was a problem deleting holdings record(s): " + allHoldingsDone.cause().getMessage());
+                        promise.fail(allHoldingsDone.cause().getMessage());
                     }
 
                 });
             } else {
-                promise.fail("Failed to delete item(s) and/or instance-to-instance relations: " + allRelationshipsDoneAllItemsDone.cause().getMessage());
+                promise.fail(allRelationshipsDoneAllItemsDone.cause().getMessage());
             }
         });
         return promise.future();

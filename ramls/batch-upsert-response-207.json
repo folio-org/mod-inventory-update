@@ -1,6 +1,6 @@
 {
   "$schema": "http://json-schema.org/draft-04/schema#",
-  "description": "Response on a successful batch upsert request",
+  "description": "Response on a partly successful batch upsert request",
   "type": "object",
   "properties": {
     "metrics": {

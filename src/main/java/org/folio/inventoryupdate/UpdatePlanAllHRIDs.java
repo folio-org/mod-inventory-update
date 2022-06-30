@@ -16,7 +16,7 @@ import io.vertx.core.CompositeFuture;
 import io.vertx.core.Future;
 import io.vertx.core.Promise;
 
-import static org.folio.inventoryupdate.ErrorResponse.UNPROCESSABLE_ENTITY;
+import static org.folio.inventoryupdate.ErrorReport.UNPROCESSABLE_ENTITY;
 import static org.folio.inventoryupdate.entities.InstanceRelations.failProvisionalInstanceCreation;
 import static org.folio.inventoryupdate.entities.InstanceRelations.failRelationCreation;
 import static org.folio.inventoryupdate.entities.InventoryRecordSet.INSTANCE;
@@ -68,8 +68,8 @@ public class UpdatePlanAllHRIDs extends UpdatePlan {
         if (instanceHRID == null || instanceHRID.isEmpty()) {
             logger.error("Missing or empty HRID. Instances must have a HRID to be processed by this API. Title: " + instanceTitle);
             validationErrors.registerError(
-                    new ErrorResponse(
-                            ErrorResponse.ErrorCategory.VALIDATION,
+                    new ErrorReport(
+                            ErrorReport.ErrorCategory.VALIDATION,
                             UNPROCESSABLE_ENTITY,
                             "HRID is missing or empty.")
                             .setEntityType(InventoryRecord.Entity.INSTANCE)
@@ -83,8 +83,8 @@ public class UpdatePlanAllHRIDs extends UpdatePlan {
                         if (!record.containsKey("hrid")) {
                             logger.error("Holdings Records must have a HRID to be processed by this API. Received: " + record.encodePrettily());
                             validationErrors.registerError(
-                                new ErrorResponse(
-                                    ErrorResponse.ErrorCategory.VALIDATION,
+                                new ErrorReport(
+                                    ErrorReport.ErrorCategory.VALIDATION,
                                     UNPROCESSABLE_ENTITY,
                                     "Holdings must have a HRID to be processed by this API. Title: " + instanceTitle)
                                     .setShortMessage("Missing HRID in holdings record")
@@ -100,8 +100,8 @@ public class UpdatePlanAllHRIDs extends UpdatePlan {
                                         if (!item.containsKey("hrid")) {
                                             logger.error("Items must have a HRID to be processed by this API. Received: " + item.encodePrettily());
                                             validationErrors.registerError(
-                                                 new ErrorResponse(
-                                                    ErrorResponse.ErrorCategory.VALIDATION,
+                                                 new ErrorReport(
+                                                    ErrorReport.ErrorCategory.VALIDATION,
                                                     UNPROCESSABLE_ENTITY,
                                                     "Items must have a HRID to be processed by this API. Title: " + instanceTitle)
                                                     .setShortMessage("Missing HRID in Item")
@@ -126,8 +126,8 @@ public class UpdatePlanAllHRIDs extends UpdatePlan {
             if (instanceHrid != null) {
                 if (instanceHrids.contains(instanceHrid)) {
                     validation.registerError(
-                            new ErrorResponse(
-                                    ErrorResponse.ErrorCategory.VALIDATION,
+                            new ErrorReport(
+                                    ErrorReport.ErrorCategory.VALIDATION,
                                     UNPROCESSABLE_ENTITY,
                                     "Instance HRID " + instanceHrid + " occurs more that once in this batch.")
                                     .setShortMessage("Instance HRID is repeated in this batch")
@@ -144,8 +144,8 @@ public class UpdatePlanAllHRIDs extends UpdatePlan {
                     if (holdingsHrid != null) {
                         if (holdingsHrids.contains(holdingsHrid)) {
                             validation.registerError(
-                               new ErrorResponse(
-                                    ErrorResponse.ErrorCategory.VALIDATION,
+                               new ErrorReport(
+                                    ErrorReport.ErrorCategory.VALIDATION,
                                     UNPROCESSABLE_ENTITY,
                                     "Holdings record HRID " + holdingsHrid
                                             + " appears more that once in batch.")
@@ -163,8 +163,8 @@ public class UpdatePlanAllHRIDs extends UpdatePlan {
                             if (itemHrid != null) {
                                 if (itemHrids.contains(itemHrid)) {
                                     validation.registerError(
-                                            new ErrorResponse(
-                                                    ErrorResponse.ErrorCategory.VALIDATION,
+                                            new ErrorReport(
+                                                    ErrorReport.ErrorCategory.VALIDATION,
                                                     UNPROCESSABLE_ENTITY,
                                                     "Item HRID " + itemHrid
                                                             + " appears more than once in batch.")
@@ -200,6 +200,7 @@ public class UpdatePlanAllHRIDs extends UpdatePlan {
             }
         } catch (NullPointerException npe) {
             logger.error("Null pointer in planInventoryUpdatesFromRepo");
+            // TODO: return stack trace
             npe.printStackTrace();
         }
         return this;
@@ -378,7 +379,7 @@ public class UpdatePlanAllHRIDs extends UpdatePlan {
         return promise.future();
     }
 
-    public Future<Void> doInventoryUpdates(OkapiClient okapiClient) {
+    public Future<Void> doInventoryUpdates(OkapiClient okapiClient, boolean batchOfOne) {
         Promise<Void> promise = Promise.promise();
         doCreateRecordsWithDependants(okapiClient).onComplete(prerequisitesCreated -> {
             if (prerequisitesCreated.succeeded()) {
@@ -391,24 +392,41 @@ public class UpdatePlanAllHRIDs extends UpdatePlan {
                                         if (relationsCreated.succeeded()) {
                                             promise.complete();
                                         } else {
-                                            promise.fail("There was a problem creating Instance relationships: " + LF + relationsCreated.cause().getMessage());
+                                            promise.fail(relationsCreated.cause().getMessage());
                                         }
                                     } else {
-                                        promise.fail("There was a problem processing Inventory deletes:" + LF + "  " + deletes.cause().getMessage());
+                                        promise.fail(deletes.cause().getMessage());
                                     }
                                 });
                             } else {
-                                promise.fail("There was a problem creating records, no deletes performed if any requested:" + LF + "  " +
-                                        (prerequisitesCreated.failed() ? prerequisitesCreated.cause().getMessage() : "")
-                                        + (instancesAndHoldingsUpdated.failed() ? " " + instancesAndHoldingsUpdated.cause().getMessage() : "")
-                                        + (itemsUpdatedAndCreated.failed() ? " " + itemsUpdatedAndCreated.cause().getMessage(): ""));
+                                // error in batch upserts - switch to record by record upsert if processing more than one record.
+                                // If processing one record, return the error.
+                                if (batchOfOne) {
+                                    promise.fail(
+                                            "There was a problem creating records, no deletes performed if any requested:"
+                                                    + LF
+                                                    + "  "
+                                                    + ( prerequisitesCreated.failed() ? prerequisitesCreated.cause().getMessage() : "" )
+                                                    + ( instancesAndHoldingsUpdated.failed() ? " "
+                                                    + instancesAndHoldingsUpdated.cause().getMessage() : "" )
+                                                    + ( itemsUpdatedAndCreated.failed() ? " "
+                                                    + itemsUpdatedAndCreated.cause().getMessage() : "" ));
+                                } else {
+                                    if (prerequisitesCreated.failed()) {
+                                        promise.fail(prerequisitesCreated.cause().getMessage());
+                                    } else if (instancesAndHoldingsUpdated.failed()) {
+                                        promise.fail(instancesAndHoldingsUpdated.cause().getMessage());
+                                    } else if (itemsUpdatedAndCreated.failed()) {
+                                        promise.fail(itemsUpdatedAndCreated.cause().getMessage());
+                                    }
+                                }
                             }
                         });
                     });
                 });
 
             } else {
-                promise.fail("Error creating Instances or holdings records");
+                promise.fail(prerequisitesCreated.cause().getMessage());
             }
         });
         return promise.future();

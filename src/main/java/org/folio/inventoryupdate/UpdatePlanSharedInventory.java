@@ -53,16 +53,22 @@ public class UpdatePlanSharedInventory extends UpdatePlan {
     }
 
     public UpdatePlanSharedInventory setIncomingRecordSets (JsonArray inventoryRecordSets) {
+        long setIncomingMs = System.currentTimeMillis();
         repository.setIncomingRecordSets(inventoryRecordSets);
+        long timing = System.currentTimeMillis() - setIncomingMs;
+        logger.debug("Incoming records set in " + timing + " ms.");
         return this;
 
 
     }
 
     public Future<Void> buildRepositoryFromStorage (RoutingContext routingContext) {
+        long buildRepoStart = System.currentTimeMillis();
         Promise<Void> promise = Promise.promise();
         repository.buildRepositoryFromStorage(routingContext).onComplete(repositoryBuilt -> {
             if (repositoryBuilt.succeeded()) {
+                long builtMs = System.currentTimeMillis() - buildRepoStart;
+                logger.debug("Repo built in " +  builtMs + " ms.");
                 promise.complete();
             } else {
                 promise.fail(repositoryBuilt.cause().getMessage());
@@ -107,6 +113,7 @@ public class UpdatePlanSharedInventory extends UpdatePlan {
         logger.debug("Planning inventory updates using repository");
         logger.debug( "Got " + repository.getPairsOfRecordSets().size() + " pair(s)");
         try {
+            long startPlanning = System.currentTimeMillis();
             for (PairedRecordSets pair : repository.getPairsOfRecordSets()) {
                 Instance secondaryInstance = null;
                 if (pair.hasIncomingRecordSet()) {
@@ -122,6 +129,8 @@ public class UpdatePlanSharedInventory extends UpdatePlan {
                 }
                 planInstanceHoldingsAndItems(pair, secondaryInstance, isDeletion, deletionIdentifiers);
             }
+            long planningMs = System.currentTimeMillis() - startPlanning;
+            logger.debug("Planning done in " + planningMs + " ms.");
         } catch (NullPointerException npe) {
             logger.error("Null pointer in planInventoryUpdatesFromRepo");
             npe.printStackTrace();
@@ -370,7 +379,8 @@ public class UpdatePlanSharedInventory extends UpdatePlan {
         return Future.succeededFuture();
     }
 
-    public Future<Void> doInventoryUpdates(OkapiClient okapiClient) {
+    public Future<Void> doInventoryUpdates(OkapiClient okapiClient, boolean batchOfOne) {
+        long startUpdates = System.currentTimeMillis();
         logger.debug("Doing Inventory updates using repository");
         Promise<Void> promise = Promise.promise();
         doDeleteRelationsItemsHoldings(okapiClient).onComplete(deletes -> {
@@ -380,6 +390,8 @@ public class UpdatePlanSharedInventory extends UpdatePlan {
                         doCreateInstanceRelations(okapiClient).onComplete(relationsCreated -> {
                             doUpdateOrCreateItemsInBatch(okapiClient).onComplete(itemUpdatesAndCreates -> {
                                 if (prerequisites.succeeded() && instanceAndHoldingsUpdates.succeeded() && itemUpdatesAndCreates.succeeded()) {
+                                    long updatesDone = System.currentTimeMillis() - startUpdates;
+                                    logger.debug("Updates performed in " + updatesDone + " ms.");
                                     promise.complete();
                                 } else {
                                     promise.fail(

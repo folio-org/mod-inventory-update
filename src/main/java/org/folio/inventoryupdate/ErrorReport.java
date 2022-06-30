@@ -1,16 +1,19 @@
 package org.folio.inventoryupdate;
 
+import io.vertx.core.json.DecodeException;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.RoutingContext;
 import org.folio.inventoryupdate.entities.InventoryRecord;
 
+import static org.folio.inventoryupdate.entities.InventoryRecord.getEntityTypeFromString;
 import static org.folio.okapi.common.HttpResponse.responseJson;
 
-public class ErrorResponse {
+public class ErrorReport {
 
   public enum ErrorCategory {
     VALIDATION,
     STORAGE,
+    BATCH_STORAGE,
     INTERNAL
   }
 
@@ -43,37 +46,89 @@ public class ErrorResponse {
 
 
 
-  public ErrorResponse(ErrorCategory category, int statusCode, String message) {
+  public ErrorReport(ErrorCategory category, int statusCode, String message) {
     this.category = category;
     this.messageAsString = message;
     if (message != null) {
-      this.shortMessage = message.substring(0, Math.min(message.length()-1,40));
+      this.shortMessage = message.substring(0, Math.min(message.length(),40));
     } else {
       this.shortMessage = "";
     }
     this.statusCode = statusCode;
   }
 
-  public ErrorResponse(ErrorCategory category, int statusCode, JsonObject message) {
+  public ErrorReport(ErrorCategory category, int statusCode, Object message) {
     this.category = category;
-    this.messageAsJson = message;
-    this.shortMessage = "";
+    if (message instanceof JsonObject) {
+      this.messageAsJson = (JsonObject) message;
+      this.shortMessage = "";
+    } else {
+      if (message != null) {
+        this.messageAsString = message.toString();
+        this.shortMessage = messageAsString.substring(0, Math.min(messageAsString.length(), 40));
+      } else {
+        messageAsString = "";
+        this.shortMessage = "";
+      }
+    }
     this.statusCode = statusCode;
   }
 
-  public String getEntityTypeAsString() {
-    if (entityType != null) {
-      return entityType.toString();
+  public static ErrorReport makeErrorReportFromJsonString(String jsonString) {
+    JsonObject json = new JsonObject(jsonString);
+    return new ErrorReport(
+            getCategoryFromString(json.getString(CATEGORY)),
+            json.getInteger(STATUS_CODE),
+            json.getValue(MESSAGE))
+            .setEntity(json.getJsonObject(ENTITY))
+            .setTransaction(json.getString(TRANSACTION))
+            .setEntityType(getEntityTypeFromString(json.getString(ENTITY_TYPE)));
+  }
+
+  public static boolean isAnErrorReportJson (String maybeJson) {
+    if (isJsonString(maybeJson)) {
+      JsonObject maybeErrorReportJson = new JsonObject(maybeJson);
+      return maybeErrorReportJson.containsKey(CATEGORY) &&
+              getCategoryFromString(maybeErrorReportJson.getString(CATEGORY)) != null &&
+              maybeErrorReportJson.containsKey(STATUS_CODE) &&
+              maybeErrorReportJson.containsKey(MESSAGE);
     } else {
-      return null;
+      return false;
     }
   }
+
+  public static ErrorCategory getCategoryFromString (String errorCategory) {
+
+    switch (errorCategory.toUpperCase()) {
+      case "STORAGE":
+        return ErrorCategory.STORAGE;
+      case "BATCH_STORAGE":
+        return ErrorCategory.BATCH_STORAGE;
+      case "VALIDATION":
+        return ErrorCategory.VALIDATION;
+      case "INTERNAL":
+        return ErrorCategory.INTERNAL;
+      default:
+        return null;
+    }
+  }
+
+
+  private static boolean isJsonString (String maybeJson) {
+    try {
+      new JsonObject(maybeJson);
+      return true;
+    } catch (DecodeException de) {
+      return false;
+    }
+  }
+
 
   public InventoryRecord.Entity getEntityType () {
     return entityType;
   }
 
-  public ErrorResponse setEntityType(InventoryRecord.Entity entityType) {
+  public ErrorReport setEntityType(InventoryRecord.Entity entityType) {
     this.entityType = entityType;
     return this;
   }
@@ -82,7 +137,7 @@ public class ErrorResponse {
     return transaction;
   }
 
-  public ErrorResponse setTransaction(String transaction) {
+  public ErrorReport setTransaction(String transaction) {
     this.transaction = transaction;
     return this;
   }
@@ -91,7 +146,7 @@ public class ErrorResponse {
     return statusCode;
   }
 
-  public ErrorResponse setStatusCode(int statusCode) {
+  public ErrorReport setStatusCode(int statusCode) {
     this.statusCode = statusCode;
     return this;
   }
@@ -100,7 +155,7 @@ public class ErrorResponse {
     return shortMessage;
   }
 
-  public ErrorResponse setShortMessage(String shortMessage) {
+  public ErrorReport setShortMessage(String shortMessage) {
     this.shortMessage = shortMessage;
     return this;
   }
@@ -109,13 +164,13 @@ public class ErrorResponse {
     return messageAsString;
   }
 
-  public ErrorResponse setMessageAsString(String messageAsString) {
+  public ErrorReport setMessageAsString(String messageAsString) {
     this.messageAsString = messageAsString;
     this.messageAsJson = null;
     return this;
   }
 
-  public ErrorResponse setMessageAsJson (JsonObject messageAsJson) {
+  public ErrorReport setMessageAsJson (JsonObject messageAsJson) {
     this.messageAsJson = messageAsJson;
     this.messageAsString = null;
     return this;
@@ -129,7 +184,7 @@ public class ErrorResponse {
     return entity;
   }
 
-  public ErrorResponse setEntity(JsonObject entity) {
+  public ErrorReport setEntity(JsonObject entity) {
     this.entity = entity;
     return this;
   }
@@ -138,7 +193,7 @@ public class ErrorResponse {
     return details;
   }
 
-  public ErrorResponse setDetails(JsonObject details) {
+  public ErrorReport setDetails(JsonObject details) {
     this.details = details;
     return this;
   }

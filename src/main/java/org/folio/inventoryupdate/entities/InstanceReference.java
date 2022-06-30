@@ -1,6 +1,7 @@
 package org.folio.inventoryupdate.entities;
 
 import io.vertx.core.json.JsonObject;
+import org.folio.inventoryupdate.ErrorReport;
 import org.folio.inventoryupdate.QueryByUUID;
 
 import java.util.UUID;
@@ -138,9 +139,15 @@ public class InstanceReference {
         relation.requiresProvisionalInstanceToBeCreated(true);
         if (!provisionalInstanceIsValid()) {
           provisionalInstance.fail();
-          provisionalInstance.logError("Provided data not sufficient for creating provisional Instance",422);
+          provisionalInstance.logError(
+                  "Provided data not sufficient for creating provisional Instance",
+                  422,
+                  ErrorReport.ErrorCategory.STORAGE);
           relation.fail();
-          relation.logError("Cannot create relation; Instance not found and miss data for provisional instance", 422);
+          relation.logError(
+                  "Cannot create relation; Instance not found and miss data for provisional instance",
+                  422,
+                  ErrorReport.ErrorCategory.STORAGE);
         }
         relation.setProvisionalInstance(provisionalInstance);
       }

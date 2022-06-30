@@ -1,6 +1,6 @@
 {
   "$schema": "http://json-schema.org/draft-04/schema#",
-  "description": "Response on a unsuccessful or partly successful upsert request",
+  "description": "Response on a unsuccessful upsert request",
   "type": "object",
   "properties": {
     "category": {

@@ -64,8 +64,8 @@ public class InventoryStorage {
       } else {
         record.fail();
         record.skipDependants();
-        record.logError(okapiClient.getResponsebody(), okapiClient.getStatusCode());
-        promise.fail(record.getError().encodePrettily());
+        record.logError(okapiClient.getResponsebody(), okapiClient.getStatusCode(), ErrorReport.ErrorCategory.STORAGE);
+        promise.fail(record.getErrorAsJson().encodePrettily());
       }
     });
     return promise.future();
@@ -99,9 +99,13 @@ public class InventoryStorage {
           for (InventoryRecord record : records) {
             record.fail();
             record.skipDependants();
-            record.logError(okapiClient.getResponsebody(), okapiClient.getStatusCode());
+            record.logError(
+                    okapiClient.getResponsebody(),
+                    okapiClient.getStatusCode(),
+                    (records.size()>1 ? ErrorReport.ErrorCategory.BATCH_STORAGE : ErrorReport.ErrorCategory.STORAGE)
+            );
           }
-          promise.fail(records.get(0).getError().encodePrettily());
+          promise.fail(records.get(0).getErrorAsJson().encodePrettily());
         }
       });
     } else {
@@ -127,8 +131,8 @@ public class InventoryStorage {
         promise.complete(record.asJson());
       } else {
         record.fail();
-        record.logError(okapiClient.getResponsebody(), okapiClient.getStatusCode());
-        promise.fail(record.getError().encodePrettily());
+        record.logError(okapiClient.getResponsebody(), okapiClient.getStatusCode(), ErrorReport.ErrorCategory.STORAGE);
+        promise.fail(record.getErrorAsJson().encodePrettily());
       }
     });
     return promise.future();
@@ -142,8 +146,8 @@ public class InventoryStorage {
         promise.complete();
       } else {
         record.fail();
-        record.logError(deleteResult.cause().getMessage(), okapiClient.getStatusCode());
-        promise.fail(record.getError().encodePrettily());
+        record.logError(deleteResult.cause().getMessage(), okapiClient.getStatusCode(), ErrorReport.ErrorCategory.STORAGE);
+        promise.fail(record.getErrorAsJson().encodePrettily());
       }
     });
     return promise.future();
@@ -240,6 +244,7 @@ public class InventoryStorage {
         logger.debug("Successfully looked up existing instance relationships, found  " + parentChildRelations.size());
         promise.complete(parentChildRelations);
       } else {
+        logger.info("Could not look up existing instance relationships");
         failure(res.cause(), Entity.INSTANCE_RELATIONSHIP, Transaction.GET, okapiClient.getStatusCode(), promise, "While looking up instance relationships");
       }
     });
@@ -480,15 +485,14 @@ public class InventoryStorage {
   private static <T> Future<T> failureFuture(Throwable cause, Entity entityType, Transaction transaction,
       int httpStatusCode, String contextNote) {
 
-    JsonObject errorMessage = new JsonObject();
-    errorMessage.put("message", cause.getMessage());
-    errorMessage.put("entity-type",entityType);
-    errorMessage.put("operation", transaction);
-    errorMessage.put("http-status-code", httpStatusCode);
-    if (contextNote != null) {
-      errorMessage.put("note-of-context", contextNote);
-    }
-    return Future.failedFuture(errorMessage.encodePrettily());
+    return Future.failedFuture(
+            new ErrorReport(ErrorReport.ErrorCategory.STORAGE,
+                    httpStatusCode,
+                    cause.getMessage())
+                    .setEntityType(entityType)
+                    .setTransaction(transaction != null ? transaction.toString() : "")
+                    .setDetails(new JsonObject().put("contextNote", contextNote))
+                    .asJsonPrettily());
   }
 
   public static OkapiClient getOkapiClient ( RoutingContext ctx) {

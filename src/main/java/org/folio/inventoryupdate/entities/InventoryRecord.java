@@ -5,9 +5,9 @@ import java.util.UUID;
 import io.vertx.core.json.DecodeException;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
-import org.folio.inventoryupdate.ErrorResponse;
+import org.folio.inventoryupdate.ErrorReport;
 
-import static org.folio.inventoryupdate.ErrorResponse.UNPROCESSABLE_ENTITY;
+import static org.folio.inventoryupdate.ErrorReport.UNPROCESSABLE_ENTITY;
 
 
 /**
@@ -46,7 +46,7 @@ public abstract class InventoryRecord {
 
     protected JsonObject jsonRecord;
     public static final String VERSION = "_version";
-    protected ErrorResponse error;
+    protected ErrorReport error;
     protected Entity entityType;
     protected Transaction transaction = Transaction.UNKNOWN;
     protected Outcome outcome = Outcome.PENDING;
@@ -146,22 +146,22 @@ public abstract class InventoryRecord {
         return this.outcome == Outcome.SKIPPED;
     }
 
-    public void logError (String error, int statusCode) {
+    public void logError (String error, int statusCode, ErrorReport.ErrorCategory category) {
         Object message = maybeJson(error);
-        logError(error, statusCode, findShortMessage(message));
+        logError(error, statusCode, category, findShortMessage(message));
     }
 
-    public void logError (String error, int statusCode, String shortMessage) {
+    public void logError (String error, int statusCode, ErrorReport.ErrorCategory category, String shortMessage) {
         Object message = maybeJson(error);
 
         if (message instanceof JsonObject) {
-            this.error = new ErrorResponse(
-                    ErrorResponse.ErrorCategory.STORAGE,
+            this.error = new ErrorReport(
+                    category,
                     UNPROCESSABLE_ENTITY,
                     (JsonObject) message);
         } else {
-            this.error = new ErrorResponse(
-                    ErrorResponse.ErrorCategory.STORAGE,
+            this.error = new ErrorReport(
+                    category,
                     UNPROCESSABLE_ENTITY,
                     (String) message);
         }
@@ -196,7 +196,7 @@ public abstract class InventoryRecord {
             }
         } else if (inventoryMessage instanceof String && inventoryMessage.toString().length()>1) {
             // In some error scenarios, Inventory just returns a simple string.
-            shortMessage = inventoryMessage.toString().substring(0, Math.min(inventoryMessage.toString().length()-1,60));
+            shortMessage = inventoryMessage.toString().substring(0, Math.min(inventoryMessage.toString().length(),60));
         } else {
             // fallback
             shortMessage = "Error: " + getTransaction() + " of " + entityType();
@@ -223,8 +223,12 @@ public abstract class InventoryRecord {
         return shortMessage;
     }
 
-    public JsonObject getError () {
+    public JsonObject getErrorAsJson() {
         return error.asJson();
+    }
+
+    public ErrorReport getErrorReport () {
+        return error;
     }
 
     public String getErrorPrettily () {
@@ -232,5 +236,24 @@ public abstract class InventoryRecord {
     }
 
     public abstract void skipDependants ();
+
+    public static InventoryRecord.Entity getEntityTypeFromString (String entityType) {
+        switch (entityType.toUpperCase()) {
+            case "INSTANCE":
+                return InventoryRecord.Entity.INSTANCE;
+            case "ITEM":
+                return InventoryRecord.Entity.ITEM;
+            case "HOLDINGS_RECORD":
+                return InventoryRecord.Entity.HOLDINGS_RECORD;
+            case "INSTANCE_RELATIONSHIP":
+                return InventoryRecord.Entity.INSTANCE_RELATIONSHIP;
+            case "INSTANCE_TITLE_SUCCESSION":
+                return InventoryRecord.Entity.INSTANCE_TITLE_SUCCESSION;
+            case "LOCATION":
+                return InventoryRecord.Entity.LOCATION;
+            default:
+                return null;
+        }
+    }
 
 }

@@ -50,7 +50,11 @@ public class ErrorReport {
     this.category = category;
     if (message instanceof JsonObject) {
       this.messageAsJson = (JsonObject) message;
-      this.shortMessage = "";
+      if (messageAsJson.containsKey(SHORT_MESSAGE)) {
+        this.shortMessage = messageAsJson.getString(SHORT_MESSAGE);
+      } else {
+        this.shortMessage = "";
+      }
     } else {
       if (message != null) {
         this.messageAsString = message.toString();
@@ -69,6 +73,7 @@ public class ErrorReport {
             getCategoryFromString(json.getString(CATEGORY)),
             json.getInteger(STATUS_CODE),
             json.getValue(MESSAGE))
+            .setShortMessage(json.getString(SHORT_MESSAGE))
             .setEntity(json.getJsonObject(ENTITY))
             .setTransaction(json.getString(TRANSACTION))
             .setEntityType(getEntityTypeFromString(json.getString(ENTITY_TYPE)))

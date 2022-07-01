@@ -48,14 +48,14 @@ public class InventoryUpdateService {
       return;
     }
 
-    InventoryUpdateOutcome validRecordSet = InventoryRecordSet.isValidInventoryRecordSet(incomingValidJson.goodResult);
+    InventoryUpdateOutcome validRecordSet = InventoryRecordSet.isValidInventoryRecordSet(incomingValidJson.result);
     if (validRecordSet.failed()) {
       validRecordSet.getErrorResponse().respond(routingContext);
       return;
     }
 
     JsonArray inventoryRecordSets = new JsonArray();
-    inventoryRecordSets.add(new JsonObject(incomingValidJson.goodResult.encodePrettily()));
+    inventoryRecordSets.add(new JsonObject(incomingValidJson.result.encodePrettily()));
     inventoryUpsertByHRIDBatch(routingContext, inventoryRecordSets).onComplete(update ->{
       if (update.result().statusCode == OK || update.result().statusCode == MULTI_STATUS) {
         responseJson(routingContext, update.result().statusCode).end(update.result().getJson().encodePrettily());
@@ -79,12 +79,28 @@ public class InventoryUpdateService {
           update.result().respond(routingContext);
         } else {
           if (inventoryRecordSets.size() > 1) {
-            logger.error("A batch update failed. Switching to record-by-record updates");
+            logger.error("A batch update failed bringing down all records of the batch. Switching to record-by-record updates");
+            UpdateMetrics accumulatedStats = new UpdateMetrics();
+            JsonArray accumulatedErrorReport = new JsonArray();
+            InventoryUpdateOutcome compositeOutcome = new InventoryUpdateOutcome();
             multipleSingleRecordUpsertsByHrid(routingContext, inventoryRecordSets).onComplete(
                     listOfOutcomes -> {
-                      listOfOutcomes.result().get(0).respond(routingContext);
+                      int i = 1;
+                      for (InventoryUpdateOutcome outcome : listOfOutcomes.result()) {
+                        if (outcome.hasMetrics()) {
+                          accumulatedStats.add(outcome.metrics);
+                        } else {
+                          logger.info("Processing InventoryUpdateOutcome without metrics (?)");
+                        }
+                        if (outcome.hasErrors()) {
+                          accumulatedErrorReport.addAll(outcome.getErrorsAsJsonArray());
+                        }
+                      }
+                      compositeOutcome.setMetrics(accumulatedStats);
+                      compositeOutcome.setErrors(accumulatedErrorReport);
+                      compositeOutcome.setResponseStatusCode(MULTI_STATUS);
+                      compositeOutcome.respond(routingContext);
                     });
-
           }
         }
       });
@@ -100,29 +116,27 @@ public class InventoryUpdateService {
   }
 
   private Future<List<InventoryUpdateOutcome>> multipleSingleRecordUpsertsByHrid(RoutingContext routingContext, JsonArray inventoryRecordSets) {
-    List<JsonArray> singleRecordSets = new ArrayList<>();
+    List<JsonArray> arraysOfOneRecordSet = new ArrayList<>();
     for (Object o : inventoryRecordSets) {
       JsonArray batchOfOne = new JsonArray().add(o);
-      singleRecordSets.add(batchOfOne);
+      arraysOfOneRecordSet.add(batchOfOne);
     }
-    return chainSingleRecordUpserts2(routingContext, singleRecordSets, this::inventoryUpsertByHRIDBatch).onComplete(result -> {
-      for (InventoryUpdateOutcome outcome : result.result()) {
-        logger.info(outcome.getJson().encodePrettily());
-      }
-    });
+    return chainSingleRecordUpserts(routingContext, arraysOfOneRecordSet, this::inventoryUpsertByHRIDBatch);
   }
 
-  private Future<List<InventoryUpdateOutcome>> chainSingleRecordUpserts2(RoutingContext routingContext, List<JsonArray> singleRecordSets, BiFunction<RoutingContext, JsonArray, Future<InventoryUpdateOutcome>> inventoryUpsertByHRIDBatch) {
+  private Future<List<InventoryUpdateOutcome>> chainSingleRecordUpserts(RoutingContext routingContext, List<JsonArray> arraysOfOneRecordSet, BiFunction<RoutingContext, JsonArray, Future<InventoryUpdateOutcome>> upsertMethod) {
     Promise<List<InventoryUpdateOutcome>> promise = Promise.promise();
     List<InventoryUpdateOutcome> outcomes = new ArrayList<>();
     Future<InventoryUpdateOutcome> fut = Future.succeededFuture();
-    for (JsonArray singleRecordSet : singleRecordSets) {
+    for (JsonArray arrayOfOneRecordSet : arraysOfOneRecordSet) {
       fut = fut.compose(v -> {
+        // First time around, a null outcome is passed in
         if (v != null) outcomes.add(v);
-        return inventoryUpsertByHRIDBatch.apply(routingContext, singleRecordSet);
+        return upsertMethod.apply(routingContext, arrayOfOneRecordSet);
       });
     }
     fut.onComplete( result -> {
+      // capture the last outcome too
       outcomes.add(result.result());
       promise.complete(outcomes);
     });
@@ -159,7 +173,8 @@ public class InventoryUpdateService {
                                       }
                                       if (report != null && !batchOfOne) {
                                         promise.fail(report.asJsonString());
-                                      } else {
+                                      }
+                                      if (batchOfOne){
                                         JsonObject pushedRecordSetWithStats = plan.getUpdatingRecordSetJsonFromRepository();
                                         pushedRecordSetWithStats.put("metrics", plan.getUpdateStatsFromRepository());
                                         pushedRecordSetWithStats.put("errors", plan.getErrorsUsingRepository());

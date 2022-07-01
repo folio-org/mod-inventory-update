@@ -1,7 +1,11 @@
 package org.folio.inventoryupdate;
 
+import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.RoutingContext;
+
+import java.util.ArrayList;
+import java.util.List;
 
 import static org.folio.okapi.common.HttpResponse.responseJson;
 
@@ -9,33 +13,64 @@ public class InventoryUpdateOutcome {
   public static final int OK = 200;
   public static final int MULTI_STATUS = 207;
 
+  public static final String METRICS = "metrics";
+  public static final String ERRORS = "errors";
   int statusCode;
-  ErrorReport errors;
-  JsonObject goodResult;
-  boolean success;
+  ErrorReport error;
+  JsonObject result = new JsonObject();
+  List<ErrorReport> errors = new ArrayList<>();
   UpdateMetrics metrics;
   public InventoryUpdateOutcome() {
-    success = true;
+
   }
+
   public InventoryUpdateOutcome(ErrorReport error) {
     this.statusCode = error.statusCode;
-    this.errors = error;
-    this.success = false;
+    this.error = error;
   }
 
-  public InventoryUpdateOutcome (JsonObject goodResult) {
-    this.goodResult = goodResult;
-    success = true;
+  public InventoryUpdateOutcome (JsonObject result) {
+    this.result = result;
+    if (result.containsKey(ERRORS) && result.getValue(ERRORS) instanceof JsonArray) {
+
+      for (Object o : result.getJsonArray(ERRORS)) {
+        errors.add(ErrorReport.makeErrorReportFromJsonString(((JsonObject) o).encode()));
+      }
+    }
+    if (result.containsKey(METRICS) && result.getValue(METRICS) instanceof JsonObject) {
+      metrics = UpdateMetrics.makeMetricsFromJson(result.getJsonObject(METRICS));
+    }
   }
 
-  public InventoryUpdateOutcome (UpdateMetrics metrics, ErrorReport errors) {
+  public InventoryUpdateOutcome setMetrics (UpdateMetrics metrics) {
     this.metrics = metrics;
-    this.errors = errors;
-    this.statusCode = MULTI_STATUS;
-
+    getJson().put(METRICS,metrics.asJson());
+    return this;
   }
-  public int getStatus() {
-    return statusCode;
+
+  public boolean hasMetrics () {
+    return metrics != null;
+  }
+
+  public boolean hasErrors () {
+    return errors != null && ! errors.isEmpty();
+  }
+
+  public List<ErrorReport> getErrors () {
+    return errors;
+  }
+
+  public InventoryUpdateOutcome setErrors (JsonArray errors) {
+    getJson().put(ERRORS, errors);
+    return this;
+  }
+
+  public JsonArray getErrorsAsJsonArray () {
+    JsonArray array = new JsonArray();
+    for (ErrorReport error : errors) {
+      array.add(error.asJson());
+    }
+    return array;
   }
 
   public InventoryUpdateOutcome setResponseStatusCode (int status) {
@@ -43,26 +78,26 @@ public class InventoryUpdateOutcome {
     return this;
   }
 
-  public ErrorReport getErrorResponse() {
-    return errors;
-  }
-
 
   public JsonObject getJson() {
-    return goodResult;
+    return result;
   }
 
-  public boolean succeeded () {
-    return success;
+  public boolean isError () {
+    return error != null;
+  }
+
+  public ErrorReport getErrorResponse() {
+    return error;
   }
 
   public boolean failed () {
-    return !success;
+    return isError();
   }
 
   public void respond (RoutingContext routingContext) {
-    if (statusCode == 200 || statusCode == 207) {
-      responseJson(routingContext, statusCode).end(goodResult.encodePrettily());
+    if (statusCode == OK || statusCode == MULTI_STATUS) {
+      responseJson(routingContext, statusCode).end(result.encodePrettily());
     } else {
       getErrorResponse().respond(routingContext);
     }

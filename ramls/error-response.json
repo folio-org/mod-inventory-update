@@ -41,17 +41,8 @@
       "description": "The JSON object that was pushed to Inventory storage when the problem occurred."
     },
     "details": {
-      "description": "Any further details, i.e. additional context for the problem.",
-      "anyOf": [
-        {
-          "type": "array",
-          "description": "I.e. array of error objects"
-        },
-        {
-          "type": "object",
-          "description": "Details supplementing the main error message."
-        }
-      ]
+      "type": "object",
+      "description": "Any further details, i.e. additional context for the problem."
     }
   }
 }

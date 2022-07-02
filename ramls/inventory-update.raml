@@ -114,6 +114,7 @@ traits:
             body:
                 application/json:
                     type: batch-upsert-response-207
+                    example: !include examples/batch-upsert-response-207.json
         400:
             description: "Bad request, for example: empty request body, non-JSON or invalid JSON in request body or JSON does not contain inventory record sets"
             body:

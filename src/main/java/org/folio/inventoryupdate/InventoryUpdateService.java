@@ -56,11 +56,13 @@ public class InventoryUpdateService {
 
     JsonArray inventoryRecordSets = new JsonArray();
     inventoryRecordSets.add(new JsonObject(incomingValidJson.result.encodePrettily()));
-    inventoryUpsertByHRIDBatch(routingContext, inventoryRecordSets).onComplete(update ->{
-      if (update.result().statusCode == OK || update.result().statusCode == MULTI_STATUS) {
-        responseJson(routingContext, update.result().statusCode).end(update.result().getJson().encodePrettily());
-      } else {
-        update.result().getErrorResponse().respond(routingContext);
+    inventoryUpsertByHRID(routingContext, inventoryRecordSets).onComplete(update ->{
+      if (update.succeeded()) {
+        if (update.result().statusCode == OK || update.result().statusCode == MULTI_STATUS) {
+          responseJson(routingContext, update.result().statusCode).end(update.result().getJson().encodePrettily());
+        } else {
+          update.result().getErrorResponse().respond(routingContext);
+        }
       }
     });
   }
@@ -74,7 +76,7 @@ public class InventoryUpdateService {
     }
     if (incomingValidJson.getJson().containsKey("inventoryRecordSets")) {
       JsonArray inventoryRecordSets = incomingValidJson.getJson().getJsonArray("inventoryRecordSets");
-      inventoryUpsertByHRIDBatch(routingContext, inventoryRecordSets).onComplete(update -> {
+      inventoryUpsertByHRID(routingContext, inventoryRecordSets).onComplete(update -> {
         if (update.succeeded()) {
           update.result().respond(routingContext);
         } else {
@@ -121,7 +123,7 @@ public class InventoryUpdateService {
       JsonArray batchOfOne = new JsonArray().add(o);
       arraysOfOneRecordSet.add(batchOfOne);
     }
-    return chainSingleRecordUpserts(routingContext, arraysOfOneRecordSet, this::inventoryUpsertByHRIDBatch);
+    return chainSingleRecordUpserts(routingContext, arraysOfOneRecordSet, this::inventoryUpsertByHRID);
   }
 
   private Future<List<InventoryUpdateOutcome>> chainSingleRecordUpserts(RoutingContext routingContext, List<JsonArray> arraysOfOneRecordSet, BiFunction<RoutingContext, JsonArray, Future<InventoryUpdateOutcome>> upsertMethod) {
@@ -143,7 +145,11 @@ public class InventoryUpdateService {
    return promise.future();
   }
 
-  private Future<InventoryUpdateOutcome> inventoryUpsertByHRIDBatch(RoutingContext routingContext, JsonArray inventoryRecordSets) {
+  /**
+   * @param inventoryRecordSets List of one or more record sets to be processed
+   * @return The outcome of the planning and updating
+   */
+  private Future<InventoryUpdateOutcome> inventoryUpsertByHRID(RoutingContext routingContext, JsonArray inventoryRecordSets) {
     Promise<InventoryUpdateOutcome> promise = Promise.promise();
     UpdatePlanAllHRIDs plan = UpdatePlanAllHRIDs.getUpsertPlan();
     RequestValidation validations = validateIncomingRecordSets (plan, inventoryRecordSets);
@@ -157,30 +163,44 @@ public class InventoryUpdateService {
                         if (result.succeeded()) {
                           plan.planInventoryUpdates()
                                   .doInventoryUpdates(
-                                          getOkapiClient(routingContext), batchOfOne).onComplete(inventoryUpdated -> {
+                                          getOkapiClient(routingContext)).onComplete(inventoryUpdated -> {
+
+                                    JsonObject response = (batchOfOne ?
+                                            plan.getOneUpdatingRecordSetJsonFromRepository() : 
+                                            new JsonObject());
+
                                     if (inventoryUpdated.succeeded()) {
-                                      JsonObject pushedRecordSetWithStats = plan.getUpdatingRecordSetJsonFromRepository();
-                                      pushedRecordSetWithStats.put("metrics", plan.getUpdateStatsFromRepository());
-                                      InventoryUpdateOutcome outcome = new InventoryUpdateOutcome(
-                                              pushedRecordSetWithStats)
-                                              .setResponseStatusCode(OK);
+                                      response.put("metrics", plan.getUpdateStatsFromRepository());
+                                      InventoryUpdateOutcome outcome =
+                                              new InventoryUpdateOutcome(
+                                                      response)
+                                                      .setResponseStatusCode(OK);
                                       promise.complete(outcome);
                                     } else {
-                                      logger.error("Update failed " + inventoryUpdated.cause().getMessage());
-                                      ErrorReport report = null;
-                                      if (ErrorReport.isAnErrorReportJson(inventoryUpdated.cause().getMessage())) {
-                                        report = ErrorReport.makeErrorReportFromJsonString(inventoryUpdated.cause().getMessage());
-                                      }
-                                      if (report != null && !batchOfOne) {
+                                      logger.error("Update failed " +
+                                              inventoryUpdated.cause().getMessage());
+                                      ErrorReport report = ErrorReport
+                                              .makeErrorReportFromJsonString(
+                                                      inventoryUpdated.cause().getMessage());
+                                      // If the error affected an entire batch of records
+                                      // then fail the request as a whole. This particular error
+                                      // message will not go to the client but rather be picked
+                                      // up and acted upon by the module.
+                                      //
+                                      // If the error only affected individual records, either
+                                      // because the update was for a batch of one or because the
+                                      // error affected entities that are not batch updated
+                                      // (ie relationships) then return a (partial) success,
+                                      // a multi-status (207) that is.
+                                      if (report.isBatchStorageError() && !batchOfOne) {
+                                        // This will cause the controller to switch to record-by-record
                                         promise.fail(report.asJsonString());
-                                      }
-                                      if (batchOfOne){
-                                        JsonObject pushedRecordSetWithStats = plan.getUpdatingRecordSetJsonFromRepository();
-                                        pushedRecordSetWithStats.put("metrics", plan.getUpdateStatsFromRepository());
-                                        pushedRecordSetWithStats.put("errors", plan.getErrorsUsingRepository());
-                                        InventoryUpdateOutcome outcome = new InventoryUpdateOutcome(
-                                                pushedRecordSetWithStats)
-                                                .setResponseStatusCode(MULTI_STATUS);
+                                      } else {
+                                        response.put("metrics", plan.getUpdateStatsFromRepository());
+                                        response.put("errors", plan.getErrorsUsingRepository());
+                                        InventoryUpdateOutcome outcome =
+                                                new InventoryUpdateOutcome(response)
+                                                        .setResponseStatusCode(MULTI_STATUS);
                                         promise.complete(outcome);
                                       }
                                     }
@@ -291,24 +311,27 @@ public class InventoryUpdateService {
                 .buildRepositoryFromStorage(routingContext).onComplete(result -> {
                   if (result.succeeded()) {
                     plan.planInventoryUpdates()
-                            .doInventoryUpdates(getOkapiClient(routingContext),batchOfOne)
+                            .doInventoryUpdates(getOkapiClient(routingContext))
                             .onComplete(inventoryUpdated -> {
                               if (inventoryUpdated.succeeded()) {
-                                JsonObject pushedRecordSetWithStats = plan.getUpdatingRecordSetJsonFromRepository();
+                                JsonObject pushedRecordSetWithStats = plan.getOneUpdatingRecordSetJsonFromRepository();
                                 pushedRecordSetWithStats.put("metrics", plan.getUpdateStatsFromRepository());
                                 long siUpsertDone = System.currentTimeMillis()-siUpsertBatchStart;
                                 logger.debug("SI batch upsert done in " + siUpsertDone + " ms.");
                                 respondWithOK(routingContext, pushedRecordSetWithStats);
                               } else {
-                                JsonObject pushedRecordSetWithStats = plan.getUpdatingRecordSetJsonFromRepository();
+                                JsonObject pushedRecordSetWithStats = plan.getOneUpdatingRecordSetJsonFromRepository();
                                 pushedRecordSetWithStats.put("metrics", plan.getUpdateStatsFromRepository());
                                 pushedRecordSetWithStats.put("errors", plan.getErrorsUsingRepository());
+
+
                                 pushedRecordSetWithStats.getJsonArray("errors")
                                         .add(new ErrorReport(
                                                 ErrorCategory.STORAGE,
                                                 INTERNAL_SERVER_ERROR,
                                                 inventoryUpdated.cause().getMessage())
                                                 .asJson());
+
                                 respondWithMultiStatus(routingContext,pushedRecordSetWithStats);
                               }
                             });
@@ -438,6 +461,7 @@ public class InventoryUpdateService {
     }
   }
 
+  // TODO: move to UpdatePlan
   public static RequestValidation validateIncomingRecordSets (UpdatePlan plan, JsonArray incomingRecordSets) {
     RequestValidation validations = new RequestValidation();
     for (Object recordSetObject : incomingRecordSets) {

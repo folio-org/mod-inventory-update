@@ -71,7 +71,7 @@ public abstract class UpdatePlan {
 
     public abstract UpdatePlan planInventoryUpdates();
 
-    public abstract Future<Void> doInventoryUpdates(OkapiClient okapiClient, boolean batchOfOne);
+    public abstract Future<Void> doInventoryUpdates(OkapiClient okapiClient);
 
     public abstract Future<Void> doCreateInstanceRelations (OkapiClient okapiClient);
 
@@ -182,9 +182,9 @@ public abstract class UpdatePlan {
 
     public Future<Void> doCreateRecordsWithDependants(OkapiClient okapiClient) {
         Promise<Void> promise = Promise.promise();
-        doCreateNewInstancesInBatch(okapiClient).onComplete(instances -> {
+        doCreateNewInstances(okapiClient).onComplete(instances -> {
             if (instances.succeeded()) {
-                doCreateNewHoldingsInBatch(okapiClient).onComplete(holdings -> {
+                doCreateNewHoldings(okapiClient).onComplete(holdings -> {
                     if (holdings.succeeded()) {
                         promise.complete();
                     } else {
@@ -198,7 +198,7 @@ public abstract class UpdatePlan {
         return promise.future();
     }
 
-    public Future<Void> doCreateNewInstancesInBatch(OkapiClient okapiClient) {
+    public Future<Void> doCreateNewInstances(OkapiClient okapiClient) {
         Promise<Void> promise = Promise.promise();
         InventoryStorage.postInstances(okapiClient, repository.getInstancesToCreate()).onComplete(
                 handler -> {
@@ -212,7 +212,7 @@ public abstract class UpdatePlan {
         return promise.future();
     }
 
-    public Future<Void> doCreateNewHoldingsInBatch (OkapiClient okapiClient) {
+    public Future<Void> doCreateNewHoldings(OkapiClient okapiClient) {
         Promise<Void> promise = Promise.promise();
         InventoryStorage.postHoldingsRecords(okapiClient, repository.getHoldingsToCreate()).onComplete(
                 handler -> {
@@ -225,7 +225,7 @@ public abstract class UpdatePlan {
         return promise.future();
     }
 
-    public Future<Void> doUpdateInstancesAndHoldingsInBatch(OkapiClient okapiClient) {
+    public Future<Void> doUpdateInstancesAndHoldings(OkapiClient okapiClient) {
         Promise<Void> promise = Promise.promise();
         List<Future> updates = new ArrayList<>();
         updates.add(InventoryStorage.postInstances(okapiClient,repository.getInstancesToUpdate()));
@@ -241,7 +241,7 @@ public abstract class UpdatePlan {
         return promise.future();
     }
 
-    public Future<Void> doUpdateOrCreateItemsInBatch(OkapiClient okapiClient) {
+    public Future<Void> doUpdateOrCreateItems(OkapiClient okapiClient) {
         Promise<Void> promise = Promise.promise();
         List<Item> itemsToUpdateOrCreate = new ArrayList<>();
         itemsToUpdateOrCreate.addAll(repository.getItemsToUpdate());
@@ -362,7 +362,7 @@ public abstract class UpdatePlan {
         return gotUpdatingRecordSet() ? updatingSet.asJson() : new JsonObject();
     }
 
-    public JsonObject getUpdatingRecordSetJsonFromRepository () {
+    public JsonObject getOneUpdatingRecordSetJsonFromRepository() {
         return (repository.getPairsOfRecordSets().size() == 1
                 && repository.getPairsOfRecordSets().get(0).hasIncomingRecordSet()) ?
                 repository.getPairsOfRecordSets().get(0).getIncomingRecordSet().asJson()

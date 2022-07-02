@@ -384,13 +384,13 @@ public class UpdatePlanAllHRIDs extends UpdatePlan {
         return promise.future();
     }
 
-    public Future<Void> doInventoryUpdates(OkapiClient okapiClient, boolean batchOfOne) {
+    public Future<Void> doInventoryUpdates(OkapiClient okapiClient) {
         Promise<Void> promise = Promise.promise();
         doCreateRecordsWithDependants(okapiClient).onComplete(prerequisitesCreated -> {
             if (prerequisitesCreated.succeeded()) {
-                doUpdateInstancesAndHoldingsInBatch(okapiClient).onComplete(instancesAndHoldingsUpdated -> {
+                doUpdateInstancesAndHoldings(okapiClient).onComplete(instancesAndHoldingsUpdated -> {
                     doCreateInstanceRelations(okapiClient).onComplete(relationsCreated -> {
-                        doUpdateOrCreateItemsInBatch(okapiClient).onComplete(itemsUpdatedAndCreated ->{
+                        doUpdateOrCreateItems(okapiClient).onComplete(itemsUpdatedAndCreated ->{
                             if (prerequisitesCreated.succeeded() && instancesAndHoldingsUpdated.succeeded() && itemsUpdatedAndCreated.succeeded()) {
                                 doDeleteRelationsItemsHoldings(okapiClient).onComplete(deletes -> {
                                     if (deletes.succeeded()) {
@@ -404,26 +404,12 @@ public class UpdatePlanAllHRIDs extends UpdatePlan {
                                     }
                                 });
                             } else {
-                                // error in batch upserts - switch to record by record upsert if processing more than one record.
-                                // If processing one record, return the error.
-                                if (batchOfOne) {
-                                    promise.fail(
-                                            "There was a problem creating records, no deletes performed if any requested:"
-                                                    + LF
-                                                    + "  "
-                                                    + ( prerequisitesCreated.failed() ? prerequisitesCreated.cause().getMessage() : "" )
-                                                    + ( instancesAndHoldingsUpdated.failed() ? " "
-                                                    + instancesAndHoldingsUpdated.cause().getMessage() : "" )
-                                                    + ( itemsUpdatedAndCreated.failed() ? " "
-                                                    + itemsUpdatedAndCreated.cause().getMessage() : "" ));
-                                } else {
-                                    if (prerequisitesCreated.failed()) {
-                                        promise.fail(prerequisitesCreated.cause().getMessage());
-                                    } else if (instancesAndHoldingsUpdated.failed()) {
-                                        promise.fail(instancesAndHoldingsUpdated.cause().getMessage());
-                                    } else if (itemsUpdatedAndCreated.failed()) {
-                                        promise.fail(itemsUpdatedAndCreated.cause().getMessage());
-                                    }
+                                if (prerequisitesCreated.failed()) {
+                                    promise.fail(prerequisitesCreated.cause().getMessage());
+                                } else if (instancesAndHoldingsUpdated.failed()) {
+                                    promise.fail(instancesAndHoldingsUpdated.cause().getMessage());
+                                } else if (itemsUpdatedAndCreated.failed()) {
+                                    promise.fail(itemsUpdatedAndCreated.cause().getMessage());
                                 }
                             }
                         });

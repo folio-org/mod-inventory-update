@@ -388,16 +388,16 @@ public class UpdatePlanSharedInventory extends UpdatePlan {
         return Future.succeededFuture();
     }
 
-    public Future<Void> doInventoryUpdates(OkapiClient okapiClient, boolean batchOfOne) {
+    public Future<Void> doInventoryUpdates(OkapiClient okapiClient) {
         long startUpdates = System.currentTimeMillis();
         logger.debug("Doing Inventory updates using repository");
         Promise<Void> promise = Promise.promise();
         doDeleteRelationsItemsHoldings(okapiClient).onComplete(deletes -> {
             if (deletes.succeeded()) {
                 doCreateRecordsWithDependants(okapiClient).onComplete(prerequisites -> {
-                    doUpdateInstancesAndHoldingsInBatch(okapiClient).onComplete(instanceAndHoldingsUpdates -> {
+                    doUpdateInstancesAndHoldings(okapiClient).onComplete(instanceAndHoldingsUpdates -> {
                         doCreateInstanceRelations(okapiClient).onComplete(relationsCreated -> {
-                            doUpdateOrCreateItemsInBatch(okapiClient).onComplete(itemUpdatesAndCreates -> {
+                            doUpdateOrCreateItems(okapiClient).onComplete(itemUpdatesAndCreates -> {
                                 if (prerequisites.succeeded() && instanceAndHoldingsUpdates.succeeded() && itemUpdatesAndCreates.succeeded()) {
                                     long updatesDone = System.currentTimeMillis() - startUpdates;
                                     logger.debug("Updates performed in " + updatesDone + " ms.");

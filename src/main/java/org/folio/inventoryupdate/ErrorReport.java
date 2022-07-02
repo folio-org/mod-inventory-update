@@ -67,20 +67,24 @@ public class ErrorReport {
     this.statusCode = statusCode;
   }
 
-  public static ErrorReport makeErrorReportFromJsonString(String jsonString) {
-    JsonObject json = new JsonObject(jsonString);
-    return new ErrorReport(
-            getCategoryFromString(json.getString(CATEGORY)),
-            json.getInteger(STATUS_CODE),
-            json.getValue(MESSAGE))
-            .setShortMessage(json.getString(SHORT_MESSAGE))
-            .setEntity(json.getJsonObject(ENTITY))
-            .setTransaction(json.getString(TRANSACTION))
-            .setEntityType(getEntityTypeFromString(json.getString(ENTITY_TYPE)))
-            .setDetails(json.getJsonObject(DETAILS));
+  private ErrorReport (String jsonString) {
+    this.messageAsString = "Not a valid error report. Could not create report from [ " + jsonString + "]";
+    this.statusCode = 500;
   }
 
-  public static boolean isAnErrorReportJson (String maybeJson) {
+  public static ErrorReport makeErrorReportFromJsonString(String jsonString) {
+    if (isAnErrorReportJson(jsonString)) {
+      JsonObject json = new JsonObject(jsonString);
+      return new ErrorReport(getCategoryFromString(json.getString(CATEGORY)), json.getInteger(STATUS_CODE),
+              json.getValue(MESSAGE)).setShortMessage(json.getString(SHORT_MESSAGE)).setEntity(json.getJsonObject(ENTITY)).setTransaction(
+              json.getString(TRANSACTION)).setEntityType(getEntityTypeFromString(json.getString(ENTITY_TYPE))).setDetails(
+              json.getJsonObject(DETAILS));
+    } else {
+      return new ErrorReport(jsonString);
+    }
+  }
+
+  private static boolean isAnErrorReportJson (String maybeJson) {
     if (isJsonString(maybeJson)) {
       JsonObject maybeErrorReportJson = new JsonObject(maybeJson);
       return maybeErrorReportJson.containsKey(CATEGORY) &&
@@ -90,6 +94,10 @@ public class ErrorReport {
     } else {
       return false;
     }
+  }
+
+  public boolean isBatchStorageError () {
+    return category == ErrorCategory.BATCH_STORAGE;
   }
 
   public static ErrorCategory getCategoryFromString (String errorCategory) {

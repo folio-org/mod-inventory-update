@@ -148,24 +148,17 @@ public abstract class InventoryRecord {
 
     public void logError (String error, int statusCode, ErrorReport.ErrorCategory category) {
         Object message = maybeJson(error);
+        System.out.println(message);
         logError(error, statusCode, category, findShortMessage(message));
     }
 
     public void logError (String error, int statusCode, ErrorReport.ErrorCategory category, String shortMessage) {
         Object message = maybeJson(error);
-
-        if (message instanceof JsonObject) {
-            this.error = new ErrorReport(
-                    category,
-                    UNPROCESSABLE_ENTITY,
-                    (JsonObject) message);
-        } else {
-            this.error = new ErrorReport(
-                    category,
-                    UNPROCESSABLE_ENTITY,
-                    (String) message);
-        }
-        this.error.setEntityType(entityType())
+        this.error = new ErrorReport(
+                category,
+                UNPROCESSABLE_ENTITY,
+                message)
+                .setEntityType(entityType())
                 .setTransaction(getTransaction() == null ? "" : getTransaction().toString())
                 .setStatusCode(statusCode)
                 .setShortMessage(shortMessage)

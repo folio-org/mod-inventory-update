@@ -22,11 +22,11 @@ public class StorageValidatorQueries
     protected void validateMatchKeyQuery (TestContext testContext) {
         FakeInventoryStorage.post(
                 INSTANCE_STORAGE_PATH,
-                new InputInstance().setTitle("New Input Instance").setInstanceTypeId("1111").setMatchKeyAsString("new_input_instance").getJson());
+                new InputInstance().setTitle("New Input Instance").setInstanceTypeId("1111").setMatchKeyAsString("new_input_instance").setSource("test").getJson());
 
         FakeInventoryStorage.post(
                 INSTANCE_STORAGE_PATH,
-                new InputInstance().setTitle("Another Input Instance").setInstanceTypeId("2222").setMatchKeyAsString("another_input_instance").getJson());
+                new InputInstance().setTitle("Another Input Instance").setInstanceTypeId("2222").setMatchKeyAsString("another_input_instance").setSource("test").getJson());
 
         JsonObject responseOnQueryWithMatch = FakeInventoryStorage.getRecordsByQuery(INSTANCE_STORAGE_PATH,
                 "query="+RecordStorage.encode("matchKey==\"another_input_instance\""));
@@ -56,6 +56,7 @@ public class StorageValidatorQueries
                 INSTANCE_STORAGE_PATH,
                 new InputInstance().setTitle("Shared Input Instance with identifier")
                         .setInstanceTypeId("12345")
+                        .setSource("test")
                         .setIdentifiers(new JsonArray().add(new JsonObject().put("identifierTypeId","4321").put("value","888888"))).getJson());
 
         JsonObject responseOnIdentifierQuery = FakeInventoryStorage.getRecordsByQuery( INSTANCE_STORAGE_PATH,

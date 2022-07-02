@@ -94,14 +94,18 @@ public class InventoryUpdateTestSuite {
 
   }
   public void createInitialInstanceWithMatchKey() {
-    InputInstance instance = new InputInstance().setInstanceTypeId("123").setTitle("Initial InputInstance").setHrid("1");
+    InputInstance instance = new InputInstance()
+            .setInstanceTypeId("123")
+            .setTitle("Initial InputInstance")
+            .setHrid("1")
+            .setSource("test");
     MatchKey matchKey = new MatchKey(instance.getJson());
     instance.setMatchKeyAsString(matchKey.getKey());
     fakeInventoryStorage.instanceStorage.insert(instance);
   }
 
   public void createInitialInstanceWithHrid1() {
-    InputInstance instance = new InputInstance().setInstanceTypeId("123").setTitle("Initial InputInstance").setHrid("1");
+    InputInstance instance = new InputInstance().setInstanceTypeId("123").setTitle("Initial InputInstance").setHrid("1").setSource("test");
     fakeInventoryStorage.instanceStorage.insert(instance);
   }
 
@@ -133,7 +137,8 @@ public class InventoryUpdateTestSuite {
     createInitialInstanceWithMatchKey();
     InputInstance instance = new InputInstance()
             .setTitle("New title")
-            .setInstanceTypeId("12345");
+            .setInstanceTypeId("12345")
+            .setSource("test");
     MatchKey matchKey = new MatchKey(instance.getJson());
     instance.setMatchKeyAsString(matchKey.getKey());
     InventoryRecordSet recordSet = new InventoryRecordSet(instance);
@@ -155,7 +160,8 @@ public class InventoryUpdateTestSuite {
     createInitialInstanceWithMatchKey();
     InputInstance instance = new InputInstance()
             .setTitle("New title")
-            .setInstanceTypeId("12345");
+            .setInstanceTypeId("12345")
+            .setSource("test");
     MatchKey matchKey = new MatchKey(instance.getJson());
     instance.setMatchKeyAsString(matchKey.getKey());
     BatchOfInventoryRecordSets batch = new BatchOfInventoryRecordSets().addRecordSet(new InventoryRecordSet(instance));
@@ -180,7 +186,8 @@ public class InventoryUpdateTestSuite {
     for (int i=0; i<5; i++) {
       InputInstance instance = new InputInstance()
               .setTitle("New title " + i)
-              .setInstanceTypeId("12345");
+              .setInstanceTypeId("12345")
+              .setSource("test");
       MatchKey matchKey = new MatchKey(instance.getJson());
       instance.setMatchKeyAsString(matchKey.getKey());
       batch.addRecordSet(new InventoryRecordSet(instance));
@@ -196,6 +203,30 @@ public class InventoryUpdateTestSuite {
   }
 
   @Test
+  public void batchUpsertByMatchKeyWillCreate200NewInstances (TestContext testContext) {
+    createInitialInstanceWithMatchKey();
+    BatchOfInventoryRecordSets batch = new BatchOfInventoryRecordSets();
+    for (int i=0; i<200; i++) {
+      InputInstance instance = new InputInstance()
+              .setTitle("New title " + i)
+              .setSource("test")
+              .setInstanceTypeId("12345");
+      MatchKey matchKey = new MatchKey(instance.getJson());
+      instance.setMatchKeyAsString(matchKey.getKey());
+      batch.addRecordSet(new InventoryRecordSet(instance));
+    }
+    JsonObject instancesBeforePutJson = getRecordsFromStorage(FakeInventoryStorage.INSTANCE_STORAGE_PATH, null);
+    testContext.assertEquals(instancesBeforePutJson.getInteger("totalRecords"), 1,
+            "Number of instance records for before PUT expected: 1" );
+    batchUpsertByMatchKey(batch.getJson());
+    JsonObject instancesAfterPutJson = getRecordsFromStorage(FakeInventoryStorage.INSTANCE_STORAGE_PATH, null);
+    testContext.assertEquals(instancesAfterPutJson.getInteger("totalRecords"), 201,
+            "Number of instance records after PUT expected: 201" );
+
+  }
+
+
+  @Test
   public void upsertByMatchKeyWithMultipleMatchKeyPartsWillCreateNewInstance (TestContext testContext) {
     final String GOV_DOC_NUMBER_TYPE = "9075b5f8-7d97-49e1-a431-73fdd468d476";
     createInitialInstanceWithMatchKey();
@@ -208,6 +239,7 @@ public class InventoryUpdateTestSuite {
     InputInstance instance = new InputInstance()
             .setTitle(longTitle)
             .setInstanceTypeId("12345")
+            .setSource("test")
             .setDateOfPublication( "[2000]" )
             .setClassification( GOV_DOC_NUMBER_TYPE, "12345" )
             .setContributor( InputInstance.PERSONAL_NAME_TYPE, "Doe, John" )
@@ -261,7 +293,7 @@ public class InventoryUpdateTestSuite {
     String instanceHrid = "1";
     JsonObject upsertResponseJson = upsertByMatchKey(new JsonObject()
             .put("instance",
-                    new InputInstance().setTitle("Initial InputInstance").setInstanceTypeId("12345").setHrid(instanceHrid).getJson())
+                    new InputInstance().setTitle("Initial InputInstance").setInstanceTypeId("12345").setHrid(instanceHrid).setSource("test").getJson())
             .put("holdingsRecords", new JsonArray()
                     .add(new InputHoldingsRecord().setHrid("HOL-001").setPermanentLocationId(LOCATION_ID_1).setCallNumber("test-cn-1").getJson()
                             .put("items", new JsonArray()
@@ -291,7 +323,7 @@ public class InventoryUpdateTestSuite {
     String instanceHrid = "1";
     JsonObject upsertResponseJson = upsertByMatchKey(new JsonObject()
             .put("instance",
-                    new InputInstance().setTitle("Initial InputInstance").setInstanceTypeId("12345").setHrid(instanceHrid).getJson())
+                    new InputInstance().setTitle("Initial InputInstance").setInstanceTypeId("12345").setHrid(instanceHrid).setSource("test").getJson())
             .put("holdingsRecords", new JsonArray()
                     .add(new InputHoldingsRecord().setHrid("HOL-001").setPermanentLocationId(LOCATION_ID_1).setCallNumber("test-cn-1").getJson()
                             .put("items", new JsonArray()
@@ -308,7 +340,7 @@ public class InventoryUpdateTestSuite {
 
     upsertResponseJson = upsertByMatchKey(new JsonObject()
             .put("instance",
-                    new InputInstance().setTitle("Initial InputInstance").setInstanceTypeId("12345").setHrid(instanceHrid).getJson())
+                    new InputInstance().setTitle("Initial InputInstance").setInstanceTypeId("12345").setHrid(instanceHrid).setSource("test").getJson())
             .put("holdingsRecords", new JsonArray()
                     .add(new InputHoldingsRecord().setHrid("HOL-001").setPermanentLocationId(LOCATION_ID_1).setCallNumber("updated-1").getJson()
                             .put("items", new JsonArray()
@@ -346,6 +378,7 @@ public class InventoryUpdateTestSuite {
             .put("instance",
                     new InputInstance().setTitle("Shared InputInstance")
                             .setInstanceTypeId("12345")
+                            .setSource("source")
                             .setIdentifiers(new JsonArray().add(new JsonObject().put("identifierTypeId",identifierTypeId1).put("value",identifierValue1))).getJson())
             .put("holdingsRecords", new JsonArray()
                     .add(new InputHoldingsRecord().setPermanentLocationId(LOCATION_ID_1).setCallNumber("test-cn-1").getJson()
@@ -380,6 +413,7 @@ public class InventoryUpdateTestSuite {
             .put("instance",
                     new InputInstance().setTitle("Shared InputInstance")
                             .setInstanceTypeId("12345")
+                            .setSource("test")
                             .setIdentifiers(new JsonArray().add(new JsonObject().put("identifierTypeId",identifierTypeId2).put("value",identifierValue2))).getJson())
             .put("holdingsRecords", new JsonArray()
                     .add(new InputHoldingsRecord().setPermanentLocationId(LOCATION_ID_2).setCallNumber("test-cn-3").getJson()
@@ -441,6 +475,7 @@ public class InventoryUpdateTestSuite {
             .put("instance",
                     new InputInstance().setTitle("Shared InputInstance")
                             .setInstanceTypeId("12345")
+                            .setSource("test")
                             .setIdentifiers(new JsonArray().add(new JsonObject().put("identifierTypeId",identifierTypeId1).put("value",identifierValue1))).getJson())
             .put("holdingsRecords", new JsonArray()
                     .add(new InputHoldingsRecord().setPermanentLocationId(LOCATION_ID_1).setCallNumber("test-cn-1").getJson()
@@ -473,6 +508,7 @@ public class InventoryUpdateTestSuite {
             .put("instance",
                     new InputInstance().setTitle("Shared InputInstance")
                             .setInstanceTypeId("12345")
+                            .setSource("test")
                             .setIdentifiers(new JsonArray().add(new JsonObject().put("identifierTypeId",identifierTypeId2).put("value",identifierValue2))).getJson())
             .put("holdingsRecords", new JsonArray()
                     .add(new InputHoldingsRecord().setPermanentLocationId(LOCATION_ID_2).setCallNumber("test-cn-3").getJson()
@@ -535,6 +571,7 @@ public class InventoryUpdateTestSuite {
             .put("instance",
                     new InputInstance().setTitle("Shared InputInstance")
                             .setInstanceTypeId("12345")
+                            .setSource("test")
                             .setIdentifiers(new JsonArray().add(new JsonObject().put("identifierTypeId",identifierTypeId1).put("value",identifierValue1))).getJson())
             .put("holdingsRecords", new JsonArray()
                     .add(new InputHoldingsRecord().setPermanentLocationId(LOCATION_ID_1).setCallNumber("test-cn-1").getJson()
@@ -571,6 +608,7 @@ public class InventoryUpdateTestSuite {
             .put("instance",
                     new InputInstance().setTitle("Shared InputInstance")
                             .setInstanceTypeId("12345")
+                            .setSource("test")
                             .setIdentifiers(new JsonArray().add(new JsonObject().put("identifierTypeId",identifierTypeId2).put("value",identifierValue2))).getJson())
             .put("holdingsRecords", new JsonArray()
                     .add(new InputHoldingsRecord().setPermanentLocationId(LOCATION_ID_2).setCallNumber("test-cn-3").getJson()
@@ -605,6 +643,7 @@ public class InventoryUpdateTestSuite {
             .put("instance",
                     new InputInstance().setTitle("Shared Input Instance")
                             .setInstanceTypeId("12345")
+                            .setSource("test")
                             .setIdentifiers(new JsonArray().add(new JsonObject().put("identifierTypeId",identifierTypeId1).put("value",identifierValue1))).getJson())
             .put("holdingsRecords", new JsonArray()
                     .add(new InputHoldingsRecord().setPermanentLocationId(LOCATION_ID_1).setCallNumber("test-cn-1").getJson()
@@ -662,7 +701,7 @@ public class InventoryUpdateTestSuite {
   @Test
   public void testUpsertByHridWillCreateNewInstance(TestContext testContext) {
     createInitialInstanceWithHrid1();
-    InputInstance instance = new InputInstance().setTitle("New title").setInstanceTypeId("12345").setHrid("2");
+    InputInstance instance = new InputInstance().setTitle("New title").setInstanceTypeId("12345").setHrid("2").setSource("test");
     InventoryRecordSet inventoryRecordSet = new InventoryRecordSet(instance);
 
     JsonObject instancesBeforePutJson = getRecordsFromStorage(FakeInventoryStorage.INSTANCE_STORAGE_PATH, "hrid==\"" + instance.getHrid() + "\"");
@@ -686,7 +725,7 @@ public class InventoryUpdateTestSuite {
     String instanceHrid = "1";
     JsonObject inventoryRecordSet = new JsonObject();
     inventoryRecordSet.put("instance", new InputInstance()
-            .setTitle("Initial InputInstance").setInstanceTypeId("12345").setHrid(instanceHrid).getJson());
+            .setTitle("Initial InputInstance").setInstanceTypeId("12345").setHrid(instanceHrid).setSource("test").getJson());
 
     JsonObject instancesBeforePutJson = getRecordsFromStorage(FakeInventoryStorage.INSTANCE_STORAGE_PATH, "hrid==\"" + instanceHrid + "\"");
     testContext.assertEquals(instancesBeforePutJson.getInteger("totalRecords"), 1,
@@ -716,7 +755,7 @@ public class InventoryUpdateTestSuite {
     String instanceHrid = "1";
     JsonObject upsertResponseJson = upsertByHrid(new JsonObject()
             .put("instance",
-               new InputInstance().setTitle("Initial InputInstance").setInstanceTypeId("12345").setHrid(instanceHrid).getJson())
+               new InputInstance().setTitle("Initial InputInstance").setInstanceTypeId("12345").setHrid(instanceHrid).setSource("test").getJson())
             .put("holdingsRecords", new JsonArray()
               .add(new InputHoldingsRecord().setHrid("HOL-001").setPermanentLocationId(LOCATION_ID_1).setCallNumber("test-cn-1").getJson()
                       .put("items", new JsonArray()
@@ -746,7 +785,7 @@ public class InventoryUpdateTestSuite {
     String instanceHrid = "1";
     JsonObject upsertResponseJson = upsertByHrid(new JsonObject()
             .put("instance",
-                    new InputInstance().setTitle("Initial InputInstance").setInstanceTypeId("12345").setHrid(instanceHrid).getJson())
+                    new InputInstance().setTitle("Initial InputInstance").setInstanceTypeId("12345").setHrid(instanceHrid).setSource("test").getJson())
             .put("holdingsRecords", new JsonArray()
                     .add(new InputHoldingsRecord().setHrid("HOL-001").setPermanentLocationId(LOCATION_ID_1).setCallNumber("test-cn-1").getJson())
                     .add(new InputHoldingsRecord().setHrid("HOL-002").setPermanentLocationId(LOCATION_ID_1).setCallNumber("test-cn-2").getJson())));
@@ -763,7 +802,7 @@ public class InventoryUpdateTestSuite {
     String instanceHrid = "1";
     JsonObject upsertResponseJson = upsertByHrid(new JsonObject()
             .put("instance",
-                    new InputInstance().setTitle("Initial InputInstance").setInstanceTypeId("12345").setHrid(instanceHrid).getJson())
+                    new InputInstance().setTitle("Initial InputInstance").setInstanceTypeId("12345").setHrid(instanceHrid).setSource("test").getJson())
             .put("holdingsRecords", new JsonArray()
                     .add(new InputHoldingsRecord().setHrid("HOL-001").setPermanentLocationId(LOCATION_ID_1).setCallNumber("test-cn-1").getJson()
                             .put("items", new JsonArray()
@@ -780,7 +819,7 @@ public class InventoryUpdateTestSuite {
 
     upsertResponseJson = upsertByHrid(new JsonObject()
             .put("instance",
-                    new InputInstance().setTitle("Initial InputInstance").setInstanceTypeId("12345").setHrid(instanceHrid).getJson())
+                    new InputInstance().setTitle("Initial InputInstance").setInstanceTypeId("12345").setHrid(instanceHrid).setSource("test").getJson())
             .put("holdingsRecords", new JsonArray()
                     .add(new InputHoldingsRecord().setHrid("HOL-001").setPermanentLocationId(LOCATION_ID_1).setCallNumber("updated-1").getJson()
                             .put("items", new JsonArray()
@@ -807,7 +846,7 @@ public class InventoryUpdateTestSuite {
     String instanceHrid = "1";
     JsonObject upsertResponseJson = upsertByHrid(new JsonObject()
             .put("instance",
-                    new InputInstance().setTitle("Initial InputInstance").setInstanceTypeId("12345").setHrid(instanceHrid).getJson())
+                    new InputInstance().setTitle("Initial InputInstance").setInstanceTypeId("12345").setHrid(instanceHrid).setSource("test").getJson())
             .put("holdingsRecords", new JsonArray()
                     .add(new InputHoldingsRecord().setHrid("HOL-001").setPermanentLocationId(LOCATION_ID_1).setCallNumber("test-cn-1").getJson()
                             .put("items", new JsonArray()
@@ -824,7 +863,7 @@ public class InventoryUpdateTestSuite {
 
     upsertResponseJson = upsertByHrid(new JsonObject()
             .put("instance",
-                    new InputInstance().setTitle("Initial InputInstance").setInstanceTypeId("12345").setHrid(instanceHrid).getJson())
+                    new InputInstance().setTitle("Initial InputInstance").setInstanceTypeId("12345").setHrid(instanceHrid).setSource("test").getJson())
             .put("holdingsRecords", new JsonArray()
                     .add(new InputHoldingsRecord().setHrid("HOL-001").setPermanentLocationId(LOCATION_ID_1).setCallNumber("updated-1").getJson()
                             .put("items", new JsonArray()
@@ -858,7 +897,7 @@ public class InventoryUpdateTestSuite {
     String instanceHrid = "1";
     JsonObject upsertResponseJson = upsertByHrid(new JsonObject()
             .put("instance",
-                    new InputInstance().setTitle("Initial InputInstance").setInstanceTypeId("12345").setHrid(instanceHrid).getJson())
+                    new InputInstance().setTitle("Initial InputInstance").setInstanceTypeId("12345").setHrid(instanceHrid).setSource("test").getJson())
             .put("holdingsRecords", new JsonArray()
                     .add(new InputHoldingsRecord().setHrid("HOL-001").setPermanentLocationId(LOCATION_ID_1).setCallNumber("test-cn-1").getJson()
                             .put("items", new JsonArray()
@@ -875,7 +914,7 @@ public class InventoryUpdateTestSuite {
 
     upsertResponseJson = upsertByHrid(new JsonObject()
             .put("instance",
-                    new InputInstance().setTitle("Initial InputInstance").setInstanceTypeId("12345").setHrid(instanceHrid).getJson())
+                    new InputInstance().setTitle("Initial InputInstance").setInstanceTypeId("12345").setHrid(instanceHrid).setSource("test").getJson())
             .put("holdingsRecords", new JsonArray()
                     .add(new InputHoldingsRecord().setHrid("HOL-001").setPermanentLocationId(LOCATION_ID_1).setCallNumber("updated-1").getJson()
                             .put("items", new JsonArray()
@@ -915,7 +954,7 @@ public class InventoryUpdateTestSuite {
     String instanceHrid = "1";
     JsonObject upsertResponseJson = upsertByHrid(new JsonObject()
             .put("instance",
-                    new InputInstance().setTitle("Initial InputInstance").setInstanceTypeId("12345").setHrid(instanceHrid).getJson())
+                    new InputInstance().setTitle("Initial InputInstance").setInstanceTypeId("12345").setHrid(instanceHrid).setSource("test").getJson())
             .put("holdingsRecords", new JsonArray()
                     .add(new InputHoldingsRecord().setHrid("HOL-001").setPermanentLocationId(LOCATION_ID_1).setCallNumber("test-cn-1").getJson()
                             .put("items", new JsonArray()
@@ -932,7 +971,7 @@ public class InventoryUpdateTestSuite {
 
     upsertResponseJson = upsertByHrid(new JsonObject()
             .put("instance",
-                    new InputInstance().setTitle("Initial InputInstance").setInstanceTypeId("12345").setHrid(instanceHrid).getJson())
+                    new InputInstance().setTitle("Initial InputInstance").setInstanceTypeId("12345").setHrid(instanceHrid).setSource("test").getJson())
             .put("holdingsRecords", new JsonArray()
                     .add(new InputHoldingsRecord().setHrid("HOL-001").setPermanentLocationId(LOCATION_ID_1).setCallNumber("updated-1").getJson()
                             .put("items", new JsonArray()
@@ -965,7 +1004,7 @@ public class InventoryUpdateTestSuite {
     String instanceHrid = "1";
     JsonObject upsertResponseJson = upsertByHrid(new JsonObject()
             .put("instance",
-                    new InputInstance().setTitle("Initial InputInstance").setInstanceTypeId("12345").setHrid(instanceHrid).getJson())
+                    new InputInstance().setTitle("Initial InputInstance").setInstanceTypeId("12345").setHrid(instanceHrid).setSource("test").getJson())
             .put("holdingsRecords", new JsonArray()
                     .add(new InputHoldingsRecord().setHrid("HOL-001").setPermanentLocationId(LOCATION_ID_1).setCallNumber("test-cn-1").getJson()
                             .put("items", new JsonArray()
@@ -983,7 +1022,7 @@ public class InventoryUpdateTestSuite {
 
     upsertResponseJson = upsertByHrid(new JsonObject()
             .put("instance",
-                    new InputInstance().setTitle("Initial InputInstance").setInstanceTypeId("12345").setHrid(instanceHrid).getJson())
+                    new InputInstance().setTitle("Initial InputInstance").setInstanceTypeId("12345").setHrid(instanceHrid).setSource("test").getJson())
             .put("holdingsRecords", new JsonArray()
                     .add(new InputHoldingsRecord().setHrid("HOL-001").setPermanentLocationId(LOCATION_ID_1).setCallNumber("updated-1").getJson()
                             .put("items", new JsonArray()
@@ -1017,7 +1056,7 @@ public class InventoryUpdateTestSuite {
     String instanceHrid = "1";
     JsonObject inventoryRecordSet = new JsonObject()
             .put("instance",
-                    new InputInstance().setTitle("Initial InputInstance").setInstanceTypeId("12345").setHrid(instanceHrid).getJson())
+                    new InputInstance().setTitle("Initial InputInstance").setInstanceTypeId("12345").setHrid(instanceHrid).setSource("test").getJson())
             .put("holdingsRecords", new JsonArray()
                     .add(new InputHoldingsRecord().setHrid("HOL-001").setPermanentLocationId(LOCATION_ID_1).setCallNumber("test-cn-1").getJson()
                             .put("items", new JsonArray()
@@ -1033,7 +1072,7 @@ public class InventoryUpdateTestSuite {
     // Leave out one holdings record
     inventoryRecordSet = new JsonObject()
             .put("instance",
-                    new InputInstance().setTitle("Initial InputInstance").setInstanceTypeId("12345").setHrid(instanceHrid).getJson())
+                    new InputInstance().setTitle("Initial InputInstance").setInstanceTypeId("12345").setHrid(instanceHrid).setSource("test").getJson())
             .put("holdingsRecords", new JsonArray()
                     .add(new InputHoldingsRecord().setHrid("HOL-002").setPermanentLocationId(LOCATION_ID_1).setCallNumber("test-cn-2").getJson()
                             .put("items", new JsonArray()
@@ -1059,7 +1098,7 @@ public class InventoryUpdateTestSuite {
     String instanceHrid = "1";
     JsonObject inventoryRecordSet = new JsonObject()
             .put("instance",
-                    new InputInstance().setTitle("Initial InputInstance").setInstanceTypeId("12345").setHrid(instanceHrid).getJson())
+                    new InputInstance().setTitle("Initial InputInstance").setInstanceTypeId("12345").setHrid(instanceHrid).setSource("test").getJson())
             .put("holdingsRecords", new JsonArray()
                     .add(new InputHoldingsRecord().setHrid("HOL-001").setPermanentLocationId(LOCATION_ID_1).setCallNumber("test-cn-1").getJson()
                             .put("items", new JsonArray()
@@ -1077,7 +1116,7 @@ public class InventoryUpdateTestSuite {
     upsertByHrid(
             new JsonObject()
                     .put("instance",
-                            new InputInstance().setTitle("Updated InputInstance").setInstanceTypeId("12345").setHrid(instanceHrid).getJson()));
+                            new InputInstance().setTitle("Updated InputInstance").setInstanceTypeId("12345").setHrid(instanceHrid).setSource("test").getJson()));
 
     JsonObject holdingsAfterUpsert1Json = getRecordsFromStorage(FakeInventoryStorage.HOLDINGS_STORAGE_PATH, "instanceId==\"" + instanceId + "\"");
     getRecordsFromStorage(FakeInventoryStorage.ITEM_STORAGE_PATH, null);
@@ -1086,7 +1125,7 @@ public class InventoryUpdateTestSuite {
     upsertByHrid(
             new JsonObject()
                     .put("instance",
-                            new InputInstance().setTitle("2nd Updated InputInstance").setInstanceTypeId("12345").setHrid(instanceHrid).getJson())
+                            new InputInstance().setTitle("2nd Updated InputInstance").setInstanceTypeId("12345").setHrid(instanceHrid).setSource("test").getJson())
                     .put("holdingsRecords", new JsonArray()));
 
     JsonObject holdingsAfterUpsert2Json = getRecordsFromStorage(FakeInventoryStorage.HOLDINGS_STORAGE_PATH, "instanceId==\"" + instanceId + "\"");
@@ -1110,11 +1149,11 @@ public class InventoryUpdateTestSuite {
 
     upsertByHrid(new JsonObject()
             .put("instance",
-                    new InputInstance().setTitle("Parent InputInstance").setInstanceTypeId("12345").setHrid(instanceHrid).getJson()));
+                    new InputInstance().setTitle("Parent InputInstance").setInstanceTypeId("12345").setHrid(instanceHrid).setSource("test").getJson()));
 
     JsonObject childResponseJson = upsertByHrid(new JsonObject()
             .put("instance",
-                    new InputInstance().setTitle("Child InputInstance").setInstanceTypeId("12345").setHrid(childHrid).getJson())
+                    new InputInstance().setTitle("Child InputInstance").setInstanceTypeId("12345").setHrid(childHrid).setSource("test").getJson())
             .put("instanceRelations", new JsonObject()
                     .put("parentInstances", new JsonArray()
                             .add(new InputInstanceRelationship().setInstanceIdentifierHrid(instanceHrid).getJson()))));
@@ -1127,7 +1166,7 @@ public class InventoryUpdateTestSuite {
 
     JsonObject grandParentResponseJson = upsertByHrid(new JsonObject()
             .put("instance",
-                    new InputInstance().setTitle("Child InputInstance").setInstanceTypeId("12345").setHrid(grandParentHrid).getJson())
+                    new InputInstance().setTitle("Child InputInstance").setInstanceTypeId("12345").setHrid(grandParentHrid).setSource("test").getJson())
             .put("instanceRelations", new JsonObject()
                     .put("childInstances", new JsonArray()
                             .add(new InputInstanceRelationship().setInstanceIdentifierHrid(instanceHrid).getJson()))));
@@ -1151,10 +1190,10 @@ public class InventoryUpdateTestSuite {
 
     JsonObject parentResponse = upsertByHrid(new JsonObject()
             .put("instance",
-                    new InputInstance().setTitle("Parent InputInstance").setInstanceTypeId("12345").setHrid(instanceHrid).getJson()));
+                    new InputInstance().setTitle("Parent InputInstance").setInstanceTypeId("12345").setHrid(instanceHrid).setSource("test").getJson()));
     JsonObject childResponseJson = upsertByHrid(new JsonObject()
             .put("instance",
-                    new InputInstance().setTitle("Child InputInstance").setInstanceTypeId("12345").setHrid(childHrid).getJson())
+                    new InputInstance().setTitle("Child InputInstance").setInstanceTypeId("12345").setHrid(childHrid).setSource("test").getJson())
             .put("instanceRelations", new JsonObject()
                     .put("parentInstances", new JsonArray()
                             .add(new InputInstanceRelationship().setInstanceIdentifierUuid(parentResponse.getJsonObject( "instance" ).getString( "id" )).getJson()))));
@@ -1167,7 +1206,7 @@ public class InventoryUpdateTestSuite {
 
     JsonObject grandParentResponseJson = upsertByHrid(new JsonObject()
             .put("instance",
-                    new InputInstance().setTitle("Child InputInstance").setInstanceTypeId("12345").setHrid(grandParentHrid).getJson())
+                    new InputInstance().setTitle("Child InputInstance").setInstanceTypeId("12345").setHrid(grandParentHrid).setSource("test").getJson())
             .put("instanceRelations", new JsonObject()
                     .put("childInstances", new JsonArray()
                             .add(new InputInstanceRelationship().setInstanceIdentifierHrid(instanceHrid).getJson()))));
@@ -1191,12 +1230,12 @@ public class InventoryUpdateTestSuite {
     upsertByHrid(
             new JsonObject()
             .put("instance",
-                    new InputInstance().setTitle("Parent InputInstance").setInstanceTypeId("12345").setHrid(instanceHrid).getJson()));
+                    new InputInstance().setTitle("Parent InputInstance").setInstanceTypeId("12345").setHrid(instanceHrid).setSource("test").getJson()));
     // CHILD INSTANCE
     String childHrid = "2";
     JsonObject childResponseJson = upsertByHrid(new JsonObject()
             .put("instance",
-                    new InputInstance().setTitle("Child InputInstance").setInstanceTypeId("12345").setHrid(childHrid).getJson())
+                    new InputInstance().setTitle("Child InputInstance").setInstanceTypeId("12345").setHrid(childHrid).setSource("test").getJson())
             .put("instanceRelations", new JsonObject()
                     .put("parentInstances", new JsonArray()
                             .add(new InputInstanceRelationship().setInstanceIdentifierHrid(instanceHrid).getJson()))));
@@ -1207,7 +1246,7 @@ public class InventoryUpdateTestSuite {
     // POST child Instance again with no parent list
     childResponseJson = upsertByHrid(new JsonObject()
        .put("instance",
-              new InputInstance().setTitle("Child InputInstance").setInstanceTypeId("12345").setHrid(childHrid).getJson())
+              new InputInstance().setTitle("Child InputInstance").setInstanceTypeId("12345").setHrid(childHrid).setSource("test").getJson())
        .put("instanceRelations", new JsonObject()));
     testContext.assertNull(childResponseJson.getJsonObject("metrics").getJsonObject(INSTANCE_RELATIONSHIP),
     "After upsert with no parent list, metrics should not report any instance relations updates " + childResponseJson.encodePrettily());
@@ -1215,7 +1254,7 @@ public class InventoryUpdateTestSuite {
     // POST child Instance again with empty parent list.
     childResponseJson = upsertByHrid(new JsonObject()
       .put("instance",
-          new InputInstance().setTitle("Child InputInstance").setInstanceTypeId("12345").setHrid(childHrid).getJson())
+          new InputInstance().setTitle("Child InputInstance").setInstanceTypeId("12345").setHrid(childHrid).setSource("test").getJson())
       .put("instanceRelations", new JsonObject()
              .put("parentInstances", new JsonArray())));
 
@@ -1231,12 +1270,12 @@ public class InventoryUpdateTestSuite {
     upsertByHrid(
             new JsonObject()
                     .put("instance",
-                            new InputInstance().setTitle("Parent InputInstance").setInstanceTypeId("12345").setHrid(instanceHrid).getJson()));
+                            new InputInstance().setTitle("Parent InputInstance").setInstanceTypeId("12345").setHrid(instanceHrid).setSource("test").getJson()));
     // CHILD INSTANCE
     String childHrid = "2";
     JsonObject childResponseJson = upsertByHrid(new JsonObject()
             .put("instance",
-                    new InputInstance().setTitle("Child InputInstance").setInstanceTypeId("12345").setHrid(childHrid).getJson())
+                    new InputInstance().setTitle("Child InputInstance").setInstanceTypeId("12345").setHrid(childHrid).setSource("test").getJson())
             .put("instanceRelations", new JsonObject()
                     .put("parentInstances", new JsonArray()
                             .add(new InputInstanceRelationship().setInstanceRelationshipTypeId("3333").setInstanceIdentifierHrid(instanceHrid).getJson()))));
@@ -1247,7 +1286,7 @@ public class InventoryUpdateTestSuite {
     // POST child Instance again with no parent list
     childResponseJson = upsertByHrid(new JsonObject()
             .put("instance",
-                    new InputInstance().setTitle("Child InputInstance").setInstanceTypeId("12345").setHrid(childHrid).getJson())
+                    new InputInstance().setTitle("Child InputInstance").setInstanceTypeId("12345").setHrid(childHrid).setSource("test").getJson())
             .put("instanceRelations", new JsonObject()
                     .put("parentInstances", new JsonArray()
                             .add(new InputInstanceRelationship().setInstanceRelationshipTypeId("4444").setInstanceIdentifierHrid(instanceHrid).getJson()))));
@@ -1273,12 +1312,12 @@ public class InventoryUpdateTestSuite {
     String succeeding2Hrid = "8";
     for (String hrid : Arrays.asList(parent1Hrid, parent2Hrid, child1Hrid, child2Hrid, preceding1Hrid, preceding2Hrid, succeeding1Hrid, succeeding2Hrid)) {
       upsertByHrid(new JsonObject().put("instance",
-              new InputInstance().setTitle("InputInstance "+hrid).setInstanceTypeId("12345").setHrid(hrid).getJson()));
+              new InputInstance().setTitle("InputInstance "+hrid).setInstanceTypeId("12345").setHrid(hrid).setSource("test").getJson()));
     }
 
     JsonObject firstResponseJson = upsertByHrid(new JsonObject()
             .put("instance",
-                    new InputInstance().setTitle("InputInstance with 8 relations").setInstanceTypeId("12345").setHrid("MAIN-INSTANCE").getJson())
+                    new InputInstance().setTitle("InputInstance with 8 relations").setInstanceTypeId("12345").setHrid("MAIN-INSTANCE").setSource("test").getJson())
             .put("instanceRelations", new JsonObject()
                     .put("parentInstances", new JsonArray()
                       .add(new InputInstanceRelationship().setInstanceIdentifierHrid(parent1Hrid).setInstanceRelationshipTypeId("multipart").getJson())
@@ -1301,7 +1340,7 @@ public class InventoryUpdateTestSuite {
 
     JsonObject secondResponseJson = upsertByHrid(new JsonObject()
             .put("instance",
-                    new InputInstance().setTitle("InputInstance with 8 relations").setInstanceTypeId("12345").setHrid("MAIN-INSTANCE").getJson())
+                    new InputInstance().setTitle("InputInstance with 8 relations").setInstanceTypeId("12345").setHrid("MAIN-INSTANCE").setSource("test").getJson())
             .put("instanceRelations", new JsonObject()
                     .put("parentInstances", new JsonArray()
                             .add(new InputInstanceRelationship().setInstanceIdentifierHrid(parent2Hrid).setInstanceRelationshipTypeId("multipart").getJson()))
@@ -1332,12 +1371,12 @@ public class InventoryUpdateTestSuite {
     upsertByHrid(
             new JsonObject()
                     .put("instance",
-                            new InputInstance().setTitle("Child InputInstance").setInstanceTypeId("12345").setHrid(instanceHrid).getJson()));
+                            new InputInstance().setTitle("Child InputInstance").setInstanceTypeId("12345").setHrid(instanceHrid).setSource("test").getJson()));
     // PARENT INSTANCE
     String parentHrid = "2";
     JsonObject parentResponseJson = upsertByHrid(new JsonObject()
             .put("instance",
-                    new InputInstance().setTitle("Parent InputInstance").setInstanceTypeId("12345").setHrid(parentHrid).getJson())
+                    new InputInstance().setTitle("Parent InputInstance").setInstanceTypeId("12345").setHrid(parentHrid).setSource("test").getJson())
             .put("instanceRelations", new JsonObject()
                     .put("childInstances", new JsonArray()
                             .add(new InputInstanceRelationship().setInstanceIdentifierHrid(instanceHrid).getJson()))));
@@ -1348,7 +1387,7 @@ public class InventoryUpdateTestSuite {
     // POST child Instance again with no parent list
     parentResponseJson = upsertByHrid(new JsonObject()
             .put("instance",
-                    new InputInstance().setTitle("Parent InputInstance").setInstanceTypeId("12345").setHrid(parentHrid).getJson())
+                    new InputInstance().setTitle("Parent InputInstance").setInstanceTypeId("12345").setHrid(parentHrid).setSource("test").getJson())
             .put("instanceRelations", new JsonObject()));
     testContext.assertNull(parentResponseJson.getJsonObject("metrics").getJsonObject(INSTANCE_RELATIONSHIP),
             "After upsert with no child list, metrics should not report any instance relations updates " + parentResponseJson.encodePrettily());
@@ -1356,7 +1395,7 @@ public class InventoryUpdateTestSuite {
     // POST child Instance again with empty parent list.
     parentResponseJson = upsertByHrid(new JsonObject()
             .put("instance",
-                    new InputInstance().setTitle("Parent InputInstance").setInstanceTypeId("12345").setHrid(parentHrid).getJson())
+                    new InputInstance().setTitle("Parent InputInstance").setInstanceTypeId("12345").setHrid(parentHrid).setSource("test").getJson())
             .put("instanceRelations", new JsonObject()
                     .put("childInstances", new JsonArray())));
 
@@ -1371,12 +1410,12 @@ public class InventoryUpdateTestSuite {
     upsertByHrid(
       new JsonObject()
               .put("instance",
-                    new InputInstance().setTitle("A title").setInstanceTypeId("123").setHrid("002").getJson()));
+                    new InputInstance().setTitle("A title").setInstanceTypeId("123").setHrid("002").setSource("test").getJson()));
 
     JsonObject upsertResponseJson2 = upsertByHrid(
       new JsonObject()
               .put("instance",
-                      new InputInstance().setTitle("A preceding title").setInstanceTypeId("123").setHrid("001").getJson())
+                      new InputInstance().setTitle("A preceding title").setInstanceTypeId("123").setHrid("001").setSource("test").getJson())
               .put("instanceRelations", new JsonObject()
                .put("succeedingTitles", new JsonArray()
                 .add(new InputInstanceTitleSuccession().setInstanceIdentifierHrid("002").getJson()))));
@@ -1387,7 +1426,7 @@ public class InventoryUpdateTestSuite {
     JsonObject upsertResponseJson3 = upsertByHrid(
       new JsonObject()
               .put("instance",
-                      new InputInstance().setTitle("A succeeding title").setInstanceTypeId("123").setHrid("003").getJson())
+                      new InputInstance().setTitle("A succeeding title").setInstanceTypeId("123").setHrid("003").setSource("test").getJson())
               .put("instanceRelations", new JsonObject()
                 .put("precedingTitles", new JsonArray()
                   .add(new InputInstanceTitleSuccession().setInstanceIdentifierHrid("002").getJson()))));
@@ -1406,12 +1445,12 @@ public class InventoryUpdateTestSuite {
     upsertByHrid(
             new JsonObject()
                     .put("instance",
-                            new InputInstance().setTitle("A title").setInstanceTypeId("123").setHrid("002").getJson()));
+                            new InputInstance().setTitle("A title").setInstanceTypeId("123").setHrid("002").setSource("test").getJson()));
 
     JsonObject upsertResponseJson2 = upsertByHrid(
             new JsonObject()
                     .put("instance",
-                            new InputInstance().setTitle("A preceding title").setInstanceTypeId("123").setHrid("001").getJson())
+                            new InputInstance().setTitle("A preceding title").setInstanceTypeId("123").setHrid("001").setSource("test").getJson())
                     .put("instanceRelations", new JsonObject()
                             .put("succeedingTitles", new JsonArray()
                                     .add(new InputInstanceTitleSuccession().setInstanceIdentifierHrid("002").getJson()))));
@@ -1423,7 +1462,7 @@ public class InventoryUpdateTestSuite {
     upsertResponseJson2 = upsertByHrid(
             new JsonObject()
                     .put("instance",
-                            new InputInstance().setTitle("A preceding title").setInstanceTypeId("123").setHrid("001").getJson())
+                            new InputInstance().setTitle("A preceding title").setInstanceTypeId("123").setHrid("001").setSource("test").getJson())
                     .put("instanceRelations", new JsonObject()));
     testContext.assertNull(upsertResponseJson2.getJsonObject("metrics").getJsonObject("INSTANCE_TITLE_SUCCESSION"),
             "After upsert with no succeeding titles list, metrics should not report any instance title succession updates " + upsertResponseJson2.encodePrettily());
@@ -1432,7 +1471,7 @@ public class InventoryUpdateTestSuite {
     upsertResponseJson2 = upsertByHrid(
             new JsonObject()
                     .put("instance",
-                            new InputInstance().setTitle("A preceding title").setInstanceTypeId("123").setHrid("001").getJson())
+                            new InputInstance().setTitle("A preceding title").setInstanceTypeId("123").setHrid("001").setSource("test").getJson())
                     .put("instanceRelations", new JsonObject()
                             .put("succeedingTitles", new JsonArray())));
 
@@ -1450,12 +1489,12 @@ public class InventoryUpdateTestSuite {
     upsertByHrid(
             new JsonObject()
                     .put("instance",
-                            new InputInstance().setTitle("A title").setInstanceTypeId("123").setHrid("001").getJson()));
+                            new InputInstance().setTitle("A title").setInstanceTypeId("123").setHrid("001").setSource("test").getJson()));
 
     JsonObject upsertResponseJson2 = upsertByHrid(
             new JsonObject()
                     .put("instance",
-                            new InputInstance().setTitle("A succeeding title").setInstanceTypeId("123").setHrid("002").getJson())
+                            new InputInstance().setTitle("A succeeding title").setInstanceTypeId("123").setHrid("002").setSource("test").getJson())
                     .put("instanceRelations", new JsonObject()
                             .put("precedingTitles", new JsonArray()
                                     .add(new InputInstanceTitleSuccession().setInstanceIdentifierHrid("001").getJson()))));
@@ -1467,7 +1506,7 @@ public class InventoryUpdateTestSuite {
     upsertResponseJson2 = upsertByHrid(
             new JsonObject()
                     .put("instance",
-                            new InputInstance().setTitle("A succeeding title").setInstanceTypeId("123").setHrid("002").getJson())
+                            new InputInstance().setTitle("A succeeding title").setInstanceTypeId("123").setHrid("002").setSource("test").getJson())
                     .put("instanceRelations", new JsonObject()));
     testContext.assertNull(upsertResponseJson2.getJsonObject("metrics").getJsonObject("INSTANCE_TITLE_SUCCESSION"),
             "After upsert with no preceding titles list, metrics should not report any instance title succession updates " + upsertResponseJson2.encodePrettily());
@@ -1476,7 +1515,7 @@ public class InventoryUpdateTestSuite {
     upsertResponseJson2 = upsertByHrid(
             new JsonObject()
                     .put("instance",
-                            new InputInstance().setTitle("A preceding title").setInstanceTypeId("123").setHrid("002").getJson())
+                            new InputInstance().setTitle("A preceding title").setInstanceTypeId("123").setHrid("002").setSource("test").getJson())
                     .put("instanceRelations", new JsonObject()
                             .put("precedingTitles", new JsonArray())));
 
@@ -1495,7 +1534,7 @@ public class InventoryUpdateTestSuite {
 
     JsonObject childResponseJson = upsertByHrid(new JsonObject()
             .put("instance",
-                    new InputInstance().setTitle("Child InputInstance").setInstanceTypeId("12345").setHrid(childHrid).getJson())
+                    new InputInstance().setTitle("Child InputInstance").setInstanceTypeId("12345").setHrid(childHrid).setSource("test").getJson())
             .put("instanceRelations", new JsonObject()
                     .put("parentInstances", new JsonArray()
                             .add(new InputInstanceRelationship().setInstanceIdentifierHrid(parentHrid)
@@ -1521,7 +1560,7 @@ public class InventoryUpdateTestSuite {
 
     Response childResponse = upsertByHrid(207, new JsonObject()
             .put("instance",
-                    new InputInstance().setTitle("Child InputInstance").setInstanceTypeId("12345").setHrid(childHrid).getJson())
+                    new InputInstance().setTitle("Child InputInstance").setInstanceTypeId("12345").setHrid(childHrid).setSource("test").getJson())
             .put("instanceRelations", new JsonObject()
                     .put("parentInstances", new JsonArray()
                             .add(new InputInstanceRelationship().setInstanceIdentifierHrid(parentHrid).getJson()))));
@@ -1532,7 +1571,7 @@ public class InventoryUpdateTestSuite {
 
     childResponse = upsertByHrid(207, new JsonObject()
             .put("instance",
-                    new InputInstance().setTitle("Child InputInstance").setInstanceTypeId("12345").setHrid(childHrid).getJson())
+                    new InputInstance().setTitle("Child InputInstance").setInstanceTypeId("12345").setHrid(childHrid).setSource("test").getJson())
             .put("instanceRelations", new JsonObject()
                     .put("parentInstances", new JsonArray()
                             .add(new InputInstanceRelationship().setInstanceIdentifierHrid(parentHrid)
@@ -1556,7 +1595,7 @@ public class InventoryUpdateTestSuite {
 
     Response childResponse = upsertByHrid(200, new JsonObject()
             .put("instance",
-                    new InputInstance().setTitle("Child InputInstance").setInstanceTypeId("12345").setHrid(childHrid).getJson())
+                    new InputInstance().setTitle("Child InputInstance").setInstanceTypeId("12345").setHrid(childHrid).setSource("test").getJson())
             .put("instanceRelations", new JsonObject()
                     .put("parentInstances", new JsonArray()
                             .add(new InputInstanceRelationship()
@@ -1571,7 +1610,7 @@ public class InventoryUpdateTestSuite {
 
     childResponse = upsertByHrid(200, new JsonObject()
             .put("instance",
-                    new InputInstance().setTitle("Child InputInstance").setInstanceTypeId("12345").setHrid(childHrid).getJson())
+                    new InputInstance().setTitle("Child InputInstance").setInstanceTypeId("12345").setHrid(childHrid).setSource("test").getJson())
             .put("instanceRelations", new JsonObject()
                     .put("parentInstances", new JsonArray()
                             .add(new InputInstanceRelationship().setInstanceIdentifierHrid(null)
@@ -1594,7 +1633,7 @@ public class InventoryUpdateTestSuite {
 
     Response childResponse = upsertByHrid(207, new JsonObject()
             .put("instance",
-                    new InputInstance().setTitle("Child InputInstance").setInstanceTypeId("12345").setHrid(childHrid).getJson())
+                    new InputInstance().setTitle("Child InputInstance").setInstanceTypeId("12345").setHrid(childHrid).setSource("test").getJson())
             .put("instanceRelations", new JsonObject()
                     .put("parentInstances", new JsonArray()
                             .add(new InputInstanceRelationship().setInstanceIdentifierUuid(badUuid).getJson()))));
@@ -1611,12 +1650,12 @@ public class InventoryUpdateTestSuite {
      upsertByHrid(
              new JsonObject()
                      .put("instance",
-                             new InputInstance().setTitle("A title").setInstanceTypeId("123").setHrid("001").getJson()));
+                             new InputInstance().setTitle("A title").setInstanceTypeId("123").setHrid("001").setSource("test").getJson()));
 
      String instanceHrid = "002";
      JsonObject upsertResponseJson = upsertByHrid(new JsonObject()
              .put("instance",
-                     new InputInstance().setTitle("Initial InputInstance").setInstanceTypeId("12345").setHrid(instanceHrid).getJson())
+                     new InputInstance().setTitle("Initial InputInstance").setInstanceTypeId("12345").setHrid(instanceHrid).setSource("test").getJson())
              .put("holdingsRecords", new JsonArray()
                      .add(new InputHoldingsRecord().setHrid("HOL-001").setPermanentLocationId(LOCATION_ID_1).setCallNumber("test-cn-1").getJson()
                              .put("items", new JsonArray()
@@ -1681,7 +1720,7 @@ public class InventoryUpdateTestSuite {
      String instanceHrid1 = "1";
      JsonObject firstResponse = upsertByHrid(new JsonObject()
             .put("instance",
-                    new InputInstance().setTitle("InputInstance 1").setInstanceTypeId("12345").setHrid(instanceHrid1).getJson())
+                    new InputInstance().setTitle("InputInstance 1").setInstanceTypeId("12345").setHrid(instanceHrid1).setSource("test").getJson())
             .put("holdingsRecords", new JsonArray()
                     .add(new InputHoldingsRecord().setHrid("HOL-001").setPermanentLocationId(LOCATION_ID_1).setCallNumber("test-cn-1").getJson()
                             .put("items", new JsonArray()
@@ -1699,7 +1738,7 @@ public class InventoryUpdateTestSuite {
      String instanceHrid2 = "2";
      upsertByHrid(new JsonObject()
             .put("instance",
-                    new InputInstance().setTitle("InputInstance 2X").setInstanceTypeId("12345").setHrid(instanceHrid2).getJson())
+                    new InputInstance().setTitle("InputInstance 2X").setInstanceTypeId("12345").setHrid(instanceHrid2).setSource("test").getJson())
             .put("holdingsRecords", new JsonArray()
                     .add(new InputHoldingsRecord().setHrid("HOL-001").setPermanentLocationId(LOCATION_ID_1).setCallNumber("test-cn-1").getJson()
                             .put("items", new JsonArray()
@@ -1719,7 +1758,7 @@ public class InventoryUpdateTestSuite {
 
      JsonObject thirdResponse = upsertByHrid(new JsonObject()
             .put("instance",
-                    new InputInstance().setTitle("InputInstance 1X").setInstanceTypeId("12345").setHrid(instanceHrid1).getJson())
+                    new InputInstance().setTitle("InputInstance 1X").setInstanceTypeId("12345").setHrid(instanceHrid1).setSource("test").getJson())
             .put("holdingsRecords", new JsonArray()
                     .add(new InputHoldingsRecord().setHrid("HOL-003").setPermanentLocationId(LOCATION_ID_1).setCallNumber("test-cn-3").getJson()
                             .put("items", new JsonArray()
@@ -1736,7 +1775,7 @@ public class InventoryUpdateTestSuite {
 
      JsonObject fourthResponse = upsertByHrid(new JsonObject()
              .put("instance",
-                     new InputInstance().setTitle("InputInstance 2X").setInstanceTypeId("12345").setHrid(instanceHrid2).getJson())
+                     new InputInstance().setTitle("InputInstance 2X").setInstanceTypeId("12345").setHrid(instanceHrid2).setSource("test").getJson())
              .put("holdingsRecords", new JsonArray()
                      .add(new InputHoldingsRecord().setHrid("HOL-002").setPermanentLocationId(LOCATION_ID_1).setCallNumber("test-cn-2").getJson()
                              .put("items", new JsonArray()
@@ -1759,16 +1798,16 @@ public class InventoryUpdateTestSuite {
      upsertByHrid(
              new JsonObject()
                      .put("instance",
-                             new InputInstance().setTitle("A succeeding title").setInstanceTypeId("123").setHrid("001").getJson()));
+                             new InputInstance().setTitle("A succeeding title").setInstanceTypeId("123").setHrid("001").setSource("test").getJson()));
      // Create preceding title
      upsertByHrid(
              new JsonObject()
                      .put("instance",
-                             new InputInstance().setTitle("A preceding title").setInstanceTypeId("123").setHrid("002").getJson()));
+                             new InputInstance().setTitle("A preceding title").setInstanceTypeId("123").setHrid("002").setSource("test").getJson()));
 
      JsonObject newInstance = upsertByHrid(new JsonObject()
              .put("instance",
-                     new InputInstance().setTitle("InputInstance 1").setInstanceTypeId("12345").setHrid(instanceHrid1).getJson())
+                     new InputInstance().setTitle("InputInstance 1").setInstanceTypeId("12345").setHrid(instanceHrid1).setSource("test").getJson())
              .put("holdingsRecords", new JsonArray()
                      .add(new InputHoldingsRecord().setHrid("HOL-001").setPermanentLocationId(LOCATION_ID_1).setCallNumber("test-cn-1").getJson()
                              .put("items", new JsonArray()
@@ -1800,6 +1839,7 @@ public class InventoryUpdateTestSuite {
                     new InputInstance().setTitle("InputInstance 1")
                             .setInstanceTypeId("12345")
                             .setHrid(instanceHrid1)
+                            .setSource("test")
                             .setMatchKeyAsString( "inputinstance_1" ).getJson())
             .put("holdingsRecords", new JsonArray()
                     .add(new InputHoldingsRecord().setHrid("HOL-001").setPermanentLocationId(LOCATION_ID_1).setCallNumber("test-cn-1").getJson()
@@ -1826,6 +1866,7 @@ public class InventoryUpdateTestSuite {
                     new InputInstance().setTitle("InputInstance 1")
                             .setInstanceTypeId("12345")
                             .setHrid(instanceHrid1)
+                            .setSource("test")
                             .getJson())
             .put("holdingsRecords", new JsonArray()
                     .add(new InputHoldingsRecord().setHrid("HOL-001").setPermanentLocationId(LOCATION_ID_1).setCallNumber("test-cn-1").getJson()
@@ -1845,7 +1886,7 @@ public class InventoryUpdateTestSuite {
    public void upsertByHridWithMissingInstanceHridWillBeRejected (TestContext testContext) {
     upsertByHrid(422, new JsonObject()
             .put("instance",
-                    new InputInstance().setTitle("Initial InputInstance").setInstanceTypeId("12345").getJson())
+                    new InputInstance().setTitle("Initial InputInstance").setInstanceTypeId("12345").setSource("test").getJson())
             .put("holdingsRecords", new JsonArray()
                     .add(new InputHoldingsRecord().setHrid("HOL-001").setPermanentLocationId(LOCATION_ID_1).setCallNumber("test-cn-1").getJson()
                             .put("items", new JsonArray()
@@ -1857,7 +1898,7 @@ public class InventoryUpdateTestSuite {
 
     Response response = upsertByHrid(422, new JsonObject()
             .put("instance",
-                    new InputInstance().setTitle("Initial InputInstance").setInstanceTypeId("12345").setHrid("").getJson())
+                    new InputInstance().setTitle("Initial InputInstance").setInstanceTypeId("12345").setHrid("").setSource("test").getJson())
             .put("holdingsRecords", new JsonArray()
                     .add(new InputHoldingsRecord().setHrid("HOL-001").setPermanentLocationId(LOCATION_ID_1).setCallNumber("test-cn-1").getJson()
                             .put("items", new JsonArray()
@@ -1876,7 +1917,7 @@ public class InventoryUpdateTestSuite {
     String instanceHrid = "1";
     Response upsertResponse = upsertByHrid(422, new JsonObject()
             .put("instance",
-                    new InputInstance().setTitle("Initial InputInstance").setInstanceTypeId("12345").setHrid(instanceHrid).getJson())
+                    new InputInstance().setTitle("Initial InputInstance").setInstanceTypeId("12345").setHrid(instanceHrid).setSource("test").getJson())
             .put("holdingsRecords", new JsonArray()
                     .add(new InputHoldingsRecord().setHrid("HOL-001").setPermanentLocationId(LOCATION_ID_1).setCallNumber("test-cn-1").getJson()
                             .put("items", new JsonArray()
@@ -1893,7 +1934,7 @@ public class InventoryUpdateTestSuite {
     String instanceHrid = "1";
     Response upsertResponse = upsertByHrid(422, new JsonObject()
             .put("instance",
-                    new InputInstance().setTitle("Initial InputInstance").setInstanceTypeId("12345").setHrid(instanceHrid).getJson())
+                    new InputInstance().setTitle("Initial InputInstance").setInstanceTypeId("12345").setHrid(instanceHrid).setSource("test").getJson())
             .put("holdingsRecords", new JsonArray()
                     .add(new InputHoldingsRecord().setHrid("HOL-001").setPermanentLocationId(LOCATION_ID_1).setCallNumber("test-cn-1").getJson()
                             .put("items", new JsonArray()
@@ -1911,7 +1952,7 @@ public class InventoryUpdateTestSuite {
     String instanceHrid = "1";
     Response upsertResponse = upsertByHrid(207, new JsonObject()
             .put("instance",
-                    new InputInstance().setTitle("Initial InputInstance").setInstanceTypeId("12345").setHrid(instanceHrid).getJson())
+                    new InputInstance().setTitle("Initial InputInstance").setInstanceTypeId("12345").setHrid(instanceHrid).setSource("test").getJson())
             .put("holdingsRecords", new JsonArray()
                     .add(new InputHoldingsRecord().setHrid("HOL-001").setPermanentLocationId(LOCATION_ID_1).setCallNumber("test-cn-1").getJson()
                             .put("items", new JsonArray()
@@ -1995,7 +2036,7 @@ public class InventoryUpdateTestSuite {
     fakeInventoryStorage.itemStorage.failOnCreate = true;
     Response response = upsertByHrid(207,new JsonObject()
             .put("instance",
-                    new InputInstance().setTitle("Initial InputInstance").setInstanceTypeId("12345").setHrid("001").getJson())
+                    new InputInstance().setTitle("Initial InputInstance").setInstanceTypeId("12345").setHrid("001").setSource("test").getJson())
             .put("holdingsRecords", new JsonArray()
                     .add(new InputHoldingsRecord().setHrid("HOL-001").setPermanentLocationId(LOCATION_ID_1).setCallNumber("test-cn-1").getJson()
                             .put("items", new JsonArray()
@@ -2016,7 +2057,7 @@ public class InventoryUpdateTestSuite {
     fakeInventoryStorage.holdingsStorage.failOnCreate = true;
     Response response = upsertByHrid(207,new JsonObject()
             .put("instance",
-                    new InputInstance().setTitle("Initial InputInstance").setInstanceTypeId("12345").setHrid("001").getJson())
+                    new InputInstance().setTitle("Initial InputInstance").setInstanceTypeId("12345").setHrid("001").setSource("test").getJson())
             .put("holdingsRecords", new JsonArray()
                     .add(new InputHoldingsRecord().setHrid("HOL-001").setPermanentLocationId(LOCATION_ID_1).setCallNumber("test-cn-1").getJson()
                             .put("items", new JsonArray()
@@ -2041,7 +2082,7 @@ public class InventoryUpdateTestSuite {
     fakeInventoryStorage.itemStorage.failOnUpdate = true;
     JsonObject inventoryRecordSet = new JsonObject()
             .put("instance",
-                    new InputInstance().setTitle("Initial InputInstance").setInstanceTypeId("12345").setHrid("001").getJson())
+                    new InputInstance().setTitle("Initial InputInstance").setInstanceTypeId("12345").setHrid("001").setSource("test").getJson())
             .put("holdingsRecords", new JsonArray()
                     .add(new InputHoldingsRecord().setHrid("HOL-001").setPermanentLocationId(LOCATION_ID_1).setCallNumber("test-cn-1").getJson()
                             .put("items", new JsonArray()
@@ -2064,7 +2105,7 @@ public class InventoryUpdateTestSuite {
     fakeInventoryStorage.holdingsStorage.failOnUpdate = true;
     JsonObject inventoryRecordSet = new JsonObject()
             .put("instance",
-                    new InputInstance().setTitle("Initial InputInstance").setInstanceTypeId("12345").setHrid("001").getJson())
+                    new InputInstance().setTitle("Initial InputInstance").setInstanceTypeId("12345").setHrid("001").setSource("test").getJson())
             .put("holdingsRecords", new JsonArray()
                     .add(new InputHoldingsRecord().setHrid("HOL-001").setPermanentLocationId(LOCATION_ID_1).setCallNumber("test-cn-1").getJson()
                             .put("items", new JsonArray()
@@ -2088,7 +2129,7 @@ public class InventoryUpdateTestSuite {
     fakeInventoryStorage.itemStorage.failOnDelete = true;
     upsertByHrid (new JsonObject()
             .put("instance",
-                    new InputInstance().setTitle("Initial InputInstance").setInstanceTypeId("12345").setHrid("001").getJson())
+                    new InputInstance().setTitle("Initial InputInstance").setInstanceTypeId("12345").setHrid("001").setSource("test").getJson())
             .put("holdingsRecords", new JsonArray()
                     .add(new InputHoldingsRecord().setHrid("HOL-001").setPermanentLocationId(LOCATION_ID_1).setCallNumber("test-cn-1").getJson()
                             .put("items", new JsonArray()
@@ -2100,7 +2141,7 @@ public class InventoryUpdateTestSuite {
 
     Response response = upsertByHrid(207,new JsonObject()
             .put("instance",
-                    new InputInstance().setTitle("Initial InputInstance").setInstanceTypeId("12345").setHrid("001").getJson())
+                    new InputInstance().setTitle("Initial InputInstance").setInstanceTypeId("12345").setHrid("001").setSource("test").getJson())
             .put("holdingsRecords", new JsonArray()
                     .add(new InputHoldingsRecord().setHrid("HOL-001").setPermanentLocationId(LOCATION_ID_1).setCallNumber("test-cn-1").getJson()
                             .put("items", new JsonArray()
@@ -2121,7 +2162,7 @@ public class InventoryUpdateTestSuite {
     fakeInventoryStorage.holdingsStorage.failOnDelete = true;
     upsertByHrid (new JsonObject()
             .put("instance",
-                    new InputInstance().setTitle("Initial InputInstance").setInstanceTypeId("12345").setHrid("001").getJson())
+                    new InputInstance().setTitle("Initial InputInstance").setInstanceTypeId("12345").setHrid("001").setSource("test").getJson())
             .put("holdingsRecords", new JsonArray()
                     .add(new InputHoldingsRecord().setHrid("HOL-001").setPermanentLocationId(LOCATION_ID_1).setCallNumber("test-cn-1").getJson()
                             .put("items", new JsonArray()
@@ -2133,7 +2174,7 @@ public class InventoryUpdateTestSuite {
 
     Response response = upsertByHrid(207,new JsonObject()
             .put("instance",
-                    new InputInstance().setTitle("Initial InputInstance").setInstanceTypeId("12345").setHrid("001").getJson())
+                    new InputInstance().setTitle("Initial InputInstance").setInstanceTypeId("12345").setHrid("001").setSource("test").getJson())
             .put("holdingsRecords", new JsonArray()
                     .add(new InputHoldingsRecord().setHrid("HOL-002").setPermanentLocationId(LOCATION_ID_1).setCallNumber("test-cn-2").getJson()
                             .put("items", new JsonArray()
@@ -2154,7 +2195,7 @@ public class InventoryUpdateTestSuite {
     fakeInventoryStorage.itemStorage.failOnGetRecords = true;
     JsonObject inventoryRecordSet = new JsonObject()
             .put("instance",
-                    new InputInstance().setTitle("Initial InputInstance").setInstanceTypeId("12345").setHrid("001").getJson())
+                    new InputInstance().setTitle("Initial InputInstance").setInstanceTypeId("12345").setHrid("001").setSource("test").getJson())
             .put("holdingsRecords", new JsonArray()
                     .add(new InputHoldingsRecord().setHrid("HOL-001").setPermanentLocationId(LOCATION_ID_1).setCallNumber("test-cn-1").getJson()
                             .put("items", new JsonArray()
@@ -2172,7 +2213,7 @@ public class InventoryUpdateTestSuite {
     fakeInventoryStorage.holdingsStorage.failOnGetRecords = true;
     JsonObject inventoryRecordSet = new JsonObject()
             .put("instance",
-                    new InputInstance().setTitle("Initial InputInstance").setInstanceTypeId("12345").setHrid("001").getJson())
+                    new InputInstance().setTitle("Initial InputInstance").setInstanceTypeId("12345").setHrid("001").setSource("test").getJson())
             .put("holdingsRecords", new JsonArray()
                     .add(new InputHoldingsRecord().setHrid("HOL-001").setPermanentLocationId(LOCATION_ID_1).setCallNumber("test-cn-1").getJson()
                             .put("items", new JsonArray()
@@ -2190,7 +2231,7 @@ public class InventoryUpdateTestSuite {
     fakeInventoryStorage.instanceStorage.failOnGetRecords = true;
     JsonObject inventoryRecordSet = new JsonObject()
             .put("instance",
-                    new InputInstance().setTitle("Initial InputInstance").setInstanceTypeId("12345").setHrid("001").getJson())
+                    new InputInstance().setTitle("Initial InputInstance").setInstanceTypeId("12345").setHrid("001").setSource("test").getJson())
             .put("holdingsRecords", new JsonArray()
                     .add(new InputHoldingsRecord().setHrid("HOL-001").setPermanentLocationId(LOCATION_ID_1).setCallNumber("test-cn-1").getJson()
                             .put("items", new JsonArray()
@@ -2209,7 +2250,7 @@ public class InventoryUpdateTestSuite {
     fakeInventoryStorage.precedingSucceedingStorage.failOnGetRecords = true;
     JsonObject inventoryRecordSet = new JsonObject()
             .put("instance",
-                    new InputInstance().setTitle("Test forcedInstanceRelationshipGetRecordsFailure").setInstanceTypeId("12345").setHrid("001").getJson())
+                    new InputInstance().setTitle("Test forcedInstanceRelationshipGetRecordsFailure").setInstanceTypeId("12345").setHrid("001").setSource("test").getJson())
             .put("holdingsRecords", new JsonArray()
                     .add(new InputHoldingsRecord().setHrid("HOL-001").setPermanentLocationId(LOCATION_ID_1).setCallNumber("test-cn-1").getJson()
                             .put("items", new JsonArray()
@@ -2233,7 +2274,7 @@ public class InventoryUpdateTestSuite {
     fakeInventoryStorage.locationStorage.failOnGetRecords = true;
     JsonObject inventoryRecordSet = new JsonObject()
             .put("instance",
-                    new InputInstance().setTitle("Test forcedLocationsGetRecordsFailure").setInstanceTypeId("12345").setHrid("001").getJson())
+                    new InputInstance().setTitle("Test forcedLocationsGetRecordsFailure").setInstanceTypeId("12345").setHrid("001").setSource("test").getJson())
             .put("holdingsRecords", new JsonArray()
                     .add(new InputHoldingsRecord().setHrid("HOL-001").setPermanentLocationId("UNKNOWN_LOCATION").setCallNumber("test-cn-1").getJson()
                             .put("items", new JsonArray()
@@ -2265,7 +2306,7 @@ public class InventoryUpdateTestSuite {
     UpdatePlanSharedInventory.locationsToInstitutionsMap.clear();
     JsonObject inventoryRecordSet = new JsonObject()
             .put("instance",
-                    new InputInstance().setTitle("Test forcedLocationsGetRecordsFailure").setInstanceTypeId("12345").setHrid("001").getJson())
+                    new InputInstance().setTitle("Test forcedLocationsGetRecordsFailure").setInstanceTypeId("12345").setHrid("001").setSource("test").getJson())
             .put("holdingsRecords", new JsonArray()
                     .add(new InputHoldingsRecord().setHrid("HOL-001").setPermanentLocationId("ANOTHER_UNKNOWN_LOCATION").setCallNumber("test-cn-1").getJson()
                             .put("items", new JsonArray()

@@ -14,4 +14,9 @@ public class ItemStorage extends RecordStorage {
         fakeStorage.holdingsStorage.acceptDependant(this, InputItem.HOLDINGS_RECORD_ID);
     }
 
+    @Override
+    protected void declareMandatoryProperties() {
+
+    }
+
 }

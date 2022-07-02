@@ -30,6 +30,7 @@ public abstract class RecordStorage {
     public boolean failOnGetRecords = false;
     List<ForeignKey> dependentEntities = new ArrayList<>();
     List<ForeignKey> masterEntities = new ArrayList<>();
+    List<String> mandatoryProperties = new ArrayList<>();
 
     protected FakeInventoryStorage fakeStorage;
 
@@ -39,6 +40,7 @@ public abstract class RecordStorage {
     public void attachToFakeStorage(FakeInventoryStorage fakeStorage) {
         this.fakeStorage = fakeStorage;
         declareDependencies();
+        declareMandatoryProperties();
     }
 
     // PROPERTY NAME OF THE OBJECT THAT API RESULTS ARE RETURNED IN, IMPLEMENTED PER STORAGE ENTITY
@@ -70,7 +72,11 @@ public abstract class RecordStorage {
             } else {
                 logger.debug("Found " + record.getJson().getString(fk.getDependentPropertyName()) + " in " + fk.getMasterStorage().getResultSetName());
             }
-
+        }
+        for (String mandatory : mandatoryProperties) {
+            if (!record.getJson().containsKey(mandatory)) {
+                return new StorageResponse(422, new JsonObject("{\"message\" : {\n" + "      \"errors\" : [ {\n" + "        \"message\" : \"must not be null\",\n" + "        \"type\" : \"1\",\n" + "        \"code\" : \"javax.validation.constraints.NotNull.message\",\n" + "        \"parameters\" : [ {\n" + "          \"key\" : \"" + mandatory +"\",\n" + "          \"value\" : \"null\"\n" + "        } ]\n" + "      } ]\n" + "    }}").encodePrettily());
+            }
         }
         record.setFirstVersion();
         records.put(record.getId(), record);
@@ -90,6 +96,17 @@ public abstract class RecordStorage {
         if (! records.containsKey(id)) {
             logger.error("Record not found, cannot update " + record.getJson().encodePrettily());
             return 404;
+        }
+        for (ForeignKey fk : masterEntities) {
+            if (! record.getJson().containsKey(fk.getDependentPropertyName())) {
+                logger.error("Foreign key violation, record must contain " + fk.getDependentPropertyName());
+                return 422;
+            }
+            if (!fk.getMasterStorage().hasId(record.getJson().getString(fk.getDependentPropertyName()))) {
+                return 500;
+            } else {
+                logger.debug("Found " + record.getJson().getString(fk.getDependentPropertyName()) + " in " + fk.getMasterStorage().getResultSetName());
+            }
         }
         records.put(id, record);
         return 204;
@@ -180,6 +197,8 @@ public abstract class RecordStorage {
     protected void setMasterEntity (ForeignKey fk) {
         masterEntities.add(fk);
     }
+
+    protected abstract void declareMandatoryProperties ();
 
     // API REQUEST HANDLERS
 

@@ -24,7 +24,7 @@ public class StorageValidatorItems {
     protected void createInstanceAndHoldings(TestContext testContext) {
         JsonObject responseOnInstancePOST = FakeInventoryStorage.post(
                 INSTANCE_STORAGE_PATH,
-                new InputInstance().setTitle("Instance for Item test").setInstanceTypeId("123").getJson());
+                new InputInstance().setTitle("Instance for Item test").setInstanceTypeId("123").setSource("test").getJson());
         String existingInstanceId = responseOnInstancePOST.getString("id");
         JsonObject responseOnHoldingsPOST = FakeInventoryStorage.post(
                 HOLDINGS_STORAGE_PATH,

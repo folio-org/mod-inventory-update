@@ -29,7 +29,7 @@ public class StorageValidatorHoldingsRecords {
     protected void createDependencies() {
         JsonObject responseOnPOST = FakeInventoryStorage.post(
                 INSTANCE_STORAGE_PATH,
-                new InputInstance().setTitle(INSTANCE_TITLE).setInstanceTypeId("123").getJson());
+                new InputInstance().setTitle(INSTANCE_TITLE).setInstanceTypeId("123").setSource("test").getJson());
         existingInstanceId = responseOnPOST.getString("id");
     }
 

@@ -225,6 +225,76 @@ public class InventoryUpdateTestSuite {
 
   }
 
+  @Test
+  public void batchUpsertByHridWillCreate200NewInstances (TestContext testContext) {
+    createInitialInstanceWithHrid1();
+    BatchOfInventoryRecordSets batch = new BatchOfInventoryRecordSets();
+    for (int i=0; i<200; i++) {
+      InputInstance instance = new InputInstance()
+              .setTitle("New title " + i)
+              .setHrid("in"+i)
+              .setSource("test")
+              .setInstanceTypeId("12345");
+      MatchKey matchKey = new MatchKey(instance.getJson());
+      instance.setMatchKeyAsString(matchKey.getKey());
+      batch.addRecordSet(new InventoryRecordSet(instance));
+    }
+    JsonObject instancesBeforePutJson = getRecordsFromStorage(FakeInventoryStorage.INSTANCE_STORAGE_PATH, null);
+    testContext.assertEquals(instancesBeforePutJson.getInteger("totalRecords"), 1,
+            "Number of instance records for before PUT expected: 1" );
+    batchUpsertByHrid(batch.getJson());
+    JsonObject instancesAfterPutJson = getRecordsFromStorage(FakeInventoryStorage.INSTANCE_STORAGE_PATH, null);
+    testContext.assertEquals(instancesAfterPutJson.getInteger("totalRecords"), 201,
+            "Number of instance records after PUT expected: 201" );
+  }
+
+  @Test
+  public void batchByHridWithOneErrorWillCreate99NewInstances (TestContext testContext) {
+    createInitialInstanceWithHrid1();
+    BatchOfInventoryRecordSets batch = new BatchOfInventoryRecordSets();
+    for (int i=0; i<100; i++) {
+      InputInstance instance = new InputInstance()
+              .setTitle("New title " + i)
+              .setHrid("in"+i)
+              .setInstanceTypeId("12345");
+      if (i!=50) {
+        instance.setSource("test");
+      }
+      batch.addRecordSet(new InventoryRecordSet(instance));
+    }
+    JsonObject instancesBeforePutJson = getRecordsFromStorage(FakeInventoryStorage.INSTANCE_STORAGE_PATH, null);
+    testContext.assertEquals(instancesBeforePutJson.getInteger("totalRecords"), 1,
+            "Number of instance records for before PUT expected: 1" );
+    batchUpsertByHrid(207,batch.getJson());
+    JsonObject instancesAfterPutJson = getRecordsFromStorage(FakeInventoryStorage.INSTANCE_STORAGE_PATH, null);
+    testContext.assertEquals(instancesAfterPutJson.getInteger("totalRecords"), 100,
+            "Number of instance records after PUT expected: 200" );
+  }
+
+  @Test
+  public void batchByHridWithOneMissingHridWillCreate99NewInstances (TestContext testContext) {
+    createInitialInstanceWithHrid1();
+    BatchOfInventoryRecordSets batch = new BatchOfInventoryRecordSets();
+    for (int i=0; i<100; i++) {
+      InputInstance instance = new InputInstance()
+              .setTitle("New title " + i)
+              .setSource("test")
+              .setInstanceTypeId("12345");
+      if (i!=50) {
+        instance.setHrid("in"+i);
+      }
+      batch.addRecordSet(new InventoryRecordSet(instance));
+    }
+    JsonObject instancesBeforePutJson = getRecordsFromStorage(FakeInventoryStorage.INSTANCE_STORAGE_PATH, null);
+    testContext.assertEquals(instancesBeforePutJson.getInteger("totalRecords"), 1,
+            "Number of instance records for before PUT expected: 1" );
+    batchUpsertByHrid(207,batch.getJson());
+    JsonObject instancesAfterPutJson = getRecordsFromStorage(FakeInventoryStorage.INSTANCE_STORAGE_PATH, null);
+    testContext.assertEquals(instancesAfterPutJson.getInteger("totalRecords"), 100,
+            "Number of instance records after PUT expected: 200" );
+  }
+
+
 
   @Test
   public void upsertByMatchKeyWithMultipleMatchKeyPartsWillCreateNewInstance (TestContext testContext) {
@@ -2351,6 +2421,10 @@ public class InventoryUpdateTestSuite {
 
   private JsonObject batchUpsertByHrid (JsonObject batchOfInventoryRecordSets) {
     return putJsonObject(MainVerticle.INVENTORY_BATCH_UPSERT_HRID_PATH, batchOfInventoryRecordSets);
+  }
+
+  private Response batchUpsertByHrid(int expectedStatusCode, JsonObject batchOfInventoryRecordSets) {
+    return putJsonObject(MainVerticle.INVENTORY_BATCH_UPSERT_HRID_PATH, batchOfInventoryRecordSets, expectedStatusCode);
   }
 
   private JsonObject fetchRecordSetFromUpsertHrid (String hridOrUuid) {

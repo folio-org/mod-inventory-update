@@ -214,18 +214,21 @@ public class InventoryUpdateService {
                         }
                       });
     } else {
-      // missing HRIDs or duplicate HRIDs
-      // switch to record-by-record upserts
-      InventoryUpdateOutcome outcome = new InventoryUpdateOutcome(
-              new ErrorReport(
-                      ErrorReport.ErrorCategory.VALIDATION,
-                      UNPROCESSABLE_ENTITY,
-                      validations.firstMessage())
-                      .setEntityType(validations.firstEntityType())
-                      .setEntity(validations.firstEntity())
-                      .setShortMessage(validations.firstShortMessage())
-                      .setDetails(validations.asJson()));
-      promise.complete(outcome);
+      ErrorReport report = new ErrorReport(
+              ErrorReport.ErrorCategory.VALIDATION,
+              UNPROCESSABLE_ENTITY,
+              validations.firstMessage())
+              .setEntityType(validations.firstEntityType())
+              .setEntity(validations.firstEntity())
+              .setShortMessage(validations.firstShortMessage())
+              .setDetails(validations.asJson());
+      if (batchOfOne) {
+        promise.complete(new InventoryUpdateOutcome(report));
+      } else {
+        // Pre-validation of batch of record sets failed, switch to record-by-record upsert
+        // to process the good record sets, if any.
+        promise.fail(report.asJsonString());
+      }
     }
     return promise.future();
   }

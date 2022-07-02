@@ -291,9 +291,42 @@ public class InventoryUpdateTestSuite {
     batchUpsertByHrid(207,batch.getJson());
     JsonObject instancesAfterPutJson = getRecordsFromStorage(FakeInventoryStorage.INSTANCE_STORAGE_PATH, null);
     testContext.assertEquals(instancesAfterPutJson.getInteger("totalRecords"), 100,
-            "Number of instance records after PUT expected: 200" );
+            "Number of instance records after PUT expected: 100" );
   }
 
+  @Test
+  public void batchByHridWithRepeatHridsWillCreate99NewInstances (TestContext testContext) {
+    createInitialInstanceWithHrid1();
+    BatchOfInventoryRecordSets batch = new BatchOfInventoryRecordSets();
+    for (int i=0; i<99; i++) {
+      InputInstance instance = new InputInstance()
+              .setTitle("New title " + i)
+              .setSource("test")
+              .setHrid("in" + i)
+              .setInstanceTypeId("12345");
+      batch.addRecordSet(new InventoryRecordSet(instance));
+    }
+    InputInstance instance = new InputInstance()
+            .setTitle("New title 50 updated")
+            .setSource("test")
+            .setHrid("in50")
+            .setInstanceTypeId("12345");
+    batch.addRecordSet(new InventoryRecordSet(instance));
+
+    JsonObject instancesBeforePutJson = getRecordsFromStorage(FakeInventoryStorage.INSTANCE_STORAGE_PATH, null);
+    testContext.assertEquals(instancesBeforePutJson.getInteger("totalRecords"), 1,
+            "Number of instance records for before PUT expected: 1" );
+    Response response = batchUpsertByHrid(207,batch.getJson());
+    JsonObject responseJson = new JsonObject(response.asString());
+    JsonObject metrics = responseJson.getJsonObject("metrics");
+    testContext.assertEquals(metrics.getJsonObject("INSTANCE").getJsonObject("CREATE").getInteger("COMPLETED"), 99,
+            "Number of instance records created after PUT of batch of 100 expected: 99");
+    testContext.assertEquals(metrics.getJsonObject("INSTANCE").getJsonObject("UPDATE").getInteger("COMPLETED"), 1,
+            "Number of instance records updated after PUT of batch of 100 expected: 1");
+    JsonObject instancesAfterPutJson = getRecordsFromStorage(FakeInventoryStorage.INSTANCE_STORAGE_PATH, null);
+    testContext.assertEquals(instancesAfterPutJson.getInteger("totalRecords"), 100,
+            "Number of instance records after PUT expected: 100" );
+  }
 
 
   @Test

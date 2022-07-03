@@ -7,12 +7,7 @@ public abstract class JsonRepresentation {
 
     protected JsonObject sourceJson = null;
 
-    public JsonObject getSourceJson() {
-        return sourceJson;
-    }
-
     public abstract JsonObject asJson();
-    public abstract boolean hasErrors ();
     public abstract JsonArray getErrors ();
 
     /**

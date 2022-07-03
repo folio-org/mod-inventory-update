@@ -224,10 +224,6 @@ public abstract class InventoryRecord {
         return error;
     }
 
-    public String getErrorPrettily () {
-        return error.asJsonPrettily();
-    }
-
     public abstract void skipDependants ();
 
     public static InventoryRecord.Entity getEntityTypeFromString (String entityType) {

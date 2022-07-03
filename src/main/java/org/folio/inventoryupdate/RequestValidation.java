@@ -23,12 +23,6 @@ public class RequestValidation {
         errors.add(error);
     }
 
-    public String toString () {
-        StringBuilder errorString = new StringBuilder();
-        errors.stream().forEach(error -> errorString.append(System.lineSeparator() + error.asJsonString()));
-        return errorString.toString();
-    }
-
     public JsonObject asJson () {
         JsonObject errorJson = new JsonObject();
         JsonArray errorArray = new JsonArray();

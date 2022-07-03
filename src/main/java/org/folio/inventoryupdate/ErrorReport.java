@@ -1,7 +1,6 @@
 package org.folio.inventoryupdate;
 
 import io.vertx.core.json.DecodeException;
-import io.vertx.core.json.Json;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.RoutingContext;
@@ -165,22 +164,6 @@ public class ErrorReport {
 
   public String getMessageAsString() {
     return messageAsString;
-  }
-
-  public ErrorReport setMessageAsString(String messageAsString) {
-    this.messageAsString = messageAsString;
-    this.messageAsJson = null;
-    return this;
-  }
-
-  public ErrorReport setMessageAsJson (JsonObject messageAsJson) {
-    this.messageAsJson = messageAsJson;
-    this.messageAsString = null;
-    return this;
-  }
-
-  public JsonObject getMessageAsJson () {
-    return messageAsJson;
   }
 
   public JsonObject getEntity() {

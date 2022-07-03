@@ -56,10 +56,6 @@ public class InventoryUpdateOutcome {
     return errors != null && ! errors.isEmpty();
   }
 
-  public List<ErrorReport> getErrors () {
-    return errors;
-  }
-
   public InventoryUpdateOutcome setErrors (JsonArray errors) {
     getJson().put(ERRORS, errors);
     return this;

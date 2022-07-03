@@ -28,7 +28,6 @@ public class UpdatePlanSharedInventory extends UpdatePlan {
 
     public static final Map<String,String> locationsToInstitutionsMap = new HashMap<>();
     private RecordIdentifiers deletionIdentifiers;
-    private ShiftingMatchKeyManager shiftingMatchKeyManager;
 
     private UpdatePlanSharedInventory(InventoryRecordSet incomingSet, InventoryQuery existingInstanceQuery) {
         super(incomingSet, existingInstanceQuery);
@@ -48,7 +47,7 @@ public class UpdatePlanSharedInventory extends UpdatePlan {
         UpdatePlanSharedInventory updatePlan = new UpdatePlanSharedInventory( null, existingInstanceQuery );
         updatePlan.isDeletion = true;
         updatePlan.deletionIdentifiers = deletionIdentifiers;
-        updatePlan.shiftingMatchKeyManager = new ShiftingMatchKeyManager( null, null,false );
+        // updatePlan.shiftingMatchKeyManager = new ShiftingMatchKeyManager( null, null,false );
         return updatePlan;
     }
 
@@ -362,6 +361,11 @@ public class UpdatePlanSharedInventory extends UpdatePlan {
         handleSingleSetDelete(okapiClient).onComplete(deletes -> {
           if (deletes.succeeded()) {
               handleSingleInstanceUpdate(okapiClient).onComplete(instanceAndHoldingsUpdates -> {
+                  if (instanceAndHoldingsUpdates.succeeded()) {
+                      promise.complete();
+                  } else {
+                    promise.fail(instanceAndHoldingsUpdates.cause().getMessage());
+                  /*
                   shiftingMatchKeyManager.handleUpdateOfInstanceWithPreviousMatchKeyIfAny(okapiClient).onComplete( previousInstanceUpdated -> {
                       if ( instanceAndHoldingsUpdates.succeeded())
                       {
@@ -372,9 +376,10 @@ public class UpdatePlanSharedInventory extends UpdatePlan {
                                   .setShortMessage("One or more errors occurred updating Inventory records")
                                   .asJsonString());
                       }
-                  });
-             });
 
+                  */
+                  }
+              });
           } else {
               promise.fail(ErrorReport.makeErrorReportFromJsonString(deletes.cause().getMessage())
                       .setShortMessage("There was a problem processing deletes - all other updates skipped." )

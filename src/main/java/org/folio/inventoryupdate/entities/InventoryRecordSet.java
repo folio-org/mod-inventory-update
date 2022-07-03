@@ -4,7 +4,6 @@ import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import io.vertx.core.Future;
 import io.vertx.core.impl.logging.Logger;
 import io.vertx.core.impl.logging.LoggerFactory;
 import org.folio.inventoryupdate.ErrorReport;
@@ -13,7 +12,6 @@ import org.folio.inventoryupdate.entities.InventoryRecord.Transaction;
 
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
-import org.folio.okapi.common.OkapiClient;
 
 import static org.folio.inventoryupdate.ErrorReport.BAD_REQUEST;
 import static org.folio.inventoryupdate.entities.InstanceRelations.*;
@@ -290,10 +288,6 @@ public class InventoryRecordSet extends JsonRepresentation {
 
     }
 
-    public Future<Void> prepareIncomingInstanceRelationRecords(OkapiClient client, String instanceId) {
-        return instanceRelations.makeInstanceRelationRecordsFromIdentifiers(client, instanceId);
-    }
-
     public List<InstanceToInstanceRelation> getInstanceToInstanceRelations() {
         return Stream.of(
                 parentRelations == null ?
@@ -432,18 +426,6 @@ public class InventoryRecordSet extends JsonRepresentation {
         }
     }
 
-
-
-
-    // Errors
-    @Override
-    public boolean hasErrors () {
-        for (InventoryRecord record : getAllInventoryRecords()) {
-            if (record.failed()) return true;
-        }
-        return false;
-    }
-
     @Override
     public JsonArray getErrors () {
         JsonArray errors = new JsonArray();
@@ -453,15 +435,6 @@ public class InventoryRecordSet extends JsonRepresentation {
             }
         }
         return errors;
-    }
-
-    public ErrorReport getFirstError () {
-        for (InventoryRecord record : getAllInventoryRecords()) {
-            if (record.failed()) {
-                return record.getErrorReport();
-            }
-        }
-        return null;
     }
 
     @Override

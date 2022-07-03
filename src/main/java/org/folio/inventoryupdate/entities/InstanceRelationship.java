@@ -3,10 +3,6 @@ package org.folio.inventoryupdate.entities;
 import io.vertx.core.impl.logging.Logger;
 import io.vertx.core.impl.logging.LoggerFactory;
 import io.vertx.core.json.JsonObject;
-
-import static org.folio.inventoryupdate.entities.InstanceRelations.INSTANCE_IDENTIFIER;
-import static org.folio.inventoryupdate.entities.InventoryRecordSet.HRID_IDENTIFIER_KEY;
-
 public class InstanceRelationship extends InstanceToInstanceRelation {
 
     private String instanceId;

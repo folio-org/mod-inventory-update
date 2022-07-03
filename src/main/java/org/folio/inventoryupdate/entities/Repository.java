@@ -126,10 +126,6 @@ public abstract class Repository {
     return subLists;
   }
 
-  public static List<List<String>> getSubListsOfFifty (Set<String> set) {
-    return getSubListsOfFifty(new ArrayList<>(set));
-  }
-
   public static List<List<String>> getSubListsOfFifty (List<String> list) {
     return getSubLists(list, 50);
   }

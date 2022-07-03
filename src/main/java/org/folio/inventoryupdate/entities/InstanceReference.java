@@ -50,21 +50,6 @@ public class InstanceReference {
     return instanceReferenceJson.getString(INSTANCE_RELATIONSHIP_TYPE_ID);
   }
 
-  protected boolean referencesParentInstance () {
-    return (typeOfRelation == InstanceToInstanceRelation.InstanceRelationsClass.TO_PARENT);
-  }
-
-  protected boolean referencesChildInstance () {
-    return (typeOfRelation == InstanceToInstanceRelation.InstanceRelationsClass.TO_CHILD);
-  }
-
-  protected boolean referencesSucceedingInstance () {
-    return (typeOfRelation == InstanceToInstanceRelation.InstanceRelationsClass.TO_SUCCEEDING);
-  }
-
-  protected boolean referencesPrecedingInstance () {
-    return (typeOfRelation == InstanceToInstanceRelation.InstanceRelationsClass.TO_PRECEDING);
-  }
   public void setReferencedInstanceId(String uuid) {
     this.referencedInstanceId = uuid;
   }

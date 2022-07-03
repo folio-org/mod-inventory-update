@@ -288,7 +288,8 @@ public class InventoryStorage {
           inventoryRecordSet.put(InventoryRecordSet.INSTANCE,instance);
           String instanceUUID = instance.getString(ID);
           lookupExistingHoldingsRecordsAndItemsByInstanceUUID(okapiClient, instanceUUID).onComplete(existingHoldingsResult -> {
-              StringBuilder errorMessages = new StringBuilder();
+              //StringBuilder errorMessages = new StringBuilder();
+              List<ErrorReport> errors = new ArrayList<>();
               if (existingHoldingsResult.succeeded()) {
                   if (existingHoldingsResult.result() != null) {
                       inventoryRecordSet.put(InventoryRecordSet.HOLDINGS_RECORDS,existingHoldingsResult.result());
@@ -296,7 +297,7 @@ public class InventoryStorage {
                       inventoryRecordSet.put(InventoryRecordSet.HOLDINGS_RECORDS, new JsonArray());
                   }
               } else {
-                errorMessages.append(LF).append(existingHoldingsResult.cause());
+                errors.add(ErrorReport.makeErrorReportFromJsonString(existingHoldingsResult.cause().getMessage()));
                 logger.error("Lookup of existing holdings/items failed " + existingHoldingsResult);
               }
               lookupExistingParentChildRelationshipsByInstanceUUID(okapiClient, instanceUUID).onComplete(existingParentChildRelations -> {
@@ -311,7 +312,7 @@ public class InventoryStorage {
                                       .getJsonArray( InstanceRelations.EXISTING_PRECEDING_SUCCEEDING_TITLES).size() + " preceding/succeeding titles");
                     }
                   } else {
-                    errorMessages.append(LF).append(existingInstanceTitleSuccessions.cause());
+                    errors.add(ErrorReport.makeErrorReportFromJsonString(existingInstanceTitleSuccessions.cause().getMessage()));
                     logger.error("Lookup of existing preceding/succeeding titles failed " + existingInstanceTitleSuccessions.cause());
                   }
                   if (existingParentChildRelations.succeeded()) {
@@ -322,18 +323,13 @@ public class InventoryStorage {
                                       .getJsonArray( InstanceRelations.EXISTING_PARENT_CHILD_RELATIONS).size() + " parent/child relations");
                     }
                   } else {
-                    errorMessages.append(LF).append(existingParentChildRelations.cause());
+                    errors.add(ErrorReport.makeErrorReportFromJsonString(existingParentChildRelations.cause().getMessage()));
                     logger.error("Lookup of existing Instance relationships failed " + existingParentChildRelations.cause());
                   }
                   if (existingHoldingsResult.succeeded() && existingInstanceTitleSuccessions.succeeded() && existingParentChildRelations.succeeded()) {
                     promise.complete(inventoryRecordSet);
                   } else {
-                    promise.fail(new ErrorReport(
-                            ErrorReport.ErrorCategory.STORAGE,
-                            ErrorReport.UNPROCESSABLE_ENTITY,
-                            errorMessages.toString())
-                            .setShortMessage("Error looking up existing record set")
-                            .asJsonString());
+                    promise.fail(errors.get(0).asJsonString());
                   }
                 });
               });

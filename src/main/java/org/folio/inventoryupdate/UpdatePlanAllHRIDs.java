@@ -257,12 +257,7 @@ public class UpdatePlanAllHRIDs extends UpdatePlan {
                     promisedPlan.fail("Instance to delete not found");
                 }
             } else {
-                promisedPlan.fail(
-                        ErrorReport
-                                .makeErrorReportFromJsonString(lookup.cause().getMessage())
-                                .setShortMessage(
-                                        "There was a problem looking for an existing instance in Inventory Storage.")
-                                .asJsonString());
+                promisedPlan.fail(lookup.cause().getMessage());
             }
         });
         return promisedPlan.future();

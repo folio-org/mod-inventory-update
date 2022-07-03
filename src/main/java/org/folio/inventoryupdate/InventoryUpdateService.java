@@ -404,7 +404,7 @@ public class InventoryUpdateService {
           new ErrorReport(
                   ErrorReport.ErrorCategory.STORAGE,
                   NOT_FOUND,
-                  "Error processing delete request:: "+ planDone.cause().getMessage())
+                  "Error processing delete request: "+ planDone.cause().getMessage())
                   .respond(routingCtx);
         } else {
           new ErrorReport(

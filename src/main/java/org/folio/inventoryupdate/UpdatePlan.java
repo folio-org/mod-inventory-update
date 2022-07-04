@@ -3,11 +3,13 @@ package org.folio.inventoryupdate;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.function.BiFunction;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import io.vertx.core.impl.logging.Logger;
 import io.vertx.core.impl.logging.LoggerFactory;
+import io.vertx.ext.web.RoutingContext;
 import org.folio.inventoryupdate.entities.*;
 import org.folio.inventoryupdate.entities.InventoryRecord.Entity;
 import org.folio.inventoryupdate.entities.InventoryRecord.Transaction;
@@ -18,6 +20,11 @@ import io.vertx.core.Future;
 import io.vertx.core.Promise;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
+
+import static org.folio.inventoryupdate.ErrorReport.UNPROCESSABLE_ENTITY;
+import static org.folio.inventoryupdate.InventoryStorage.getOkapiClient;
+import static org.folio.inventoryupdate.InventoryUpdateOutcome.MULTI_STATUS;
+import static org.folio.inventoryupdate.InventoryUpdateOutcome.OK;
 
 /**
  * Base class for implementing update plans
@@ -65,15 +72,151 @@ public abstract class UpdatePlan {
         this.instanceQuery = existingInstanceQuery;
     }
 
-    public UpdatePlan(Repository repository) {
-        this.repository = repository;
-    }
+    public UpdatePlan () {}
+
+    public abstract Repository getNewRepository ();
+
+    public abstract Future<List<InventoryUpdateOutcome>> multipleSingleRecordUpserts(
+            RoutingContext routingContext, JsonArray inventoryRecordSets);
 
     public abstract UpdatePlan planInventoryUpdates();
 
     public abstract Future<Void> doInventoryUpdates(OkapiClient okapiClient);
 
     public abstract Future<Void> doCreateInstanceRelations (OkapiClient okapiClient);
+
+    public Future<InventoryUpdateOutcome> upsertBatch(RoutingContext routingContext, JsonArray inventoryRecordSets) {
+        repository = getNewRepository();
+        Promise<InventoryUpdateOutcome> promise = Promise.promise();
+        RequestValidation validations = validateIncomingRecordSets (inventoryRecordSets);
+        final boolean batchOfOne = (inventoryRecordSets.size() == 1);
+        if (validations.passed()) {
+            setIncomingRecordSets(inventoryRecordSets)
+                    .buildRepositoryFromStorage(routingContext).onComplete(
+                            result -> {
+                                if (result.succeeded()) {
+                                    planInventoryUpdates()
+                                            .doInventoryUpdates(
+                                                    getOkapiClient(routingContext)).onComplete(inventoryUpdated -> {
+
+                                                JsonObject response = (batchOfOne ?
+                                                        getOneUpdatingRecordSetJsonFromRepository() :
+                                                        new JsonObject());
+
+                                                if (inventoryUpdated.succeeded()) {
+                                                    response.put("metrics", getUpdateStatsFromRepository());
+                                                    InventoryUpdateOutcome outcome =
+                                                            new InventoryUpdateOutcome(
+                                                                    response)
+                                                                    .setResponseStatusCode(OK);
+                                                    promise.complete(outcome);
+                                                } else {
+                                                    logger.error("Update failed " +
+                                                            inventoryUpdated.cause().getMessage());
+                                                    ErrorReport report = ErrorReport
+                                                            .makeErrorReportFromJsonString(
+                                                                    inventoryUpdated.cause().getMessage());
+                                                    // If the error affected an entire batch of records
+                                                    // then fail the request as a whole. This particular error
+                                                    // message will not go to the client but rather be picked
+                                                    // up and acted upon by the module.
+                                                    //
+                                                    // If the error only affected individual records, either
+                                                    // because the update was for a batch of one or because the
+                                                    // error affected entities that are not batch updated
+                                                    // (ie relationships) then return a (partial) success,
+                                                    // a multi-status (207) that is.
+                                                    if (report.isBatchStorageError() && !batchOfOne) {
+                                                        // This will cause the controller to switch to record-by-record
+                                                        promise.fail(report.asJsonString());
+                                                    } else {
+                                                        response.put("metrics", getUpdateStatsFromRepository());
+                                                        response.put("errors", getErrorsUsingRepository());
+                                                        InventoryUpdateOutcome outcome =
+                                                                new InventoryUpdateOutcome(response)
+                                                                        .setResponseStatusCode(MULTI_STATUS);
+                                                        promise.complete(outcome);
+                                                    }
+                                                }
+                                            });
+                                } else {
+                                    InventoryUpdateOutcome outcome = new InventoryUpdateOutcome(
+                                            ErrorReport.makeErrorReportFromJsonString(
+                                                            result.cause().getMessage())
+                                                    .setShortMessage("Fetching from storage before update failed."));
+                                    promise.complete(outcome);
+                                }
+                            });
+        } else {
+            ErrorReport report = new ErrorReport(
+                    ErrorReport.ErrorCategory.VALIDATION,
+                    UNPROCESSABLE_ENTITY,
+                    validations.firstMessage())
+                    .setEntityType(validations.firstEntityType())
+                    .setEntity(validations.firstEntity())
+                    .setShortMessage(validations.firstShortMessage())
+                    .setDetails(validations.asJson());
+            if (batchOfOne) {
+                promise.complete(new InventoryUpdateOutcome(report));
+            } else {
+                // Pre-validation of batch of record sets failed, switch to record-by-record upsert
+                // to process the good record sets, if any.
+                promise.fail(report.asJsonString());
+            }
+        }
+        return promise.future();
+    }
+
+    public UpdatePlan setIncomingRecordSets(JsonArray inventoryRecordSets) {
+        repository.setIncomingRecordSets(inventoryRecordSets);
+        return this;
+    }
+
+    public RequestValidation validateIncomingRecordSets (JsonArray incomingRecordSets) {
+        RequestValidation validations = new RequestValidation();
+        for (Object recordSetObject : incomingRecordSets) {
+            RequestValidation validation = validateIncomingRecordSet((JsonObject) recordSetObject);
+            if (validation.hasErrors()) {
+                validations.addValidation(validation);
+            }
+        }
+        return validations;
+    }
+
+    public Future<Void> buildRepositoryFromStorage (RoutingContext routingContext) {
+        long buildRepoStart = System.currentTimeMillis();
+        Promise<Void> promise = Promise.promise();
+        repository.buildRepositoryFromStorage(routingContext).onComplete(repositoryBuilt -> {
+            if (repositoryBuilt.succeeded()) {
+                long builtMs = System.currentTimeMillis() - buildRepoStart;
+                logger.debug("Repo built in " +  builtMs + " ms.");
+                promise.complete();
+            } else {
+                promise.fail(repositoryBuilt.cause().getMessage());
+            }
+        });
+        return promise.future();
+    }
+
+
+    protected Future<List<InventoryUpdateOutcome>> chainSingleRecordUpserts(RoutingContext routingContext, List<JsonArray> arraysOfOneRecordSet, BiFunction<RoutingContext, JsonArray, Future<InventoryUpdateOutcome>> upsertMethod) {
+        Promise<List<InventoryUpdateOutcome>> promise = Promise.promise();
+        List<InventoryUpdateOutcome> outcomes = new ArrayList<>();
+        Future<InventoryUpdateOutcome> fut = Future.succeededFuture();
+        for (JsonArray arrayOfOneRecordSet : arraysOfOneRecordSet) {
+            fut = fut.compose(v -> {
+                // First time around, a null outcome is passed in
+                if (v != null) outcomes.add(v);
+                return upsertMethod.apply(routingContext, arrayOfOneRecordSet);
+            });
+        }
+        fut.onComplete( result -> {
+            // capture the last outcome too
+            outcomes.add(result.result());
+            promise.complete(outcomes);
+        });
+        return promise.future();
+    }
 
     // DELETION
     /**

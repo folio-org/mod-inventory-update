@@ -6,6 +6,7 @@ import io.vertx.core.Promise;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.RoutingContext;
+import org.folio.inventoryupdate.ErrorReport;
 import org.folio.inventoryupdate.InventoryStorage;
 import org.folio.inventoryupdate.QueryByListOfIds;
 import org.folio.inventoryupdate.QueryShiftingMatchKey;
@@ -59,20 +60,20 @@ public class RepositoryByMatchKey extends Repository {
                   if (locationMapUpdate.succeeded()) {
                     promise.complete();
                   } else {
-                    promise.fail("There was an error updating the mapping of locations to instititution IDs: " + locationMapUpdate.cause().getMessage());
+                    promise.fail(locationMapUpdate.cause().getMessage());
                   }
                 });
 
               } else {
-                promise.fail("There was an error fetching items by holdings record IDs: " + itemsByHoldingsRecordIds.cause().getMessage());
+                promise.fail(itemsByHoldingsRecordIds.cause().getMessage());
               }
             });
           } else {
-            promise.fail("There was an error fetching holdings by instance IDs: " + holdingsRecordsByInstanceIds.cause().getMessage());
+            promise.fail(holdingsRecordsByInstanceIds.cause().getMessage());
           }
         });
       } else {
-        promise.fail("There was an error fetching instances by match keys: " + recordsByMatchKeys.cause().getMessage());
+        promise.fail(recordsByMatchKeys.cause().getMessage());
       }
     });
     return promise.future();
@@ -204,7 +205,14 @@ public class RepositoryByMatchKey extends Repository {
         if (gotLocations.succeeded()) {
           JsonArray locationsJson = gotLocations.result();
           if (locationsJson == null || locationsJson.isEmpty()) {
-            mapReady.fail("Retrieved a null or zero length array of locations from storage. Cannot map locations to institutions.");
+            mapReady.fail(
+                    new ErrorReport(
+                            ErrorReport.ErrorCategory.STORAGE,
+                            ErrorReport.INTERNAL_SERVER_ERROR,
+                            "Retrieved a null or zero length array of locations from storage. Cannot map locations to institutions.")
+                            .setEntityType(InventoryRecord.Entity.LOCATION)
+                            .setTransaction(InventoryRecord.Transaction.GET.name())
+                            .asJsonString());
           } else {
             Iterator<?> locationsIterator = locationsJson.iterator();
             while (locationsIterator.hasNext()) {
@@ -215,7 +223,7 @@ public class RepositoryByMatchKey extends Repository {
             mapReady.complete();
           }
         } else {
-          mapReady.fail("There was an error retrieving locations from Inventory storage");
+          mapReady.fail(gotLocations.cause().getMessage());
         }
       });
     } else {

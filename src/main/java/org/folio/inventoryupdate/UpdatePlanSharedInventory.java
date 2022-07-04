@@ -15,6 +15,7 @@ import org.folio.inventoryupdate.entities.HoldingsRecord;
 import org.folio.inventoryupdate.entities.InventoryRecordSet;
 import org.folio.inventoryupdate.entities.Item;
 import org.folio.inventoryupdate.entities.InventoryRecord.Transaction;
+import org.folio.inventoryupdate.entities.Repository;
 import org.folio.inventoryupdate.entities.RepositoryByMatchKey;
 import org.folio.okapi.common.OkapiClient;
 
@@ -25,7 +26,6 @@ import io.vertx.core.json.JsonObject;
 
 public class UpdatePlanSharedInventory extends UpdatePlan {
 
-
     public static final Map<String,String> locationsToInstitutionsMap = new HashMap<>();
     private RecordIdentifiers deletionIdentifiers;
 
@@ -33,12 +33,18 @@ public class UpdatePlanSharedInventory extends UpdatePlan {
         super(incomingSet, existingInstanceQuery);
     }
 
-    private UpdatePlanSharedInventory (RepositoryByMatchKey repository) {
-        super(repository);
+    public UpdatePlanSharedInventory () {
+        repository = new RepositoryByMatchKey();
     }
 
-    public static UpdatePlanSharedInventory getUpsertPlan () {
-        return new UpdatePlanSharedInventory(new RepositoryByMatchKey());
+    @Override
+    public Repository getNewRepository() {
+        return new RepositoryByMatchKey();
+    }
+
+    @Override
+    public Future<List<InventoryUpdateOutcome>> multipleSingleRecordUpserts(RoutingContext routingContext, JsonArray inventoryRecordSets) {
+        return null;
     }
 
     public static UpdatePlanSharedInventory getDeletionPlan(RecordIdentifiers deletionIdentifiers) {
@@ -50,32 +56,6 @@ public class UpdatePlanSharedInventory extends UpdatePlan {
         // updatePlan.shiftingMatchKeyManager = new ShiftingMatchKeyManager( null, null,false );
         return updatePlan;
     }
-
-    public UpdatePlanSharedInventory setIncomingRecordSets (JsonArray inventoryRecordSets) {
-        long setIncomingMs = System.currentTimeMillis();
-        repository.setIncomingRecordSets(inventoryRecordSets);
-        long timing = System.currentTimeMillis() - setIncomingMs;
-        logger.debug("Incoming records set in " + timing + " ms.");
-        return this;
-
-
-    }
-
-    public Future<Void> buildRepositoryFromStorage (RoutingContext routingContext) {
-        long buildRepoStart = System.currentTimeMillis();
-        Promise<Void> promise = Promise.promise();
-        repository.buildRepositoryFromStorage(routingContext).onComplete(repositoryBuilt -> {
-            if (repositoryBuilt.succeeded()) {
-                long builtMs = System.currentTimeMillis() - buildRepoStart;
-                logger.debug("Repo built in " +  builtMs + " ms.");
-                promise.complete();
-            } else {
-                promise.fail(repositoryBuilt.cause().getMessage());
-            }
-        });
-        return promise.future();
-    }
-
 
     @Override
     public Future<Void> planInventoryDelete(OkapiClient okapiClient) {
@@ -113,8 +93,6 @@ public class UpdatePlanSharedInventory extends UpdatePlan {
 
     @Override
     public UpdatePlan planInventoryUpdates() {
-        logger.debug("Planning inventory updates using repository");
-        logger.debug( "Got " + repository.getPairsOfRecordSets().size() + " pair(s)");
         try {
             long startPlanning = System.currentTimeMillis();
             for (PairedRecordSets pair : repository.getPairsOfRecordSets()) {
@@ -133,9 +111,8 @@ public class UpdatePlanSharedInventory extends UpdatePlan {
                 planInstanceHoldingsAndItems(pair, secondaryInstance, isDeletion, deletionIdentifiers);
             }
             long planningMs = System.currentTimeMillis() - startPlanning;
-            logger.debug("Planning done in " + planningMs + " ms.");
         } catch (NullPointerException npe) {
-            logger.error("Null pointer in planInventoryUpdatesFromRepo");
+            logger.error("Null pointer in planInventoryUpdates");
             npe.printStackTrace();
         }
         return this;
@@ -266,7 +243,7 @@ public class UpdatePlanSharedInventory extends UpdatePlan {
                         mapReady.complete();
                     }
                 } else {
-                    mapReady.fail("There was an error retrieving locations from Inventory storage");
+                    mapReady.fail(gotLocations.cause().getMessage());
                 }
             });
         } else {

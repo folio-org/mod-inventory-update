@@ -268,7 +268,7 @@ public class InventoryUpdateTestSuite {
     batchUpsertByHrid(207,batch.getJson());
     JsonObject instancesAfterPutJson = getRecordsFromStorage(FakeInventoryStorage.INSTANCE_STORAGE_PATH, null);
     testContext.assertEquals(instancesAfterPutJson.getInteger("totalRecords"), 100,
-            "Number of instance records after PUT expected: 200" );
+            "Number of instance records after PUT expected: 100" );
   }
 
   @Test

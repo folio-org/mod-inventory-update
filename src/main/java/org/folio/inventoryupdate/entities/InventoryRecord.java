@@ -148,7 +148,6 @@ public abstract class InventoryRecord {
 
     public void logError (String error, int statusCode, ErrorReport.ErrorCategory category) {
         Object message = maybeJson(error);
-        System.out.println(message);
         logError(error, statusCode, category, findShortMessage(message));
     }
 

@@ -34,29 +34,32 @@ public class UpdatePlanAllHRIDs extends UpdatePlan {
         super(existingInstanceQuery);
     }
 
-    /**
-     * Constructs upsert plan
-     * @param repository Cache of Inventory records to build plan from.
-     */
-    private UpdatePlanAllHRIDs (RepositoryByHrids repository) {
-        super(repository);
+    public UpdatePlanAllHRIDs () {
     }
 
-    public static UpdatePlanAllHRIDs getUpsertPlan() {
-        return new UpdatePlanAllHRIDs( new RepositoryByHrids());
+    @Override
+    public Repository getNewRepository() {
+        return new RepositoryByHrids();
     }
+
 
     public static UpdatePlanAllHRIDs getDeletionPlan(InventoryQuery existingInstanceQuery) {
         return  new UpdatePlanAllHRIDs( existingInstanceQuery);
     }
 
-    public UpdatePlanAllHRIDs setIncomingRecordSets(JsonArray inventoryRecordSets) {
-        repository.setIncomingRecordSets(inventoryRecordSets);
-        return this;
+    public RequestValidation validateIncomingRecordSets (JsonArray incomingRecordSets) {
+        RequestValidation requestValidation = super.validateIncomingRecordSets(incomingRecordSets);
+        UpdatePlanAllHRIDs.checkForUniqueHRIDsInBatch(requestValidation, incomingRecordSets);
+        return requestValidation;
     }
 
-    public Future<Void> buildRepositoryFromStorage (RoutingContext routingContext) {
-        return repository.buildRepositoryFromStorage(routingContext);
+    public Future<List<InventoryUpdateOutcome>> multipleSingleRecordUpserts(RoutingContext routingContext, JsonArray inventoryRecordSets) {
+        List<JsonArray> arraysOfOneRecordSet = new ArrayList<>();
+        for (Object o : inventoryRecordSets) {
+            JsonArray batchOfOne = new JsonArray().add(o);
+            arraysOfOneRecordSet.add(batchOfOne);
+        }
+        return chainSingleRecordUpserts(routingContext, arraysOfOneRecordSet, new UpdatePlanAllHRIDs()::upsertBatch);
     }
 
     @Override
@@ -206,63 +209,6 @@ public class UpdatePlanAllHRIDs extends UpdatePlan {
         return this;
     }
 
-    private void planInstanceRelations(PairedRecordSets pair) {
-        // Plan creates and deletes
-        if (pair.hasIncomingRecordSet()) {
-            // Set UUIDs for from-instance and to-instance, create provisional instance if required and possible
-            pair.getIncomingRecordSet().resolveIncomingInstanceRelationsUsingRepository((RepositoryByHrids) repository);
-
-            // Plan storage transactions
-            for (InstanceToInstanceRelation incomingRelation : pair.getIncomingRecordSet().getInstanceToInstanceRelations()) {
-                if (pair.hasExistingRecordSet()) {
-                    if (pair.getExistingRecordSet().hasThisRelation(incomingRelation)) {
-                        incomingRelation.skip();
-                    } else {
-                        incomingRelation.setTransition(Transaction.CREATE);
-                    }
-                } else {
-                    incomingRelation.setTransition(Transaction.CREATE);
-                }
-            }
-        }
-        if (pair.hasExistingRecordSet()) {
-            for (InstanceToInstanceRelation existingRelation : pair.getExistingRecordSet().getInstanceToInstanceRelations()) {
-                if (pair.getIncomingRecordSet().isThisRelationOmitted(existingRelation)) {
-                    existingRelation.setTransition(Transaction.DELETE);
-                } else {
-                    existingRelation.setTransition(Transaction.NONE);
-                }
-            }
-        }
-    }
-
-    @Override
-    public Future<Void> planInventoryDelete(OkapiClient okapiClient) {
-        Promise<Void> promisedPlan = Promise.promise();
-        lookupExistingRecordSet(okapiClient, instanceQuery).onComplete(lookup -> {
-            if (lookup.succeeded()) {
-                this.existingSet = lookup.result();
-                // Plan instance update
-                if (foundExistingRecordSet()) {
-                    getExistingInstance().setTransition(Transaction.DELETE);
-                    for (HoldingsRecord holdings : getExistingInstance().getHoldingsRecords()) {
-                        holdings.setTransition(Transaction.DELETE);
-                        for (Item item : holdings.getItems()) {
-                            item.setTransition(Transaction.DELETE);
-                        }
-                    }
-                    getExistingRecordSet().prepareAllInstanceRelationsForDeletion();
-                    promisedPlan.complete();
-                } else {
-                    promisedPlan.fail("Instance to delete not found");
-                }
-            } else {
-                promisedPlan.fail(lookup.cause().getMessage());
-            }
-        });
-        return promisedPlan.future();
-    }
-
     private void planInstanceHoldingsAndItems(PairedRecordSets pair) {
         if (pair.hasIncomingRecordSet()) {
             InventoryRecordSet incomingSet = pair.getIncomingRecordSet();
@@ -362,6 +308,64 @@ public class UpdatePlanAllHRIDs extends UpdatePlan {
             }
         }
     }
+
+    private void planInstanceRelations(PairedRecordSets pair) {
+        // Plan creates and deletes
+        if (pair.hasIncomingRecordSet()) {
+            // Set UUIDs for from-instance and to-instance, create provisional instance if required and possible
+            pair.getIncomingRecordSet().resolveIncomingInstanceRelationsUsingRepository((RepositoryByHrids) repository);
+
+            // Plan storage transactions
+            for (InstanceToInstanceRelation incomingRelation : pair.getIncomingRecordSet().getInstanceToInstanceRelations()) {
+                if (pair.hasExistingRecordSet()) {
+                    if (pair.getExistingRecordSet().hasThisRelation(incomingRelation)) {
+                        incomingRelation.skip();
+                    } else {
+                        incomingRelation.setTransition(Transaction.CREATE);
+                    }
+                } else {
+                    incomingRelation.setTransition(Transaction.CREATE);
+                }
+            }
+        }
+        if (pair.hasExistingRecordSet()) {
+            for (InstanceToInstanceRelation existingRelation : pair.getExistingRecordSet().getInstanceToInstanceRelations()) {
+                if (pair.getIncomingRecordSet().isThisRelationOmitted(existingRelation)) {
+                    existingRelation.setTransition(Transaction.DELETE);
+                } else {
+                    existingRelation.setTransition(Transaction.NONE);
+                }
+            }
+        }
+    }
+
+    @Override
+    public Future<Void> planInventoryDelete(OkapiClient okapiClient) {
+        Promise<Void> promisedPlan = Promise.promise();
+        lookupExistingRecordSet(okapiClient, instanceQuery).onComplete(lookup -> {
+            if (lookup.succeeded()) {
+                this.existingSet = lookup.result();
+                // Plan instance update
+                if (foundExistingRecordSet()) {
+                    getExistingInstance().setTransition(Transaction.DELETE);
+                    for (HoldingsRecord holdings : getExistingInstance().getHoldingsRecords()) {
+                        holdings.setTransition(Transaction.DELETE);
+                        for (Item item : holdings.getItems()) {
+                            item.setTransition(Transaction.DELETE);
+                        }
+                    }
+                    getExistingRecordSet().prepareAllInstanceRelationsForDeletion();
+                    promisedPlan.complete();
+                } else {
+                    promisedPlan.fail("Instance to delete not found");
+                }
+            } else {
+                promisedPlan.fail(lookup.cause().getMessage());
+            }
+        });
+        return promisedPlan.future();
+    }
+
     /* END OF PLANNING METHODS */
 
 

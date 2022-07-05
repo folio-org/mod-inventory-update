@@ -5,7 +5,7 @@ import io.vertx.core.Promise;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.RoutingContext;
-import org.folio.inventoryupdate.entities.InstanceRelations;
+import org.folio.inventoryupdate.entities.InstanceReferences;
 import org.folio.okapi.common.GenericCompositeFuture;
 import org.folio.okapi.common.OkapiClient;
 
@@ -15,13 +15,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
-import static org.folio.inventoryupdate.entities.InstanceRelations.INSTANCE_RELATIONS;
+import static org.folio.inventoryupdate.entities.InstanceReferences.INSTANCE_RELATIONS;
 import static org.folio.inventoryupdate.entities.InventoryRecordSet.*;
 import static org.folio.inventoryupdate.entities.Instance.MATCH_KEY;
 import static org.folio.inventoryupdate.entities.Item.HOLDINGS_RECORD_ID;
 import static org.folio.inventoryupdate.entities.HoldingsRecord.INSTANCE_ID;
 import static org.folio.okapi.common.HttpResponse.responseJson;
-import static org.folio.inventoryupdate.entities.InstanceRelations.INSTANCE_IDENTIFIER;
+import static org.folio.inventoryupdate.entities.InstanceReference.INSTANCE_IDENTIFIER;
 import static org.folio.inventoryupdate.entities.InstanceRelationship.INSTANCE_RELATIONSHIP_TYPE_ID;
 import static org.folio.inventoryupdate.entities.InstanceRelationship.SUB_INSTANCE_ID;
 import static org.folio.inventoryupdate.entities.InstanceRelationship.SUPER_INSTANCE_ID;
@@ -163,9 +163,9 @@ public class InventoryFetchService
     private Future<Void> transformInstanceRelations ( JsonObject inventoryRecordSet, RoutingContext routingContext) {
         Promise<Void> promise = Promise.promise();
         String instanceId = inventoryRecordSet.getJsonObject(INSTANCE).getString("id");
-        JsonObject instanceRelations = inventoryRecordSet.getJsonObject( InstanceRelations.INSTANCE_RELATIONS );
-        JsonArray existingParentChildRelations = instanceRelations.getJsonArray( InstanceRelations.EXISTING_PARENT_CHILD_RELATIONS );
-        JsonArray existingPrecedingSucceedingTitles = instanceRelations.getJsonArray( InstanceRelations.EXISTING_PRECEDING_SUCCEEDING_TITLES );
+        JsonObject instanceRelations = inventoryRecordSet.getJsonObject( InstanceReferences.INSTANCE_RELATIONS );
+        JsonArray existingParentChildRelations = instanceRelations.getJsonArray( InstanceReferences.EXISTING_PARENT_CHILD_RELATIONS );
+        JsonArray existingPrecedingSucceedingTitles = instanceRelations.getJsonArray( InstanceReferences.EXISTING_PRECEDING_SUCCEEDING_TITLES );
         if (existingParentChildRelations.size() + existingPrecedingSucceedingTitles.size() == 0) {
             promise.complete();
         } else {
@@ -196,9 +196,9 @@ public class InventoryFetchService
                             }
                         }
                     }
-                    instanceRelations.remove( InstanceRelations.EXISTING_PARENT_CHILD_RELATIONS );
-                    instanceRelations.put( InstanceRelations.PARENT_INSTANCES, parentInstances );
-                    instanceRelations.put( InstanceRelations.CHILD_INSTANCES, childInstances );
+                    instanceRelations.remove( InstanceReferences.EXISTING_PARENT_CHILD_RELATIONS );
+                    instanceRelations.put( InstanceReferences.PARENT_INSTANCES, parentInstances );
+                    instanceRelations.put( InstanceReferences.CHILD_INSTANCES, childInstances );
 
                     JsonArray precedingTitles = new JsonArray();
                     JsonArray succeedingTitles = new JsonArray();
@@ -223,9 +223,9 @@ public class InventoryFetchService
                             }
                         }
                     }
-                    instanceRelations.remove( InstanceRelations.EXISTING_PRECEDING_SUCCEEDING_TITLES );
-                    instanceRelations.put( InstanceRelations.PRECEDING_TITLES, precedingTitles );
-                    instanceRelations.put( InstanceRelations.SUCCEEDING_TITLES, succeedingTitles );
+                    instanceRelations.remove( InstanceReferences.EXISTING_PRECEDING_SUCCEEDING_TITLES );
+                    instanceRelations.put( InstanceReferences.PRECEDING_TITLES, precedingTitles );
+                    instanceRelations.put( InstanceReferences.SUCCEEDING_TITLES, succeedingTitles );
                     promise.complete();
                 }
             } );
@@ -245,7 +245,7 @@ public class InventoryFetchService
         List<String> relatedIds = new ArrayList<>();
         JsonObject instanceRelations = inventoryRecordSet.getJsonObject( INSTANCE_RELATIONS );
         String instanceId = inventoryRecordSet.getJsonObject( INSTANCE ).getString( PK );
-        JsonArray parentChildRelations = instanceRelations.getJsonArray(InstanceRelations.EXISTING_PARENT_CHILD_RELATIONS);
+        JsonArray parentChildRelations = instanceRelations.getJsonArray(InstanceReferences.EXISTING_PARENT_CHILD_RELATIONS);
         for (Object o : parentChildRelations) {
             JsonObject relation = ((JsonObject) o);
             if (! instanceId.equals(relation.getString( SUB_INSTANCE_ID ))) {
@@ -254,7 +254,7 @@ public class InventoryFetchService
                 relatedIds.add(relation.getString( SUPER_INSTANCE_ID ));
             }
         }
-        JsonArray titleSuccessions = instanceRelations.getJsonArray( InstanceRelations.EXISTING_PRECEDING_SUCCEEDING_TITLES );
+        JsonArray titleSuccessions = instanceRelations.getJsonArray( InstanceReferences.EXISTING_PRECEDING_SUCCEEDING_TITLES );
         for (Object o : titleSuccessions) {
             JsonObject relation = ((JsonObject) o);
             if (! instanceId.equals(relation.getString( PRECEDING_INSTANCE_ID ))) {

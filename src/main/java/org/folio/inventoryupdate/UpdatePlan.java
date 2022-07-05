@@ -501,9 +501,6 @@ public abstract class UpdatePlan {
 
     /* END OF UPDATE METHODS */
 
-    public JsonObject getUpdatingRecordSetJson () {
-        return gotUpdatingRecordSet() ? updatingSet.asJson() : new JsonObject();
-    }
 
     public JsonObject getOneUpdatingRecordSetJsonFromRepository() {
         return (repository.getPairsOfRecordSets().size() == 1
@@ -581,34 +578,66 @@ public abstract class UpdatePlan {
         UpdateMetrics metrics = new UpdateMetrics();
 
         if (gotUpdatingRecordSet()) {
-          metrics.entity(Entity.INSTANCE).transaction(getUpdatingInstance().getTransaction()).outcomes.increment(getUpdatingInstance().getOutcome());
-          List<InventoryRecord> holdingsRecordsAndItemsInUpdatingSet = Stream.of(
+            metrics.entity(Entity.INSTANCE).transaction(getUpdatingInstance().getTransaction()).outcomes.increment(getUpdatingInstance().getOutcome());
+            List<InventoryRecord> holdingsRecordsAndItemsInUpdatingSet = Stream.of(
                   updatingSet.getHoldingsRecords(),
                   updatingSet.getItems())
                   .flatMap(Collection::stream).collect(Collectors.toList());
 
-          for (InventoryRecord record : holdingsRecordsAndItemsInUpdatingSet) {
+            for (InventoryRecord record : holdingsRecordsAndItemsInUpdatingSet) {
               metrics.entity(record.entityType()).transaction(record.getTransaction()).outcomes.increment(record.getOutcome());
-          }
-          updatingSet.getInstanceRelationsController().writeToStats(metrics);
+            }
+            //updatingSet.getInstanceRelationsController().writeToStats(metrics);
+            if (! updatingSet.getInstanceToInstanceRelations().isEmpty()) {
+                for ( InstanceToInstanceRelation record : updatingSet.getInstanceToInstanceRelations() ) {
+                    logger.debug("Record: " + record.asJson().encode());
+                    logger.debug("Transaction: " + record.getTransaction());
+                    logger.debug("Entity type: " + record.entityType());
+                    if ( !record.getTransaction().equals( InventoryRecord.Transaction.NONE ) ) {
+                        metrics.entity( record.entityType() ).transaction( record.getTransaction() ).outcomes.increment(
+                                record.getOutcome() );
+                        if ( record.requiresProvisionalInstanceToBeCreated() ) {
+                            Instance provisionalInstance = record.getProvisionalInstance();
+                            ( (UpdateMetrics.InstanceRelationsMetrics) metrics.entity( record.entityType() ) ).provisionalInstanceMetrics.increment(
+                                    provisionalInstance.getOutcome() );
+                        }
+                    }
+                }
+            }
         }
 
         if (foundExistingRecordSet()) {
-          if (existingSet.getInstance().isDeleting()) {
-              InventoryRecord record = existingSet.getInstance();
-              metrics.entity(record.entityType()).transaction(record.getTransaction()).outcomes.increment(record.getOutcome());
-          }
-          List<InventoryRecord> holdingsRecordsAndItemsInExistingSet = Stream.of(
+            if (existingSet.getInstance().isDeleting()) {
+                InventoryRecord record = existingSet.getInstance();
+                metrics.entity(record.entityType()).transaction(record.getTransaction()).outcomes.increment(record.getOutcome());
+            }
+            List<InventoryRecord> holdingsRecordsAndItemsInExistingSet = Stream.of(
               existingSet.getHoldingsRecords(),
               existingSet.getItems()
-          ).flatMap(Collection::stream).collect(Collectors.toList());
+            ).flatMap(Collection::stream).collect(Collectors.toList());
 
-          for (InventoryRecord record : holdingsRecordsAndItemsInExistingSet) {
-              if (record.isDeleting()) {
+            for (InventoryRecord record : holdingsRecordsAndItemsInExistingSet) {
+                if (record.isDeleting()) {
                   metrics.entity(record.entityType()).transaction(record.getTransaction()).outcomes.increment(record.getOutcome());
-              }
-          }
-          existingSet.getInstanceRelationsController().writeToStats(metrics);
+                }
+            }
+            //existingSet.getInstanceRelationsController().writeToStats(metrics);
+            if (! existingSet.getInstanceToInstanceRelations().isEmpty()) {
+                for ( InstanceToInstanceRelation record : existingSet.getInstanceToInstanceRelations() ) {
+                    logger.debug("Record: " + record.asJson().encode());
+                    logger.debug("Transaction: " + record.getTransaction());
+                    logger.debug("Entity type: " + record.entityType());
+                    if ( !record.getTransaction().equals( InventoryRecord.Transaction.NONE ) ) {
+                        metrics.entity( record.entityType() ).transaction( record.getTransaction() ).outcomes.increment(
+                                record.getOutcome() );
+                        if ( record.requiresProvisionalInstanceToBeCreated() ) {
+                            Instance provisionalInstance = record.getProvisionalInstance();
+                            ( (UpdateMetrics.InstanceRelationsMetrics) metrics.entity( record.entityType() ) ).provisionalInstanceMetrics.increment(
+                                    provisionalInstance.getOutcome() );
+                        }
+                    }
+                }
+            }
         }
 
         if (foundSecondaryExistingSet()) {

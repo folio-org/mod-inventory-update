@@ -42,54 +42,6 @@ public class UpdatePlanSharedInventory extends UpdatePlan {
         return new RepositoryByMatchKey();
     }
 
-    @Override
-    public Future<List<InventoryUpdateOutcome>> multipleSingleRecordUpserts(RoutingContext routingContext, JsonArray inventoryRecordSets) {
-        return null;
-    }
-
-    public static UpdatePlanSharedInventory getDeletionPlan(RecordIdentifiers deletionIdentifiers) {
-        InventoryQuery existingInstanceQuery = new QuerySharedInstanceByLocalIdentifier(
-                deletionIdentifiers.localIdentifier(), deletionIdentifiers.identifierTypeId());
-        UpdatePlanSharedInventory updatePlan = new UpdatePlanSharedInventory( null, existingInstanceQuery );
-        updatePlan.isDeletion = true;
-        updatePlan.deletionIdentifiers = deletionIdentifiers;
-        // updatePlan.shiftingMatchKeyManager = new ShiftingMatchKeyManager( null, null,false );
-        return updatePlan;
-    }
-
-    @Override
-    public Future<Void> planInventoryDelete(OkapiClient okapiClient) {
-        Promise<Void> promise = Promise.promise();
-        lookupExistingRecordSet(okapiClient, instanceQuery).onComplete( lookup -> {
-            if (lookup.succeeded()) {
-                this.existingSet = lookup.result();
-                if (!foundExistingRecordSet()) {
-                    promise.fail("Record to be deleted was not found");
-                } else  {
-                    if (foundExistingRecordSet()) {
-                        this.updatingSet = createUpdatingRecordSetFromExistingSet(existingSet, deletionIdentifiers );
-                        mapLocationsToInstitutions(okapiClient,updatingSet,existingSet,null).onComplete(handler -> {
-                            if (handler.succeeded()) {
-                                // look for abandoned matches here
-                                flagAndIdRecordsForInventoryUpdating(updatingSet,existingSet,null,isDeletion,deletionIdentifiers);
-                                promise.complete();
-                            } else {
-                                promise.fail(ErrorReport.makeErrorReportFromJsonString(handler.cause().getMessage())
-                                        .setShortMessage("There was a problem retrieving locations map, cannot perform updates.")
-                                        .asJsonString());
-                            }
-                        });
-                    }
-
-                }
-            } else {
-                promise.fail(ErrorReport.makeErrorReportFromJsonString(lookup.cause().getMessage())
-                        .setShortMessage("Error looking up existing record set")
-                        .asJsonString());
-            }
-        });
-        return promise.future();
-    }
 
     @Override
     public UpdatePlan planInventoryUpdates() {
@@ -208,6 +160,59 @@ public class UpdatePlanSharedInventory extends UpdatePlan {
         if (array.getJsonObject(i).equals(value)) return true;
         }
         return false;
+    }
+
+    @Override
+    public Future<List<InventoryUpdateOutcome>> multipleSingleRecordUpserts(RoutingContext routingContext, JsonArray inventoryRecordSets) {
+        List<JsonArray> arraysOfOneRecordSet = new ArrayList<>();
+        for (Object o : inventoryRecordSets) {
+            JsonArray batchOfOne = new JsonArray().add(o);
+            arraysOfOneRecordSet.add(batchOfOne);
+        }
+        return chainSingleRecordUpserts(routingContext, arraysOfOneRecordSet, new UpdatePlanSharedInventory()::upsertBatch);
+    }
+
+    public static UpdatePlanSharedInventory getDeletionPlan(RecordIdentifiers deletionIdentifiers) {
+        InventoryQuery existingInstanceQuery = new QuerySharedInstanceByLocalIdentifier(
+                deletionIdentifiers.localIdentifier(), deletionIdentifiers.identifierTypeId());
+        UpdatePlanSharedInventory updatePlan = new UpdatePlanSharedInventory( null, existingInstanceQuery );
+        updatePlan.isDeletion = true;
+        updatePlan.deletionIdentifiers = deletionIdentifiers;
+        return updatePlan;
+    }
+
+    @Override
+    public Future<Void> planInventoryDelete(OkapiClient okapiClient) {
+        Promise<Void> promise = Promise.promise();
+        lookupExistingRecordSet(okapiClient, instanceQuery).onComplete( lookup -> {
+            if (lookup.succeeded()) {
+                this.existingSet = lookup.result();
+                if (!foundExistingRecordSet()) {
+                    promise.fail("Record to be deleted was not found");
+                } else  {
+                    if (foundExistingRecordSet()) {
+                        this.updatingSet = createUpdatingRecordSetFromExistingSet(existingSet, deletionIdentifiers );
+                        mapLocationsToInstitutions(okapiClient,updatingSet,existingSet,null).onComplete(handler -> {
+                            if (handler.succeeded()) {
+                                // look for abandoned matches here
+                                flagAndIdRecordsForInventoryUpdating(updatingSet,existingSet,null,isDeletion,deletionIdentifiers);
+                                promise.complete();
+                            } else {
+                                promise.fail(ErrorReport.makeErrorReportFromJsonString(handler.cause().getMessage())
+                                        .setShortMessage("There was a problem retrieving locations map, cannot perform updates.")
+                                        .asJsonString());
+                            }
+                        });
+                    }
+
+                }
+            } else {
+                promise.fail(ErrorReport.makeErrorReportFromJsonString(lookup.cause().getMessage())
+                        .setShortMessage("Error looking up existing record set")
+                        .asJsonString());
+            }
+        });
+        return promise.future();
     }
 
     private static Future<Void> mapLocationsToInstitutions (OkapiClient okapiClient, InventoryRecordSet incomingSet, InventoryRecordSet existingSet, Instance secondaryInstance) {

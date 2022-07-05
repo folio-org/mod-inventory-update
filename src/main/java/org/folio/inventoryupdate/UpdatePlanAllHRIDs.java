@@ -17,8 +17,6 @@ import io.vertx.core.Future;
 import io.vertx.core.Promise;
 
 import static org.folio.inventoryupdate.ErrorReport.UNPROCESSABLE_ENTITY;
-import static org.folio.inventoryupdate.entities.InstanceRelations.failProvisionalInstanceCreation;
-import static org.folio.inventoryupdate.entities.InstanceRelations.failRelationCreation;
 import static org.folio.inventoryupdate.entities.InventoryRecordSet.INSTANCE;
 
 public class UpdatePlanAllHRIDs extends UpdatePlan {
@@ -35,6 +33,12 @@ public class UpdatePlanAllHRIDs extends UpdatePlan {
     }
 
     public UpdatePlanAllHRIDs () {
+    }
+
+    public static Future<Void> failProvisionalInstanceCreation (Instance provisionalInstance) {
+        Promise<Void> promise = Promise.promise();
+        promise.fail(provisionalInstance.getErrorAsJson().encodePrettily());
+        return promise.future();
     }
 
     @Override
@@ -444,11 +448,7 @@ public class UpdatePlanAllHRIDs extends UpdatePlan {
                 @SuppressWarnings("rawtypes")
                 List<Future> createFutures = new ArrayList<>();
                 for (InstanceToInstanceRelation relation : repository.getInstanceRelationsToCreate()) {
-                    if (!relation.failed()) {
-                        createFutures.add(InventoryStorage.postInventoryRecord(okapiClient, relation));
-                    } else {
-                        createFutures.add(failRelationCreation(relation));
-                    }
+                    createFutures.add(InventoryStorage.postInventoryRecord(okapiClient, relation));
                 }
                 CompositeFuture.join(createFutures).onComplete( allRelationsCreated -> {
                     if (allRelationsCreated.succeeded()) {

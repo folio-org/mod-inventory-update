@@ -66,33 +66,12 @@ public class ErrorReport {
     this.statusCode = statusCode;
   }
 
-  private ErrorReport (String jsonString) {
-    this.messageAsString = "Not a valid error report. Could not create report from [ " + jsonString + "]";
-    this.statusCode = 500;
-  }
-
   public static ErrorReport makeErrorReportFromJsonString(String jsonString) {
-    if (isAnErrorReportJson(jsonString)) {
       JsonObject json = new JsonObject(jsonString);
       return new ErrorReport(getCategoryFromString(json.getString(CATEGORY)), json.getInteger(STATUS_CODE),
               json.getValue(MESSAGE)).setShortMessage(json.getString(SHORT_MESSAGE)).setEntity(json.getJsonObject(ENTITY)).setTransaction(
               json.getString(TRANSACTION)).setEntityType(getEntityTypeFromString(json.getString(ENTITY_TYPE))).setDetails(
               json.getJsonObject(DETAILS));
-    } else {
-      return new ErrorReport(jsonString);
-    }
-  }
-
-  private static boolean isAnErrorReportJson (String maybeJson) {
-    if (isJsonString(maybeJson)) {
-      JsonObject maybeErrorReportJson = new JsonObject(maybeJson);
-      return maybeErrorReportJson.containsKey(CATEGORY) &&
-              getCategoryFromString(maybeErrorReportJson.getString(CATEGORY)) != null &&
-              maybeErrorReportJson.containsKey(STATUS_CODE) &&
-              maybeErrorReportJson.containsKey(MESSAGE);
-    } else {
-      return false;
-    }
   }
 
   public boolean isBatchStorageError () {
@@ -115,17 +94,6 @@ public class ErrorReport {
     }
   }
 
-
-  private static boolean isJsonString (String maybeJson) {
-    try {
-      new JsonObject(maybeJson);
-      return true;
-    } catch (DecodeException de) {
-      return false;
-    }
-  }
-
-
   public InventoryRecord.Entity getEntityType () {
     return entityType;
   }
@@ -133,10 +101,6 @@ public class ErrorReport {
   public ErrorReport setEntityType(InventoryRecord.Entity entityType) {
     this.entityType = entityType;
     return this;
-  }
-
-  public String getTransaction() {
-    return transaction;
   }
 
   public ErrorReport setTransaction(String transaction) {
@@ -173,10 +137,6 @@ public class ErrorReport {
   public ErrorReport setEntity(JsonObject entity) {
     this.entity = entity;
     return this;
-  }
-
-  public JsonObject getDetails() {
-    return details;
   }
 
   public ErrorReport setDetails(JsonObject details) {

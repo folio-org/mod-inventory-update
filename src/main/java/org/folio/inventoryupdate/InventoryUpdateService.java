@@ -7,8 +7,6 @@ import static org.folio.inventoryupdate.InventoryUpdateOutcome.OK;
 import static org.folio.okapi.common.HttpResponse.responseError;
 import static org.folio.okapi.common.HttpResponse.responseJson;
 
-import io.vertx.core.Future;
-import io.vertx.core.Promise;
 import io.vertx.core.impl.logging.Logger;
 import io.vertx.core.impl.logging.LoggerFactory;
 import io.vertx.core.json.DecodeException;
@@ -241,21 +239,20 @@ public class InventoryUpdateService {
     OkapiClient okapiClient = getOkapiClient(routingCtx);
     updatePlan.planInventoryDelete(okapiClient).onComplete(planDone -> {
       if (planDone.succeeded()) {
-        //updatePlan.writePlanToLog();
-        updatePlan.doInventoryDelete(okapiClient).onComplete(deletionsDone -> {
-          JsonObject pushedRecordSetWithStats = updatePlan.getUpdatingRecordSetJson();
-          pushedRecordSetWithStats.put("metrics", updatePlan.getUpdateStats());
+          updatePlan.doInventoryDelete(okapiClient).onComplete(deletionsDone -> {
+          JsonObject response = new JsonObject();
+          response.put("metrics", updatePlan.getUpdateStats());
           if (deletionsDone.succeeded()) {
-            respondWithOK(routingCtx,pushedRecordSetWithStats);
+            respondWithOK(routingCtx,response);
           } else {
-            pushedRecordSetWithStats.put("errors", updatePlan.getErrors());
-            pushedRecordSetWithStats.getJsonArray("errors")
+            response.put("errors", updatePlan.getErrors());
+            response.getJsonArray("errors")
                     .add(new ErrorReport(
                             ErrorCategory.STORAGE,
                             INTERNAL_SERVER_ERROR,
                             deletionsDone.cause().getMessage())
                             .asJson());
-            respondWithMultiStatus(routingCtx,pushedRecordSetWithStats);
+            respondWithMultiStatus(routingCtx,response);
           }
         });
       }  else {

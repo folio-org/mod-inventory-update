@@ -10,7 +10,7 @@ import io.vertx.core.impl.logging.LoggerFactory;
 import io.vertx.ext.web.RoutingContext;
 import org.folio.inventoryupdate.entities.HoldingsRecord;
 import org.folio.inventoryupdate.entities.Instance;
-import org.folio.inventoryupdate.entities.InstanceRelations;
+import org.folio.inventoryupdate.entities.InstanceReferences;
 import org.folio.inventoryupdate.entities.InventoryRecord;
 import org.folio.inventoryupdate.entities.InventoryRecord.Entity;
 import org.folio.inventoryupdate.entities.InventoryRecord.Transaction;
@@ -303,13 +303,13 @@ public class InventoryStorage {
               lookupExistingParentChildRelationshipsByInstanceUUID(okapiClient, instanceUUID).onComplete(existingParentChildRelations -> {
                 lookupExistingPrecedingOrSucceedingTitlesByInstanceUUID(okapiClient, instanceUUID).onComplete( existingInstanceTitleSuccessions -> {
                   JsonObject instanceRelations = new JsonObject();
-                  inventoryRecordSet.put( InstanceRelations.INSTANCE_RELATIONS, instanceRelations);
+                  inventoryRecordSet.put( InstanceReferences.INSTANCE_RELATIONS, instanceRelations);
                   if(existingInstanceTitleSuccessions.succeeded()) {
                     if (existingInstanceTitleSuccessions.result() != null)  {
-                      instanceRelations.put( InstanceRelations.EXISTING_PRECEDING_SUCCEEDING_TITLES, existingInstanceTitleSuccessions.result());
+                      instanceRelations.put( InstanceReferences.EXISTING_PRECEDING_SUCCEEDING_TITLES, existingInstanceTitleSuccessions.result());
                       logger.debug("InventoryRecordSet JSON populated with " +
-                              inventoryRecordSet.getJsonObject( InstanceRelations.INSTANCE_RELATIONS)
-                                      .getJsonArray( InstanceRelations.EXISTING_PRECEDING_SUCCEEDING_TITLES).size() + " preceding/succeeding titles");
+                              inventoryRecordSet.getJsonObject( InstanceReferences.INSTANCE_RELATIONS)
+                                      .getJsonArray( InstanceReferences.EXISTING_PRECEDING_SUCCEEDING_TITLES).size() + " preceding/succeeding titles");
                     }
                   } else {
                     errors.add(ErrorReport.makeErrorReportFromJsonString(existingInstanceTitleSuccessions.cause().getMessage()));
@@ -317,10 +317,10 @@ public class InventoryStorage {
                   }
                   if (existingParentChildRelations.succeeded()) {
                     if (existingParentChildRelations.result() != null) {
-                      instanceRelations.put( InstanceRelations.EXISTING_PARENT_CHILD_RELATIONS, existingParentChildRelations.result());
+                      instanceRelations.put( InstanceReferences.EXISTING_PARENT_CHILD_RELATIONS, existingParentChildRelations.result());
                       logger.debug("InventoryRecordSet JSON populated with " +
-                              inventoryRecordSet.getJsonObject( InstanceRelations.INSTANCE_RELATIONS)
-                                      .getJsonArray( InstanceRelations.EXISTING_PARENT_CHILD_RELATIONS).size() + " parent/child relations");
+                              inventoryRecordSet.getJsonObject( InstanceReferences.INSTANCE_RELATIONS)
+                                      .getJsonArray( InstanceReferences.EXISTING_PARENT_CHILD_RELATIONS).size() + " parent/child relations");
                     }
                   } else {
                     errors.add(ErrorReport.makeErrorReportFromJsonString(existingParentChildRelations.cause().getMessage()));

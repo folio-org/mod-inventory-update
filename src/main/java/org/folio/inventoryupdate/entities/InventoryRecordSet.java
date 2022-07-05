@@ -14,7 +14,6 @@ import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 
 import static org.folio.inventoryupdate.ErrorReport.BAD_REQUEST;
-import static org.folio.inventoryupdate.entities.InstanceRelations.*;
 import static org.folio.inventoryupdate.entities.RecordIdentifiers.OAI_IDENTIFIER;
 
 public class InventoryRecordSet extends JsonRepresentation {
@@ -42,8 +41,7 @@ public class InventoryRecordSet extends JsonRepresentation {
     @SuppressWarnings("unused")
     private final Logger logger = LoggerFactory.getLogger("inventory-update");
 
-    // Controller handles planning and update logic for instance-to-instance relations
-    private InstanceRelations instanceRelations;
+
     // Instance relations properties that the controller access directly
     public List<InstanceToInstanceRelation> parentRelations = null;
     public List<InstanceToInstanceRelation> childRelations = null;
@@ -62,7 +60,8 @@ public class InventoryRecordSet extends JsonRepresentation {
             sourceJson = new JsonObject(inventoryRecordSet.toString());
             theInstance = new Instance(inventoryRecordSet.getJsonObject(INSTANCE));
             registerHoldingsRecordsAndItems(inventoryRecordSet.getJsonArray(HOLDINGS_RECORDS));
-            instanceRelationsJson = (sourceJson.containsKey(INSTANCE_RELATIONS) ? sourceJson.getJsonObject(INSTANCE_RELATIONS) : new JsonObject());
+            instanceRelationsJson = (sourceJson.containsKey(InstanceReferences.INSTANCE_RELATIONS) ? sourceJson.getJsonObject(
+                    InstanceReferences.INSTANCE_RELATIONS) : new JsonObject());
             logger.debug("Caching processing info: " + inventoryRecordSet.getJsonObject( PROCESSING ));
             processing = inventoryRecordSet.getJsonObject( PROCESSING );
         }
@@ -84,7 +83,6 @@ public class InventoryRecordSet extends JsonRepresentation {
                     set.getInstance().getUUID(),
                     set.instanceRelationsJson);
         }
-        set.instanceRelations = new InstanceRelations(set);
         return set;
     }
 
@@ -94,7 +92,6 @@ public class InventoryRecordSet extends JsonRepresentation {
         if (!set.instanceRelationsJson.isEmpty()) {
             set.instanceReferences = new InstanceReferences(set.instanceRelationsJson);
         }
-        set.instanceRelations = new InstanceRelations(set);
         return set;
     }
 
@@ -112,10 +109,6 @@ public class InventoryRecordSet extends JsonRepresentation {
                             .setShortMessage("Not an Inventory record set.")
                             .setEntity(inventoryRecordSet));
         }
-    }
-
-    public boolean canLookForRecordsWithPreviousMatchKey() {
-        return getLocalIdentifier() != null && getLocalIdentifierTypeId() != null;
     }
 
     public JsonObject getProcessingInfoAsJson () {
@@ -230,10 +223,6 @@ public class InventoryRecordSet extends JsonRepresentation {
     }
 
     // INSTANCE-TO-INSTANCE RELATIONS METHODS
-    public InstanceRelations getInstanceRelationsController() {
-        return instanceRelations;
-    }
-
 
     /**
      * Planning: Takes Instance relation records from storage and creates Instance relations objects
@@ -242,8 +231,9 @@ public class InventoryRecordSet extends JsonRepresentation {
      * @param instanceRelations a set of relations from storage
      */
     public void registerRelationshipJsonRecords(String instanceId, JsonObject instanceRelations) {
-        if (instanceRelations.containsKey(EXISTING_PARENT_CHILD_RELATIONS)) {
-            JsonArray existingRelations = instanceRelations.getJsonArray(EXISTING_PARENT_CHILD_RELATIONS);
+        if (instanceRelations.containsKey(InstanceReferences.EXISTING_PARENT_CHILD_RELATIONS)) {
+            JsonArray existingRelations = instanceRelations.getJsonArray(
+                    InstanceReferences.EXISTING_PARENT_CHILD_RELATIONS);
             for (Object o : existingRelations) {
                 InstanceRelationship relationship = InstanceRelationship.makeRelationshipFromJsonRecord(instanceId, (JsonObject) o);
                 if (relationship.isRelationToChild()) {
@@ -255,8 +245,9 @@ public class InventoryRecordSet extends JsonRepresentation {
                 }
             }
         }
-        if (instanceRelations.containsKey(EXISTING_PRECEDING_SUCCEEDING_TITLES)) {
-            JsonArray existingTitles = instanceRelations.getJsonArray(EXISTING_PRECEDING_SUCCEEDING_TITLES);
+        if (instanceRelations.containsKey(InstanceReferences.EXISTING_PRECEDING_SUCCEEDING_TITLES)) {
+            JsonArray existingTitles = instanceRelations.getJsonArray(
+                    InstanceReferences.EXISTING_PRECEDING_SUCCEEDING_TITLES);
             for (Object o : existingTitles) {
                 InstanceTitleSuccession relation = InstanceTitleSuccession.makeInstanceTitleSuccessionFromJsonRecord(instanceId, (JsonObject) o);
                 if (relation.isSucceedingTitle()) {
@@ -323,20 +314,20 @@ public class InventoryRecordSet extends JsonRepresentation {
     public boolean isThisRelationOmitted(InstanceToInstanceRelation relation) {
         switch (relation.instanceRelationClass) {
             case TO_PARENT:
-                return ((instanceRelationsJson.containsKey(PARENT_INSTANCES)
-                        && instanceRelationsJson.getJsonArray(PARENT_INSTANCES).isEmpty())
+                return ((instanceRelationsJson.containsKey(InstanceReferences.PARENT_INSTANCES)
+                        && instanceRelationsJson.getJsonArray(InstanceReferences.PARENT_INSTANCES).isEmpty())
                         || isThisRelationOmitted(parentRelations, relation));
             case TO_CHILD:
-                return ((instanceRelationsJson.containsKey(CHILD_INSTANCES)
-                        && instanceRelationsJson.getJsonArray(CHILD_INSTANCES).isEmpty())
+                return ((instanceRelationsJson.containsKey(InstanceReferences.CHILD_INSTANCES)
+                        && instanceRelationsJson.getJsonArray(InstanceReferences.CHILD_INSTANCES).isEmpty())
                         || isThisRelationOmitted(childRelations, relation));
             case TO_PRECEDING:
-                return ((instanceRelationsJson.containsKey(PRECEDING_TITLES)
-                        && instanceRelationsJson.getJsonArray(PRECEDING_TITLES).isEmpty())
+                return ((instanceRelationsJson.containsKey(InstanceReferences.PRECEDING_TITLES)
+                        && instanceRelationsJson.getJsonArray(InstanceReferences.PRECEDING_TITLES).isEmpty())
                         || isThisRelationOmitted(precedingTitles, relation));
             case TO_SUCCEEDING:
-                return ((instanceRelationsJson.containsKey(SUCCEEDING_TITLES)
-                        && instanceRelationsJson.getJsonArray(SUCCEEDING_TITLES).isEmpty())
+                return ((instanceRelationsJson.containsKey(InstanceReferences.SUCCEEDING_TITLES)
+                        && instanceRelationsJson.getJsonArray(InstanceReferences.SUCCEEDING_TITLES).isEmpty())
                         || isThisRelationOmitted(succeedingTitles, relation));
         }
         return false;
@@ -461,25 +452,29 @@ public class InventoryRecordSet extends JsonRepresentation {
             if (!relation.failed() && !(relation.hasPreparedProvisionalInstance() && relation.getProvisionalInstance().getHRID()==null)) {
                 switch ( relation.instanceRelationClass ) {
                     case TO_PARENT:
-                        if (!relationsJson.containsKey(PARENT_INSTANCES)) relationsJson.put(PARENT_INSTANCES, new JsonArray());
-                        relationsJson.getJsonArray(PARENT_INSTANCES).add(relationJson);
+                        if (!relationsJson.containsKey(InstanceReferences.PARENT_INSTANCES)) relationsJson.put(
+                                InstanceReferences.PARENT_INSTANCES, new JsonArray());
+                        relationsJson.getJsonArray(InstanceReferences.PARENT_INSTANCES).add(relationJson);
                         break;
                     case TO_CHILD:
-                        if (!relationsJson.containsKey(CHILD_INSTANCES)) relationsJson.put(CHILD_INSTANCES, new JsonArray());
-                        relationsJson.getJsonArray(CHILD_INSTANCES).add(relationJson);
+                        if (!relationsJson.containsKey(InstanceReferences.CHILD_INSTANCES)) relationsJson.put(
+                                InstanceReferences.CHILD_INSTANCES, new JsonArray());
+                        relationsJson.getJsonArray(InstanceReferences.CHILD_INSTANCES).add(relationJson);
                         break;
                     case TO_PRECEDING:
-                        if (!relationsJson.containsKey(PRECEDING_TITLES)) relationsJson.put(PRECEDING_TITLES, new JsonArray());
-                        relationsJson.getJsonArray(PRECEDING_TITLES).add(relationJson);
+                        if (!relationsJson.containsKey(InstanceReferences.PRECEDING_TITLES)) relationsJson.put(
+                                InstanceReferences.PRECEDING_TITLES, new JsonArray());
+                        relationsJson.getJsonArray(InstanceReferences.PRECEDING_TITLES).add(relationJson);
                         break;
                     case TO_SUCCEEDING:
-                        if (!relationsJson.containsKey(SUCCEEDING_TITLES)) relationsJson.put(SUCCEEDING_TITLES, new JsonArray());
-                        relationsJson.getJsonArray(SUCCEEDING_TITLES).add(relationJson);
+                        if (!relationsJson.containsKey(InstanceReferences.SUCCEEDING_TITLES)) relationsJson.put(
+                                InstanceReferences.SUCCEEDING_TITLES, new JsonArray());
+                        relationsJson.getJsonArray(InstanceReferences.SUCCEEDING_TITLES).add(relationJson);
                         break;
                 }
             }
         }
-        recordSetJson.put(INSTANCE_RELATIONS, relationsJson);
+        recordSetJson.put(InstanceReferences.INSTANCE_RELATIONS, relationsJson);
         recordSetJson.put(PROCESSING, processing);
         return recordSetJson;
     }

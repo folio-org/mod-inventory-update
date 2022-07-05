@@ -2,11 +2,9 @@ package org.folio.inventoryupdate.entities;
 
 import io.vertx.core.json.JsonObject;
 import org.folio.inventoryupdate.ErrorReport;
-import org.folio.inventoryupdate.QueryByUUID;
 
 import java.util.UUID;
 
-import static org.folio.inventoryupdate.entities.InstanceRelations.INSTANCE_IDENTIFIER;
 import static org.folio.inventoryupdate.entities.InstanceRelationship.INSTANCE_RELATIONSHIP_TYPE_ID;
 import static org.folio.inventoryupdate.entities.InstanceToInstanceRelation.PROVISIONAL_INSTANCE;
 import static org.folio.inventoryupdate.entities.InventoryRecordSet.HRID_IDENTIFIER_KEY;
@@ -14,6 +12,11 @@ import static org.folio.inventoryupdate.entities.InventoryRecordSet.UUID_IDENTIF
 
 public class InstanceReference {
 
+  public static final String INSTANCE_IDENTIFIER = "instanceIdentifier";
+  public static final String ID = "id";
+  public static final String INSTANCE_TYPE_ID = "instanceTypeId";
+  public static final String TITLE = "title";
+  public static final String SOURCE = "source";
   String fromInstanceId = null;
   String referencedInstanceId;
   JsonObject instanceReferenceJson;
@@ -74,9 +77,9 @@ public class InstanceReference {
     if (provisionalInstanceProperties == null) {
       return false;
     } else {
-      if (provisionalInstanceProperties.getString( InstanceRelations.TITLE) != null
-              && provisionalInstanceProperties.getString( InstanceRelations.SOURCE) != null
-              && provisionalInstanceProperties.getString( InstanceRelations.INSTANCE_TYPE_ID) != null) {
+      if (provisionalInstanceProperties.getString( TITLE) != null
+              && provisionalInstanceProperties.getString( SOURCE) != null
+              && provisionalInstanceProperties.getString( INSTANCE_TYPE_ID) != null) {
         return true;
       } else {
         return false;

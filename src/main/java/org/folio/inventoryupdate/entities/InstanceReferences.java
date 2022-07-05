@@ -5,10 +5,16 @@ import io.vertx.core.json.JsonObject;
 import java.util.ArrayList;
 import java.util.List;
 
-import static org.folio.inventoryupdate.entities.InstanceRelations.*;
-
 public class InstanceReferences {
 
+  // JSON property keys
+  public static final String INSTANCE_RELATIONS = "instanceRelations";
+  public static final String EXISTING_PARENT_CHILD_RELATIONS = "existingParentChildRelations";
+  public static final String PARENT_INSTANCES = "parentInstances";
+  public static final String CHILD_INSTANCES = "childInstances";
+  public static final String SUCCEEDING_TITLES = "succeedingTitles";
+  public static final String PRECEDING_TITLES = "precedingTitles";
+  public static final String EXISTING_PRECEDING_SUCCEEDING_TITLES = "existingPrecedingSucceedingTitles";
   JsonObject incomingInstanceRelations = null;
   List<InstanceReference> references = new ArrayList<>();
 

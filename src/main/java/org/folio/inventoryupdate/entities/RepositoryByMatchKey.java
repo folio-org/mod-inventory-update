@@ -19,7 +19,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
-import static org.folio.inventoryupdate.entities.InstanceRelations.logger;
 import static org.folio.inventoryupdate.entities.InventoryRecordSet.*;
 
 public class RepositoryByMatchKey extends Repository {
@@ -84,8 +83,7 @@ public class RepositoryByMatchKey extends Repository {
   }
 
   protected List<String> getExistingInstanceIdsIncludingSecondaryInstances () {
-    List<String> instanceIds = new ArrayList<>();
-    instanceIds.addAll(getExistingInstanceIds());
+    List<String> instanceIds = new ArrayList<>(getExistingInstanceIds());
     for (Instance instance : secondaryInstancesByLocalIdentifier.values()) {
       instanceIds.add(instance.getUUID());
     }
@@ -116,8 +114,6 @@ public class RepositoryByMatchKey extends Repository {
         }
         InventoryRecordSet existingSet = InventoryRecordSet.makeExistingRecordSet(existingRecordSetJson);
         pair.setExistingRecordSet(existingSet);
-      } else {
-        logger.debug( "No existing Instance MatchKey [" + incomingInstanceMatchKey + "] found in repo.");
       }
     }
   }
@@ -200,7 +196,6 @@ public class RepositoryByMatchKey extends Repository {
       }
     }
     if (missMappings) {
-      logger.debug("Miss mappings for at least one location, retrieving locations from Inventory storage");
       InventoryStorage.getLocations(InventoryStorage.getOkapiClient(routingContext)).onComplete(gotLocations -> {
         if (gotLocations.succeeded()) {
           JsonArray locationsJson = gotLocations.result();
@@ -219,7 +214,6 @@ public class RepositoryByMatchKey extends Repository {
               JsonObject location = (JsonObject) locationsIterator.next();
               UpdatePlanSharedInventory.locationsToInstitutionsMap.put(location.getString("id"), location.getString("institutionId"));
             }
-            logger.debug("Updated a map of " + UpdatePlanSharedInventory.locationsToInstitutionsMap.size() + " FOLIO locations to institutions.");
             mapReady.complete();
           }
         } else {

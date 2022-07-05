@@ -17,7 +17,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import static org.folio.inventoryupdate.entities.InstanceRelations.*;
 import static org.folio.inventoryupdate.entities.InventoryRecordSet.*;
 
 public class RepositoryByHrids extends Repository {
@@ -140,8 +139,6 @@ public class RepositoryByHrids extends Repository {
         }
         pair.setExistingRecordSet(existingSet);
 
-      } else {
-        logger.debug("No existing Instance HRID [" + incomingInstanceHrid + "] found in repo.");
       }
     }
   }
@@ -159,8 +156,6 @@ public class RepositoryByHrids extends Repository {
                     existingInstancesByHrid.put(instance.getHRID(), instance);
                     existingInstancesByUUID.put(instance.getUUID(), instance);
                   }
-                } else {
-                  logger.debug("Instances by HRIDs, result was null");
                 }
                 promise.complete();
               } else {
@@ -421,14 +416,14 @@ public class RepositoryByHrids extends Repository {
       JsonObject instanceRelations = pair.getIncomingRecordSet().instanceRelationsJson;
       for (JsonArray array :
               Arrays.asList(
-                      instanceRelations.getJsonArray(PARENT_INSTANCES),
-                      instanceRelations.getJsonArray(CHILD_INSTANCES),
-                      instanceRelations.getJsonArray(SUCCEEDING_TITLES),
-                      instanceRelations.getJsonArray(PRECEDING_TITLES))) {
+                      instanceRelations.getJsonArray(InstanceReferences.PARENT_INSTANCES),
+                      instanceRelations.getJsonArray(InstanceReferences.CHILD_INSTANCES),
+                      instanceRelations.getJsonArray(InstanceReferences.SUCCEEDING_TITLES),
+                      instanceRelations.getJsonArray(InstanceReferences.PRECEDING_TITLES))) {
         if (array != null && ! array.isEmpty()) {
           for (Object o : array) {
             JsonObject rel = (JsonObject) o;
-            JsonObject instanceIdentifier = rel.getJsonObject( INSTANCE_IDENTIFIER );
+            JsonObject instanceIdentifier = rel.getJsonObject( InstanceReference.INSTANCE_IDENTIFIER );
             if (instanceIdentifier != null && instanceIdentifier.containsKey( HRID_IDENTIFIER_KEY )) {
               hrids.add(instanceIdentifier.getString(HRID_IDENTIFIER_KEY));
             }
@@ -445,14 +440,14 @@ public class RepositoryByHrids extends Repository {
       JsonObject instanceRelations = pair.getIncomingRecordSet().instanceRelationsJson;
       for (JsonArray array :
               Arrays.asList(
-                      instanceRelations.getJsonArray(PARENT_INSTANCES),
-                      instanceRelations.getJsonArray(CHILD_INSTANCES),
-                      instanceRelations.getJsonArray(SUCCEEDING_TITLES),
-                      instanceRelations.getJsonArray(PRECEDING_TITLES))) {
+                      instanceRelations.getJsonArray(InstanceReferences.PARENT_INSTANCES),
+                      instanceRelations.getJsonArray(InstanceReferences.CHILD_INSTANCES),
+                      instanceRelations.getJsonArray(InstanceReferences.SUCCEEDING_TITLES),
+                      instanceRelations.getJsonArray(InstanceReferences.PRECEDING_TITLES))) {
         if (array != null && ! array.isEmpty()) {
           for (Object o : array) {
             JsonObject rel = (JsonObject) o;
-            JsonObject instanceIdentifier = rel.getJsonObject( INSTANCE_IDENTIFIER );
+            JsonObject instanceIdentifier = rel.getJsonObject( InstanceReference.INSTANCE_IDENTIFIER );
             if (instanceIdentifier != null && instanceIdentifier.containsKey( UUID_IDENTIFIER_KEY )) {
               uuids.add(instanceIdentifier.getString(UUID_IDENTIFIER_KEY));
             }

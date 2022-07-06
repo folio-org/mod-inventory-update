@@ -79,6 +79,7 @@ public class UpdatePlanAllHRIDs extends UpdatePlan {
                             ErrorReport.ErrorCategory.VALIDATION,
                             UNPROCESSABLE_ENTITY,
                             "HRID is missing or empty.")
+                            .setRequestJson(inventoryRecordSet)
                             .setEntityType(InventoryRecord.Entity.INSTANCE)
                             .setEntity(inventoryRecordSet.getJsonObject(INSTANCE)));
         }
@@ -94,10 +95,11 @@ public class UpdatePlanAllHRIDs extends UpdatePlan {
                                     ErrorReport.ErrorCategory.VALIDATION,
                                     UNPROCESSABLE_ENTITY,
                                     "Holdings must have a HRID to be processed by this API. Title: " + instanceTitle)
-                                    .setShortMessage("Missing HRID in holdings record")
-                                    .setEntityType(InventoryRecord.Entity.HOLDINGS_RECORD)
-                                    .setEntity(record)
-                                    .setDetails(inventoryRecordSet));
+                                        .setRequestJson(inventoryRecordSet)
+                                        .setShortMessage("Missing HRID in holdings record")
+                                        .setEntityType(InventoryRecord.Entity.HOLDINGS_RECORD)
+                                        .setEntity(record)
+                                        .setDetails(inventoryRecordSet));
                         }
                         if (record.containsKey("items")) {
                             record.getJsonArray("items")
@@ -111,9 +113,10 @@ public class UpdatePlanAllHRIDs extends UpdatePlan {
                                                     ErrorReport.ErrorCategory.VALIDATION,
                                                     UNPROCESSABLE_ENTITY,
                                                     "Items must have a HRID to be processed by this API. Title: " + instanceTitle)
-                                                    .setShortMessage("Missing HRID in Item")
-                                                    .setEntity(item)
-                                                    .setDetails(inventoryRecordSet));
+                                                         .setRequestJson(inventoryRecordSet)
+                                                         .setShortMessage("Missing HRID in Item")
+                                                         .setEntity(item)
+                                                         .setDetails(inventoryRecordSet));
                                         }
                                     });
                         }

@@ -16,7 +16,6 @@ public class InventoryUpdateOutcome {
   public static final String METRICS = "metrics";
   public static final String ERRORS = "errors";
   int statusCode;
-  ErrorReport error;
   JsonObject result = new JsonObject();
   List<ErrorReport> errors = new ArrayList<>();
   UpdateMetrics metrics;
@@ -26,7 +25,7 @@ public class InventoryUpdateOutcome {
 
   public InventoryUpdateOutcome(ErrorReport error) {
     this.statusCode = error.statusCode;
-    this.error = error;
+    errors.add(error);
   }
 
   public InventoryUpdateOutcome (JsonObject result) {
@@ -61,6 +60,18 @@ public class InventoryUpdateOutcome {
     return this;
   }
 
+  public boolean hasError () {
+    return errors.size() == 1;
+  }
+
+  public ErrorReport getError () {
+    if (hasErrors()) {
+      return errors.get(0);
+    } else {
+      return null;
+    }
+  }
+
   public JsonArray getErrorsAsJsonArray () {
     JsonArray array = new JsonArray();
     for (ErrorReport error : errors) {
@@ -74,17 +85,20 @@ public class InventoryUpdateOutcome {
     return this;
   }
 
-
   public JsonObject getJson() {
     return result;
   }
 
   public boolean isError () {
-    return error != null;
+    return hasError();
   }
 
   public ErrorReport getErrorResponse() {
-    return error;
+    if (isError()) {
+      return errors.get(0);
+    } else {
+      return null;
+    }
   }
 
   public boolean failed () {
@@ -92,10 +106,15 @@ public class InventoryUpdateOutcome {
   }
 
   public void respond (RoutingContext routingContext) {
-    if (statusCode == OK || statusCode == MULTI_STATUS) {
-      responseJson(routingContext, statusCode).end(result.encodePrettily());
-    } else {
-      getErrorResponse().respond(routingContext);
+    try {
+      if (statusCode == OK || statusCode == MULTI_STATUS) {
+        responseJson(routingContext, statusCode).end(getJson().encodePrettily());
+      } else {
+        getErrorResponse().respond(routingContext);
+      }
+    }
+    catch (Exception e) {
+      e.printStackTrace();
     }
   }
 }

@@ -51,5 +51,9 @@ public class RequestValidation {
         return (hasErrors() ? errors.get(0).getEntity() : new JsonObject());
     }
 
+    public JsonObject getFirstRequestJson () {
+        return hasErrors() ? errors.get(0).getRequestJson() : new JsonObject();
+
+    }
 
 }

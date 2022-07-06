@@ -265,10 +265,11 @@ public class InventoryUpdateTestSuite {
     JsonObject instancesBeforePutJson = getRecordsFromStorage(FakeInventoryStorage.INSTANCE_STORAGE_PATH, null);
     testContext.assertEquals(instancesBeforePutJson.getInteger("totalRecords"), 1,
             "Number of instance records for before PUT expected: 1" );
-    batchUpsertByHrid(207,batch.getJson());
+    Response response = batchUpsertByHrid(207,batch.getJson());
     JsonObject instancesAfterPutJson = getRecordsFromStorage(FakeInventoryStorage.INSTANCE_STORAGE_PATH, null);
     testContext.assertEquals(instancesAfterPutJson.getInteger("totalRecords"), 100,
             "Number of instance records after PUT expected: 100" );
+    logger.info("batch response with error: " + response.prettyPrint());
   }
 
   @Test
@@ -288,7 +289,7 @@ public class InventoryUpdateTestSuite {
     JsonObject instancesBeforePutJson = getRecordsFromStorage(FakeInventoryStorage.INSTANCE_STORAGE_PATH, null);
     testContext.assertEquals(instancesBeforePutJson.getInteger("totalRecords"), 1,
             "Number of instance records for before PUT expected: 1" );
-    batchUpsertByHrid(207,batch.getJson());
+    Response response = batchUpsertByHrid(207,batch.getJson());
     JsonObject instancesAfterPutJson = getRecordsFromStorage(FakeInventoryStorage.INSTANCE_STORAGE_PATH, null);
     testContext.assertEquals(instancesAfterPutJson.getInteger("totalRecords"), 100,
             "Number of instance records after PUT expected: 100" );
@@ -2152,6 +2153,7 @@ public class InventoryUpdateTestSuite {
     JsonObject responseJson = new JsonObject(response.getBody().asString());
     testContext.assertEquals(getMetric(responseJson, ITEM, CREATE , FAILED), 3,
             "Upsert metrics response should report [3] item record create failures (forced) " + responseJson.encodePrettily());
+    logger.info(responseJson.encodePrettily());
 
   }
 
@@ -2325,7 +2327,8 @@ public class InventoryUpdateTestSuite {
                     .add(new InputHoldingsRecord().setHrid("HOL-002").setPermanentLocationId(LOCATION_ID_1).setCallNumber("test-cn-2").getJson()
                             .put("items", new JsonArray()
                                     .add(new InputItem().setHrid("ITM-003").setBarcode("BC-003").getJson()))));
-    upsertByHrid (500,inventoryRecordSet);
+    Response response = upsertByHrid (500,inventoryRecordSet);
+    logger.info(response.asPrettyString());
 
   }
 
@@ -2343,7 +2346,8 @@ public class InventoryUpdateTestSuite {
                     .add(new InputHoldingsRecord().setHrid("HOL-002").setPermanentLocationId(LOCATION_ID_1).setCallNumber("test-cn-2").getJson()
                             .put("items", new JsonArray()
                                     .add(new InputItem().setHrid("ITM-003").setBarcode("BC-003").getJson()))));
-    upsertByHrid (500,inventoryRecordSet);
+    Response response = upsertByHrid (500,inventoryRecordSet);
+    logger.info(response.asPrettyString());
 
   }
 
@@ -2368,7 +2372,8 @@ public class InventoryUpdateTestSuite {
                     .put("succeedingTitles", new JsonArray())
                     .put("precedingTitles", new JsonArray()));
     upsertByHrid (inventoryRecordSet);
-    upsertByHrid (500,inventoryRecordSet);
+    Response response = upsertByHrid (500,inventoryRecordSet);
+    logger.info(response.asPrettyString());
 
   }
 

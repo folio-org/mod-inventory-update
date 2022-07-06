@@ -106,6 +106,7 @@ public class InventoryRecordSet extends JsonRepresentation {
                             ErrorReport.ErrorCategory.VALIDATION,
                             BAD_REQUEST,
                             "Did not recognize input as an Inventory record set")
+                            .setRequestJson(inventoryRecordSet)
                             .setShortMessage("Not an Inventory record set.")
                             .setEntity(inventoryRecordSet));
         }

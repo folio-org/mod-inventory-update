@@ -74,21 +74,18 @@ public class InventoryUpdateService {
           update.result().respond(routingContext);
         } else {
           if (inventoryRecordSets.size() > 1) {
-            logger.error("A batch update failed bringing down all records of the batch. Switching to record-by-record updates");
+            logger.error("A batch upsert failed, bringing down all records of the batch. Switching to record-by-record updates");
             UpdateMetrics accumulatedStats = new UpdateMetrics();
             JsonArray accumulatedErrorReport = new JsonArray();
             InventoryUpdateOutcome compositeOutcome = new InventoryUpdateOutcome();
             plan.multipleSingleRecordUpserts(routingContext, inventoryRecordSets).onComplete(
                     listOfOutcomes -> {
-                      int i = 1;
                       for (InventoryUpdateOutcome outcome : listOfOutcomes.result()) {
                         if (outcome.hasMetrics()) {
                           accumulatedStats.add(outcome.metrics);
-                        } else {
-                          logger.info("Processing InventoryUpdateOutcome without metrics (?)");
                         }
-                        if (outcome.hasErrors()) {
-                          accumulatedErrorReport.addAll(outcome.getErrorsAsJsonArray());
+                        if (outcome.hasError()) {
+                          accumulatedErrorReport.add(outcome.getError().asJson());
                         }
                       }
                       compositeOutcome.setMetrics(accumulatedStats);
@@ -163,13 +160,8 @@ public class InventoryUpdateService {
             InventoryUpdateOutcome compositeOutcome = new InventoryUpdateOutcome();
             plan.multipleSingleRecordUpserts(routingContext, inventoryRecordSets).onComplete(
                     listOfOutcomes -> {
-                      int i = 1;
                       for (InventoryUpdateOutcome outcome : listOfOutcomes.result()) {
-                        if (outcome.hasMetrics()) {
-                          accumulatedStats.add(outcome.metrics);
-                        } else {
-                          logger.info("Processing InventoryUpdateOutcome without metrics (?)");
-                        }
+                        outcome.setMetrics(plan.getUpdateMetricsFromRepository());
                         if (outcome.hasErrors()) {
                           accumulatedErrorReport.addAll(outcome.getErrorsAsJsonArray());
                         }

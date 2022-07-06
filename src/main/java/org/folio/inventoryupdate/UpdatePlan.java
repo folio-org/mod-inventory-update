@@ -104,7 +104,7 @@ public abstract class UpdatePlan {
                                                         new JsonObject());
 
                                                 if (inventoryUpdated.succeeded()) {
-                                                    response.put("metrics", getUpdateStatsFromRepository());
+                                                    response.put("metrics", getUpdateMetricsFromRepository().asJson());
                                                     InventoryUpdateOutcome outcome =
                                                             new InventoryUpdateOutcome(
                                                                     response)
@@ -130,11 +130,11 @@ public abstract class UpdatePlan {
                                                         // This will cause the controller to switch to record-by-record
                                                         promise.fail(report.asJsonString());
                                                     } else {
-                                                        response.put("metrics", getUpdateStatsFromRepository());
                                                         response.put("errors", getErrorsUsingRepository());
                                                         InventoryUpdateOutcome outcome =
                                                                 new InventoryUpdateOutcome(response)
-                                                                        .setResponseStatusCode(MULTI_STATUS);
+                                                                        .setResponseStatusCode(MULTI_STATUS)
+                                                                        .setMetrics(getUpdateMetricsFromRepository());
                                                         promise.complete(outcome);
                                                     }
                                                 }
@@ -143,6 +143,9 @@ public abstract class UpdatePlan {
                                     InventoryUpdateOutcome outcome = new InventoryUpdateOutcome(
                                             ErrorReport.makeErrorReportFromJsonString(
                                                             result.cause().getMessage())
+                                                    .setRequestJson(batchOfOne ?
+                                                            inventoryRecordSets.getJsonObject(0)
+                                                            : new JsonObject())
                                                     .setShortMessage("Fetching from storage before update failed."));
                                     promise.complete(outcome);
                                 }
@@ -152,14 +155,21 @@ public abstract class UpdatePlan {
                     ErrorReport.ErrorCategory.VALIDATION,
                     UNPROCESSABLE_ENTITY,
                     validations.firstMessage())
+                    .setRequestJson(validations.getFirstRequestJson())
                     .setEntityType(validations.firstEntityType())
                     .setEntity(validations.firstEntity())
                     .setShortMessage(validations.firstShortMessage())
-                    .setDetails(validations.asJson());
+                    .setRequestJson(validations.getFirstRequestJson());
             if (batchOfOne) {
-                promise.complete(new InventoryUpdateOutcome(report));
+                UpdateMetrics metrics = getUpdateMetricsFromRepository();
+                metrics.entity(Entity.INSTANCE)
+                        .transaction(Transaction.CREATE)
+                        .outcomes.increment(InventoryRecord.Outcome.SKIPPED);
+                InventoryUpdateOutcome validationErrorOutcome =
+                        new InventoryUpdateOutcome(report).setMetrics(metrics);
+                promise.complete(validationErrorOutcome);
             } else {
-                // Pre-validation of batch of record sets failed, switch to record-by-record upsert
+                // Pre-validation of batch of multiple record sets failed, switch to record-by-record upsert
                 // to process the good record sets, if any.
                 promise.fail(report.asJsonString());
             }
@@ -206,7 +216,9 @@ public abstract class UpdatePlan {
         for (JsonArray arrayOfOneRecordSet : arraysOfOneRecordSet) {
             fut = fut.compose(v -> {
                 // First time around, a null outcome is passed in
-                if (v != null) outcomes.add(v);
+                if (v != null) {
+                    outcomes.add(v);
+                }
                 return upsertMethod.apply(routingContext, arrayOfOneRecordSet);
             });
         }
@@ -509,69 +521,74 @@ public abstract class UpdatePlan {
                 : new JsonObject();
     }
 
-    public JsonObject getUpdateStatsFromRepository() {
+    public UpdateMetrics getUpdateMetricsFromRepository() {
         UpdateMetrics metrics = new UpdateMetrics();
-        for (PairedRecordSets pair : repository.getPairsOfRecordSets()) {
-            if (pair.hasIncomingRecordSet()) {
-                InventoryRecordSet updatingSet = pair.getIncomingRecordSet();
-                Instance updatingInstance = pair.getIncomingRecordSet().getInstance();
-                metrics.entity(Entity.INSTANCE).transaction(updatingInstance.getTransaction()).outcomes.increment(
-                        updatingInstance.getOutcome());
-                List<InventoryRecord> holdingsRecordsAndItemsInUpdatingSet = Stream.of(updatingSet.getHoldingsRecords(),
-                        updatingSet.getItems()).flatMap(Collection::stream).collect(Collectors.toList());
-                for (InventoryRecord record : holdingsRecordsAndItemsInUpdatingSet) {
-                    metrics.entity(record.entityType()).transaction(record.getTransaction()).outcomes.increment(record.getOutcome());
-                }
-                if (!updatingSet.getInstanceToInstanceRelations().isEmpty()) {
-                    for (InstanceToInstanceRelation record : updatingSet.getInstanceToInstanceRelations()) {
-                        if (!record.getTransaction().equals(InventoryRecord.Transaction.NONE)) {
-                            if (record.getTransaction().equals(Transaction.UNKNOWN)) {
-                                logger.debug("Cannot increment outcome for transaction UNKNOWN");
-                            } else {
-                                metrics.entity(record.entityType()).transaction(record.getTransaction()).outcomes.increment(
-                                        record.getOutcome());
-                                if (record.getProvisionalInstance() != null) {
-                                    ( (UpdateMetrics.InstanceRelationsMetrics) metrics.entity(record.entityType()) ).provisionalInstanceMetrics.increment(
-                                            record.getProvisionalInstance().getOutcome());
+        try {
+            for (PairedRecordSets pair : repository.getPairsOfRecordSets()) {
+                if (pair.hasIncomingRecordSet()) {
+                    InventoryRecordSet updatingSet = pair.getIncomingRecordSet();
+                    Instance updatingInstance = pair.getIncomingRecordSet().getInstance();
+                    metrics.entity(Entity.INSTANCE).transaction(updatingInstance.getTransaction()).outcomes.increment(
+                            updatingInstance.getOutcome());
+                    List<InventoryRecord> holdingsRecordsAndItemsInUpdatingSet = Stream.of(
+                            updatingSet.getHoldingsRecords(), updatingSet.getItems()).flatMap(
+                            Collection::stream).collect(Collectors.toList());
+                    for (InventoryRecord record : holdingsRecordsAndItemsInUpdatingSet) {
+                        metrics.entity(record.entityType()).transaction(record.getTransaction()).outcomes.increment(record.getOutcome());
+                    }
+                    if (!updatingSet.getInstanceToInstanceRelations().isEmpty()) {
+                        for (InstanceToInstanceRelation record : updatingSet.getInstanceToInstanceRelations()) {
+                            if (!record.getTransaction().equals(InventoryRecord.Transaction.NONE)) {
+                                if (record.getTransaction().equals(Transaction.UNKNOWN)) {
+                                    logger.debug("Cannot increment outcome for transaction UNKNOWN");
+                                } else {
+                                    metrics.entity(record.entityType()).transaction(record.getTransaction()).outcomes.increment(
+                                            record.getOutcome());
+                                    if (record.getProvisionalInstance() != null) {
+                                        ( (UpdateMetrics.InstanceRelationsMetrics) metrics.entity(
+                                                record.entityType()) ).provisionalInstanceMetrics.increment(
+                                                record.getProvisionalInstance().getOutcome());
+                                    }
                                 }
                             }
                         }
                     }
                 }
             }
-        }
-        if (!repository.getPairsOfRecordSets().isEmpty() && repository.getPairsOfRecordSets().get(0).hasExistingRecordSet()) {
-            InventoryRecordSet existingSet = repository.getPairsOfRecordSets().get(0).getExistingRecordSet();
-            if (existingSet.getInstance().isDeleting()) {
-                InventoryRecord record = existingSet.getInstance();
-                metrics.entity(record.entityType()).transaction(record.getTransaction()).outcomes.increment(record.getOutcome());
-            }
-            List<InventoryRecord> holdingsRecordsAndItemsInExistingSet = Stream.of(
-                    existingSet.getHoldingsRecords(),
-                    existingSet.getItems()
-            ).flatMap(Collection::stream).collect(Collectors.toList());
-
-            for (InventoryRecord record : holdingsRecordsAndItemsInExistingSet) {
-                if (record.isDeleting()) {
+            if (!repository.getPairsOfRecordSets().isEmpty() && repository.getPairsOfRecordSets().get(
+                    0).hasExistingRecordSet()) {
+                InventoryRecordSet existingSet = repository.getPairsOfRecordSets().get(0).getExistingRecordSet();
+                if (existingSet.getInstance().isDeleting()) {
+                    InventoryRecord record = existingSet.getInstance();
                     metrics.entity(record.entityType()).transaction(record.getTransaction()).outcomes.increment(record.getOutcome());
                 }
-            }
-            if (! existingSet.getInstanceToInstanceRelations().isEmpty()) {
-                for ( InstanceToInstanceRelation record : existingSet.getInstanceToInstanceRelations() ) {
-                    if ( !record.getTransaction().equals( InventoryRecord.Transaction.NONE ) ) {
-                        metrics.entity( record.entityType() ).transaction( record.getTransaction() ).outcomes.increment(
-                                record.getOutcome() );
-                        if ( record.getProvisionalInstance() != null && ! record.getProvisionalInstance().failed() ) {
-                            Instance provisionalInstance = record.getProvisionalInstance();
-                            ( (UpdateMetrics.InstanceRelationsMetrics) metrics.entity( record.entityType() ) ).provisionalInstanceMetrics.increment(
-                                    provisionalInstance.getOutcome() );
+                List<InventoryRecord> holdingsRecordsAndItemsInExistingSet = Stream.of(existingSet.getHoldingsRecords(),
+                        existingSet.getItems()).flatMap(Collection::stream).collect(Collectors.toList());
+
+                for (InventoryRecord record : holdingsRecordsAndItemsInExistingSet) {
+                    if (record.isDeleting()) {
+                        metrics.entity(record.entityType()).transaction(record.getTransaction()).outcomes.increment(record.getOutcome());
+                    }
+                }
+                if (!existingSet.getInstanceToInstanceRelations().isEmpty()) {
+                    for (InstanceToInstanceRelation record : existingSet.getInstanceToInstanceRelations()) {
+                        if (!record.getTransaction().equals(InventoryRecord.Transaction.NONE)) {
+                            metrics.entity(record.entityType()).transaction(record.getTransaction()).outcomes.increment(
+                                    record.getOutcome());
+                            if (record.getProvisionalInstance() != null && !record.getProvisionalInstance().failed()) {
+                                Instance provisionalInstance = record.getProvisionalInstance();
+                                ( (UpdateMetrics.InstanceRelationsMetrics) metrics.entity(record.entityType()) ).provisionalInstanceMetrics.increment(
+                                        provisionalInstance.getOutcome());
+                            }
                         }
                     }
                 }
-            }
 
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
         }
-        return metrics.asJson();
+        return metrics;
     }
 
     public JsonObject getUpdateStats () {

@@ -1,6 +1,5 @@
 package org.folio.inventoryupdate;
 
-import io.vertx.core.json.DecodeException;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.RoutingContext;
@@ -32,6 +31,7 @@ public class ErrorReport {
   private static final String SHORT_MESSAGE = "shortMessage";
   private static final String ENTITY = "entity";
   private static final String DETAILS = "details";
+  private static final String REQUEST_JSON = "requestJson";
 
 
   ErrorCategory category;
@@ -43,6 +43,7 @@ public class ErrorReport {
   String messageAsString;
   JsonObject messageAsJson;
   JsonObject entity;
+  JsonObject requestJson;
   JsonObject details = new JsonObject();
 
   public ErrorReport(ErrorCategory category, int statusCode, Object message) {
@@ -68,10 +69,15 @@ public class ErrorReport {
 
   public static ErrorReport makeErrorReportFromJsonString(String jsonString) {
       JsonObject json = new JsonObject(jsonString);
-      return new ErrorReport(getCategoryFromString(json.getString(CATEGORY)), json.getInteger(STATUS_CODE),
-              json.getValue(MESSAGE)).setShortMessage(json.getString(SHORT_MESSAGE)).setEntity(json.getJsonObject(ENTITY)).setTransaction(
-              json.getString(TRANSACTION)).setEntityType(getEntityTypeFromString(json.getString(ENTITY_TYPE))).setDetails(
-              json.getJsonObject(DETAILS));
+      return new ErrorReport(getCategoryFromString(json.getString(CATEGORY)),
+              json.getInteger(STATUS_CODE),
+              json.getValue(MESSAGE))
+              .setShortMessage(json.getString(SHORT_MESSAGE))
+              .setEntity(json.getJsonObject(ENTITY))
+              .setTransaction(json.getString(TRANSACTION))
+              .setEntityType(getEntityTypeFromString(json.getString(ENTITY_TYPE)))
+              .setRequestJson(json.getJsonObject(REQUEST_JSON))
+              .setDetails(json.getJsonObject(DETAILS));
   }
 
   public boolean isBatchStorageError () {
@@ -101,6 +107,15 @@ public class ErrorReport {
   public ErrorReport setEntityType(InventoryRecord.Entity entityType) {
     this.entityType = entityType;
     return this;
+  }
+
+  public ErrorReport setRequestJson(JsonObject requestJson) {
+    this.requestJson = requestJson;
+    return this;
+  }
+
+  public JsonObject getRequestJson() {
+    return this.requestJson;
   }
 
   public ErrorReport setTransaction(String transaction) {
@@ -171,6 +186,7 @@ public class ErrorReport {
     errorJson.put(ENTITY_TYPE, (entityType == null ? "" : entityType.toString()));
     errorJson.put(ENTITY, entity == null ? new JsonObject() : entity);
     errorJson.put(STATUS_CODE, statusCode);
+    errorJson.put(REQUEST_JSON, requestJson);
     errorJson.put(DETAILS, details == null ? new JsonObject() : details);
     return errorJson;
   }
@@ -184,6 +200,6 @@ public class ErrorReport {
   }
 
   public void respond(RoutingContext routingContext) {
-    responseJson(routingContext, getStatusCode()).end(asJsonString());
+    responseJson(routingContext, getStatusCode()).end(asJsonPrettily());
   }
 }

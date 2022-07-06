@@ -58,7 +58,7 @@ public class InventoryRecordSet extends JsonRepresentation {
         if (inventoryRecordSet != null) {
             logger.debug("Creating InventoryRecordSet from " + inventoryRecordSet.encodePrettily());
             sourceJson = new JsonObject(inventoryRecordSet.toString());
-            theInstance = new Instance(inventoryRecordSet.getJsonObject(INSTANCE));
+            theInstance = new Instance(inventoryRecordSet.getJsonObject(INSTANCE), sourceJson);
             registerHoldingsRecordsAndItems(inventoryRecordSet.getJsonArray(HOLDINGS_RECORDS));
             instanceRelationsJson = (sourceJson.containsKey(InstanceReferences.INSTANCE_RELATIONS) ? sourceJson.getJsonObject(
                     InstanceReferences.INSTANCE_RELATIONS) : new JsonObject());
@@ -90,7 +90,7 @@ public class InventoryRecordSet extends JsonRepresentation {
         InventoryRecordSet set = new InventoryRecordSet(inventoryRecordSet);
         set.isIncoming = true;
         if (!set.instanceRelationsJson.isEmpty()) {
-            set.instanceReferences = new InstanceReferences(set.instanceRelationsJson);
+            set.instanceReferences = new InstanceReferences(set.instanceRelationsJson, set.sourceJson);
         }
         return set;
     }
@@ -131,10 +131,10 @@ public class InventoryRecordSet extends JsonRepresentation {
                 if (holdingsRecordJson.containsKey(ITEMS)) {
                     items = extractJsonArrayFromObject(holdingsRecordJson, ITEMS);
                 }
-                HoldingsRecord holdingsRecord = new HoldingsRecord(holdingsRecordJson);
+                HoldingsRecord holdingsRecord = new HoldingsRecord(holdingsRecordJson, sourceJson);
                 for (Object object : items) {
                     JsonObject itemJson = (JsonObject) object;
-                    Item item = new Item(itemJson);
+                    Item item = new Item(itemJson, sourceJson);
                     String itemHrid = itemJson.getString( HRID_IDENTIFIER_KEY );
                     if (itemHrid != null && !itemHrid.isEmpty()) {
                         itemsByHRID.put(itemHrid, item);

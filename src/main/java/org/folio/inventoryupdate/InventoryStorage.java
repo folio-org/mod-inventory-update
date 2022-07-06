@@ -64,7 +64,7 @@ public class InventoryStorage {
       } else {
         record.fail();
         record.skipDependants();
-        record.logError(okapiClient.getResponsebody(), okapiClient.getStatusCode(), ErrorReport.ErrorCategory.STORAGE);
+        record.logError(okapiClient.getResponsebody(), okapiClient.getStatusCode(), ErrorReport.ErrorCategory.STORAGE, record.getOriginJson());
         promise.fail(record.getErrorAsJson().encodePrettily());
       }
     });
@@ -102,7 +102,8 @@ public class InventoryStorage {
             record.logError(
                     okapiClient.getResponsebody(),
                     okapiClient.getStatusCode(),
-                    (records.size()>1 ? ErrorReport.ErrorCategory.BATCH_STORAGE : ErrorReport.ErrorCategory.STORAGE)
+                    (records.size()>1 ? ErrorReport.ErrorCategory.BATCH_STORAGE : ErrorReport.ErrorCategory.STORAGE),
+                    record.getOriginJson()
             );
           }
           promise.fail(records.get(0).getErrorAsJson().encodePrettily());
@@ -131,7 +132,7 @@ public class InventoryStorage {
         promise.complete(record.asJson());
       } else {
         record.fail();
-        record.logError(okapiClient.getResponsebody(), okapiClient.getStatusCode(), ErrorReport.ErrorCategory.STORAGE);
+        record.logError(okapiClient.getResponsebody(), okapiClient.getStatusCode(), ErrorReport.ErrorCategory.STORAGE, record.getOriginJson());
         promise.fail(record.getErrorAsJson().encodePrettily());
       }
     });
@@ -146,7 +147,7 @@ public class InventoryStorage {
         promise.complete();
       } else {
         record.fail();
-        record.logError(deleteResult.cause().getMessage(), okapiClient.getStatusCode(), ErrorReport.ErrorCategory.STORAGE);
+        record.logError(deleteResult.cause().getMessage(), okapiClient.getStatusCode(), ErrorReport.ErrorCategory.STORAGE, record.getOriginJson());
         promise.fail(record.getErrorAsJson().encodePrettily());
       }
     });

@@ -6,6 +6,12 @@ public class Item extends InventoryRecord {
 
     public static final String HOLDINGS_RECORD_ID = "holdingsRecordId";
 
+    public Item (JsonObject item, JsonObject originJson) {
+        this.jsonRecord = item;
+        entityType = Entity.ITEM;
+        this.originJson = originJson;
+    }
+
     public Item (JsonObject item) {
         this.jsonRecord = item;
         entityType = Entity.ITEM;

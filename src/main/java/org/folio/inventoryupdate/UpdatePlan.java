@@ -111,7 +111,7 @@ public abstract class UpdatePlan {
                                                                     .setResponseStatusCode(OK);
                                                     promise.complete(outcome);
                                                 } else {
-                                                    logger.error("Update failed " +
+                                                    logger.error((batchOfOne ? "Single record batch " : "Multi-record batch") + " update failed " +
                                                             inventoryUpdated.cause().getMessage());
                                                     ErrorReport report = ErrorReport
                                                             .makeErrorReportFromJsonString(
@@ -130,7 +130,9 @@ public abstract class UpdatePlan {
                                                         // This will cause the controller to switch to record-by-record
                                                         promise.fail(report.asJsonString());
                                                     } else {
-                                                        response.put("errors", getErrorsUsingRepository());
+                                                        JsonArray errors = new JsonArray();
+                                                        errors.add(report.asJson());
+                                                        response.put("errors", errors);
                                                         InventoryUpdateOutcome outcome =
                                                                 new InventoryUpdateOutcome(response)
                                                                         .setResponseStatusCode(MULTI_STATUS)
@@ -143,9 +145,6 @@ public abstract class UpdatePlan {
                                     InventoryUpdateOutcome outcome = new InventoryUpdateOutcome(
                                             ErrorReport.makeErrorReportFromJsonString(
                                                             result.cause().getMessage())
-                                                    .setRequestJson(batchOfOne ?
-                                                            inventoryRecordSets.getJsonObject(0)
-                                                            : new JsonObject())
                                                     .setShortMessage("Fetching from storage before update failed."));
                                     promise.complete(outcome);
                                 }

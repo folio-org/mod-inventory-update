@@ -17,38 +17,40 @@ public class InstanceReferences {
   public static final String EXISTING_PRECEDING_SUCCEEDING_TITLES = "existingPrecedingSucceedingTitles";
   JsonObject incomingInstanceRelations = null;
   List<InstanceReference> references = new ArrayList<>();
+  JsonObject originJson;
 
-  public InstanceReferences(JsonObject instanceRelations) {
+  public InstanceReferences(JsonObject instanceRelations, JsonObject originJson) {
     if (instanceRelations != null) {
       incomingInstanceRelations = instanceRelations;
-      registerIncomingInstanceReferences(instanceRelations);
+      registerIncomingInstanceReferences(instanceRelations, originJson);
     }
+    this.originJson = originJson;
   }
 
 
-  public void registerIncomingInstanceReferences (JsonObject instanceRelationsJson) {
+  public void registerIncomingInstanceReferences (JsonObject instanceRelationsJson, JsonObject originJson) {
     if (instanceRelationsJson.containsKey(PARENT_INSTANCES)) {
       for (Object o : instanceRelationsJson.getJsonArray(PARENT_INSTANCES)) {
         references.add(new InstanceReference((JsonObject) o,
-                InstanceToInstanceRelation.InstanceRelationsClass.TO_PARENT));
+                InstanceToInstanceRelation.InstanceRelationsClass.TO_PARENT, originJson));
       }
     }
     if (instanceRelationsJson.containsKey(CHILD_INSTANCES)) {
       for (Object o : instanceRelationsJson.getJsonArray(CHILD_INSTANCES)) {
         references.add(new InstanceReference((JsonObject) o,
-                InstanceToInstanceRelation.InstanceRelationsClass.TO_CHILD));
+                InstanceToInstanceRelation.InstanceRelationsClass.TO_CHILD, originJson));
       }
     }
     if (instanceRelationsJson.containsKey(SUCCEEDING_TITLES)) {
       for (Object o : instanceRelationsJson.getJsonArray(SUCCEEDING_TITLES)) {
         references.add(new InstanceReference((JsonObject) o,
-                InstanceToInstanceRelation.InstanceRelationsClass.TO_SUCCEEDING));
+                InstanceToInstanceRelation.InstanceRelationsClass.TO_SUCCEEDING, originJson));
       }
     }
     if (instanceRelationsJson.containsKey(PRECEDING_TITLES)) {
       for (Object o : instanceRelationsJson.getJsonArray(PRECEDING_TITLES)) {
         references.add(new InstanceReference((JsonObject) o,
-                InstanceToInstanceRelation.InstanceRelationsClass.TO_PRECEDING));
+                InstanceToInstanceRelation.InstanceRelationsClass.TO_PRECEDING, originJson));
       }
     }
   }

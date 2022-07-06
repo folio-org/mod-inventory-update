@@ -102,7 +102,7 @@ public class InventoryUpdateService {
               BAD_REQUEST,
               "Did not recognize request body as a batch of Inventory record sets")
               .setShortMessage("Not a batch of Inventory record sets")
-              .setEntity(incomingValidJson.getJson())
+              .setRequestJson(incomingValidJson.getJson())
               .respond(routingContext);
     }
   }

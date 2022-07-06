@@ -45,6 +45,7 @@ public abstract class InventoryRecord {
     }
 
     protected JsonObject jsonRecord;
+    protected JsonObject originJson;
     public static final String VERSION = "_version";
     protected ErrorReport error;
     protected Entity entityType;
@@ -126,6 +127,10 @@ public abstract class InventoryRecord {
         return this.outcome;
     }
 
+    public JsonObject getOriginJson () {
+        return this.originJson;
+    }
+
     public void complete() {
         this.outcome = Outcome.COMPLETED;
     }
@@ -146,12 +151,12 @@ public abstract class InventoryRecord {
         return this.outcome == Outcome.SKIPPED;
     }
 
-    public void logError (String error, int statusCode, ErrorReport.ErrorCategory category) {
+    public void logError (String error, int statusCode, ErrorReport.ErrorCategory category, JsonObject originJson) {
         Object message = maybeJson(error);
-        logError(error, statusCode, category, findShortMessage(message));
+        logError(error, statusCode, category, findShortMessage(message), originJson);
     }
 
-    public void logError (String error, int statusCode, ErrorReport.ErrorCategory category, String shortMessage) {
+    public void logError (String error, int statusCode, ErrorReport.ErrorCategory category, String shortMessage, JsonObject originJson) {
         Object message = maybeJson(error);
         this.error = new ErrorReport(
                 category,
@@ -161,7 +166,8 @@ public abstract class InventoryRecord {
                 .setTransaction(getTransaction() == null ? "" : getTransaction().toString())
                 .setStatusCode(statusCode)
                 .setShortMessage(shortMessage)
-                .setEntity(jsonRecord);
+                .setEntity(jsonRecord)
+                .setRequestJson(originJson);
     }
 
     protected static Object maybeJson (String message) {

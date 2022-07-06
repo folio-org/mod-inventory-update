@@ -21,10 +21,12 @@ public class InstanceReference {
   String referencedInstanceId;
   JsonObject instanceReferenceJson;
   InstanceToInstanceRelation.InstanceRelationsClass typeOfRelation;
+  JsonObject originJson;
 
-  public InstanceReference (JsonObject referenceJson, InstanceToInstanceRelation.InstanceRelationsClass typeOfRelation ) {
+  public InstanceReference (JsonObject referenceJson, InstanceToInstanceRelation.InstanceRelationsClass typeOfRelation, JsonObject originJson ) {
     instanceReferenceJson = referenceJson;
     this.typeOfRelation = typeOfRelation;
+    this.originJson = originJson;
   }
 
   public boolean hasReferenceHrid () {
@@ -130,12 +132,12 @@ public class InstanceReference {
           provisionalInstance.logError(
                   "Provided data not sufficient for creating provisional Instance",
                   422,
-                  ErrorReport.ErrorCategory.STORAGE);
+                  ErrorReport.ErrorCategory.STORAGE,relation.originJson);
           relation.fail();
           relation.logError(
                   "Cannot create relation; Instance not found and miss data for provisional instance",
                   422,
-                  ErrorReport.ErrorCategory.STORAGE);
+                  ErrorReport.ErrorCategory.STORAGE, relation.originJson);
         }
         relation.setProvisionalInstance(provisionalInstance);
       }

@@ -44,6 +44,10 @@ public class InventoryUpdateTestSuite {
   public static final String LOCATION_ID_2 = "LOC2";
   public static final String INSTITUTION_ID_2 = "INST2";
 
+  public static final String MATERIAL_TYPE_TEXT = "TEXT";
+
+  public static final String STATUS_UNKNOWN = "Unknown";
+
   public static final String CREATE = org.folio.inventoryupdate.entities.InventoryRecord.Transaction.CREATE.name();
   public static final String UPDATE = org.folio.inventoryupdate.entities.InventoryRecord.Transaction.UPDATE.name();
   public static final String DELETE = org.folio.inventoryupdate.entities.InventoryRecord.Transaction.DELETE.name();
@@ -329,6 +333,35 @@ public class InventoryUpdateTestSuite {
             "Number of instance records after PUT expected: 100" );
   }
 
+  @Test
+  public void batchWithMultipleLowLevelProblemsWillRespondWithMultipleErrors (TestContext testContext) {
+    BatchOfInventoryRecordSets batch = new BatchOfInventoryRecordSets();
+    for (int i=0; i<99; i++) {
+      batch.addRecordSet(
+              new JsonObject()
+                      .put("instance",
+                              new InputInstance()
+                                      .setTitle("New title " + i)
+                                      .setSource("test")
+                                      .setHrid("in" + i)
+                                      .setInstanceTypeId("12345").getJson())
+                      .put("holdingsRecords", new JsonArray()
+                              .add(new InputHoldingsRecord()
+                                      .setHrid("H" + i + "-1")
+                                      .setPermanentLocationId(LOCATION_ID_1)
+                                      .getJson()
+                                      .put("items", new JsonArray()
+                                              .add(new InputItem()
+                                                      .setStatus(STATUS_UNKNOWN)
+                                                      .setMaterialTypeId(MATERIAL_TYPE_TEXT)
+                                                      .setHrid("I" + i + "-1-1" ))))
+                              .add(new InputHoldingsRecord()
+                                      .setHrid("H" + i + "-2")
+                                      .setPermanentLocationId(LOCATION_ID_2).getJson()
+                                      .put("items", new JsonArray()))));
+    }
+
+  }
 
   @Test
   public void upsertByMatchKeyWithMultipleMatchKeyPartsWillCreateNewInstance (TestContext testContext) {
@@ -401,11 +434,20 @@ public class InventoryUpdateTestSuite {
             .put("holdingsRecords", new JsonArray()
                     .add(new InputHoldingsRecord().setHrid("HOL-001").setPermanentLocationId(LOCATION_ID_1).setCallNumber("test-cn-1").getJson()
                             .put("items", new JsonArray()
-                                    .add(new InputItem().setHrid("ITM-001").setBarcode("BC-001").getJson())
-                                    .add(new InputItem().setHrid("ITM-002").setBarcode("BC-002").getJson())))
+                                    .add(new InputItem().setHrid("ITM-001")
+                                            .setStatus(STATUS_UNKNOWN)
+                                            .setMaterialTypeId(MATERIAL_TYPE_TEXT)
+                                            .setBarcode("BC-001").getJson())
+                                    .add(new InputItem().setHrid("ITM-002")
+                                    .setStatus(STATUS_UNKNOWN)
+                                    .setMaterialTypeId(MATERIAL_TYPE_TEXT)
+                                    .setBarcode("BC-002").getJson())))
                     .add(new InputHoldingsRecord().setHrid("HOL-002").setPermanentLocationId(LOCATION_ID_1).setCallNumber("test-cn-2").getJson()
                             .put("items", new JsonArray()
-                                    .add(new InputItem().setHrid("ITM-003").setBarcode("BC-003").getJson())))));
+                                    .add(new InputItem().setHrid("ITM-003")
+                                            .setStatus(STATUS_UNKNOWN)
+                                            .setMaterialTypeId(MATERIAL_TYPE_TEXT)
+                                            .setBarcode("BC-003").getJson())))));
 
     String instanceId = upsertResponseJson.getJsonObject("instance").getString("id");
 
@@ -431,11 +473,20 @@ public class InventoryUpdateTestSuite {
             .put("holdingsRecords", new JsonArray()
                     .add(new InputHoldingsRecord().setHrid("HOL-001").setPermanentLocationId(LOCATION_ID_1).setCallNumber("test-cn-1").getJson()
                             .put("items", new JsonArray()
-                                    .add(new InputItem().setHrid("ITM-001").setBarcode("BC-001").getJson())
-                                    .add(new InputItem().setHrid("ITM-002").setBarcode("BC-002").getJson())))
+                                    .add(new InputItem().setHrid("ITM-001")
+                                            .setStatus(STATUS_UNKNOWN)
+                                            .setMaterialTypeId(MATERIAL_TYPE_TEXT)
+                                            .setBarcode("BC-001").getJson())
+                                    .add(new InputItem().setHrid("ITM-002")
+                                            .setStatus(STATUS_UNKNOWN)
+                                            .setMaterialTypeId(MATERIAL_TYPE_TEXT)
+                                            .setBarcode("BC-002").getJson())))
                     .add(new InputHoldingsRecord().setHrid("HOL-002").setPermanentLocationId(LOCATION_ID_1).setCallNumber("test-cn-2").getJson()
                             .put("items", new JsonArray()
-                                    .add(new InputItem().setHrid("ITM-003").setBarcode("BC-003").getJson())))));
+                                    .add(new InputItem().setHrid("ITM-003")
+                                            .setStatus(STATUS_UNKNOWN)
+                                            .setMaterialTypeId(MATERIAL_TYPE_TEXT)
+                                            .setBarcode("BC-003").getJson())))));
 
     testContext.assertEquals(getMetric(upsertResponseJson, HOLDINGS_RECORD, CREATE , COMPLETED), 2,
             "Upsert metrics response should report [2] holdings records successfully created " + upsertResponseJson.encodePrettily());
@@ -448,11 +499,20 @@ public class InventoryUpdateTestSuite {
             .put("holdingsRecords", new JsonArray()
                     .add(new InputHoldingsRecord().setHrid("HOL-001").setPermanentLocationId(LOCATION_ID_1).setCallNumber("updated-1").getJson()
                             .put("items", new JsonArray()
-                                    .add(new InputItem().setHrid("ITM-001").setBarcode("updated").getJson())
-                                    .add(new InputItem().setHrid("ITM-002").setBarcode("updated").getJson())))
+                                    .add(new InputItem().setHrid("ITM-001")
+                                            .setStatus(STATUS_UNKNOWN)
+                                            .setMaterialTypeId(MATERIAL_TYPE_TEXT)
+                                            .setBarcode("updated").getJson())
+                                    .add(new InputItem().setHrid("ITM-002")
+                                            .setStatus(STATUS_UNKNOWN)
+                                            .setMaterialTypeId(MATERIAL_TYPE_TEXT)
+                                            .setBarcode("updated").getJson())))
                     .add(new InputHoldingsRecord().setHrid("HOL-002").setPermanentLocationId(LOCATION_ID_1).setCallNumber("updated-2").getJson()
                             .put("items", new JsonArray()
-                                    .add(new InputItem().setHrid("ITM-003").setBarcode("updated").getJson())))));
+                                    .add(new InputItem().setHrid("ITM-003")
+                                            .setStatus(STATUS_UNKNOWN)
+                                            .setMaterialTypeId(MATERIAL_TYPE_TEXT)
+                                            .setBarcode("updated").getJson())))));
 
     testContext.assertEquals(getMetric(upsertResponseJson, HOLDINGS_RECORD, DELETE , COMPLETED), 2,
             "Upsert metrics response should report [2] holdings records successfully deleted " + upsertResponseJson.encodePrettily());
@@ -487,11 +547,20 @@ public class InventoryUpdateTestSuite {
             .put("holdingsRecords", new JsonArray()
                     .add(new InputHoldingsRecord().setPermanentLocationId(LOCATION_ID_1).setCallNumber("test-cn-1").getJson()
                             .put("items", new JsonArray()
-                                    .add(new InputItem().setBarcode("BC-001").getJson())
-                                    .add(new InputItem().setBarcode("BC-002").getJson())))
+                                    .add(new InputItem()
+                                            .setStatus(STATUS_UNKNOWN)
+                                            .setMaterialTypeId(MATERIAL_TYPE_TEXT)
+                                            .setBarcode("BC-001").getJson())
+                                    .add(new InputItem()
+                                            .setStatus(STATUS_UNKNOWN)
+                                            .setMaterialTypeId(MATERIAL_TYPE_TEXT)
+                                            .setBarcode("BC-002").getJson())))
                     .add(new InputHoldingsRecord().setPermanentLocationId(LOCATION_ID_1).setCallNumber("test-cn-2").getJson()
                             .put("items", new JsonArray()
-                                    .add(new InputItem().setBarcode("BC-003").getJson()))))
+                                    .add(new InputItem()
+                                            .setStatus(STATUS_UNKNOWN)
+                                            .setMaterialTypeId(MATERIAL_TYPE_TEXT)
+                                            .setBarcode("BC-003").getJson()))))
             .put("processing", new JsonObject()
                     .put("localIdentifier",identifierValue1)));
 
@@ -522,11 +591,20 @@ public class InventoryUpdateTestSuite {
             .put("holdingsRecords", new JsonArray()
                     .add(new InputHoldingsRecord().setPermanentLocationId(LOCATION_ID_2).setCallNumber("test-cn-3").getJson()
                             .put("items", new JsonArray()
-                                    .add(new InputItem().setBarcode("BC-004").getJson())
-                                    .add(new InputItem().setBarcode("BC-005").getJson())))
+                                    .add(new InputItem()
+                                            .setStatus(STATUS_UNKNOWN)
+                                            .setMaterialTypeId(MATERIAL_TYPE_TEXT)
+                                            .setBarcode("BC-004").getJson())
+                                    .add(new InputItem()
+                                            .setStatus(STATUS_UNKNOWN)
+                                            .setMaterialTypeId(MATERIAL_TYPE_TEXT)
+                                            .setBarcode("BC-005").getJson())))
                     .add(new InputHoldingsRecord().setPermanentLocationId(LOCATION_ID_2).setCallNumber("test-cn-4").getJson()
                             .put("items", new JsonArray()
-                                    .add(new InputItem().setBarcode("BC-006").getJson())))));
+                                    .add(new InputItem()
+                                            .setStatus(STATUS_UNKNOWN)
+                                            .setMaterialTypeId(MATERIAL_TYPE_TEXT)
+                                            .setBarcode("BC-006").getJson())))));
 
     testContext.assertEquals(getMetric(upsertResponseJson2, HOLDINGS_RECORD, CREATE , COMPLETED), 2,
             "Metrics after second upsert should report additional [2] holdings records successfully created " + upsertResponseJson2.encodePrettily());
@@ -584,11 +662,20 @@ public class InventoryUpdateTestSuite {
             .put("holdingsRecords", new JsonArray()
                     .add(new InputHoldingsRecord().setPermanentLocationId(LOCATION_ID_1).setCallNumber("test-cn-1").getJson()
                             .put("items", new JsonArray()
-                                    .add(new InputItem().setBarcode("BC-001").getJson())
-                                    .add(new InputItem().setBarcode("BC-002").getJson())))
+                                    .add(new InputItem()
+                                            .setStatus(STATUS_UNKNOWN)
+                                            .setMaterialTypeId(MATERIAL_TYPE_TEXT)
+                                            .setBarcode("BC-001").getJson())
+                                    .add(new InputItem()
+                                            .setStatus(STATUS_UNKNOWN)
+                                            .setMaterialTypeId(MATERIAL_TYPE_TEXT)
+                                            .setBarcode("BC-002").getJson())))
                     .add(new InputHoldingsRecord().setPermanentLocationId(LOCATION_ID_1).setCallNumber("test-cn-2").getJson()
                             .put("items", new JsonArray()
-                                    .add(new InputItem().setBarcode("BC-003").getJson())))));
+                                    .add(new InputItem()
+                                            .setStatus(STATUS_UNKNOWN)
+                                            .setMaterialTypeId(MATERIAL_TYPE_TEXT)
+                                            .setBarcode("BC-003").getJson())))));
 
     String instanceId = upsertResponseJson1.getJsonObject("instance").getString("id");
 
@@ -617,11 +704,20 @@ public class InventoryUpdateTestSuite {
             .put("holdingsRecords", new JsonArray()
                     .add(new InputHoldingsRecord().setPermanentLocationId(LOCATION_ID_2).setCallNumber("test-cn-3").getJson()
                             .put("items", new JsonArray()
-                                    .add(new InputItem().setBarcode("BC-004").getJson())
-                                    .add(new InputItem().setBarcode("BC-005").getJson())))
+                                    .add(new InputItem()
+                                            .setStatus(STATUS_UNKNOWN)
+                                            .setMaterialTypeId(MATERIAL_TYPE_TEXT)
+                                            .setBarcode("BC-004").getJson())
+                                    .add(new InputItem()
+                                            .setStatus(STATUS_UNKNOWN)
+                                            .setMaterialTypeId(MATERIAL_TYPE_TEXT)
+                                            .setBarcode("BC-005").getJson())))
                     .add(new InputHoldingsRecord().setPermanentLocationId(LOCATION_ID_2).setCallNumber("test-cn-4").getJson()
                             .put("items", new JsonArray()
-                                    .add(new InputItem().setBarcode("BC-006").getJson())))));
+                                    .add(new InputItem()
+                                            .setStatus(STATUS_UNKNOWN)
+                                            .setMaterialTypeId(MATERIAL_TYPE_TEXT)
+                                            .setBarcode("BC-006").getJson())))));
 
     testContext.assertEquals(getMetric(upsertResponseJson2, HOLDINGS_RECORD, CREATE , COMPLETED), 2,
             "Metrics after second upsert should report additional [2] holdings records successfully created " + upsertResponseJson2.encodePrettily());
@@ -680,11 +776,20 @@ public class InventoryUpdateTestSuite {
             .put("holdingsRecords", new JsonArray()
                     .add(new InputHoldingsRecord().setPermanentLocationId(LOCATION_ID_1).setCallNumber("test-cn-1").getJson()
                             .put("items", new JsonArray()
-                                    .add(new InputItem().setBarcode("BC-001").getJson())
-                                    .add(new InputItem().setBarcode("BC-002").getJson())))
+                                    .add(new InputItem()
+                                            .setStatus(STATUS_UNKNOWN)
+                                            .setMaterialTypeId(MATERIAL_TYPE_TEXT)
+                                            .setBarcode("BC-001").getJson())
+                                    .add(new InputItem()
+                                            .setStatus(STATUS_UNKNOWN)
+                                            .setMaterialTypeId(MATERIAL_TYPE_TEXT)
+                                            .setBarcode("BC-002").getJson())))
                     .add(new InputHoldingsRecord().setPermanentLocationId(LOCATION_ID_1).setCallNumber("test-cn-2").getJson()
                             .put("items", new JsonArray()
-                                    .add(new InputItem().setBarcode("BC-003").getJson()))))
+                                    .add(new InputItem()
+                                            .setStatus(STATUS_UNKNOWN)
+                                            .setMaterialTypeId(MATERIAL_TYPE_TEXT)
+                                            .setBarcode("BC-003").getJson()))))
             .put("processing", new JsonObject()
                     .put("identifierTypeId", identifierTypeId1)
                     .put("localIdentifier", identifierValue1)));
@@ -717,11 +822,20 @@ public class InventoryUpdateTestSuite {
             .put("holdingsRecords", new JsonArray()
                     .add(new InputHoldingsRecord().setPermanentLocationId(LOCATION_ID_2).setCallNumber("test-cn-3").getJson()
                             .put("items", new JsonArray()
-                                    .add(new InputItem().setBarcode("BC-004").getJson())
-                                    .add(new InputItem().setBarcode("BC-005").getJson())))
+                                    .add(new InputItem()
+                                            .setStatus(STATUS_UNKNOWN)
+                                            .setMaterialTypeId(MATERIAL_TYPE_TEXT)
+                                            .setBarcode("BC-004").getJson())
+                                    .add(new InputItem()
+                                            .setStatus(STATUS_UNKNOWN)
+                                            .setMaterialTypeId(MATERIAL_TYPE_TEXT)
+                                            .setBarcode("BC-005").getJson())))
                     .add(new InputHoldingsRecord().setPermanentLocationId(LOCATION_ID_2).setCallNumber("test-cn-4").getJson()
                             .put("items", new JsonArray()
-                                    .add(new InputItem().setBarcode("BC-006").getJson()))))
+                                    .add(new InputItem()
+                                            .setStatus(STATUS_UNKNOWN)
+                                            .setMaterialTypeId(MATERIAL_TYPE_TEXT)
+                                            .setBarcode("BC-006").getJson()))))
             .put("processing", new JsonObject()
                     .put("identifierTypeId", identifierTypeId2)
                     .put("localIdentifier", identifierValue2)));
@@ -752,11 +866,20 @@ public class InventoryUpdateTestSuite {
             .put("holdingsRecords", new JsonArray()
                     .add(new InputHoldingsRecord().setPermanentLocationId(LOCATION_ID_1).setCallNumber("test-cn-1").getJson()
                             .put("items", new JsonArray()
-                                    .add(new InputItem().setBarcode("BC-001").getJson())
-                                    .add(new InputItem().setBarcode("BC-002").getJson())))
+                                    .add(new InputItem()
+                                            .setStatus(STATUS_UNKNOWN)
+                                            .setMaterialTypeId(MATERIAL_TYPE_TEXT)
+                                            .setBarcode("BC-001").getJson())
+                                    .add(new InputItem()
+                                            .setStatus(STATUS_UNKNOWN)
+                                            .setMaterialTypeId(MATERIAL_TYPE_TEXT)
+                                            .setBarcode("BC-002").getJson())))
                     .add(new InputHoldingsRecord().setPermanentLocationId(LOCATION_ID_1).setCallNumber("test-cn-2").getJson()
                             .put("items", new JsonArray()
-                                    .add(new InputItem().setBarcode("BC-003").getJson()))))
+                                    .add(new InputItem()
+                                            .setStatus(STATUS_UNKNOWN)
+                                            .setMaterialTypeId(MATERIAL_TYPE_TEXT)
+                                            .setBarcode("BC-003").getJson()))))
             .put("processing", new JsonObject()
                     .put("identifierTypeId", identifierTypeId1)
                     .put("localIdentifier", identifierValue1)));
@@ -863,11 +986,20 @@ public class InventoryUpdateTestSuite {
             .put("holdingsRecords", new JsonArray()
               .add(new InputHoldingsRecord().setHrid("HOL-001").setPermanentLocationId(LOCATION_ID_1).setCallNumber("test-cn-1").getJson()
                       .put("items", new JsonArray()
-                        .add(new InputItem().setHrid("ITM-001").setBarcode("BC-001").getJson())
-                        .add(new InputItem().setHrid("ITM-002").setBarcode("BC-002").getJson())))
+                        .add(new InputItem().setHrid("ITM-001")
+                                .setStatus(STATUS_UNKNOWN)
+                                .setMaterialTypeId(MATERIAL_TYPE_TEXT)
+                                .setBarcode("BC-001").getJson())
+                        .add(new InputItem().setHrid("ITM-002")
+                                .setStatus(STATUS_UNKNOWN)
+                                .setMaterialTypeId(MATERIAL_TYPE_TEXT)
+                                .setBarcode("BC-002").getJson())))
               .add(new InputHoldingsRecord().setHrid("HOL-002").setPermanentLocationId(LOCATION_ID_1).setCallNumber("test-cn-2").getJson()
                       .put("items", new JsonArray()
-                        .add(new InputItem().setHrid("ITM-003").setBarcode("BC-003").getJson())))));
+                        .add(new InputItem().setHrid("ITM-003")
+                                .setStatus(STATUS_UNKNOWN)
+                                .setMaterialTypeId(MATERIAL_TYPE_TEXT)
+                                .setBarcode("BC-003").getJson())))));
 
     String instanceId = upsertResponseJson.getJsonObject("instance").getString("id");
 
@@ -910,11 +1042,20 @@ public class InventoryUpdateTestSuite {
             .put("holdingsRecords", new JsonArray()
                     .add(new InputHoldingsRecord().setHrid("HOL-001").setPermanentLocationId(LOCATION_ID_1).setCallNumber("test-cn-1").getJson()
                             .put("items", new JsonArray()
-                                    .add(new InputItem().setHrid("ITM-001").setBarcode("BC-001").getJson())
-                                    .add(new InputItem().setHrid("ITM-002").setBarcode("BC-002").getJson())))
+                                    .add(new InputItem().setHrid("ITM-001")
+                                            .setStatus(STATUS_UNKNOWN)
+                                            .setMaterialTypeId(MATERIAL_TYPE_TEXT)
+                                            .setBarcode("BC-001").getJson())
+                                    .add(new InputItem().setHrid("ITM-002")
+                                            .setStatus(STATUS_UNKNOWN)
+                                            .setMaterialTypeId(MATERIAL_TYPE_TEXT)
+                                            .setBarcode("BC-002").getJson())))
                     .add(new InputHoldingsRecord().setHrid("HOL-002").setPermanentLocationId(LOCATION_ID_1).setCallNumber("test-cn-2").getJson()
                             .put("items", new JsonArray()
-                                    .add(new InputItem().setHrid("ITM-003").setBarcode("BC-003").getJson())))));
+                                    .add(new InputItem()
+                                            .setStatus(STATUS_UNKNOWN)
+                                            .setMaterialTypeId(MATERIAL_TYPE_TEXT)
+                                            .setHrid("ITM-003").setBarcode("BC-003").getJson())))));
 
     testContext.assertEquals(getMetric(upsertResponseJson, HOLDINGS_RECORD, CREATE , COMPLETED), 2,
             "Upsert metrics response should report [2] holdings records successfully created " + upsertResponseJson.encodePrettily());
@@ -927,11 +1068,20 @@ public class InventoryUpdateTestSuite {
             .put("holdingsRecords", new JsonArray()
                     .add(new InputHoldingsRecord().setHrid("HOL-001").setPermanentLocationId(LOCATION_ID_1).setCallNumber("updated-1").getJson()
                             .put("items", new JsonArray()
-                                    .add(new InputItem().setHrid("ITM-001").setBarcode("updated").getJson())
-                                    .add(new InputItem().setHrid("ITM-002").setBarcode("updated").getJson())))
+                                    .add(new InputItem().setHrid("ITM-001")
+                                            .setStatus(STATUS_UNKNOWN)
+                                            .setMaterialTypeId(MATERIAL_TYPE_TEXT)
+                                            .setBarcode("updated").getJson())
+                                    .add(new InputItem().setHrid("ITM-002")
+                                            .setStatus(STATUS_UNKNOWN)
+                                            .setMaterialTypeId(MATERIAL_TYPE_TEXT)
+                                            .setBarcode("updated").getJson())))
                     .add(new InputHoldingsRecord().setHrid("HOL-002").setPermanentLocationId(LOCATION_ID_1).setCallNumber("updated-2").getJson()
                             .put("items", new JsonArray()
-                                    .add(new InputItem().setHrid("ITM-003").setBarcode("updated").getJson())))));
+                                    .add(new InputItem().setHrid("ITM-003")
+                                            .setStatus(STATUS_UNKNOWN)
+                                            .setMaterialTypeId(MATERIAL_TYPE_TEXT)
+                                            .setBarcode("updated").getJson())))));
 
     testContext.assertEquals(getMetric(upsertResponseJson, HOLDINGS_RECORD, UPDATE , COMPLETED), 2,
             "Upsert metrics response should report [2] holdings records successfully updated " + upsertResponseJson.encodePrettily());
@@ -954,11 +1104,20 @@ public class InventoryUpdateTestSuite {
             .put("holdingsRecords", new JsonArray()
                     .add(new InputHoldingsRecord().setHrid("HOL-001").setPermanentLocationId(LOCATION_ID_1).setCallNumber("test-cn-1").getJson()
                             .put("items", new JsonArray()
-                                    .add(new InputItem().setHrid("ITM-001").setBarcode("BC-001").setStatus("On order").getJson())
-                                    .add(new InputItem().setHrid("ITM-002").setBarcode("BC-002").setStatus("Unknown").getJson())))
+                                    .add(new InputItem().setHrid("ITM-001")
+                                            .setStatus(STATUS_UNKNOWN)
+                                            .setMaterialTypeId(MATERIAL_TYPE_TEXT)
+                                            .setBarcode("BC-001").setStatus("On order").getJson())
+                                    .add(new InputItem().setHrid("ITM-002")
+                                            .setStatus(STATUS_UNKNOWN)
+                                            .setMaterialTypeId(MATERIAL_TYPE_TEXT)
+                                            .setBarcode("BC-002").setStatus("Unknown").getJson())))
                     .add(new InputHoldingsRecord().setHrid("HOL-002").setPermanentLocationId(LOCATION_ID_1).setCallNumber("test-cn-2").getJson()
                             .put("items", new JsonArray()
-                                    .add(new InputItem().setHrid("ITM-003").setBarcode("BC-003").getJson())))));
+                                    .add(new InputItem().setHrid("ITM-003")
+                                            .setStatus(STATUS_UNKNOWN)
+                                            .setMaterialTypeId(MATERIAL_TYPE_TEXT)
+                                            .setBarcode("BC-003").getJson())))));
 
     testContext.assertEquals(getMetric(upsertResponseJson, HOLDINGS_RECORD, CREATE , COMPLETED), 2,
             "Upsert metrics response should report [2] holdings records successfully created " + upsertResponseJson.encodePrettily());
@@ -971,11 +1130,20 @@ public class InventoryUpdateTestSuite {
             .put("holdingsRecords", new JsonArray()
                     .add(new InputHoldingsRecord().setHrid("HOL-001").setPermanentLocationId(LOCATION_ID_1).setCallNumber("updated-1").getJson()
                             .put("items", new JsonArray()
-                                    .add(new InputItem().setHrid("ITM-001").setBarcode("updated").setStatus("Available").getJson())
-                                    .add(new InputItem().setHrid("ITM-002").setBarcode("updated").setStatus("Available").getJson())))
+                                    .add(new InputItem().setHrid("ITM-001")
+                                            .setStatus(STATUS_UNKNOWN)
+                                            .setMaterialTypeId(MATERIAL_TYPE_TEXT)
+                                            .setBarcode("updated").setStatus("Available").getJson())
+                                    .add(new InputItem().setHrid("ITM-002")
+                                            .setStatus(STATUS_UNKNOWN)
+                                            .setMaterialTypeId(MATERIAL_TYPE_TEXT)
+                                            .setBarcode("updated").setStatus("Available").getJson())))
                     .add(new InputHoldingsRecord().setHrid("HOL-002").setPermanentLocationId(LOCATION_ID_1).setCallNumber("updated-2").getJson()
                             .put("items", new JsonArray()
-                                    .add(new InputItem().setHrid("ITM-003").setBarcode("updated").getJson()))))
+                                    .add(new InputItem().setHrid("ITM-003")
+                                            .setStatus(STATUS_UNKNOWN)
+                                            .setMaterialTypeId(MATERIAL_TYPE_TEXT)
+                                            .setBarcode("updated").getJson()))))
             .put("processing", new InputProcessingInstructions()
                     .setItemStatusPolicy(ProcessingInstructions.ITEM_STATUS_POLICY_OVERWRITE)
                     .setListOfStatuses("On order").getJson()));
@@ -1005,11 +1173,20 @@ public class InventoryUpdateTestSuite {
             .put("holdingsRecords", new JsonArray()
                     .add(new InputHoldingsRecord().setHrid("HOL-001").setPermanentLocationId(LOCATION_ID_1).setCallNumber("test-cn-1").getJson()
                             .put("items", new JsonArray()
-                                    .add(new InputItem().setHrid("ITM-001").setBarcode("BC-001").setStatus("On order").getJson())
-                                    .add(new InputItem().setHrid("ITM-002").setBarcode("BC-002").setStatus("Unknown").getJson())))
+                                    .add(new InputItem().setHrid("ITM-001")
+                                            .setStatus(STATUS_UNKNOWN)
+                                            .setMaterialTypeId(MATERIAL_TYPE_TEXT)
+                                            .setBarcode("BC-001").setStatus("On order").getJson())
+                                    .add(new InputItem().setHrid("ITM-002")
+                                            .setStatus(STATUS_UNKNOWN)
+                                            .setMaterialTypeId(MATERIAL_TYPE_TEXT)
+                                            .setBarcode("BC-002").setStatus("Unknown").getJson())))
                     .add(new InputHoldingsRecord().setHrid("HOL-002").setPermanentLocationId(LOCATION_ID_1).setCallNumber("test-cn-2").getJson()
                             .put("items", new JsonArray()
-                                    .add(new InputItem().setHrid("ITM-003").setBarcode("BC-003").setStatus("Checked out").getJson())))));
+                                    .add(new InputItem().setHrid("ITM-003")
+                                            .setStatus(STATUS_UNKNOWN)
+                                            .setMaterialTypeId(MATERIAL_TYPE_TEXT)
+                                            .setBarcode("BC-003").setStatus("Checked out").getJson())))));
 
     testContext.assertEquals(getMetric(upsertResponseJson, HOLDINGS_RECORD, CREATE , COMPLETED), 2,
             "Upsert metrics response should report [2] holdings records successfully created " + upsertResponseJson.encodePrettily());
@@ -1022,11 +1199,20 @@ public class InventoryUpdateTestSuite {
             .put("holdingsRecords", new JsonArray()
                     .add(new InputHoldingsRecord().setHrid("HOL-001").setPermanentLocationId(LOCATION_ID_1).setCallNumber("updated-1").getJson()
                             .put("items", new JsonArray()
-                                    .add(new InputItem().setHrid("ITM-001").setBarcode("updated").setStatus("Available").getJson())
-                                    .add(new InputItem().setHrid("ITM-002").setBarcode("updated").setStatus("Available").getJson())))
+                                    .add(new InputItem().setHrid("ITM-001")
+                                            .setStatus(STATUS_UNKNOWN)
+                                            .setMaterialTypeId(MATERIAL_TYPE_TEXT)
+                                            .setBarcode("updated").setStatus("Available").getJson())
+                                    .add(new InputItem().setHrid("ITM-002")
+                                            .setStatus(STATUS_UNKNOWN)
+                                            .setMaterialTypeId(MATERIAL_TYPE_TEXT)
+                                            .setBarcode("updated").setStatus("Available").getJson())))
                     .add(new InputHoldingsRecord().setHrid("HOL-002").setPermanentLocationId(LOCATION_ID_1).setCallNumber("updated-2").getJson()
                             .put("items", new JsonArray()
-                                    .add(new InputItem().setHrid("ITM-003").setBarcode("updated").setStatus("Available").getJson()))))
+                                    .add(new InputItem().setHrid("ITM-003")
+                                            .setStatus(STATUS_UNKNOWN)
+                                            .setMaterialTypeId(MATERIAL_TYPE_TEXT)
+                                            .setBarcode("updated").setStatus("Available").getJson()))))
             .put("processing", new InputProcessingInstructions()
                     .setItemStatusPolicy(ProcessingInstructions.ITEM_STATUS_POLICY_OVERWRITE)
                     .setListOfStatuses("On order", "Unknown").getJson()));
@@ -1062,11 +1248,20 @@ public class InventoryUpdateTestSuite {
             .put("holdingsRecords", new JsonArray()
                     .add(new InputHoldingsRecord().setHrid("HOL-001").setPermanentLocationId(LOCATION_ID_1).setCallNumber("test-cn-1").getJson()
                             .put("items", new JsonArray()
-                                    .add(new InputItem().setHrid("ITM-001").setBarcode("BC-001").setStatus("On order").getJson())
-                                    .add(new InputItem().setHrid("ITM-002").setBarcode("BC-002").setStatus("Unknown").getJson())))
+                                    .add(new InputItem().setHrid("ITM-001")
+                                            .setStatus(STATUS_UNKNOWN)
+                                            .setMaterialTypeId(MATERIAL_TYPE_TEXT)
+                                            .setBarcode("BC-001").setStatus("On order").getJson())
+                                    .add(new InputItem().setHrid("ITM-002")
+                                            .setStatus(STATUS_UNKNOWN)
+                                            .setMaterialTypeId(MATERIAL_TYPE_TEXT)
+                                            .setBarcode("BC-002").setStatus("Unknown").getJson())))
                     .add(new InputHoldingsRecord().setHrid("HOL-002").setPermanentLocationId(LOCATION_ID_1).setCallNumber("test-cn-2").getJson()
                             .put("items", new JsonArray()
-                                    .add(new InputItem().setHrid("ITM-003").setBarcode("BC-003").getJson())))));
+                                    .add(new InputItem().setHrid("ITM-003")
+                                            .setStatus(STATUS_UNKNOWN)
+                                            .setMaterialTypeId(MATERIAL_TYPE_TEXT)
+                                            .setBarcode("BC-003").getJson())))));
 
     testContext.assertEquals(getMetric(upsertResponseJson, HOLDINGS_RECORD, CREATE , COMPLETED), 2,
             "Upsert metrics response should report [2] holdings records successfully created " + upsertResponseJson.encodePrettily());
@@ -1079,11 +1274,20 @@ public class InventoryUpdateTestSuite {
             .put("holdingsRecords", new JsonArray()
                     .add(new InputHoldingsRecord().setHrid("HOL-001").setPermanentLocationId(LOCATION_ID_1).setCallNumber("updated-1").getJson()
                             .put("items", new JsonArray()
-                                    .add(new InputItem().setHrid("ITM-001").setBarcode("updated").setStatus("Available").getJson())
-                                    .add(new InputItem().setHrid("ITM-002").setBarcode("updated").setStatus("Available").getJson())))
+                                    .add(new InputItem().setHrid("ITM-001")
+                                            .setStatus(STATUS_UNKNOWN)
+                                            .setMaterialTypeId(MATERIAL_TYPE_TEXT)
+                                            .setBarcode("updated").setStatus("Available").getJson())
+                                    .add(new InputItem().setHrid("ITM-002")
+                                            .setStatus(STATUS_UNKNOWN)
+                                            .setMaterialTypeId(MATERIAL_TYPE_TEXT)
+                                            .setBarcode("updated").setStatus("Available").getJson())))
                     .add(new InputHoldingsRecord().setHrid("HOL-002").setPermanentLocationId(LOCATION_ID_1).setCallNumber("updated-2").getJson()
                             .put("items", new JsonArray()
-                                    .add(new InputItem().setHrid("ITM-003").setBarcode("updated").getJson()))))
+                                    .add(new InputItem().setHrid("ITM-003")
+                                            .setStatus(STATUS_UNKNOWN)
+                                            .setMaterialTypeId(MATERIAL_TYPE_TEXT)
+                                            .setBarcode("updated").getJson()))))
             .put("processing", new InputProcessingInstructions()
                     .setItemStatusPolicy(ProcessingInstructions.ITEM_STATUS_POLICY_RETAIN).getJson()));
 
@@ -1112,11 +1316,20 @@ public class InventoryUpdateTestSuite {
             .put("holdingsRecords", new JsonArray()
                     .add(new InputHoldingsRecord().setHrid("HOL-001").setPermanentLocationId(LOCATION_ID_1).setCallNumber("test-cn-1").getJson()
                             .put("items", new JsonArray()
-                                    .add(new InputItem().setHrid("ITM-001").setBarcode("BC-001").setStatus("On order").getJson())
-                                    .add(new InputItem().setHrid("ITM-002").setBarcode("BC-002").setStatus("Unknown").getJson())))
+                                    .add(new InputItem().setHrid("ITM-001")
+                                            .setStatus(STATUS_UNKNOWN)
+                                            .setMaterialTypeId(MATERIAL_TYPE_TEXT)
+                                            .setBarcode("BC-001").setStatus("On order").getJson())
+                                    .add(new InputItem().setHrid("ITM-002")
+                                            .setStatus(STATUS_UNKNOWN)
+                                            .setMaterialTypeId(MATERIAL_TYPE_TEXT)
+                                            .setBarcode("BC-002").setStatus("Unknown").getJson())))
                     .add(new InputHoldingsRecord().setHrid("HOL-002").setPermanentLocationId(LOCATION_ID_1).setCallNumber("test-cn-2").getJson()
                             .put("items", new JsonArray()
-                                    .add(new InputItem().setHrid("ITM-003").setBarcode("BC-003").getJson()))))
+                                    .add(new InputItem().setHrid("ITM-003")
+                                            .setStatus(STATUS_UNKNOWN)
+                                            .setMaterialTypeId(MATERIAL_TYPE_TEXT)
+                                            .setBarcode("BC-003").getJson()))))
             .put("processing", new JsonObject()));
 
     testContext.assertEquals(getMetric(upsertResponseJson, HOLDINGS_RECORD, CREATE , COMPLETED), 2,
@@ -1130,11 +1343,20 @@ public class InventoryUpdateTestSuite {
             .put("holdingsRecords", new JsonArray()
                     .add(new InputHoldingsRecord().setHrid("HOL-001").setPermanentLocationId(LOCATION_ID_1).setCallNumber("updated-1").getJson()
                             .put("items", new JsonArray()
-                                    .add(new InputItem().setHrid("ITM-001").setBarcode("updated").setStatus("Available").getJson())
-                                    .add(new InputItem().setHrid("ITM-002").setBarcode("updated").setStatus("Available").getJson())))
+                                    .add(new InputItem().setHrid("ITM-001")
+                                            .setStatus(STATUS_UNKNOWN)
+                                            .setMaterialTypeId(MATERIAL_TYPE_TEXT)
+                                            .setBarcode("updated").setStatus("Available").getJson())
+                                    .add(new InputItem().setHrid("ITM-002")
+                                            .setStatus(STATUS_UNKNOWN)
+                                            .setMaterialTypeId(MATERIAL_TYPE_TEXT)
+                                            .setBarcode("updated").setStatus("Available").getJson())))
                     .add(new InputHoldingsRecord().setHrid("HOL-002").setPermanentLocationId(LOCATION_ID_1).setCallNumber("updated-2").getJson()
                             .put("items", new JsonArray()
-                                    .add(new InputItem().setHrid("ITM-003").setBarcode("updated").getJson()))))
+                                    .add(new InputItem().setHrid("ITM-003")
+                                            .setStatus(STATUS_UNKNOWN)
+                                            .setMaterialTypeId(MATERIAL_TYPE_TEXT)
+                                            .setBarcode("updated").getJson()))))
             .put("processing", new InputProcessingInstructions()
                     .setItemStatusPolicy(ProcessingInstructions.ITEM_STATUS_POLICY_OVERWRITE).getJson()));
 
@@ -1164,11 +1386,20 @@ public class InventoryUpdateTestSuite {
             .put("holdingsRecords", new JsonArray()
                     .add(new InputHoldingsRecord().setHrid("HOL-001").setPermanentLocationId(LOCATION_ID_1).setCallNumber("test-cn-1").getJson()
                             .put("items", new JsonArray()
-                                    .add(new InputItem().setHrid("ITM-001").setBarcode("BC-001").getJson())
-                                    .add(new InputItem().setHrid("ITM-002").setBarcode("BC-002").getJson())))
+                                    .add(new InputItem().setHrid("ITM-001")
+                                            .setStatus(STATUS_UNKNOWN)
+                                            .setMaterialTypeId(MATERIAL_TYPE_TEXT)
+                                            .setBarcode("BC-001").getJson())
+                                    .add(new InputItem().setHrid("ITM-002")
+                                            .setStatus(STATUS_UNKNOWN)
+                                            .setMaterialTypeId(MATERIAL_TYPE_TEXT)
+                                            .setBarcode("BC-002").getJson())))
                     .add(new InputHoldingsRecord().setHrid("HOL-002").setPermanentLocationId(LOCATION_ID_1).setCallNumber("test-cn-2").getJson()
                             .put("items", new JsonArray()
-                                    .add(new InputItem().setHrid("ITM-003").setBarcode("BC-003").getJson()))));
+                                    .add(new InputItem().setHrid("ITM-003")
+                                            .setStatus(STATUS_UNKNOWN)
+                                            .setMaterialTypeId(MATERIAL_TYPE_TEXT)
+                                            .setBarcode("BC-003").getJson()))));
 
     JsonObject upsertResponseJson = upsertByHrid(inventoryRecordSet);
     String instanceId = upsertResponseJson.getJsonObject("instance").getString("id");
@@ -1180,7 +1411,10 @@ public class InventoryUpdateTestSuite {
             .put("holdingsRecords", new JsonArray()
                     .add(new InputHoldingsRecord().setHrid("HOL-002").setPermanentLocationId(LOCATION_ID_1).setCallNumber("test-cn-2").getJson()
                             .put("items", new JsonArray()
-                                    .add(new InputItem().setHrid("ITM-003").setBarcode("BC-003").getJson()))));
+                                    .add(new InputItem().setHrid("ITM-003")
+                                            .setStatus(STATUS_UNKNOWN)
+                                            .setMaterialTypeId(MATERIAL_TYPE_TEXT)
+                                            .setBarcode("BC-003").getJson()))));
 
     upsertResponseJson =  upsertByHrid(inventoryRecordSet);
 
@@ -1206,11 +1440,20 @@ public class InventoryUpdateTestSuite {
             .put("holdingsRecords", new JsonArray()
                     .add(new InputHoldingsRecord().setHrid("HOL-001").setPermanentLocationId(LOCATION_ID_1).setCallNumber("test-cn-1").getJson()
                             .put("items", new JsonArray()
-                                    .add(new InputItem().setHrid("ITM-001").setBarcode("BC-001").getJson())
-                                    .add(new InputItem().setHrid("ITM-002").setBarcode("BC-002").getJson())))
+                                    .add(new InputItem().setHrid("ITM-001")
+                                            .setStatus(STATUS_UNKNOWN)
+                                            .setMaterialTypeId(MATERIAL_TYPE_TEXT)
+                                            .setBarcode("BC-001").getJson())
+                                    .add(new InputItem().setHrid("ITM-002")
+                                            .setStatus(STATUS_UNKNOWN)
+                                            .setMaterialTypeId(MATERIAL_TYPE_TEXT)
+                                            .setBarcode("BC-002").getJson())))
                     .add(new InputHoldingsRecord().setHrid("HOL-002").setPermanentLocationId(LOCATION_ID_1).setCallNumber("test-cn-2").getJson()
                             .put("items", new JsonArray()
-                                    .add(new InputItem().setHrid("ITM-003").setBarcode("BC-003").getJson()))));
+                                    .add(new InputItem().setHrid("ITM-003")
+                                            .setStatus(STATUS_UNKNOWN)
+                                            .setMaterialTypeId(MATERIAL_TYPE_TEXT)
+                                            .setBarcode("BC-003").getJson()))));
 
     JsonObject upsertResponseJson = upsertByHrid(inventoryRecordSet);
     String instanceId = upsertResponseJson.getJsonObject("instance").getString("id");
@@ -1763,11 +2006,20 @@ public class InventoryUpdateTestSuite {
              .put("holdingsRecords", new JsonArray()
                      .add(new InputHoldingsRecord().setHrid("HOL-001").setPermanentLocationId(LOCATION_ID_1).setCallNumber("test-cn-1").getJson()
                              .put("items", new JsonArray()
-                                     .add(new InputItem().setHrid("ITM-001").setBarcode("BC-001").getJson())
-                                     .add(new InputItem().setHrid("ITM-002").setBarcode("BC-002").getJson())))
+                                     .add(new InputItem().setHrid("ITM-001")
+                                             .setStatus(STATUS_UNKNOWN)
+                                             .setMaterialTypeId(MATERIAL_TYPE_TEXT)
+                                             .setBarcode("BC-001").getJson())
+                                     .add(new InputItem().setHrid("ITM-002")
+                                             .setStatus(STATUS_UNKNOWN)
+                                             .setMaterialTypeId(MATERIAL_TYPE_TEXT)
+                                             .setBarcode("BC-002").getJson())))
                      .add(new InputHoldingsRecord().setHrid("HOL-002").setPermanentLocationId(LOCATION_ID_1).setCallNumber("test-cn-2").getJson()
                              .put("items", new JsonArray()
-                                     .add(new InputItem().setHrid("ITM-003").setBarcode("BC-003").getJson()))))
+                                     .add(new InputItem().setHrid("ITM-003")
+                                             .setStatus(STATUS_UNKNOWN)
+                                             .setMaterialTypeId(MATERIAL_TYPE_TEXT)
+                                             .setBarcode("BC-003").getJson()))))
             .put("instanceRelations", new JsonObject()
                      .put("succeedingTitles", new JsonArray()
                              .add(new InputInstanceTitleSuccession().setInstanceIdentifierHrid("001").getJson()))));
@@ -1828,11 +2080,20 @@ public class InventoryUpdateTestSuite {
             .put("holdingsRecords", new JsonArray()
                     .add(new InputHoldingsRecord().setHrid("HOL-001").setPermanentLocationId(LOCATION_ID_1).setCallNumber("test-cn-1").getJson()
                             .put("items", new JsonArray()
-                                    .add(new InputItem().setHrid("ITM-001").setBarcode("BC-001").getJson())
-                                    .add(new InputItem().setHrid("ITM-002").setBarcode("BC-002").getJson())))
+                                    .add(new InputItem().setHrid("ITM-001")
+                                            .setStatus(STATUS_UNKNOWN)
+                                            .setMaterialTypeId(MATERIAL_TYPE_TEXT)
+                                            .setBarcode("BC-001").getJson())
+                                    .add(new InputItem().setHrid("ITM-002")
+                                            .setStatus(STATUS_UNKNOWN)
+                                            .setMaterialTypeId(MATERIAL_TYPE_TEXT)
+                                            .setBarcode("BC-002").getJson())))
                     .add(new InputHoldingsRecord().setHrid("HOL-002").setPermanentLocationId(LOCATION_ID_1).setCallNumber("test-cn-2").getJson()
                             .put("items", new JsonArray()
-                                    .add(new InputItem().setHrid("ITM-003").setBarcode("BC-003").getJson())))));
+                                    .add(new InputItem().setHrid("ITM-003")
+                                            .setStatus(STATUS_UNKNOWN)
+                                            .setMaterialTypeId(MATERIAL_TYPE_TEXT)
+                                            .setBarcode("BC-003").getJson())))));
 
      String instanceId1 = firstResponse.getJsonObject("instance").getString("id");
      JsonObject storedHoldings = getRecordsFromStorage(FakeInventoryStorage.HOLDINGS_STORAGE_PATH, "instanceId==\"" + instanceId1 + "\"");
@@ -1846,11 +2107,20 @@ public class InventoryUpdateTestSuite {
             .put("holdingsRecords", new JsonArray()
                     .add(new InputHoldingsRecord().setHrid("HOL-001").setPermanentLocationId(LOCATION_ID_1).setCallNumber("test-cn-1").getJson()
                             .put("items", new JsonArray()
-                                    .add(new InputItem().setHrid("ITM-001").setBarcode("BC-001").getJson())
-                                    .add(new InputItem().setHrid("ITM-002").setBarcode("BC-002").getJson())))
+                                    .add(new InputItem().setHrid("ITM-001")
+                                            .setStatus(STATUS_UNKNOWN)
+                                            .setMaterialTypeId(MATERIAL_TYPE_TEXT)
+                                            .setBarcode("BC-001").getJson())
+                                    .add(new InputItem().setHrid("ITM-002")
+                                            .setStatus(STATUS_UNKNOWN)
+                                            .setMaterialTypeId(MATERIAL_TYPE_TEXT)
+                                            .setBarcode("BC-002").getJson())))
                     .add(new InputHoldingsRecord().setHrid("HOL-002").setPermanentLocationId(LOCATION_ID_1).setCallNumber("test-cn-2").getJson()
                             .put("items", new JsonArray()
-                                    .add(new InputItem().setHrid("ITM-003").setBarcode("BC-003").getJson())))));
+                                    .add(new InputItem().setHrid("ITM-003")
+                                            .setStatus(STATUS_UNKNOWN)
+                                            .setMaterialTypeId(MATERIAL_TYPE_TEXT)
+                                            .setBarcode("BC-003").getJson())))));
 
      storedHoldings = getRecordsFromStorage(FakeInventoryStorage.HOLDINGS_STORAGE_PATH, "instanceId==\"" + instanceId1 + "\"");
      testContext.assertEquals(storedHoldings.getInteger("totalRecords"), 0,
@@ -1866,7 +2136,10 @@ public class InventoryUpdateTestSuite {
             .put("holdingsRecords", new JsonArray()
                     .add(new InputHoldingsRecord().setHrid("HOL-003").setPermanentLocationId(LOCATION_ID_1).setCallNumber("test-cn-3").getJson()
                             .put("items", new JsonArray()
-                                    .add(new InputItem().setHrid("ITM-003").setBarcode("BC-003").getJson())))));
+                                    .add(new InputItem().setHrid("ITM-003")
+                                            .setStatus(STATUS_UNKNOWN)
+                                            .setMaterialTypeId(MATERIAL_TYPE_TEXT)
+                                            .setBarcode("BC-003").getJson())))));
 
      testContext.assertEquals(getMetric(thirdResponse, HOLDINGS_RECORD, CREATE , COMPLETED), 1,
             "Third update should report [1] holdings record successfully created  " + thirdResponse.encodePrettily());
@@ -1883,8 +2156,14 @@ public class InventoryUpdateTestSuite {
              .put("holdingsRecords", new JsonArray()
                      .add(new InputHoldingsRecord().setHrid("HOL-002").setPermanentLocationId(LOCATION_ID_1).setCallNumber("test-cn-2").getJson()
                              .put("items", new JsonArray()
-                                     .add(new InputItem().setHrid("ITM-001").setBarcode("BC-001").getJson())
-                                     .add(new InputItem().setHrid("ITM-002").setBarcode("BC-002").getJson())))));
+                                     .add(new InputItem().setHrid("ITM-001")
+                                             .setStatus(STATUS_UNKNOWN)
+                                             .setMaterialTypeId(MATERIAL_TYPE_TEXT)
+                                             .setBarcode("BC-001").getJson())
+                                     .add(new InputItem().setHrid("ITM-002")
+                                             .setStatus(STATUS_UNKNOWN)
+                                             .setMaterialTypeId(MATERIAL_TYPE_TEXT)
+                                             .setBarcode("BC-002").getJson())))));
 
      JsonObject storedHoldings002 = getRecordsFromStorage(FakeInventoryStorage.HOLDINGS_STORAGE_PATH, "hrid==\"HOL-002\"");
      JsonObject holdings002 = storedHoldings002.getJsonArray(RESULT_SET_HOLDINGS_RECORDS).getJsonObject(0);
@@ -1915,11 +2194,20 @@ public class InventoryUpdateTestSuite {
              .put("holdingsRecords", new JsonArray()
                      .add(new InputHoldingsRecord().setHrid("HOL-001").setPermanentLocationId(LOCATION_ID_1).setCallNumber("test-cn-1").getJson()
                              .put("items", new JsonArray()
-                                     .add(new InputItem().setHrid("ITM-001").setBarcode("BC-001").getJson())
-                                     .add(new InputItem().setHrid("ITM-002").setBarcode("BC-002").getJson())))
+                                     .add(new InputItem().setHrid("ITM-001")
+                                             .setStatus(STATUS_UNKNOWN)
+                                             .setMaterialTypeId(MATERIAL_TYPE_TEXT)
+                                             .setBarcode("BC-001").getJson())
+                                     .add(new InputItem().setHrid("ITM-002")
+                                             .setStatus(STATUS_UNKNOWN)
+                                             .setMaterialTypeId(MATERIAL_TYPE_TEXT)
+                                             .setBarcode("BC-002").getJson())))
                      .add(new InputHoldingsRecord().setHrid("HOL-002").setPermanentLocationId(LOCATION_ID_1).setCallNumber("test-cn-2").getJson()
                              .put("items", new JsonArray()
-                                     .add(new InputItem().setHrid("ITM-003").setBarcode("BC-003").getJson()))))
+                                     .add(new InputItem().setHrid("ITM-003")
+                                             .setStatus(STATUS_UNKNOWN)
+                                             .setMaterialTypeId(MATERIAL_TYPE_TEXT)
+                                             .setBarcode("BC-003").getJson()))))
              .put("instanceRelations", new JsonObject()
                      .put("succeedingTitles", new JsonArray()
                              .add(new InputInstanceTitleSuccession().setInstanceIdentifierHrid("001").getJson()))
@@ -1948,11 +2236,20 @@ public class InventoryUpdateTestSuite {
             .put("holdingsRecords", new JsonArray()
                     .add(new InputHoldingsRecord().setHrid("HOL-001").setPermanentLocationId(LOCATION_ID_1).setCallNumber("test-cn-1").getJson()
                             .put("items", new JsonArray()
-                                    .add(new InputItem().setHrid("ITM-001").setBarcode("BC-001").getJson())
-                                    .add(new InputItem().setHrid("ITM-002").setBarcode("BC-002").getJson())))
+                                    .add(new InputItem().setHrid("ITM-001")
+                                            .setStatus(STATUS_UNKNOWN)
+                                            .setMaterialTypeId(MATERIAL_TYPE_TEXT)
+                                            .setBarcode("BC-001").getJson())
+                                    .add(new InputItem().setHrid("ITM-002")
+                                            .setStatus(STATUS_UNKNOWN)
+                                            .setMaterialTypeId(MATERIAL_TYPE_TEXT)
+                                            .setBarcode("BC-002").getJson())))
                     .add(new InputHoldingsRecord().setHrid("HOL-002").setPermanentLocationId(LOCATION_ID_1).setCallNumber("test-cn-2").getJson()
                             .put("items", new JsonArray()
-                                    .add(new InputItem().setHrid("ITM-003").setBarcode("BC-003").getJson())))));
+                                    .add(new InputItem().setHrid("ITM-003")
+                                            .setStatus(STATUS_UNKNOWN)
+                                            .setMaterialTypeId(MATERIAL_TYPE_TEXT)
+                                            .setBarcode("BC-003").getJson())))));
 
 
     JsonObject irs = fetchRecordSetFromUpsertSharedInventory( "1" );
@@ -1975,11 +2272,20 @@ public class InventoryUpdateTestSuite {
             .put("holdingsRecords", new JsonArray()
                     .add(new InputHoldingsRecord().setHrid("HOL-001").setPermanentLocationId(LOCATION_ID_1).setCallNumber("test-cn-1").getJson()
                             .put("items", new JsonArray()
-                                    .add(new InputItem().setHrid("ITM-001").setBarcode("BC-001").getJson())
-                                    .add(new InputItem().setHrid("ITM-002").setBarcode("BC-002").getJson())))
+                                    .add(new InputItem().setHrid("ITM-001")
+                                            .setStatus(STATUS_UNKNOWN)
+                                            .setMaterialTypeId(MATERIAL_TYPE_TEXT)
+                                            .setBarcode("BC-001").getJson())
+                                    .add(new InputItem().setHrid("ITM-002")
+                                            .setStatus(STATUS_UNKNOWN)
+                                            .setMaterialTypeId(MATERIAL_TYPE_TEXT)
+                                            .setBarcode("BC-002").getJson())))
                     .add(new InputHoldingsRecord().setHrid("HOL-002").setPermanentLocationId(LOCATION_ID_1).setCallNumber("test-cn-2").getJson()
                             .put("items", new JsonArray()
-                                    .add(new InputItem().setHrid("ITM-003").setBarcode("BC-003").getJson())))));
+                                    .add(new InputItem().setHrid("ITM-003")
+                                            .setStatus(STATUS_UNKNOWN)
+                                            .setMaterialTypeId(MATERIAL_TYPE_TEXT)
+                                            .setBarcode("BC-003").getJson())))));
 
 
     getJsonObjectById( MainVerticle.FETCH_SHARED_INVENTORY_RECORD_SETS_ID_PATH, "1", 400 );
@@ -1994,11 +2300,20 @@ public class InventoryUpdateTestSuite {
             .put("holdingsRecords", new JsonArray()
                     .add(new InputHoldingsRecord().setHrid("HOL-001").setPermanentLocationId(LOCATION_ID_1).setCallNumber("test-cn-1").getJson()
                             .put("items", new JsonArray()
-                                    .add(new InputItem().setBarcode("BC-001").getJson())
-                                    .add(new InputItem().setHrid("ITM-002").setBarcode("BC-002").getJson())))
+                                    .add(new InputItem()
+                                            .setStatus(STATUS_UNKNOWN)
+                                            .setMaterialTypeId(MATERIAL_TYPE_TEXT)
+                                            .setBarcode("BC-001").getJson())
+                                    .add(new InputItem()
+                                            .setStatus(STATUS_UNKNOWN)
+                                            .setMaterialTypeId(MATERIAL_TYPE_TEXT)
+                                            .setHrid("ITM-002").setBarcode("BC-002").getJson())))
                     .add(new InputHoldingsRecord().setHrid("HOL-002").setPermanentLocationId(LOCATION_ID_1).setCallNumber("test-cn-2").getJson()
                             .put("items", new JsonArray()
-                                    .add(new InputItem().setBarcode("BC-003").getJson())))));
+                                    .add(new InputItem()
+                                            .setStatus(STATUS_UNKNOWN)
+                                            .setMaterialTypeId(MATERIAL_TYPE_TEXT)
+                                            .setBarcode("BC-003").getJson())))));
 
     Response response = upsertByHrid(422, new JsonObject()
             .put("instance",
@@ -2006,11 +2321,20 @@ public class InventoryUpdateTestSuite {
             .put("holdingsRecords", new JsonArray()
                     .add(new InputHoldingsRecord().setHrid("HOL-001").setPermanentLocationId(LOCATION_ID_1).setCallNumber("test-cn-1").getJson()
                             .put("items", new JsonArray()
-                                    .add(new InputItem().setBarcode("BC-001").getJson())
-                                    .add(new InputItem().setHrid("ITM-002").setBarcode("BC-002").getJson())))
+                                    .add(new InputItem()
+                                            .setStatus(STATUS_UNKNOWN)
+                                            .setMaterialTypeId(MATERIAL_TYPE_TEXT)
+                                            .setBarcode("BC-001").getJson())
+                                    .add(new InputItem().setHrid("ITM-002")
+                                            .setStatus(STATUS_UNKNOWN)
+                                            .setMaterialTypeId(MATERIAL_TYPE_TEXT)
+                                            .setBarcode("BC-002").getJson())))
                     .add(new InputHoldingsRecord().setHrid("HOL-002").setPermanentLocationId(LOCATION_ID_1).setCallNumber("test-cn-2").getJson()
                             .put("items", new JsonArray()
-                                    .add(new InputItem().setBarcode("BC-003").getJson())))));
+                                    .add(new InputItem()
+                                            .setStatus(STATUS_UNKNOWN)
+                                            .setMaterialTypeId(MATERIAL_TYPE_TEXT)
+                                            .setBarcode("BC-003").getJson())))));
     logger.info(response.asPrettyString());
 
   }
@@ -2025,11 +2349,20 @@ public class InventoryUpdateTestSuite {
             .put("holdingsRecords", new JsonArray()
                     .add(new InputHoldingsRecord().setHrid("HOL-001").setPermanentLocationId(LOCATION_ID_1).setCallNumber("test-cn-1").getJson()
                             .put("items", new JsonArray()
-                                    .add(new InputItem().setBarcode("BC-001").getJson())
-                                    .add(new InputItem().setHrid("ITM-002").setBarcode("BC-002").getJson())))
+                                    .add(new InputItem()
+                                            .setStatus(STATUS_UNKNOWN)
+                                            .setMaterialTypeId(MATERIAL_TYPE_TEXT)
+                                            .setBarcode("BC-001").getJson())
+                                    .add(new InputItem().setHrid("ITM-002")
+                                            .setStatus(STATUS_UNKNOWN)
+                                            .setMaterialTypeId(MATERIAL_TYPE_TEXT)
+                                            .setBarcode("BC-002").getJson())))
                     .add(new InputHoldingsRecord().setHrid("HOL-002").setPermanentLocationId(LOCATION_ID_1).setCallNumber("test-cn-2").getJson()
                             .put("items", new JsonArray()
-                                    .add(new InputItem().setBarcode("BC-003").getJson())))));
+                                    .add(new InputItem()
+                                            .setStatus(STATUS_UNKNOWN)
+                                            .setMaterialTypeId(MATERIAL_TYPE_TEXT)
+                                            .setBarcode("BC-003").getJson())))));
 
   }
 
@@ -2042,11 +2375,20 @@ public class InventoryUpdateTestSuite {
             .put("holdingsRecords", new JsonArray()
                     .add(new InputHoldingsRecord().setHrid("HOL-001").setPermanentLocationId(LOCATION_ID_1).setCallNumber("test-cn-1").getJson()
                             .put("items", new JsonArray()
-                                    .add(new InputItem().setBarcode("BC-001").getJson())
-                                    .add(new InputItem().setHrid("ITM-002").setBarcode("BC-002").getJson())))
+                                    .add(new InputItem()
+                                            .setStatus(STATUS_UNKNOWN)
+                                            .setMaterialTypeId(MATERIAL_TYPE_TEXT)
+                                            .setBarcode("BC-001").getJson())
+                                    .add(new InputItem().setHrid("ITM-002")
+                                            .setStatus(STATUS_UNKNOWN)
+                                            .setMaterialTypeId(MATERIAL_TYPE_TEXT)
+                                            .setBarcode("BC-002").getJson())))
                     .add(new InputHoldingsRecord().setPermanentLocationId(LOCATION_ID_1).setCallNumber("test-cn-2").getJson()
                             .put("items", new JsonArray()
-                                    .add(new InputItem().setHrid("ITM-003").setBarcode("BC-003").getJson())))));
+                                    .add(new InputItem().setHrid("ITM-003")
+                                            .setStatus(STATUS_UNKNOWN)
+                                            .setMaterialTypeId(MATERIAL_TYPE_TEXT)
+                                            .setBarcode("BC-003").getJson())))));
 
   }
 
@@ -2060,11 +2402,20 @@ public class InventoryUpdateTestSuite {
             .put("holdingsRecords", new JsonArray()
                     .add(new InputHoldingsRecord().setHrid("HOL-001").setPermanentLocationId(LOCATION_ID_1).setCallNumber("test-cn-1").getJson()
                             .put("items", new JsonArray()
-                                    .add(new InputItem().setHrid("ITM-001").setBarcode("BC-001").getJson())
-                                    .add(new InputItem().setHrid("ITM-002").setBarcode("BC-002").getJson())))
+                                    .add(new InputItem().setHrid("ITM-001")
+                                            .setStatus(STATUS_UNKNOWN)
+                                            .setMaterialTypeId(MATERIAL_TYPE_TEXT)
+                                            .setBarcode("BC-001").getJson())
+                                    .add(new InputItem().setHrid("ITM-002")
+                                            .setStatus(STATUS_UNKNOWN)
+                                            .setMaterialTypeId(MATERIAL_TYPE_TEXT)
+                                            .setBarcode("BC-002").getJson())))
                     .add(new InputHoldingsRecord().setHrid("HOL-002").setPermanentLocationId("BAD_LOCATION").setCallNumber("test-cn-2").getJson()
                             .put("items", new JsonArray()
-                                    .add(new InputItem().setHrid("ITM-003").setBarcode("BC-003").getJson())))));
+                                    .add(new InputItem().setHrid("ITM-003")
+                                            .setStatus(STATUS_UNKNOWN)
+                                            .setMaterialTypeId(MATERIAL_TYPE_TEXT)
+                                            .setBarcode("BC-003").getJson())))));
     JsonObject upsertResponseJson = new JsonObject(upsertResponse.getBody().asString());
     testContext.assertTrue(upsertResponseJson.containsKey("errors"),
             "After upsert with holdings record with bad location id, the response should contain error reports");
@@ -2144,11 +2495,20 @@ public class InventoryUpdateTestSuite {
             .put("holdingsRecords", new JsonArray()
                     .add(new InputHoldingsRecord().setHrid("HOL-001").setPermanentLocationId(LOCATION_ID_1).setCallNumber("test-cn-1").getJson()
                             .put("items", new JsonArray()
-                                    .add(new InputItem().setHrid("ITM-001").setBarcode("BC-001").getJson())
-                                    .add(new InputItem().setHrid("ITM-002").setBarcode("BC-002").getJson())))
+                                    .add(new InputItem().setHrid("ITM-001")
+                                            .setStatus(STATUS_UNKNOWN)
+                                            .setMaterialTypeId(MATERIAL_TYPE_TEXT)
+                                            .setBarcode("BC-001").getJson())
+                                    .add(new InputItem().setHrid("ITM-002")
+                                            .setStatus(STATUS_UNKNOWN)
+                                            .setMaterialTypeId(MATERIAL_TYPE_TEXT)
+                                            .setBarcode("BC-002").getJson())))
                     .add(new InputHoldingsRecord().setHrid("HOL-002").setPermanentLocationId(LOCATION_ID_1).setCallNumber("test-cn-2").getJson()
                             .put("items", new JsonArray()
-                                    .add(new InputItem().setHrid("ITM-003").setBarcode("BC-003").getJson())))));
+                                    .add(new InputItem().setHrid("ITM-003")
+                                            .setStatus(STATUS_UNKNOWN)
+                                            .setMaterialTypeId(MATERIAL_TYPE_TEXT)
+                                            .setBarcode("BC-003").getJson())))));
 
     JsonObject responseJson = new JsonObject(response.getBody().asString());
     testContext.assertEquals(getMetric(responseJson, ITEM, CREATE , FAILED), 3,
@@ -2166,11 +2526,20 @@ public class InventoryUpdateTestSuite {
             .put("holdingsRecords", new JsonArray()
                     .add(new InputHoldingsRecord().setHrid("HOL-001").setPermanentLocationId(LOCATION_ID_1).setCallNumber("test-cn-1").getJson()
                             .put("items", new JsonArray()
-                                    .add(new InputItem().setHrid("ITM-001").setBarcode("BC-001").getJson())
-                                    .add(new InputItem().setHrid("ITM-002").setBarcode("BC-002").getJson())))
+                                    .add(new InputItem().setHrid("ITM-001")
+                                            .setStatus(STATUS_UNKNOWN)
+                                            .setMaterialTypeId(MATERIAL_TYPE_TEXT)
+                                            .setBarcode("BC-001").getJson())
+                                    .add(new InputItem().setHrid("ITM-002")
+                                            .setStatus(STATUS_UNKNOWN)
+                                            .setMaterialTypeId(MATERIAL_TYPE_TEXT)
+                                            .setBarcode("BC-002").getJson())))
                     .add(new InputHoldingsRecord().setHrid("HOL-002").setPermanentLocationId(LOCATION_ID_1).setCallNumber("test-cn-2").getJson()
                             .put("items", new JsonArray()
-                                    .add(new InputItem().setHrid("ITM-003").setBarcode("BC-003").getJson())))));
+                                    .add(new InputItem().setHrid("ITM-003")
+                                            .setStatus(STATUS_UNKNOWN)
+                                            .setMaterialTypeId(MATERIAL_TYPE_TEXT)
+                                            .setBarcode("BC-003").getJson())))));
 
     JsonObject responseJson = new JsonObject(response.getBody().asString());
 
@@ -2191,11 +2560,20 @@ public class InventoryUpdateTestSuite {
             .put("holdingsRecords", new JsonArray()
                     .add(new InputHoldingsRecord().setHrid("HOL-001").setPermanentLocationId(LOCATION_ID_1).setCallNumber("test-cn-1").getJson()
                             .put("items", new JsonArray()
-                                    .add(new InputItem().setHrid("ITM-001").setBarcode("BC-001").getJson())
-                                    .add(new InputItem().setHrid("ITM-002").setBarcode("BC-002").getJson())))
+                                    .add(new InputItem().setHrid("ITM-001")
+                                            .setStatus(STATUS_UNKNOWN)
+                                            .setMaterialTypeId(MATERIAL_TYPE_TEXT)
+                                            .setBarcode("BC-001").getJson())
+                                    .add(new InputItem().setHrid("ITM-002")
+                                            .setStatus(STATUS_UNKNOWN)
+                                            .setMaterialTypeId(MATERIAL_TYPE_TEXT)
+                                            .setBarcode("BC-002").getJson())))
                     .add(new InputHoldingsRecord().setHrid("HOL-002").setPermanentLocationId(LOCATION_ID_1).setCallNumber("test-cn-2").getJson()
                             .put("items", new JsonArray()
-                                    .add(new InputItem().setHrid("ITM-003").setBarcode("BC-003").getJson()))));
+                                    .add(new InputItem().setHrid("ITM-003")
+                                            .setStatus(STATUS_UNKNOWN)
+                                            .setMaterialTypeId(MATERIAL_TYPE_TEXT)
+                                            .setBarcode("BC-003").getJson()))));
     upsertByHrid (inventoryRecordSet);
     Response response = upsertByHrid(207,inventoryRecordSet);
     JsonObject responseJson = new JsonObject(response.getBody().asString());
@@ -2214,11 +2592,20 @@ public class InventoryUpdateTestSuite {
             .put("holdingsRecords", new JsonArray()
                     .add(new InputHoldingsRecord().setHrid("HOL-001").setPermanentLocationId(LOCATION_ID_1).setCallNumber("test-cn-1").getJson()
                             .put("items", new JsonArray()
-                                    .add(new InputItem().setHrid("ITM-001").setBarcode("BC-001").getJson())
-                                    .add(new InputItem().setHrid("ITM-002").setBarcode("BC-002").getJson())))
+                                    .add(new InputItem().setHrid("ITM-001")
+                                            .setStatus(STATUS_UNKNOWN)
+                                            .setMaterialTypeId(MATERIAL_TYPE_TEXT)
+                                            .setBarcode("BC-001").getJson())
+                                    .add(new InputItem().setHrid("ITM-002")
+                                            .setStatus(STATUS_UNKNOWN)
+                                            .setMaterialTypeId(MATERIAL_TYPE_TEXT)
+                                            .setBarcode("BC-002").getJson())))
                     .add(new InputHoldingsRecord().setHrid("HOL-002").setPermanentLocationId(LOCATION_ID_1).setCallNumber("test-cn-2").getJson()
                             .put("items", new JsonArray()
-                                    .add(new InputItem().setHrid("ITM-003").setBarcode("BC-003").getJson()))));
+                                    .add(new InputItem().setHrid("ITM-003")
+                                            .setStatus(STATUS_UNKNOWN)
+                                            .setMaterialTypeId(MATERIAL_TYPE_TEXT)
+                                            .setBarcode("BC-003").getJson()))));
     upsertByHrid (inventoryRecordSet);
     Response response = upsertByHrid(207,inventoryRecordSet);
 
@@ -2238,11 +2625,20 @@ public class InventoryUpdateTestSuite {
             .put("holdingsRecords", new JsonArray()
                     .add(new InputHoldingsRecord().setHrid("HOL-001").setPermanentLocationId(LOCATION_ID_1).setCallNumber("test-cn-1").getJson()
                             .put("items", new JsonArray()
-                                    .add(new InputItem().setHrid("ITM-001").setBarcode("BC-001").getJson())
-                                    .add(new InputItem().setHrid("ITM-002").setBarcode("BC-002").getJson())))
+                                    .add(new InputItem().setHrid("ITM-001")
+                                            .setStatus(STATUS_UNKNOWN)
+                                            .setMaterialTypeId(MATERIAL_TYPE_TEXT)
+                                            .setBarcode("BC-001").getJson())
+                                    .add(new InputItem().setHrid("ITM-002")
+                                            .setStatus(STATUS_UNKNOWN)
+                                            .setMaterialTypeId(MATERIAL_TYPE_TEXT)
+                                            .setBarcode("BC-002").getJson())))
                     .add(new InputHoldingsRecord().setHrid("HOL-002").setPermanentLocationId(LOCATION_ID_1).setCallNumber("test-cn-2").getJson()
                             .put("items", new JsonArray()
-                                    .add(new InputItem().setHrid("ITM-003").setBarcode("BC-003").getJson())))));
+                                    .add(new InputItem().setHrid("ITM-003")
+                                            .setStatus(STATUS_UNKNOWN)
+                                            .setMaterialTypeId(MATERIAL_TYPE_TEXT)
+                                            .setBarcode("BC-003").getJson())))));
 
     Response response = upsertByHrid(207,new JsonObject()
             .put("instance",
@@ -2250,10 +2646,16 @@ public class InventoryUpdateTestSuite {
             .put("holdingsRecords", new JsonArray()
                     .add(new InputHoldingsRecord().setHrid("HOL-001").setPermanentLocationId(LOCATION_ID_1).setCallNumber("test-cn-1").getJson()
                             .put("items", new JsonArray()
-                                    .add(new InputItem().setHrid("ITM-002").setBarcode("BC-002").getJson())))
+                                    .add(new InputItem().setHrid("ITM-002")
+                                            .setStatus(STATUS_UNKNOWN)
+                                            .setMaterialTypeId(MATERIAL_TYPE_TEXT)
+                                            .setBarcode("BC-002").getJson())))
                     .add(new InputHoldingsRecord().setHrid("HOL-002").setPermanentLocationId(LOCATION_ID_1).setCallNumber("test-cn-2").getJson()
                             .put("items", new JsonArray()
-                                    .add(new InputItem().setHrid("ITM-003").setBarcode("BC-003").getJson())))));
+                                    .add(new InputItem().setHrid("ITM-003")
+                                            .setStatus(STATUS_UNKNOWN)
+                                            .setMaterialTypeId(MATERIAL_TYPE_TEXT)
+                                            .setBarcode("BC-003").getJson())))));
 
     JsonObject responseJson = new JsonObject(response.getBody().asString());
 
@@ -2271,11 +2673,20 @@ public class InventoryUpdateTestSuite {
             .put("holdingsRecords", new JsonArray()
                     .add(new InputHoldingsRecord().setHrid("HOL-001").setPermanentLocationId(LOCATION_ID_1).setCallNumber("test-cn-1").getJson()
                             .put("items", new JsonArray()
-                                    .add(new InputItem().setHrid("ITM-001").setBarcode("BC-001").getJson())
-                                    .add(new InputItem().setHrid("ITM-002").setBarcode("BC-002").getJson())))
+                                    .add(new InputItem().setHrid("ITM-001")
+                                            .setStatus(STATUS_UNKNOWN)
+                                            .setMaterialTypeId(MATERIAL_TYPE_TEXT)
+                                            .setBarcode("BC-001").getJson())
+                                    .add(new InputItem().setHrid("ITM-002")
+                                            .setStatus(STATUS_UNKNOWN)
+                                            .setMaterialTypeId(MATERIAL_TYPE_TEXT)
+                                            .setBarcode("BC-002").getJson())))
                     .add(new InputHoldingsRecord().setHrid("HOL-002").setPermanentLocationId(LOCATION_ID_1).setCallNumber("test-cn-2").getJson()
                             .put("items", new JsonArray()
-                                    .add(new InputItem().setHrid("ITM-003").setBarcode("BC-003").getJson())))));
+                                    .add(new InputItem().setHrid("ITM-003")
+                                            .setStatus(STATUS_UNKNOWN)
+                                            .setMaterialTypeId(MATERIAL_TYPE_TEXT)
+                                            .setBarcode("BC-003").getJson())))));
 
     Response response = upsertByHrid(207,new JsonObject()
             .put("instance",
@@ -2283,7 +2694,10 @@ public class InventoryUpdateTestSuite {
             .put("holdingsRecords", new JsonArray()
                     .add(new InputHoldingsRecord().setHrid("HOL-002").setPermanentLocationId(LOCATION_ID_1).setCallNumber("test-cn-2").getJson()
                             .put("items", new JsonArray()
-                                    .add(new InputItem().setHrid("ITM-003").setBarcode("BC-003").getJson())))));
+                                    .add(new InputItem().setHrid("ITM-003")
+                                            .setStatus(STATUS_UNKNOWN)
+                                            .setMaterialTypeId(MATERIAL_TYPE_TEXT)
+                                            .setBarcode("BC-003").getJson())))));
 
     JsonObject responseJson = new JsonObject(response.getBody().asString());
 
@@ -2304,11 +2718,20 @@ public class InventoryUpdateTestSuite {
             .put("holdingsRecords", new JsonArray()
                     .add(new InputHoldingsRecord().setHrid("HOL-001").setPermanentLocationId(LOCATION_ID_1).setCallNumber("test-cn-1").getJson()
                             .put("items", new JsonArray()
-                                    .add(new InputItem().setHrid("ITM-001").setBarcode("BC-001").getJson())
-                                    .add(new InputItem().setHrid("ITM-002").setBarcode("BC-002").getJson())))
+                                    .add(new InputItem().setHrid("ITM-001")
+                                            .setStatus(STATUS_UNKNOWN)
+                                            .setMaterialTypeId(MATERIAL_TYPE_TEXT)
+                                            .setBarcode("BC-001").getJson())
+                                    .add(new InputItem().setHrid("ITM-002")
+                                            .setStatus(STATUS_UNKNOWN)
+                                            .setMaterialTypeId(MATERIAL_TYPE_TEXT)
+                                            .setBarcode("BC-002").getJson())))
                     .add(new InputHoldingsRecord().setHrid("HOL-002").setPermanentLocationId(LOCATION_ID_1).setCallNumber("test-cn-2").getJson()
                             .put("items", new JsonArray()
-                                    .add(new InputItem().setHrid("ITM-003").setBarcode("BC-003").getJson()))));
+                                    .add(new InputItem().setHrid("ITM-003")
+                                            .setStatus(STATUS_UNKNOWN)
+                                            .setMaterialTypeId(MATERIAL_TYPE_TEXT)
+                                            .setBarcode("BC-003").getJson()))));
     upsertByHrid (500,inventoryRecordSet);
 
   }
@@ -2322,11 +2745,20 @@ public class InventoryUpdateTestSuite {
             .put("holdingsRecords", new JsonArray()
                     .add(new InputHoldingsRecord().setHrid("HOL-001").setPermanentLocationId(LOCATION_ID_1).setCallNumber("test-cn-1").getJson()
                             .put("items", new JsonArray()
-                                    .add(new InputItem().setHrid("ITM-001").setBarcode("BC-001").getJson())
-                                    .add(new InputItem().setHrid("ITM-002").setBarcode("BC-002").getJson())))
+                                    .add(new InputItem().setHrid("ITM-001")
+                                            .setStatus(STATUS_UNKNOWN)
+                                            .setMaterialTypeId(MATERIAL_TYPE_TEXT)
+                                            .setBarcode("BC-001").getJson())
+                                    .add(new InputItem().setHrid("ITM-002")
+                                            .setStatus(STATUS_UNKNOWN)
+                                            .setMaterialTypeId(MATERIAL_TYPE_TEXT)
+                                            .setBarcode("BC-002").getJson())))
                     .add(new InputHoldingsRecord().setHrid("HOL-002").setPermanentLocationId(LOCATION_ID_1).setCallNumber("test-cn-2").getJson()
                             .put("items", new JsonArray()
-                                    .add(new InputItem().setHrid("ITM-003").setBarcode("BC-003").getJson()))));
+                                    .add(new InputItem().setHrid("ITM-003")
+                                            .setStatus(STATUS_UNKNOWN)
+                                            .setMaterialTypeId(MATERIAL_TYPE_TEXT)
+                                            .setBarcode("BC-003").getJson()))));
     Response response = upsertByHrid (500,inventoryRecordSet);
     logger.info(response.asPrettyString());
 
@@ -2341,11 +2773,20 @@ public class InventoryUpdateTestSuite {
             .put("holdingsRecords", new JsonArray()
                     .add(new InputHoldingsRecord().setHrid("HOL-001").setPermanentLocationId(LOCATION_ID_1).setCallNumber("test-cn-1").getJson()
                             .put("items", new JsonArray()
-                                    .add(new InputItem().setHrid("ITM-001").setBarcode("BC-001").getJson())
-                                    .add(new InputItem().setHrid("ITM-002").setBarcode("BC-002").getJson())))
+                                    .add(new InputItem().setHrid("ITM-001")
+                                            .setStatus(STATUS_UNKNOWN)
+                                            .setMaterialTypeId(MATERIAL_TYPE_TEXT)
+                                            .setBarcode("BC-001").getJson())
+                                    .add(new InputItem().setHrid("ITM-002")
+                                            .setStatus(STATUS_UNKNOWN)
+                                            .setMaterialTypeId(MATERIAL_TYPE_TEXT)
+                                            .setBarcode("BC-002").getJson())))
                     .add(new InputHoldingsRecord().setHrid("HOL-002").setPermanentLocationId(LOCATION_ID_1).setCallNumber("test-cn-2").getJson()
                             .put("items", new JsonArray()
-                                    .add(new InputItem().setHrid("ITM-003").setBarcode("BC-003").getJson()))));
+                                    .add(new InputItem().setHrid("ITM-003")
+                                            .setStatus(STATUS_UNKNOWN)
+                                            .setMaterialTypeId(MATERIAL_TYPE_TEXT)
+                                            .setBarcode("BC-003").getJson()))));
     Response response = upsertByHrid (500,inventoryRecordSet);
     logger.info(response.asPrettyString());
 
@@ -2361,11 +2802,20 @@ public class InventoryUpdateTestSuite {
             .put("holdingsRecords", new JsonArray()
                     .add(new InputHoldingsRecord().setHrid("HOL-001").setPermanentLocationId(LOCATION_ID_1).setCallNumber("test-cn-1").getJson()
                             .put("items", new JsonArray()
-                                    .add(new InputItem().setHrid("ITM-001").setBarcode("BC-001").getJson())
-                                    .add(new InputItem().setHrid("ITM-002").setBarcode("BC-002").getJson())))
+                                    .add(new InputItem().setHrid("ITM-001")
+                                            .setStatus(STATUS_UNKNOWN)
+                                            .setMaterialTypeId(MATERIAL_TYPE_TEXT)
+                                            .setBarcode("BC-001").getJson())
+                                    .add(new InputItem().setHrid("ITM-002")
+                                            .setStatus(STATUS_UNKNOWN)
+                                            .setMaterialTypeId(MATERIAL_TYPE_TEXT)
+                                            .setBarcode("BC-002").getJson())))
                     .add(new InputHoldingsRecord().setHrid("HOL-002").setPermanentLocationId(LOCATION_ID_1).setCallNumber("test-cn-2").getJson()
                             .put("items", new JsonArray()
-                                    .add(new InputItem().setHrid("ITM-003").setBarcode("BC-003").getJson()))))
+                                    .add(new InputItem().setHrid("ITM-003")
+                                            .setStatus(STATUS_UNKNOWN)
+                                            .setMaterialTypeId(MATERIAL_TYPE_TEXT)
+                                            .setBarcode("BC-003").getJson()))))
             .put("instanceRelations", new JsonObject()
                     .put("parentInstances",new JsonArray())
                     .put("childInstances", new JsonArray())
@@ -2386,11 +2836,20 @@ public class InventoryUpdateTestSuite {
             .put("holdingsRecords", new JsonArray()
                     .add(new InputHoldingsRecord().setHrid("HOL-001").setPermanentLocationId("UNKNOWN_LOCATION").setCallNumber("test-cn-1").getJson()
                             .put("items", new JsonArray()
-                                    .add(new InputItem().setHrid("ITM-001").setBarcode("BC-001").getJson())
-                                    .add(new InputItem().setHrid("ITM-002").setBarcode("BC-002").getJson())))
+                                    .add(new InputItem().setHrid("ITM-001")
+                                            .setStatus(STATUS_UNKNOWN)
+                                            .setMaterialTypeId(MATERIAL_TYPE_TEXT)
+                                            .setBarcode("BC-001").getJson())
+                                    .add(new InputItem().setHrid("ITM-002")
+                                            .setStatus(STATUS_UNKNOWN)
+                                            .setMaterialTypeId(MATERIAL_TYPE_TEXT)
+                                            .setBarcode("BC-002").getJson())))
                     .add(new InputHoldingsRecord().setHrid("HOL-002").setPermanentLocationId("UNKNOWN_LOCATION").setCallNumber("test-cn-2").getJson()
                             .put("items", new JsonArray()
-                                    .add(new InputItem().setHrid("ITM-003").setBarcode("BC-003").getJson()))))
+                                    .add(new InputItem().setHrid("ITM-003")
+                                            .setStatus(STATUS_UNKNOWN)
+                                            .setMaterialTypeId(MATERIAL_TYPE_TEXT)
+                                            .setBarcode("BC-003").getJson()))))
             .put("instanceRelations", new JsonObject()
                     .put("parentInstances",new JsonArray())
                     .put("childInstances", new JsonArray())
@@ -2418,11 +2877,20 @@ public class InventoryUpdateTestSuite {
             .put("holdingsRecords", new JsonArray()
                     .add(new InputHoldingsRecord().setHrid("HOL-001").setPermanentLocationId("ANOTHER_UNKNOWN_LOCATION").setCallNumber("test-cn-1").getJson()
                             .put("items", new JsonArray()
-                                    .add(new InputItem().setHrid("ITM-001").setBarcode("BC-001").getJson())
-                                    .add(new InputItem().setHrid("ITM-002").setBarcode("BC-002").getJson())))
+                                    .add(new InputItem().setHrid("ITM-001")
+                                            .setStatus(STATUS_UNKNOWN)
+                                            .setMaterialTypeId(MATERIAL_TYPE_TEXT)
+                                            .setBarcode("BC-001").getJson())
+                                    .add(new InputItem().setHrid("ITM-002")
+                                            .setStatus(STATUS_UNKNOWN)
+                                            .setMaterialTypeId(MATERIAL_TYPE_TEXT)
+                                            .setBarcode("BC-002").getJson())))
                     .add(new InputHoldingsRecord().setHrid("HOL-002").setPermanentLocationId("ANOTHER_UNKNOWN_LOCATION").setCallNumber("test-cn-2").getJson()
                             .put("items", new JsonArray()
-                                    .add(new InputItem().setHrid("ITM-003").setBarcode("BC-003").getJson()))))
+                                    .add(new InputItem().setHrid("ITM-003")
+                                            .setStatus(STATUS_UNKNOWN)
+                                            .setMaterialTypeId(MATERIAL_TYPE_TEXT)
+                                            .setBarcode("BC-003").getJson()))))
             .put("instanceRelations", new JsonObject()
                     .put("parentInstances",new JsonArray())
                     .put("childInstances", new JsonArray())

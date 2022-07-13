@@ -8,6 +8,8 @@ import org.folio.inventoryupdate.test.fakestorage.entitites.InputHoldingsRecord;
 import org.folio.inventoryupdate.test.fakestorage.entitites.InputInstance;
 import org.folio.inventoryupdate.test.fakestorage.entitites.InputItem;
 
+import static org.folio.inventoryupdate.test.InventoryUpdateTestSuite.MATERIAL_TYPE_TEXT;
+import static org.folio.inventoryupdate.test.InventoryUpdateTestSuite.STATUS_UNKNOWN;
 import static org.folio.inventoryupdate.test.fakestorage.FakeInventoryStorage.*;
 
 public class StorageValidatorItems {
@@ -35,7 +37,10 @@ public class StorageValidatorItems {
     protected void validatePostAndGetById(TestContext testContext) {
         JsonObject responseOnPOST = FakeInventoryStorage.post(
                 ITEM_STORAGE_PATH,
-                new InputItem().setHoldingsRecordId(existingHoldingsRecordId).setBarcode("bc-001").getJson());
+                new InputItem().setHoldingsRecordId(existingHoldingsRecordId).setBarcode("bc-001")
+                        .setStatus(STATUS_UNKNOWN)
+                        .setMaterialTypeId(MATERIAL_TYPE_TEXT)
+                        .getJson());
         testContext.assertEquals(responseOnPOST.getString("barcode"), "bc-001");
         JsonObject responseOnGET = FakeInventoryStorage.getRecordById(ITEM_STORAGE_PATH, responseOnPOST.getString("id"));
         testContext.assertEquals(responseOnGET.getString("barcode"), "bc-001");
@@ -57,7 +62,10 @@ public class StorageValidatorItems {
     protected void validateCanDeleteItemById (TestContext testContext) {
         JsonObject responseOnPOST = FakeInventoryStorage.post(
                 ITEM_STORAGE_PATH,
-                new InputItem().setBarcode("TEST-BC").setHoldingsRecordId(existingHoldingsRecordId).getJson());
+                new InputItem()
+                        .setStatus(STATUS_UNKNOWN)
+                        .setMaterialTypeId(MATERIAL_TYPE_TEXT)
+                        .setBarcode("TEST-BC").setHoldingsRecordId(existingHoldingsRecordId).getJson());
         testContext.assertEquals(responseOnPOST.getString("barcode"), "TEST-BC");
         FakeInventoryStorage.delete(ITEM_STORAGE_PATH, responseOnPOST.getString("id"),200);
     }
@@ -65,7 +73,10 @@ public class StorageValidatorItems {
     protected void validateCannotPostWithBadHoldingsRecordId (TestContext testContext) {
         JsonObject responseOnPOST = FakeInventoryStorage.post(
                 ITEM_STORAGE_PATH,
-                new InputItem().setHoldingsRecordId("12345").setBarcode("bc-003").getJson(),
+                new InputItem()
+                        .setStatus(STATUS_UNKNOWN)
+                        .setMaterialTypeId(MATERIAL_TYPE_TEXT)
+                        .setHoldingsRecordId("12345").setBarcode("bc-003").getJson(),
                 500);
         JsonObject responseJson = FakeInventoryStorage.getRecordsByQuery(
                 ITEM_STORAGE_PATH,

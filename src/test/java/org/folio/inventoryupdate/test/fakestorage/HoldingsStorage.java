@@ -15,7 +15,7 @@ public class HoldingsStorage extends RecordStorage {
 
     @Override
     protected void declareMandatoryProperties() {
-
+        mandatoryProperties.add("permanentLocationId");
     }
 
 }

@@ -17,6 +17,11 @@ public class BatchOfInventoryRecordSets {
     return this;
   }
 
+  public BatchOfInventoryRecordSets addRecordSet (JsonObject recordSet) {
+    batchJson.getJsonArray(INVENTORY_RECORD_SETS).add(recordSet);
+    return this;
+  }
+
   public JsonObject getJson () {
     return batchJson;
   }

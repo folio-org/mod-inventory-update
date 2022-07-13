@@ -62,17 +62,6 @@ public class InventoryRecord {
         return this;
     }
 
-    public void setTransaction (UUID transaction) {
-        this.transaction = transaction;
-    }
-
-    public boolean transactionIs(UUID transaction) {
-        return (inTransaction() && this.transaction.equals(transaction));
-    }
-    public boolean inTransaction() {
-        return transaction != null;
-    }
-
     public boolean match(String query) {
         logger.debug("Matching " + recordJson + " with query " + query);
         Pattern orListPattern = Pattern.compile("[(]?(.*)==\\(([^)]*)\\)[)]?");

@@ -64,7 +64,7 @@ public abstract class RecordStorage {
             statusCode = status;
             this.message = message;
         }
-    };
+    }
 
     public Resp validateCreate(InventoryRecord record) {
         if (failOnCreate) {
@@ -82,7 +82,7 @@ public abstract class RecordStorage {
         for (ForeignKey fk : masterEntities) {
             if (! record.getJson().containsKey(fk.getDependentPropertyName())) {
                 logger.error("Foreign key violation, record must contain " + fk.getDependentPropertyName());
-                return new Resp(422, "{\"errors\":[{\"message\":\"must not be null\",\"type\":\"1\",\"code\":\"-1\",\"parameters\":[{\"key\":\"instanceId\",\"value\":\"null\"}]}]}");
+                return new Resp(422, "{\"errors\":[{\"message\":\"must not be null\",\"type\":\"1\",\"code\":\"-1\",\"parameters\":[{\"key\":\""+fk.getDependentPropertyName()+"\",\"value\":\"null\"}]}]}");
             }
             if (!fk.getMasterStorage().hasId(record.getJson().getString(fk.getDependentPropertyName()))) {
                 logger.error("Foreign key violation " + fk.getDependentPropertyName() + " not found in "+ fk.getMasterStorage().getResultSetName() + ", cannot create " + record.getJson().encodePrettily());

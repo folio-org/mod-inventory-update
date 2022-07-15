@@ -2,6 +2,8 @@ package org.folio.inventoryupdate.entities;
 
 import java.util.UUID;
 
+import io.vertx.core.impl.logging.Logger;
+import io.vertx.core.impl.logging.LoggerFactory;
 import io.vertx.core.json.DecodeException;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
@@ -55,6 +57,7 @@ public abstract class InventoryRecord {
     private static final String ERRORS = "errors";
     private static final String PARAMETERS = "parameters";
 
+    protected static final Logger logger = LoggerFactory.getLogger("inventory-update");
 
     public void setTransition (Transaction transaction) {
         this.transaction = transaction;

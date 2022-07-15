@@ -10,8 +10,6 @@ public class InstanceRelationship extends InstanceToInstanceRelation {
     public static final String SUPER_INSTANCE_ID = "superInstanceId";
     public static final String INSTANCE_RELATIONSHIP_TYPE_ID = "instanceRelationshipTypeId";
 
-    protected static final Logger logger = LoggerFactory.getLogger("inventory-update");
-
     /**
      * Builds an Instance relationship object from a JSON record from storage.
      * @param instanceId The UUID of the Instance to link from

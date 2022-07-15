@@ -68,6 +68,8 @@ public class InventoryUpdateService {
     }
     if (incomingValidJson.getJson().containsKey("inventoryRecordSets")) {
       JsonArray inventoryRecordSets = incomingValidJson.getJson().getJsonArray("inventoryRecordSets");
+      // For re-run, record-set by record-set, in case of batch update failure.
+      JsonArray clonedInventoryRecordSets = new JsonArray(inventoryRecordSets.encode());
       UpdatePlanAllHRIDs plan = new UpdatePlanAllHRIDs();
       plan.upsertBatch(routingContext, inventoryRecordSets).onComplete(update -> {
         if (update.succeeded()) {
@@ -78,7 +80,7 @@ public class InventoryUpdateService {
             UpdateMetrics accumulatedStats = new UpdateMetrics();
             JsonArray accumulatedErrorReport = new JsonArray();
             InventoryUpdateOutcome compositeOutcome = new InventoryUpdateOutcome();
-            plan.multipleSingleRecordUpserts(routingContext, inventoryRecordSets).onComplete(
+            plan.multipleSingleRecordUpserts(routingContext, clonedInventoryRecordSets).onComplete(
                     listOfOutcomes -> {
                       for (InventoryUpdateOutcome outcome : listOfOutcomes.result()) {
                         if (outcome.hasMetrics()) {

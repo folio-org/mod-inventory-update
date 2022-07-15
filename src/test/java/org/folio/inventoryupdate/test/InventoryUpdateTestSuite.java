@@ -27,7 +27,8 @@ import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
 
 import java.util.Arrays;
-import static org.folio.inventoryupdate.test.fakestorage.FakeInventoryStorage.RESULT_SET_HOLDINGS_RECORDS;
+
+import static org.folio.inventoryupdate.test.fakestorage.FakeInventoryStorage.*;
 
 
 @RunWith(VertxUnitRunner.class)
@@ -336,7 +337,10 @@ public class InventoryUpdateTestSuite {
   @Test
   public void batchWithMultipleLowLevelProblemsWillRespondWithMultipleErrors (TestContext testContext) {
     BatchOfInventoryRecordSets batch = new BatchOfInventoryRecordSets();
-    for (int i=0; i<99; i++) {
+    int i=1;
+
+    for (; i<=2; i++) {
+      // 2 good record sets
       batch.addRecordSet(
               new JsonObject()
                       .put("instance",
@@ -354,13 +358,110 @@ public class InventoryUpdateTestSuite {
                                               .add(new InputItem()
                                                       .setStatus(STATUS_UNKNOWN)
                                                       .setMaterialTypeId(MATERIAL_TYPE_TEXT)
-                                                      .setHrid("I" + i + "-1-1" ))))
+                                                      .setHrid("I" + i + "-1-1" )
+                                                      .getJson())))
                               .add(new InputHoldingsRecord()
                                       .setHrid("H" + i + "-2")
                                       .setPermanentLocationId(LOCATION_ID_2).getJson()
                                       .put("items", new JsonArray()))));
     }
-
+    // Missing item.status, .materialType
+    batch.addRecordSet(
+            new JsonObject()
+                    .put("instance",
+                            new InputInstance()
+                                    .setTitle("New title " + i)
+                                    .setSource("test")
+                                    .setHrid("in" + i)
+                                    .setInstanceTypeId("12345").getJson())
+                    .put("holdingsRecords", new JsonArray()
+                            .add(new InputHoldingsRecord()
+                                    .setHrid("H" + i + "-1")
+                                    .setPermanentLocationId(LOCATION_ID_1)
+                                    .getJson()
+                                    .put("items", new JsonArray()
+                                            .add(new InputItem()
+                                                    .setHrid("I" + i + "-1-1" )
+                                                    .getJson())))
+                            .add(new InputHoldingsRecord()
+                                    .setHrid("H" + i + "-2")
+                                    .setPermanentLocationId(LOCATION_ID_2).getJson()
+                                    .put("items", new JsonArray()))));
+    i++;
+    // Missing holdingsRecord.permanentLocationId
+    batch.addRecordSet(
+            new JsonObject()
+                    .put("instance",
+                            new InputInstance()
+                                    .setTitle("New title " + i)
+                                    .setSource("test")
+                                    .setHrid("in" + i)
+                                    .setInstanceTypeId("12345").getJson())
+                    .put("holdingsRecords", new JsonArray()
+                            .add(new InputHoldingsRecord()
+                                    .setHrid("H" + i + "-1")
+                                    .getJson()
+                                    .put("items", new JsonArray()
+                                            .add(new InputItem()
+                                                    .setStatus(STATUS_UNKNOWN)
+                                                    .setMaterialTypeId(MATERIAL_TYPE_TEXT)
+                                                    .setHrid("I" + i + "-1-1" )
+                                                    .getJson())))
+                            .add(new InputHoldingsRecord()
+                                    .setHrid("H" + i + "-2")
+                                    .setPermanentLocationId(LOCATION_ID_2)
+                                    .getJson()
+                                    .put("items", new JsonArray()))));
+    i++;
+    for (; i<=5; i++) {
+      // 1 good record
+      batch.addRecordSet(
+              new JsonObject()
+                      .put("instance",
+                              new InputInstance()
+                                      .setTitle("New title " + i)
+                                      .setSource("test")
+                                      .setHrid("in" + i)
+                                      .setInstanceTypeId("12345")
+                                      .getJson())
+                      .put("holdingsRecords", new JsonArray()
+                              .add(new InputHoldingsRecord()
+                                      .setHrid("H" + i + "-1")
+                                      .setPermanentLocationId(LOCATION_ID_1)
+                                      .getJson()
+                                      .put("items", new JsonArray()
+                                              .add(new InputItem()
+                                                      .setStatus(STATUS_UNKNOWN)
+                                                      .setMaterialTypeId(MATERIAL_TYPE_TEXT)
+                                                      .setHrid("I" + i + "-1-1" )
+                                                      .getJson())))
+                              .add(new InputHoldingsRecord()
+                                      .setHrid("H" + i + "-2")
+                                      .setPermanentLocationId(LOCATION_ID_2)
+                                      .getJson()
+                                      .put("items", new JsonArray()))));
+    }
+    Response response = batchUpsertByHrid(207,batch.getJson());
+    JsonObject responseJson = new JsonObject(response.getBody().asString());
+    JsonArray errors = responseJson.getJsonArray("errors", new JsonArray());
+    testContext.assertTrue ((errors != null && !errors.isEmpty() && errors.size()==2), "Response should contain two error reports.");
+    boolean hasItemError = false;
+    boolean hasHoldingsError = false;
+    for (Object o : errors) {
+      if ("ITEM".equals(((JsonObject) o).getString("entityType"))) {
+        hasItemError = true;
+      }
+      if ("HOLDINGS_RECORD".equals(((JsonObject)o).getString("entityType"))) {
+        hasHoldingsError = true;
+      }
+    }
+    testContext.assertTrue(hasItemError && hasHoldingsError, "Response should have an Item error and a HoldingsRecord error.");
+    JsonObject instances = getRecordsFromStorage(INSTANCE_STORAGE_PATH,null);
+    testContext.assertEquals(instances.getInteger("totalRecords"), 5, "The batch upsert should create five Instances");
+    JsonObject holdings = getRecordsFromStorage(HOLDINGS_STORAGE_PATH, null);
+    testContext.assertEquals(holdings.getInteger("totalRecords"), 8, "The batch upsert should create eight holdings records");
+    JsonObject items = getRecordsFromStorage(ITEM_STORAGE_PATH, null);
+    testContext.assertEquals(items.getInteger("totalRecords"), 3, "The batch upsert should create three items");
   }
 
   @Test

@@ -603,7 +603,6 @@ public abstract class UpdatePlan {
             for (InventoryRecord record : holdingsRecordsAndItemsInUpdatingSet) {
               metrics.entity(record.entityType()).transaction(record.getTransaction()).outcomes.increment(record.getOutcome());
             }
-            //updatingSet.getInstanceRelationsController().writeToStats(metrics);
             if (! updatingSet.getInstanceToInstanceRelations().isEmpty()) {
                 for ( InstanceToInstanceRelation record : updatingSet.getInstanceToInstanceRelations() ) {
                     logger.debug("Record: " + record.asJson().encode());
@@ -677,8 +676,4 @@ public abstract class UpdatePlan {
         return isDeletion ? getExistingRecordSet().getErrors() : getUpdatingRecordSet().getErrors();
     }
 
-    public JsonArray getErrorsUsingRepository() {
-        return isDeletion ? repository.getPairsOfRecordSets().get(0).getExistingRecordSet().getErrors() :
-                repository.getPairsOfRecordSets().get(0).getIncomingRecordSet().getErrors();
-    }
 }

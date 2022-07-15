@@ -61,8 +61,7 @@ public class InstanceTitleSuccession extends InstanceToInstanceRelation {
     public boolean equals (Object o) {
         if (o instanceof InstanceTitleSuccession) {
             InstanceTitleSuccession other = (InstanceTitleSuccession) o;
-            return (other.getSucceedingInstanceId().equals(this.getSucceedingInstanceId()) &&
-                    other.getPrecedingInstanceId().equals(this.getPrecedingInstanceId()));
+            return other.toString().equals(this.toString());
         } else {
             return false;
         }

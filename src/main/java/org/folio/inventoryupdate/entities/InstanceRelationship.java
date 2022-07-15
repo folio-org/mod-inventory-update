@@ -78,9 +78,7 @@ public class InstanceRelationship extends InstanceToInstanceRelation {
     public boolean equals (Object o) {
         if (o instanceof InstanceRelationship) {
             InstanceRelationship other = (InstanceRelationship) o;
-            return (other.getSubInstanceId() != null && other.getSubInstanceId().equals(this.getSubInstanceId()) &&
-                    other.getSuperInstanceId() != null && other.getSuperInstanceId().equals(this.getSuperInstanceId()) &&
-                    other.getInstanceRelationshipTypeId() != null && other.getInstanceRelationshipTypeId().equals(this.getInstanceRelationshipTypeId()));
+            return other.toString().equals(this.toString());
         } else {
             return false;
         }

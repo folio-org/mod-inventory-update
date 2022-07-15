@@ -143,8 +143,7 @@ public class RepositoryByMatchKey extends Repository {
                 }
                 promise.complete();
               } else {
-                promise.fail("There was a problem fetching existing Instances by incoming MatchKeys "
-                        + instances.cause().getMessage());
+                promise.fail(instances.cause().getMessage());
               }
 
             });
@@ -165,8 +164,7 @@ public class RepositoryByMatchKey extends Repository {
                 }
                 promise.complete();
               } else {
-                promise.fail("There was a problem fetching existing Instances by incoming MatchKeys "
-                        + instance.cause().getMessage());
+                promise.fail(instance.cause().getMessage());
               }
             });
     return promise.future();

@@ -188,7 +188,7 @@ public class UpdatePlanSharedInventory extends UpdatePlan {
             if (lookup.succeeded()) {
                 this.existingSet = lookup.result();
                 if (!foundExistingRecordSet()) {
-                    promise.fail("Record to be deleted was not found");
+                    promise.fail(new ErrorReport(ErrorReport.ErrorCategory.STORAGE,404,"Record to be deleted was not found").asJsonString());
                 } else  {
                     if (foundExistingRecordSet()) {
                         this.updatingSet = createUpdatingRecordSetFromExistingSet(existingSet, deletionIdentifiers );
@@ -390,10 +390,20 @@ public class UpdatePlanSharedInventory extends UpdatePlan {
                                     logger.debug("Updates performed in " + updatesDone + " ms.");
                                     promise.complete();
                                 } else {
+                                    String error = "";
+                                    if (prerequisites.failed()) {
+                                        error = prerequisites.cause().getMessage();
+                                    } else if (instanceAndHoldingsUpdates.failed()) {
+                                        error = instanceAndHoldingsUpdates.cause().getMessage();
+                                    } else if (itemUpdatesAndCreates.failed()) {
+                                        error = itemUpdatesAndCreates.cause().getMessage();
+                                    }
                                     promise.fail(
-                                            "One or more errors occurred updating Inventory records");
+                                            ErrorReport.makeErrorReportFromJsonString(error)
+                                                    .setShortMessage(
+                                                            "One or more errors occurred updating Inventory records" )
+                                                    .asJsonString());
                                 }
-
                             });
                         });
                     });

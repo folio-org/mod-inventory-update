@@ -72,14 +72,6 @@ public class InventoryUpdateOutcome {
     }
   }
 
-  public JsonArray getErrorsAsJsonArray () {
-    JsonArray array = new JsonArray();
-    for (ErrorReport error : errors) {
-      array.add(error.asJson());
-    }
-    return array;
-  }
-
   public InventoryUpdateOutcome setResponseStatusCode (int status) {
     statusCode = status;
     return this;

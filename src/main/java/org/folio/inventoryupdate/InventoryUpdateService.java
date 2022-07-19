@@ -28,8 +28,31 @@ public class InventoryUpdateService {
 
   private static final String LF = System.lineSeparator();
 
-  // INVENTORY UPSERT BY HRID
   public void handleInventoryUpsertByHRID(RoutingContext routingContext) {
+    UpdatePlan plan = new UpdatePlanAllHRIDs();
+    doUpsert(routingContext, plan);
+  }
+
+  public void handleInventoryUpsertByHRIDBatch(RoutingContext routingContext) {
+    UpdatePlan plan = new UpdatePlanAllHRIDs();
+    doBatchUpsert(routingContext, plan);
+  }
+
+  public void handleSharedInventoryUpsertByMatchKey(RoutingContext routingContext) {
+    UpdatePlan plan = new UpdatePlanSharedInventory();
+    doUpsert(routingContext, plan);
+  }
+
+  public void handleSharedInventoryUpsertByMatchKeyBatch(RoutingContext routingContext) {
+    UpdatePlan plan = new UpdatePlanSharedInventory();
+    doBatchUpsert(routingContext, plan);
+  }
+
+  /**
+   * Validates a single incoming record set and performs an upsert
+   * @param plan a shared-inventory/matchKey, or an inventory/hrid upsert plan.
+   */
+  private void doUpsert(RoutingContext routingContext, UpdatePlan plan) {
     InventoryUpdateOutcome isJsonContentType = contentTypeIsJson(routingContext);
     if (isJsonContentType.failed()) {
       isJsonContentType.getErrorResponse().respond(routingContext);
@@ -47,7 +70,6 @@ public class InventoryUpdateService {
     }
     JsonArray inventoryRecordSets = new JsonArray();
     inventoryRecordSets.add(new JsonObject(incomingValidJson.result.encodePrettily()));
-    UpdatePlan plan = new UpdatePlanAllHRIDs();
     plan.upsertBatch(routingContext, inventoryRecordSets).onComplete(update ->{
       if (update.succeeded()) {
         if (update.result().statusCode == OK || update.result().statusCode == MULTI_STATUS) {
@@ -59,7 +81,11 @@ public class InventoryUpdateService {
     });
   }
 
-  public void handleInventoryUpsertByHRIDBatch(RoutingContext routingContext) {
+  /**
+   * Validates a batch of incoming record sets and performs a batch-upsert
+   * @param plan a shared-inventory/matchKey, or an inventory/hrid upsert plan.
+   */
+  private void doBatchUpsert(RoutingContext routingContext, UpdatePlan plan) {
     InventoryUpdateOutcome incomingValidJson = getIncomingJsonBody(routingContext);
 
     if (incomingValidJson.failed()) {
@@ -68,7 +94,6 @@ public class InventoryUpdateService {
     }
     if (incomingValidJson.getJson().containsKey("inventoryRecordSets")) {
       JsonArray inventoryRecordSets = incomingValidJson.getJson().getJsonArray("inventoryRecordSets");
-      UpdatePlanAllHRIDs plan = new UpdatePlanAllHRIDs();
       plan.upsertBatch(routingContext, inventoryRecordSets).onComplete(update -> {
         if (update.succeeded()) {
           update.result().respond(routingContext);
@@ -98,7 +123,7 @@ public class InventoryUpdateService {
       });
     } else {
       new ErrorReport(
-              ErrorReport.ErrorCategory.VALIDATION,
+              ErrorCategory.VALIDATION,
               BAD_REQUEST,
               "Did not recognize request body as a batch of Inventory record sets")
               .setShortMessage("Not a batch of Inventory record sets")
@@ -106,84 +131,6 @@ public class InventoryUpdateService {
               .respond(routingContext);
     }
   }
-
-  // INVENTORY UPSERT BY MATCH KEY
-  public void handleSharedInventoryUpsertByMatchKey(RoutingContext routingContext) {
-      InventoryUpdateOutcome isJsonContentType = contentTypeIsJson(routingContext);
-      if (isJsonContentType.failed()) {
-        isJsonContentType.getErrorResponse().respond(routingContext);
-        return;
-      }
-
-      InventoryUpdateOutcome incomingValidJson = getIncomingJsonBody(routingContext);
-      if (incomingValidJson.failed()) {
-        incomingValidJson.getErrorResponse().respond(routingContext);
-        return;
-      }
-
-      // Make a batch of one
-      JsonArray inventoryRecordSets = new JsonArray();
-      inventoryRecordSets.add(new JsonObject(incomingValidJson.getJson().encodePrettily()));
-      UpdatePlan plan = new UpdatePlanSharedInventory();
-      plan.upsertBatch(routingContext, inventoryRecordSets).onComplete(update ->{
-        if (update.succeeded()) {
-          if (update.result().statusCode == OK || update.result().statusCode == MULTI_STATUS) {
-            responseJson(routingContext, update.result().statusCode).end(update.result().getJson().encodePrettily());
-          } else {
-            update.result().getErrorResponse().respond(routingContext);
-          }
-        }
-      });
-  }
-
-  public void handleSharedInventoryUpsertByMatchKeyBatch(RoutingContext routingContext) {
-    InventoryUpdateOutcome incomingValidJson = getIncomingJsonBody(routingContext);
-
-    if (incomingValidJson.failed()) {
-      incomingValidJson.getErrorResponse().respond(routingContext);
-      return;
-    }
-    if (incomingValidJson.getJson().containsKey("inventoryRecordSets")) {
-      JsonArray inventoryRecordSets = incomingValidJson.getJson().getJsonArray("inventoryRecordSets");
-      // For re-run, record-set by record-set, in case of batch update failure.
-      UpdatePlan plan = new UpdatePlanSharedInventory();
-      plan.upsertBatch(routingContext, inventoryRecordSets).onComplete(update -> {
-        if (update.succeeded()) {
-          update.result().respond(routingContext);
-        } else {
-          if (inventoryRecordSets.size() > 1) {
-            logger.error("A batch update failed bringing down all records of the batch. Switching to record-by-record updates");
-            UpdateMetrics accumulatedStats = new UpdateMetrics();
-            JsonArray accumulatedErrorReport = new JsonArray();
-            InventoryUpdateOutcome compositeOutcome = new InventoryUpdateOutcome();
-            plan.multipleSingleRecordUpserts(routingContext, inventoryRecordSets).onComplete(
-                    listOfOutcomes -> {
-                      for (InventoryUpdateOutcome outcome : listOfOutcomes.result()) {
-                        outcome.setMetrics(plan.getUpdateMetricsFromRepository());
-                        if (outcome.hasErrors()) {
-                          accumulatedErrorReport.addAll(outcome.getErrorsAsJsonArray());
-                        }
-                      }
-                      compositeOutcome.setMetrics(accumulatedStats);
-                      compositeOutcome.setErrors(accumulatedErrorReport);
-                      compositeOutcome.setResponseStatusCode(MULTI_STATUS);
-                      compositeOutcome.respond(routingContext);
-                    });
-          }
-        }
-      });
-    } else {
-      new ErrorReport(
-              ErrorReport.ErrorCategory.VALIDATION,
-              BAD_REQUEST,
-              "Did not recognize request body as a batch of Inventory record sets")
-              .setShortMessage("Not a batch of Inventory record sets")
-              .setEntity(incomingValidJson.getJson())
-              .respond(routingContext);
-    }
-
-  }
-
 
   // DELETE REQUESTS
   public void handleInventoryRecordSetDeleteByHRID(RoutingContext routingCtx) {

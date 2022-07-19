@@ -173,7 +173,6 @@ public class InventoryUpdateTestSuite {
     MatchKey matchKey = new MatchKey(instance.getJson());
     instance.setMatchKeyAsString(matchKey.getKey());
     BatchOfInventoryRecordSets batch = new BatchOfInventoryRecordSets().addRecordSet(new InventoryRecordSet(instance));
-    logger.info(batch.getJson().encodePrettily());
 
     JsonObject instancesBeforePutJson = getRecordsFromStorage(FakeInventoryStorage.INSTANCE_STORAGE_PATH, "matchKey==\"" + matchKey.getKey() + "\"");
     testContext.assertEquals(instancesBeforePutJson.getInteger("totalRecords"), 0,
@@ -258,7 +257,6 @@ public class InventoryUpdateTestSuite {
     JsonObject instancesAfterPutJson = getRecordsFromStorage(FakeInventoryStorage.INSTANCE_STORAGE_PATH, null);
     testContext.assertEquals(instancesAfterPutJson.getInteger("totalRecords"), 100,
             "Number of instance records after PUT expected: 100" );
-    logger.info("batch response with error: " + response.prettyPrint());
   }
 
   @Test
@@ -282,7 +280,6 @@ public class InventoryUpdateTestSuite {
     JsonObject instancesAfterPutJson = getRecordsFromStorage(FakeInventoryStorage.INSTANCE_STORAGE_PATH, null);
     testContext.assertEquals(instancesAfterPutJson.getInteger("totalRecords"), 100,
             "Number of instance records after PUT expected: 100" );
-    logger.info("batch response with error: " + response.prettyPrint());
   }
 
   @Test
@@ -406,7 +403,6 @@ public class InventoryUpdateTestSuite {
               .put(PROCESSING, new JsonObject().put(CLIENTS_RECORD_IDENTIFIER, "in" + i)));
     }
     Response response = batchUpsertByHrid(207, batch.getJson());
-    logger.info("Response: " + response.asPrettyString());
     JsonObject responseJson = new JsonObject(response.getBody().asString());
     JsonArray errors = responseJson.getJsonArray("errors", new JsonArray());
     testContext.assertTrue(( errors != null && !errors.isEmpty() && errors.size() == 2 ),
@@ -473,7 +469,6 @@ public class InventoryUpdateTestSuite {
             .setEdition("1st edition")
             .setMatchKeyAsObject( matchKeyAsObject );
     InventoryRecordSet recordSet = new InventoryRecordSet(instance);
-    logger.info("Instance " + instance.getJson().encodePrettily());
 
     MatchKey matchKey = new MatchKey( instance.getJson() );
     JsonObject instancesBeforePutJson = getRecordsFromStorage(FakeInventoryStorage.INSTANCE_STORAGE_PATH, "matchKey==\"" + matchKey.getKey() + "\"");
@@ -652,8 +647,6 @@ public class InventoryUpdateTestSuite {
                                             .setBarcode("BC-003").getJson()))))
             .put(PROCESSING, new JsonObject()
                     .put("localIdentifier",identifierValue1));
-
-    logger.info("Putting record set " + recordSet.encodePrettily());
 
     JsonObject upsertResponseJson1 = upsertByMatchKey(recordSet);
     String instanceId = upsertResponseJson1.getJsonObject("instance").getString("id");
@@ -2345,7 +2338,6 @@ public class InventoryUpdateTestSuite {
 
 
     JsonObject irs = fetchRecordSetFromUpsertSharedInventory( "1" );
-    logger.info(irs.getJsonObject( "instanceRelations" ));
     fetchRecordSetFromUpsertSharedInventory (newInstance.getJsonObject( "instance" ).getString( "id" ));
     getJsonObjectById( MainVerticle.FETCH_SHARED_INVENTORY_RECORD_SETS_ID_PATH, "2", 404 );
 
@@ -2427,7 +2419,6 @@ public class InventoryUpdateTestSuite {
                                             .setStatus(STATUS_UNKNOWN)
                                             .setMaterialTypeId(MATERIAL_TYPE_TEXT)
                                             .setBarcode("BC-003").getJson())))));
-    logger.info(response.asPrettyString());
 
   }
 
@@ -2605,7 +2596,6 @@ public class InventoryUpdateTestSuite {
     JsonObject responseJson = new JsonObject(response.getBody().asString());
     testContext.assertEquals(getMetric(responseJson, ITEM, CREATE , FAILED), 3,
             "Upsert metrics response should report [3] item record create failures (forced) " + responseJson.encodePrettily());
-    logger.info(responseJson.encodePrettily());
 
   }
 
@@ -2852,7 +2842,6 @@ public class InventoryUpdateTestSuite {
                                             .setMaterialTypeId(MATERIAL_TYPE_TEXT)
                                             .setBarcode("BC-003").getJson()))));
     Response response = upsertByHrid (500,inventoryRecordSet);
-    logger.info(response.asPrettyString());
 
   }
 
@@ -2880,7 +2869,6 @@ public class InventoryUpdateTestSuite {
                                             .setMaterialTypeId(MATERIAL_TYPE_TEXT)
                                             .setBarcode("BC-003").getJson()))));
     Response response = upsertByHrid (500,inventoryRecordSet);
-    logger.info(response.asPrettyString());
 
   }
 
@@ -2915,7 +2903,6 @@ public class InventoryUpdateTestSuite {
                     .put("precedingTitles", new JsonArray()));
     upsertByHrid (inventoryRecordSet);
     Response response = upsertByHrid (500,inventoryRecordSet);
-    logger.info(response.asPrettyString());
 
   }
 

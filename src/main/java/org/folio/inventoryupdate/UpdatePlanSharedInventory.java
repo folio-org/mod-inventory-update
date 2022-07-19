@@ -2,9 +2,11 @@ package org.folio.inventoryupdate;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import io.vertx.ext.web.RoutingContext;
 import org.folio.inventoryupdate.entities.Instance;
@@ -24,6 +26,8 @@ import io.vertx.core.Promise;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 
+import static org.folio.inventoryupdate.ErrorReport.UNPROCESSABLE_ENTITY;
+
 public class UpdatePlanSharedInventory extends UpdatePlan {
 
     public static final Map<String,String> locationsToInstitutionsMap = new HashMap<>();
@@ -42,6 +46,44 @@ public class UpdatePlanSharedInventory extends UpdatePlan {
         return new RepositoryByMatchKey();
     }
 
+    public RequestValidation validateIncomingRecordSets (JsonArray incomingRecordSets) {
+        RequestValidation requestValidation = super.validateIncomingRecordSets(incomingRecordSets);
+        UpdatePlanSharedInventory.checkForUniqueIdentifiersInBatch(requestValidation, incomingRecordSets);
+        return requestValidation;
+    }
+
+    public static void checkForUniqueIdentifiersInBatch(RequestValidation validation, JsonArray inventoryRecordSets) {
+        Set<String> localIdentifiers = new HashSet<>();
+        Set<String> matchKeys = new HashSet<>();
+        for (Object recordSetObject : inventoryRecordSets) {
+            JsonObject recordSet = (JsonObject) recordSetObject;
+            InventoryRecordSet set = InventoryRecordSet.makeIncomingRecordSet(recordSet);
+            if (set.getLocalIdentifier() != null && !set.getLocalIdentifier().isEmpty() && localIdentifiers.contains(set.getLocalIdentifier())) {
+                validation.registerError(
+                        new ErrorReport(
+                                ErrorReport.ErrorCategory.VALIDATION,
+                                UNPROCESSABLE_ENTITY,
+                                "Local identifier " + set.getLocalIdentifier() + " occurs more that once in this batch.")
+                                .setShortMessage("A local identifier is repeated in this batch")
+                                .setEntityType(InventoryRecord.Entity.INSTANCE)
+                                .setEntity(recordSet.getJsonObject("processing")));
+            } else {
+                localIdentifiers.add(set.getLocalIdentifier());
+            }
+            if (matchKeys.contains(set.getInstance().getMatchKey())) {
+                validation.registerError(
+                        new ErrorReport(
+                                ErrorReport.ErrorCategory.VALIDATION,
+                                UNPROCESSABLE_ENTITY,
+                                "MatchKey " + set.getInstance().getMatchKey() + " occurs more that once in this batch.")
+                                .setShortMessage("A match key is repeated in this batch")
+                                .setEntityType(InventoryRecord.Entity.INSTANCE)
+                                .setEntity(recordSet.getJsonObject("instance")));
+            } else {
+                matchKeys.add(set.getInstance().getMatchKey());
+            }
+        }
+    }
 
     @Override
     public UpdatePlan planInventoryUpdates() {
@@ -64,8 +106,11 @@ public class UpdatePlanSharedInventory extends UpdatePlan {
             }
             long planningMs = System.currentTimeMillis() - startPlanning;
         } catch (NullPointerException npe) {
-            logger.error("Null pointer in planInventoryUpdates");
-            npe.printStackTrace();
+            StackTraceElement element1 = npe.getStackTrace()[0];
+            StackTraceElement element2 = npe.getStackTrace()[1];
+            logger.error("Null pointer at : "
+                    + element1.getMethodName()+"("+element1.getFileName()+":"+element1.getLineNumber()+")"
+                    + element2.getMethodName()+"("+element2.getFileName()+":"+element2.getLineNumber()+")");
         }
         return this;
 
@@ -363,9 +408,13 @@ public class UpdatePlanSharedInventory extends UpdatePlan {
                   }
               });
           } else {
-              promise.fail(ErrorReport.makeErrorReportFromJsonString(deletes.cause().getMessage())
-                      .setShortMessage("There was a problem processing deletes - all other updates skipped." )
-                      .asJsonString());
+              if (deletes.cause().getMessage().startsWith("404")) {
+                  logger.error("Records to delete not found: " + deletes.cause().getMessage());
+                  promise.complete();
+              } else {
+                  promise.fail(ErrorReport.makeErrorReportFromJsonString(deletes.cause().getMessage()).setShortMessage(
+                          "There was a problem processing deletes - all other updates skipped.").asJsonString());
+              }
           }
         });
         return promise.future();
@@ -409,12 +458,14 @@ public class UpdatePlanSharedInventory extends UpdatePlan {
                     });
                 });
             } else {
-                promise.fail(
-                        ErrorReport.makeErrorReportFromJsonString(
-                                deletes.cause().getMessage())
-                                .setShortMessage(
-                                        "There was a problem processing deletes - all other updates skipped." )
-                                .asJsonString());
+                logger.error(deletes.cause().getMessage());
+                if (deletes.cause().getMessage().startsWith("404")) {
+                    logger.error ("One or more records to delete were not found: " + deletes.cause().getMessage());
+                    promise.complete();
+                } else {
+                    promise.fail(ErrorReport.makeErrorReportFromJsonString(deletes.cause().getMessage()).setShortMessage(
+                            "There was a problem processing deletes - all other updates skipped.").asJsonString());
+                }
             }
         });
         return promise.future();

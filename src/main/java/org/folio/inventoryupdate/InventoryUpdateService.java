@@ -68,8 +68,6 @@ public class InventoryUpdateService {
     }
     if (incomingValidJson.getJson().containsKey("inventoryRecordSets")) {
       JsonArray inventoryRecordSets = incomingValidJson.getJson().getJsonArray("inventoryRecordSets");
-      // For re-run, record-set by record-set, in case of batch update failure.
-      JsonArray clonedInventoryRecordSets = new JsonArray(inventoryRecordSets.encode());
       UpdatePlanAllHRIDs plan = new UpdatePlanAllHRIDs();
       plan.upsertBatch(routingContext, inventoryRecordSets).onComplete(update -> {
         if (update.succeeded()) {
@@ -80,7 +78,7 @@ public class InventoryUpdateService {
             UpdateMetrics accumulatedStats = new UpdateMetrics();
             JsonArray accumulatedErrorReport = new JsonArray();
             InventoryUpdateOutcome compositeOutcome = new InventoryUpdateOutcome();
-            plan.multipleSingleRecordUpserts(routingContext, clonedInventoryRecordSets).onComplete(
+            plan.multipleSingleRecordUpserts(routingContext, inventoryRecordSets).onComplete(
                     listOfOutcomes -> {
                       for (InventoryUpdateOutcome outcome : listOfOutcomes.result()) {
                         if (outcome.hasMetrics()) {
@@ -126,7 +124,6 @@ public class InventoryUpdateService {
       // Make a batch of one
       JsonArray inventoryRecordSets = new JsonArray();
       inventoryRecordSets.add(new JsonObject(incomingValidJson.getJson().encodePrettily()));
-      //sharedInventoryUpsertByMatchKeyBatch(routingContext, inventoryRecordSets);
       UpdatePlan plan = new UpdatePlanSharedInventory();
       plan.upsertBatch(routingContext, inventoryRecordSets).onComplete(update ->{
         if (update.succeeded()) {
@@ -137,8 +134,6 @@ public class InventoryUpdateService {
           }
         }
       });
-
-
   }
 
   public void handleSharedInventoryUpsertByMatchKeyBatch(RoutingContext routingContext) {
@@ -150,6 +145,7 @@ public class InventoryUpdateService {
     }
     if (incomingValidJson.getJson().containsKey("inventoryRecordSets")) {
       JsonArray inventoryRecordSets = incomingValidJson.getJson().getJsonArray("inventoryRecordSets");
+      // For re-run, record-set by record-set, in case of batch update failure.
       UpdatePlan plan = new UpdatePlanSharedInventory();
       plan.upsertBatch(routingContext, inventoryRecordSets).onComplete(update -> {
         if (update.succeeded()) {

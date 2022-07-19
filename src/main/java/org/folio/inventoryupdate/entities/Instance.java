@@ -18,7 +18,7 @@ public class Instance extends InventoryRecord {
     }
 
     public Instance (JsonObject instance, JsonObject originJson) {
-        jsonRecord = instance;
+        jsonRecord = new JsonObject(instance.encode());
         this.originJson = originJson;
         entityType = Entity.INSTANCE;
     }

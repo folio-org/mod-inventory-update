@@ -289,7 +289,6 @@ public class InventoryStorage {
           inventoryRecordSet.put(InventoryRecordSet.INSTANCE,instance);
           String instanceUUID = instance.getString(ID);
           lookupExistingHoldingsRecordsAndItemsByInstanceUUID(okapiClient, instanceUUID).onComplete(existingHoldingsResult -> {
-              //StringBuilder errorMessages = new StringBuilder();
               List<ErrorReport> errors = new ArrayList<>();
               if (existingHoldingsResult.succeeded()) {
                   if (existingHoldingsResult.result() != null) {

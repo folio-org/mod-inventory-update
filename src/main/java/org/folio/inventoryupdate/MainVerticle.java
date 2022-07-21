@@ -12,15 +12,15 @@ import io.vertx.ext.web.handler.StaticHandler;
 
 public class MainVerticle extends AbstractVerticle {
 
-  public final static String HEALTH_CHECK = "/admin/health";
-  public final static String INVENTORY_UPSERT_HRID_PATH = "/inventory-upsert-hrid";
-  public final static String INVENTORY_BATCH_UPSERT_HRID_PATH = "/inventory-batch-upsert-hrid";
+  public static final String HEALTH_CHECK = "/admin/health";
+  public static final String INVENTORY_UPSERT_HRID_PATH = "/inventory-upsert-hrid";
+  public static final String INVENTORY_BATCH_UPSERT_HRID_PATH = "/inventory-batch-upsert-hrid";
 
-  public final static String SHARED_INVENTORY_BATCH_UPSERT_MATCHKEY_PATH = "/shared-inventory-batch-upsert-matchkey";
-  public final static String SHARED_INVENTORY_UPSERT_MATCHKEY_PATH = "/shared-inventory-upsert-matchkey";
+  public static final String SHARED_INVENTORY_BATCH_UPSERT_MATCHKEY_PATH = "/shared-inventory-batch-upsert-matchkey";
+  public static final String SHARED_INVENTORY_UPSERT_MATCHKEY_PATH = "/shared-inventory-upsert-matchkey";
 
-  public final static String FETCH_INVENTORY_RECORD_SETS_ID_PATH = INVENTORY_UPSERT_HRID_PATH+"/fetch/:id";
-  public final static String FETCH_SHARED_INVENTORY_RECORD_SETS_ID_PATH = SHARED_INVENTORY_UPSERT_MATCHKEY_PATH+"/fetch/:id";
+  public static final String FETCH_INVENTORY_RECORD_SETS_ID_PATH = INVENTORY_UPSERT_HRID_PATH+"/fetch/:id";
+  public static final String FETCH_SHARED_INVENTORY_RECORD_SETS_ID_PATH = SHARED_INVENTORY_UPSERT_MATCHKEY_PATH+"/fetch/:id";
 
   private final Logger logger = LoggerFactory.getLogger("inventory-update");
   private final InventoryUpdateService upsertService = new InventoryUpdateService();

@@ -23,15 +23,15 @@ public class ErrorReport {
   public static final int INTERNAL_SERVER_ERROR = 500;
 
 
-  private static final String CATEGORY = "category";
-  private static final String TRANSACTION = "transaction";
-  private static final String ENTITY_TYPE = "entityType";
-  private static final String STATUS_CODE = "statusCode";
-  private static final String MESSAGE = "message";
-  private static final String SHORT_MESSAGE = "shortMessage";
-  private static final String ENTITY = "entity";
-  private static final String DETAILS = "details";
-  private static final String REQUEST_JSON = "requestJson";
+  private static final String P_CATEGORY = "category";
+  private static final String P_TRANSACTION = "transaction";
+  private static final String P_ENTITY_TYPE = "entityType";
+  private static final String P_STATUS_CODE = "statusCode";
+  private static final String P_MESSAGE = "message";
+  private static final String P_SHORT_MESSAGE = "shortMessage";
+  private static final String P_ENTITY = "entity";
+  private static final String P_DETAILS = "details";
+  private static final String P_REQUEST_JSON = "requestJson";
 
 
   ErrorCategory category;
@@ -50,8 +50,8 @@ public class ErrorReport {
     this.category = category;
     if (message instanceof JsonObject) {
       this.messageAsJson = (JsonObject) message;
-      if (messageAsJson.containsKey(SHORT_MESSAGE)) {
-        this.shortMessage = messageAsJson.getString(SHORT_MESSAGE);
+      if (messageAsJson.containsKey(P_SHORT_MESSAGE)) {
+        this.shortMessage = messageAsJson.getString(P_SHORT_MESSAGE);
       } else {
         this.shortMessage = "";
       }
@@ -69,15 +69,15 @@ public class ErrorReport {
 
   public static ErrorReport makeErrorReportFromJsonString(String jsonString) {
       JsonObject json = new JsonObject(jsonString);
-      return new ErrorReport(getCategoryFromString(json.getString(CATEGORY)),
-              json.getInteger(STATUS_CODE),
-              json.getValue(MESSAGE))
-              .setShortMessage(json.getString(SHORT_MESSAGE))
-              .setEntity(json.getJsonObject(ENTITY))
-              .setTransaction(json.getString(TRANSACTION))
-              .setEntityType(getEntityTypeFromString(json.getString(ENTITY_TYPE)))
-              .setRequestJson(json.getJsonObject(REQUEST_JSON))
-              .setDetails(json.getJsonObject(DETAILS));
+      return new ErrorReport(getCategoryFromString(json.getString(P_CATEGORY)),
+              json.getInteger(P_STATUS_CODE),
+              json.getValue(P_MESSAGE))
+              .setShortMessage(json.getString(P_SHORT_MESSAGE))
+              .setEntity(json.getJsonObject(P_ENTITY))
+              .setTransaction(json.getString(P_TRANSACTION))
+              .setEntityType(getEntityTypeFromString(json.getString(P_ENTITY_TYPE)))
+              .setRequestJson(json.getJsonObject(P_REQUEST_JSON))
+              .setDetails(json.getJsonObject(P_DETAILS));
   }
 
   public boolean isBatchStorageError () {
@@ -176,18 +176,18 @@ public class ErrorReport {
 
   public JsonObject asJson () {
     JsonObject errorJson = new JsonObject();
-    errorJson.put(CATEGORY, category.toString());
+    errorJson.put(P_CATEGORY, category.toString());
     if (messageAsJson != null && !messageAsJson.isEmpty()) {
-      errorJson.put(MESSAGE, messageAsJson);
+      errorJson.put(P_MESSAGE, messageAsJson);
     } else {
-      errorJson.put(MESSAGE, messageAsString);
+      errorJson.put(P_MESSAGE, messageAsString);
     }
-    errorJson.put(SHORT_MESSAGE, shortMessage);
-    errorJson.put(ENTITY_TYPE, (entityType == null ? "" : entityType.toString()));
-    errorJson.put(ENTITY, entity == null ? new JsonObject() : entity);
-    errorJson.put(STATUS_CODE, statusCode);
-    errorJson.put(REQUEST_JSON, requestJson);
-    errorJson.put(DETAILS, details == null ? new JsonObject() : details);
+    errorJson.put(P_SHORT_MESSAGE, shortMessage);
+    errorJson.put(P_ENTITY_TYPE, (entityType == null ? "" : entityType.toString()));
+    errorJson.put(P_ENTITY, entity == null ? new JsonObject() : entity);
+    errorJson.put(P_STATUS_CODE, statusCode);
+    errorJson.put(P_REQUEST_JSON, requestJson);
+    errorJson.put(P_DETAILS, details == null ? new JsonObject() : details);
     return errorJson;
   }
 

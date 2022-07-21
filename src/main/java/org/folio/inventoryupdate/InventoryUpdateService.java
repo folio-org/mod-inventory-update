@@ -26,8 +26,6 @@ import io.vertx.ext.web.RoutingContext;
 public class InventoryUpdateService {
   private static final Logger logger = LoggerFactory.getLogger("inventory-update");
 
-  private static final String LF = System.lineSeparator();
-
   public void handleInventoryUpsertByHRID(RoutingContext routingContext) {
     UpdatePlan plan = new UpdatePlanAllHRIDs();
     doUpsert(routingContext, plan);
@@ -95,30 +93,30 @@ public class InventoryUpdateService {
     if (incomingValidJson.getJson().containsKey("inventoryRecordSets")) {
       JsonArray inventoryRecordSets = incomingValidJson.getJson().getJsonArray("inventoryRecordSets");
       plan.upsertBatch(routingContext, inventoryRecordSets).onComplete(update -> {
+        // The upsert could succeed, but with an error report, if it was a batch of one
+        // Only if a true batch upsert (of more than one) failed, will the promise fail.
         if (update.succeeded()) {
           update.result().respond(routingContext);
         } else {
-          if (inventoryRecordSets.size() > 1) {
-            logger.error("A batch upsert failed, bringing down all records of the batch. Switching to record-by-record updates");
-            UpdateMetrics accumulatedStats = new UpdateMetrics();
-            JsonArray accumulatedErrorReport = new JsonArray();
-            InventoryUpdateOutcome compositeOutcome = new InventoryUpdateOutcome();
-            plan.multipleSingleRecordUpserts(routingContext, inventoryRecordSets).onComplete(
-                    listOfOutcomes -> {
-                      for (InventoryUpdateOutcome outcome : listOfOutcomes.result()) {
-                        if (outcome.hasMetrics()) {
-                          accumulatedStats.add(outcome.metrics);
-                        }
-                        if (outcome.hasError()) {
-                          accumulatedErrorReport.add(outcome.getError().asJson());
-                        }
+          logger.error("A batch upsert failed, bringing down all records of the batch. Switching to record-by-record updates");
+          UpdateMetrics accumulatedStats = new UpdateMetrics();
+          JsonArray accumulatedErrorReport = new JsonArray();
+          InventoryUpdateOutcome compositeOutcome = new InventoryUpdateOutcome();
+          plan.multipleSingleRecordUpserts(routingContext, inventoryRecordSets).onComplete(
+                  listOfOutcomes -> {
+                    for (InventoryUpdateOutcome outcome : listOfOutcomes.result()) {
+                      if (outcome.hasMetrics()) {
+                        accumulatedStats.add(outcome.metrics);
                       }
-                      compositeOutcome.setMetrics(accumulatedStats);
-                      compositeOutcome.setErrors(accumulatedErrorReport);
-                      compositeOutcome.setResponseStatusCode(MULTI_STATUS);
-                      compositeOutcome.respond(routingContext);
-                    });
-          }
+                      if (outcome.hasError()) {
+                        accumulatedErrorReport.add(outcome.getError().asJson());
+                      }
+                    }
+                    compositeOutcome.setMetrics(accumulatedStats);
+                    compositeOutcome.setErrors(accumulatedErrorReport);
+                    compositeOutcome.setResponseStatusCode(MULTI_STATUS);
+                    compositeOutcome.respond(routingContext);
+                  });
         }
       });
     } else {

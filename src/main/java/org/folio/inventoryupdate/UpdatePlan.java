@@ -7,6 +7,7 @@ import java.util.function.BiFunction;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import io.vertx.core.AsyncResult;
 import io.vertx.core.impl.logging.Logger;
 import io.vertx.core.impl.logging.LoggerFactory;
 import io.vertx.ext.web.RoutingContext;
@@ -67,12 +68,12 @@ public abstract class UpdatePlan {
 
     protected Repository repository;
 
-    public UpdatePlan (InventoryRecordSet incomingInventoryRecordSet, InventoryQuery existingInstanceQuery) {
+    protected UpdatePlan (InventoryRecordSet incomingInventoryRecordSet, InventoryQuery existingInstanceQuery) {
         this.updatingSet = incomingInventoryRecordSet;
         this.instanceQuery = existingInstanceQuery;
     }
 
-    public UpdatePlan () {}
+    protected UpdatePlan () {}
 
     public abstract Repository getNewRepository ();
 
@@ -105,75 +106,78 @@ public abstract class UpdatePlan {
 
                                                 if (inventoryUpdated.succeeded()) {
                                                     response.put("metrics", getUpdateMetricsFromRepository().asJson());
-                                                    InventoryUpdateOutcome outcome =
-                                                            new InventoryUpdateOutcome(
-                                                                    response)
-                                                                    .setResponseStatusCode(OK);
-                                                    promise.complete(outcome);
+                                                    promise.complete(
+                                                            new InventoryUpdateOutcome(response)
+                                                                    .setResponseStatusCode(OK));
                                                 } else {
-                                                    logger.error((batchOfOne ? "Single record batch " : "Multi-record batch") + " update failed " +
-                                                            inventoryUpdated.cause().getMessage());
-                                                    ErrorReport report = ErrorReport
-                                                            .makeErrorReportFromJsonString(
-                                                                    inventoryUpdated.cause().getMessage());
-                                                    // If the error affected an entire batch of records
-                                                    // then fail the request as a whole. This particular error
-                                                    // message will not go to the client but rather be picked
-                                                    // up and acted upon by the module.
-                                                    //
-                                                    // If the error only affected individual records, either
-                                                    // because the update was for a batch of one or because the
-                                                    // error affected entities that are not batch updated
-                                                    // (ie relationships) then return a (partial) success,
-                                                    // a multi-status (207) that is.
-                                                    if (report.isBatchStorageError() && !batchOfOne) {
-                                                        // This will cause the controller to switch to record-by-record
-                                                        promise.fail(report.asJsonString());
-                                                    } else {
-                                                        JsonArray errors = new JsonArray();
-                                                        errors.add(report.asJson());
-                                                        response.put("errors", errors);
-                                                        InventoryUpdateOutcome outcome =
-                                                                new InventoryUpdateOutcome(response)
-                                                                        .setResponseStatusCode(MULTI_STATUS)
-                                                                        .setMetrics(getUpdateMetricsFromRepository());
-                                                        promise.complete(outcome);
-                                                    }
+                                                    handleUpdateError(promise, inventoryUpdated.cause().getMessage(), batchOfOne);
                                                 }
                                             });
                                 } else {
-                                    InventoryUpdateOutcome outcome = new InventoryUpdateOutcome(
+                                    promise.complete(new InventoryUpdateOutcome(
                                             ErrorReport.makeErrorReportFromJsonString(
                                                             result.cause().getMessage())
-                                                    .setShortMessage("Fetching from storage before update failed."));
-                                    promise.complete(outcome);
+                                                    .setShortMessage("Fetching from storage before update failed.")));
                                 }
                             });
         } else {
-            ErrorReport report = new ErrorReport(
-                    ErrorReport.ErrorCategory.VALIDATION,
-                    UNPROCESSABLE_ENTITY,
-                    validations.firstMessage())
-                    .setRequestJson(validations.getFirstRequestJson())
-                    .setEntityType(validations.firstEntityType())
-                    .setEntity(validations.firstEntity())
-                    .setShortMessage(validations.firstShortMessage())
-                    .setRequestJson(validations.getFirstRequestJson());
-            if (batchOfOne) {
-                UpdateMetrics metrics = getUpdateMetricsFromRepository();
-                metrics.entity(Entity.INSTANCE)
-                        .transaction(Transaction.CREATE)
-                        .outcomes.increment(InventoryRecord.Outcome.SKIPPED);
-                InventoryUpdateOutcome validationErrorOutcome =
-                        new InventoryUpdateOutcome(report).setMetrics(metrics);
-                promise.complete(validationErrorOutcome);
-            } else {
-                // Pre-validation of batch of multiple record sets failed, switch to record-by-record upsert
-                // to process the good record sets, if any.
-                promise.fail(report.asJsonString());
-            }
+            handleValidationError(promise, validations, batchOfOne);
         }
         return promise.future();
+    }
+
+    private void handleUpdateError(Promise<InventoryUpdateOutcome> promise, String errorJson, boolean batchOfOne) {
+        // If the error affected an entire batch of records
+        // then fail the request as a whole. This particular error
+        // outcome will not go to the client but rather be picked
+        // up and acted upon by the module.
+        //
+        // If the error only affected individual records, either
+        // because the update was for a batch of one or because the
+        // error affected entities that are not batch updated
+        // (ie relationships) then return a (partial) success,
+        // a multi-status (207) that is.
+        ErrorReport report = ErrorReport.makeErrorReportFromJsonString(errorJson);
+        if (report.isBatchStorageError() && !batchOfOne) {
+            // This will cause the controller to switch to record-by-record upserts
+            promise.fail(report.asJsonString());
+        } else {
+            // Report multi-status, add errors but don't fail promise.
+            JsonObject response = batchOfOne ? getOneUpdatingRecordSetJsonFromRepository() : new JsonObject();
+            JsonArray errors = new JsonArray();
+            errors.add(report.asJson());
+            response.put("errors", errors);
+            InventoryUpdateOutcome outcome =
+                    new InventoryUpdateOutcome(response)
+                            .setResponseStatusCode(MULTI_STATUS)
+                            .setMetrics(getUpdateMetricsFromRepository());
+            promise.complete(outcome);
+        }
+    }
+
+    private void handleValidationError(Promise<InventoryUpdateOutcome> promise, RequestValidation validations, boolean batchOfOne) {
+        ErrorReport report = new ErrorReport(
+                ErrorReport.ErrorCategory.VALIDATION,
+                UNPROCESSABLE_ENTITY,
+                validations.firstMessage())
+                .setRequestJson(validations.getFirstRequestJson())
+                .setEntityType(validations.firstEntityType())
+                .setEntity(validations.firstEntity())
+                .setShortMessage(validations.firstShortMessage())
+                .setRequestJson(validations.getFirstRequestJson());
+        if (batchOfOne) {
+            UpdateMetrics metrics = getUpdateMetricsFromRepository();
+            metrics.entity(Entity.INSTANCE)
+                    .transaction(Transaction.CREATE)
+                    .outcomes.increment(InventoryRecord.Outcome.SKIPPED);
+            InventoryUpdateOutcome validationErrorOutcome =
+                    new InventoryUpdateOutcome(report).setMetrics(metrics);
+            promise.complete(validationErrorOutcome);
+        } else {
+            // Pre-validation of batch of multiple record sets failed, switch to record-by-record upsert
+            // to process the good record sets, if any.
+            promise.fail(report.asJsonString());
+        }
     }
 
     public UpdatePlan setIncomingRecordSets(JsonArray inventoryRecordSets) {

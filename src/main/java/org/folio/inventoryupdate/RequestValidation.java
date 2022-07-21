@@ -1,6 +1,5 @@
 package org.folio.inventoryupdate;
 
-import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import org.folio.inventoryupdate.entities.InventoryRecord;
 

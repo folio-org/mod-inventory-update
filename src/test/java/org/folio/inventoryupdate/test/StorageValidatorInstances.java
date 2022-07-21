@@ -22,6 +22,7 @@ public class StorageValidatorInstances  {
 
     validatePostAndGetById(testContext);
     validateGetByQueryAndPut(testContext);
+    validateGetByIdList(testContext);
     validateCanDeleteInstanceById(testContext);
     cannotDeleteInstanceWithHoldings(testContext);
     cannotDeleteInstanceWithInstanceRelations(testContext);
@@ -31,7 +32,7 @@ public class StorageValidatorInstances  {
   protected void validatePostAndGetById(TestContext testContext) {
     JsonObject responseOnPOST = FakeInventoryStorage.post(
             INSTANCE_STORAGE_PATH,
-            new InputInstance().setTitle("New InputInstance").setInstanceTypeId("12345").getJson());
+            new InputInstance().setTitle("New InputInstance").setInstanceTypeId("12345").setHrid("999999999").setSource("test").getJson());
     testContext.assertEquals(responseOnPOST.getString("title"), "New InputInstance");
     JsonObject responseOnGET = FakeInventoryStorage.getRecordById(INSTANCE_STORAGE_PATH, responseOnPOST.getString("id"));
     testContext.assertEquals(responseOnGET.getString("title"), "New InputInstance");
@@ -50,10 +51,18 @@ public class StorageValidatorInstances  {
     testContext.assertEquals(record.getString("instanceTypeId"), "456");
   }
 
+  protected void validateGetByIdList(TestContext testContext) {
+    JsonObject responseJson = FakeInventoryStorage.getRecordsByQuery(
+            INSTANCE_STORAGE_PATH,
+            "query="+ RecordStorage.encode("(hrid==(\"10\" OR \"999999999\")"));
+    testContext.assertEquals(
+            responseJson.getInteger("totalRecords"), 1,"Number of " + RESULT_SET_INSTANCES + " expected: 1" );
+  }
+
   protected void validateCanDeleteInstanceById (TestContext testContext) {
     JsonObject responseOnPOST = FakeInventoryStorage.post(
             INSTANCE_STORAGE_PATH,
-            new InputInstance().setTitle("InputInstance to delete").setInstanceTypeId("12345").getJson());
+            new InputInstance().setTitle("InputInstance to delete").setInstanceTypeId("12345").setSource("test").getJson());
     testContext.assertEquals(responseOnPOST.getString("title"), "InputInstance to delete");
     FakeInventoryStorage.delete(INSTANCE_STORAGE_PATH, responseOnPOST.getString("id"),200);
   }
@@ -61,7 +70,7 @@ public class StorageValidatorInstances  {
   protected void cannotDeleteInstanceWithHoldings (TestContext testContext) {
     JsonObject responseOnPOST = FakeInventoryStorage.post(
             INSTANCE_STORAGE_PATH,
-            new InputInstance().setTitle("InputInstance with holdings").setInstanceTypeId("12345").getJson(), 201);
+            new InputInstance().setTitle("InputInstance with holdings").setInstanceTypeId("12345").setSource("test").getJson(), 201);
     String instanceId = responseOnPOST.getString("id");
     JsonObject responseOnHoldingsPOST = FakeInventoryStorage.post(
             HOLDINGS_STORAGE_PATH,
@@ -72,11 +81,11 @@ public class StorageValidatorInstances  {
   protected void cannotDeleteInstanceWithInstanceRelations (TestContext testContext) {
     JsonObject responseOnPOSTChild = FakeInventoryStorage.post(
             INSTANCE_STORAGE_PATH,
-            new InputInstance().setTitle("InputInstance with parent").setInstanceTypeId("12345").getJson(), 201);
+            new InputInstance().setTitle("InputInstance with parent").setInstanceTypeId("12345").setSource("test").getJson(), 201);
     String childId = responseOnPOSTChild.getString("id");
     JsonObject responseOnPOSTParent = FakeInventoryStorage.post(
             INSTANCE_STORAGE_PATH,
-            new InputInstance().setTitle("InputInstance with child").setInstanceTypeId("12345").getJson(), 201);
+            new InputInstance().setTitle("InputInstance with child").setInstanceTypeId("12345").setSource("test").getJson(), 201);
     String parentId = responseOnPOSTParent.getString("id");
     JsonObject responseOnPOSTRelation = FakeInventoryStorage.post(
             INSTANCE_RELATIONSHIP_STORAGE_PATH,
@@ -89,11 +98,11 @@ public class StorageValidatorInstances  {
   protected void cannotDeleteInstanceWithTitleSuccession (TestContext testContext) {
     JsonObject responseOnPOSTSucceeding = FakeInventoryStorage.post(
             INSTANCE_STORAGE_PATH,
-            new InputInstance().setTitle("Succeeding title").setInstanceTypeId("12345").getJson(), 201);
+            new InputInstance().setTitle("Succeeding title").setInstanceTypeId("12345").setSource("test").getJson(), 201);
     String succeedingId = responseOnPOSTSucceeding.getString("id");
     JsonObject responseOnPOSTPreceding = FakeInventoryStorage.post(
             INSTANCE_STORAGE_PATH,
-            new InputInstance().setTitle("Preceding title").setInstanceTypeId("12345").getJson(), 201);
+            new InputInstance().setTitle("Preceding title").setInstanceTypeId("12345").setSource("test").getJson(), 201);
     String precedingId = responseOnPOSTPreceding.getString("id");
     JsonObject responseOnPOSTSuccession = FakeInventoryStorage.post(
             PRECEDING_SUCCEEDING_TITLE_STORAGE_PATH,

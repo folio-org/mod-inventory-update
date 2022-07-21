@@ -14,18 +14,16 @@ public class StorageValidatorPrecedingSucceeding  {
     protected void validateStorage(TestContext testContext) {
         createTwoTitles(testContext);
         validatePostAndGetById(testContext);
-        //validateCanDeleteSuccessionById(testContext);
-        //validateCannotPostWithBadInstanceId(testContext);
     }
 
     protected void createTwoTitles (TestContext testContext) {
         JsonObject responseOnPOSTSucceeding = FakeInventoryStorage.post(
                 INSTANCE_STORAGE_PATH,
-                new InputInstance().setTitle("Succeeding title").setInstanceTypeId("12345").getJson(), 201);
+                new InputInstance().setTitle("Succeeding title").setInstanceTypeId("12345").setSource("test").getJson(), 201);
         succeedingInstanceId = responseOnPOSTSucceeding.getString("id");
         JsonObject responseOnPOSTPreceding = FakeInventoryStorage.post(
                 INSTANCE_STORAGE_PATH,
-                new InputInstance().setTitle("Preceding title").setInstanceTypeId("12345").getJson(), 201);
+                new InputInstance().setTitle("Preceding title").setInstanceTypeId("12345").setSource("test").getJson(), 201);
         precedingInstanceId = responseOnPOSTPreceding.getString("id");
     }
 

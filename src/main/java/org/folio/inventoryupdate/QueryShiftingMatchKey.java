@@ -1,13 +1,13 @@
 package org.folio.inventoryupdate;
 
 
-public class ShiftingMatchKeyQuery extends InventoryQuery
+public class QueryShiftingMatchKey extends InventoryQuery
 {
     String matchKey;
     String identifierTypeId;
-    String localIdentifier;
+    public String localIdentifier;
 
-    public ShiftingMatchKeyQuery( String localIdentifier, String identifierTypeId, String matchKey) {
+    public QueryShiftingMatchKey(String localIdentifier, String identifierTypeId, String matchKey) {
         this.identifierTypeId = identifierTypeId;
         this.localIdentifier = localIdentifier;
         this.matchKey = matchKey;

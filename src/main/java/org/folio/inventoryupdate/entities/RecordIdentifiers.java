@@ -45,14 +45,6 @@ public class RecordIdentifiers
     return identifiers;
   }
 
-  public static RecordIdentifiers identifiersWithOaiIdentifier ( String institutionId, String identifierTypeId, String oaiIdentifier) {
-    RecordIdentifiers identifiers = new RecordIdentifiers();
-    identifiers.institutionId = institutionId;
-    identifiers.identifierTypeId = identifierTypeId;
-    identifiers.recordIdentifier = localIdentifierFromOaiIdentifier(oaiIdentifier);
-    return identifiers;
-  }
-
   private static String localIdentifierFromOaiIdentifier (String oaiId) {
     return  (oaiId != null ? oaiId.substring(oaiId.lastIndexOf(":")+1) : null);
   }

@@ -22,11 +22,11 @@ public class StorageValidatorInstanceRelationships {
     protected void createTwoTitles (TestContext testContext) {
         JsonObject responseOnPOSTChild = FakeInventoryStorage.post(
                 INSTANCE_STORAGE_PATH,
-                new InputInstance().setTitle("Child Instance").setInstanceTypeId("12345").getJson(), 201);
+                new InputInstance().setTitle("Child Instance").setInstanceTypeId("12345").setSource("test").getJson(), 201);
         childInstanceId = responseOnPOSTChild.getString("id");
         JsonObject responseOnPOSTParent = FakeInventoryStorage.post(
                 INSTANCE_STORAGE_PATH,
-                new InputInstance().setTitle("Parent Instance").setInstanceTypeId("12345").getJson(), 201);
+                new InputInstance().setTitle("Parent Instance").setInstanceTypeId("12345").setSource("test").getJson(), 201);
         parentInstanceId = responseOnPOSTParent.getString("id");
     }
 

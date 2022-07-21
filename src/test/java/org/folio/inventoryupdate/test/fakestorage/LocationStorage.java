@@ -13,4 +13,9 @@ public class LocationStorage extends RecordStorage {
         // Locations has none in fake storage
     }
 
+    @Override
+    protected void declareMandatoryProperties() {
+
+    }
+
 }

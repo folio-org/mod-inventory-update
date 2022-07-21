@@ -1,0 +1,19 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "description": "A collection of inventory record sets (instances, holdings and items, etc)",
+  "type": "object",
+  "properties": {
+    "inventoryRecordSets": {
+      "description": "List of inventory record sets",
+      "id": "inventoryRecordSets",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "$ref": "inventory-record-set.json"
+      }
+    }
+  },
+  "required": [
+    "inventoryRecordSets"
+  ]
+}

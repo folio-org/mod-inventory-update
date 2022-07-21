@@ -11,4 +11,9 @@ public class InstanceStorage extends RecordStorage {
         // Instances have none in fake storage
     }
 
+    @Override
+    protected void declareMandatoryProperties() {
+        mandatoryProperties.add("source");
+    }
+
 }

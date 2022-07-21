@@ -13,9 +13,16 @@ populating the storage with Instances, holdings and items according to one of mu
 ## API
 
 Inventory Update so far supports two different update schemes implemented by two different end-points, which both
-accepts PUT requests with a payload of an [Inventory Record Set JSON body](ramls/inventory-record-set.json). An
+accept PUT requests with a payload of an [Inventory Record Set JSON body](ramls/inventory-record-set.json)
+, `inventor-upsert-hrid` and `shared-inventory-upsert-matchkey`. An
 inventory record set is a set of records including an Inventory Instance, and an array of holdings records with embedded
 arrays of items.
+
+Both upsert APIs have a batch equivalent, `inventory-batch-upsert-hrid`, and `shared-inventory-batch-upsert-matchkey`
+respectively. The batch APIs take arrays of inventory record sets and utilizes Inventory Storage's batch upsert APIs
+with
+a significant improvement in overall data import performance compared to the record-by-record updates of the single
+record APIs.
 
 Refer to the [API documentation](#api-documentation) section, and to the following explanation sections:
 
@@ -50,6 +57,7 @@ can ask that certain or all existing status values are updated or that certain o
 updates.
 
 For example, to only overwrite a status of "On order" and retain any other statuses, do:
+
 ```
 processing": {
    "item": {
@@ -63,7 +71,7 @@ processing": {
 }
 ```
 
-The default behavior is to overwrite all statuses. 
+The default behavior is to overwrite all statuses.
 
 #### Provisional Instance created when related Instance doesn't exist yet
 
@@ -135,6 +143,159 @@ The match logic currently considers title, year, publisher, pagination, edition 
 If it does not find a matching title, a new Instance will be created. If it finds one, the existing Instance will be
 replaced by the incoming Instance, except, the HRID (human-readable ID) of the original Instance will be retained, as
 well as the resource identifiers from any of the other libraries that contributed that Instance.
+
+### Batch APIs `/inventory-batch-upsert-hrid` and `/shared-inventory-batch-upsert-matchkey`
+
+A client can send arrays of inventory record sets to the batch APIs with significant improvement to overall throughput
+compared to the single record APIs.
+
+These APIs utilize Inventory Storage's batch upsert APIs for Instances, holdings records and Items.
+
+In case of data problems in either type of entity (referential constraint errors, missing mandatory properties, etc),
+the entire batch of the given entity will fail. For example if an Item fails all Items fail. At this point all the
+Instances and
+holdings records are presumably persisted. The module aims to recover from such inconsistent states by
+switching from batch processing to record-by-record updates in case of errors so that, in this example, all the good
+Items can be persisted. The
+response on a request with one or more errors, that didn't prevent the entire request from being processed, will be
+a `207` `Multi-Status`, and the one or more error that were found will be returned with the
+response JSON, together with the summarized update statistics ("metrics).
+
+In a feed with many errors the throughput will be close to that of the single record APIs since many batches will be
+processed record-by-record.
+
+If the client needs to pair up error reports in the response with any original records it holds itself, the client can
+set an identifier in the inventory record set property "processing". The name and content of that property is entirely
+up to the client, Inventory Update will simply return the data it gets, so it could be a simple sequence number for the
+batch, like
+
+``` 
+{ 
+ "inventoryRecordSets": 
+  [
+   {
+    "instances": ...
+    "holdingsRecords": ...
+    "processing": {
+      ...
+      "batchIndex": 1
+    }
+   },
+    "instances": ...
+    "holdingsRecords": ...
+    "processing": {
+      ...
+      "batchIndex": 2
+    }
+} 
+```
+
+A response of a batch upsert of 100 Instances where the 50th failed, the error message is tagged with the clients batch
+index.
+
+```
+{
+    "metrics": {
+        "INSTANCE": {
+            "CREATE": {
+                "COMPLETED": 99,
+                "FAILED": 1,
+                "SKIPPED": 0,
+                "PENDING": 0
+            },
+            "UPDATE": {
+                "COMPLETED": 0,
+                "FAILED": 0,
+                "SKIPPED": 0,
+                "PENDING": 0
+            },
+            "DELETE": {
+                "COMPLETED": 0,
+                "FAILED": 0,
+                "SKIPPED": 0,
+                "PENDING": 0
+            }
+        },
+        "HOLDINGS_RECORD": {
+            "CREATE": {
+                "COMPLETED": 0,
+                "FAILED": 0,
+                "SKIPPED": 0,
+                "PENDING": 0
+            },
+            "UPDATE": {
+                "COMPLETED": 0,
+                "FAILED": 0,
+                "SKIPPED": 0,
+                "PENDING": 0
+            },
+            "DELETE": {
+                "COMPLETED": 0,
+                "FAILED": 0,
+                "SKIPPED": 0,
+                "PENDING": 0
+            }
+        },
+        "ITEM": {
+            "CREATE": {
+                "COMPLETED": 0,
+                ...
+                ...
+                ...
+            }
+        }
+    },
+    "errors": [
+        {
+            "category": "STORAGE",
+            "message": {
+                "message": {
+                    "errors": [
+                        {
+                            "message": "must not be null",
+                            "type": "1",
+                            "code": "javax.validation.constraints.NotNull.message",
+                            "parameters": [
+                                {
+                                    "key": "source",
+                                    "value": "null"
+                                }
+                            ]
+                        }
+                    ]
+                }
+            },
+            "shortMessage": "One or more errors occurred updating Inventory records",
+            "entityType": "INSTANCE",
+            "entity": {
+                "title": "New title 50",
+                "instanceTypeId": "12345",
+                "matchKey": "new_title_50__________________________________________________________0000_____________________________________________________________________________________________p",
+                "id": "782d5015-147d-433d-beaf-06a47bde6be5"
+            },
+            "statusCode": 422,
+            "requestJson": {
+                "instance": {
+                    "title": "New title 50",
+                    "instanceTypeId": "12345",
+                    "matchKey": "new_title_50__________________________________________________________0000_____________________________________________________________________________________________p"
+                },
+                "processing": {
+                    "batchIndex": 50
+                }
+            },
+            "details": {
+                
+            }
+        }
+    ]
+}
+```
+
+Note that any given batch cannot touch the same records twice, since that would require a certain order of processing,
+something that batching will not be able to guarantee. For the upsert by HRID for example, if any HRID appears twice in the
+batch, the module will fall back to record-by-record updates and process the record sets in the order it receives them. Same
+for the upsert by match-key, if any match-key appears twice in the batch.
 
 ### APIs for fetching an Inventory record set
 

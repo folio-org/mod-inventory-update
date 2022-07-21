@@ -1,10 +1,10 @@
 package org.folio.inventoryupdate.entities;
-
 public abstract class InstanceToInstanceRelation extends InventoryRecord {
     public static final String PROVISIONAL_INSTANCE = "provisionalInstance";
     private boolean needsProvisionalInstance = false;
     protected Instance provisionalInstance = null;
     protected InstanceRelationsClass instanceRelationClass = null;
+
     public enum InstanceRelationsClass {
         TO_PARENT,
         TO_CHILD,

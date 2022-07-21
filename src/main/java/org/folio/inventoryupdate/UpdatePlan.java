@@ -3,11 +3,13 @@ package org.folio.inventoryupdate;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.function.BiFunction;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import io.vertx.core.impl.logging.Logger;
 import io.vertx.core.impl.logging.LoggerFactory;
+import io.vertx.ext.web.RoutingContext;
 import org.folio.inventoryupdate.entities.*;
 import org.folio.inventoryupdate.entities.InventoryRecord.Entity;
 import org.folio.inventoryupdate.entities.InventoryRecord.Transaction;
@@ -18,6 +20,11 @@ import io.vertx.core.Future;
 import io.vertx.core.Promise;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
+
+import static org.folio.inventoryupdate.ErrorReport.UNPROCESSABLE_ENTITY;
+import static org.folio.inventoryupdate.InventoryStorage.getOkapiClient;
+import static org.folio.inventoryupdate.InventoryUpdateOutcome.MULTI_STATUS;
+import static org.folio.inventoryupdate.InventoryUpdateOutcome.OK;
 
 /**
  * Base class for implementing update plans
@@ -55,35 +62,187 @@ public abstract class UpdatePlan {
     // A secondary existing set that needs updating too (currently relevant only in the context of a shared index).
     protected InventoryRecordSet secondaryExistingSet;
 
-    protected final Logger logger = LoggerFactory.getLogger("inventory-update");
+    protected static final Logger logger = LoggerFactory.getLogger("inventory-update");
     protected boolean isDeletion = false;
 
-    /**
-     * Constructor for plan for creating or updating an Inventory record set
-     * @param incomingSet  The inventory record set from the request
-     * @param existingInstanceQuery The query to use for checking if the instance already exists
-     */
-    public UpdatePlan (InventoryRecordSet incomingSet, InventoryQuery existingInstanceQuery) {
-        this.updatingSet = incomingSet;
+    protected Repository repository;
+
+    protected UpdatePlan (InventoryRecordSet incomingInventoryRecordSet, InventoryQuery existingInstanceQuery) {
+        this.updatingSet = incomingInventoryRecordSet;
         this.instanceQuery = existingInstanceQuery;
     }
 
-    public boolean foundExistingRecordSet () {
-      return existingSet != null;
+    protected UpdatePlan () {}
+
+    public abstract Repository getNewRepository ();
+
+    public abstract Future<List<InventoryUpdateOutcome>> multipleSingleRecordUpserts(
+            RoutingContext routingContext, JsonArray inventoryRecordSets);
+
+    public abstract UpdatePlan planInventoryUpdates();
+
+    public abstract Future<Void> doInventoryUpdates(OkapiClient okapiClient);
+
+    public abstract Future<Void> doCreateInstanceRelations (OkapiClient okapiClient);
+
+    public Future<InventoryUpdateOutcome> upsertBatch(RoutingContext routingContext, JsonArray inventoryRecordSets) {
+        repository = getNewRepository();
+        Promise<InventoryUpdateOutcome> promise = Promise.promise();
+        RequestValidation validations = validateIncomingRecordSets (inventoryRecordSets);
+        final boolean batchOfOne = (inventoryRecordSets.size() == 1);
+        if (validations.passed()) {
+            setIncomingRecordSets(inventoryRecordSets)
+                    .buildRepositoryFromStorage(routingContext).onComplete(
+                            result -> {
+                                if (result.succeeded()) {
+                                    planInventoryUpdates()
+                                            .doInventoryUpdates(
+                                                    getOkapiClient(routingContext)).onComplete(inventoryUpdated -> {
+
+                                                JsonObject response = (batchOfOne ?
+                                                        getOneUpdatingRecordSetJsonFromRepository() :
+                                                        new JsonObject());
+
+                                                if (inventoryUpdated.succeeded()) {
+                                                    response.put("metrics", getUpdateMetricsFromRepository().asJson());
+                                                    promise.complete(
+                                                            new InventoryUpdateOutcome(response)
+                                                                    .setResponseStatusCode(OK));
+                                                } else {
+                                                    handleUpdateError(promise, inventoryUpdated.cause().getMessage(), batchOfOne);
+                                                }
+                                            });
+                                } else {
+                                    promise.complete(new InventoryUpdateOutcome(
+                                            ErrorReport.makeErrorReportFromJsonString(
+                                                            result.cause().getMessage())
+                                                    .setShortMessage("Fetching from storage before update failed.")));
+                                }
+                            });
+        } else {
+            handleValidationError(promise, validations, batchOfOne);
+        }
+        return promise.future();
     }
 
-    public boolean gotUpdatingRecordSet () {
-      return updatingSet != null;
+    private void handleUpdateError(Promise<InventoryUpdateOutcome> promise, String errorJson, boolean batchOfOne) {
+        // If the error affected an entire batch of records
+        // then fail the request as a whole. This particular error
+        // outcome will not go to the client but rather be picked
+        // up and acted upon by the module.
+        //
+        // If the error only affected individual records, either
+        // because the update was for a batch of one or because the
+        // error affected entities that are not batch updated
+        // (ie relationships) then return a (partial) success,
+        // a multi-status (207) that is.
+        ErrorReport report = ErrorReport.makeErrorReportFromJsonString(errorJson);
+        if (report.isBatchStorageError() && !batchOfOne) {
+            // This will cause the controller to switch to record-by-record upserts
+            promise.fail(report.asJsonString());
+        } else {
+            // Report multi-status, add errors but don't fail promise.
+            JsonObject response = batchOfOne ? getOneUpdatingRecordSetJsonFromRepository() : new JsonObject();
+            JsonArray errors = new JsonArray();
+            errors.add(report.asJson());
+            response.put("errors", errors);
+            InventoryUpdateOutcome outcome =
+                    new InventoryUpdateOutcome(response)
+                            .setResponseStatusCode(MULTI_STATUS)
+                            .setMetrics(getUpdateMetricsFromRepository());
+            promise.complete(outcome);
+        }
     }
 
-    protected boolean foundSecondaryExistingSet () {
-        return (secondaryExistingSet != null);
+    private void handleValidationError(Promise<InventoryUpdateOutcome> promise, RequestValidation validations, boolean batchOfOne) {
+        ErrorReport report = new ErrorReport(
+                ErrorReport.ErrorCategory.VALIDATION,
+                UNPROCESSABLE_ENTITY,
+                validations.firstMessage())
+                .setRequestJson(validations.getFirstRequestJson())
+                .setEntityType(validations.firstEntityType())
+                .setEntity(validations.firstEntity())
+                .setShortMessage(validations.firstShortMessage())
+                .setRequestJson(validations.getFirstRequestJson());
+        if (batchOfOne) {
+            UpdateMetrics metrics = getUpdateMetricsFromRepository();
+            metrics.entity(Entity.INSTANCE)
+                    .transaction(Transaction.CREATE)
+                    .outcomes.increment(InventoryRecord.Outcome.SKIPPED);
+            InventoryUpdateOutcome validationErrorOutcome =
+                    new InventoryUpdateOutcome(report).setMetrics(metrics);
+            promise.complete(validationErrorOutcome);
+        } else {
+            // Pre-validation of batch of multiple record sets failed, switch to record-by-record upsert
+            // to process the good record sets, if any.
+            promise.fail(report.asJsonString());
+        }
     }
 
-    public abstract Future<Void> planInventoryUpdates (OkapiClient client);
+    public UpdatePlan setIncomingRecordSets(JsonArray inventoryRecordSets) {
+        repository.setIncomingRecordSets(inventoryRecordSets);
+        return this;
+    }
 
-    public abstract Future<Void> doInventoryUpdates (OkapiClient client);
-    public abstract RequestValidation validateIncomingRecordSet (JsonObject inventoryRecordSet);
+    public RequestValidation validateIncomingRecordSets (JsonArray incomingRecordSets) {
+        RequestValidation validations = new RequestValidation();
+        for (Object recordSetObject : incomingRecordSets) {
+            RequestValidation validation = validateIncomingRecordSet((JsonObject) recordSetObject);
+            if (validation.hasErrors()) {
+                validations.addValidation(validation);
+            }
+        }
+        return validations;
+    }
+
+    public Future<Void> buildRepositoryFromStorage (RoutingContext routingContext) {
+        long buildRepoStart = System.currentTimeMillis();
+        Promise<Void> promise = Promise.promise();
+        repository.buildRepositoryFromStorage(routingContext).onComplete(repositoryBuilt -> {
+            if (repositoryBuilt.succeeded()) {
+                long builtMs = System.currentTimeMillis() - buildRepoStart;
+                logger.debug("Repo built in " +  builtMs + " ms.");
+                promise.complete();
+            } else {
+                promise.fail(repositoryBuilt.cause().getMessage());
+            }
+        });
+        return promise.future();
+    }
+
+
+    protected Future<List<InventoryUpdateOutcome>> chainSingleRecordUpserts(RoutingContext routingContext, List<JsonArray> arraysOfOneRecordSet, BiFunction<RoutingContext, JsonArray, Future<InventoryUpdateOutcome>> upsertMethod) {
+        Promise<List<InventoryUpdateOutcome>> promise = Promise.promise();
+        List<InventoryUpdateOutcome> outcomes = new ArrayList<>();
+        Future<InventoryUpdateOutcome> fut = Future.succeededFuture();
+        for (JsonArray arrayOfOneRecordSet : arraysOfOneRecordSet) {
+            fut = fut.compose(v -> {
+                // First time around, a null outcome is passed in
+                if (v != null) {
+                    outcomes.add(v);
+                }
+                return upsertMethod.apply(routingContext, arrayOfOneRecordSet);
+            });
+        }
+        fut.onComplete( result -> {
+            // capture the last outcome too
+            outcomes.add(result.result());
+            promise.complete(outcomes);
+        });
+        return promise.future();
+    }
+
+    // DELETION
+    /**
+     * Constructor for plan for creating or updating an Inventory record set
+     * @param existingInstanceQuery The query to use for checking if the instance already exists
+     */
+    protected UpdatePlan (InventoryQuery existingInstanceQuery) {
+        this.instanceQuery = existingInstanceQuery;
+        this.isDeletion = true;
+    }
+
+    public abstract Future<Void> planInventoryDelete(OkapiClient client);
 
     protected Future<InventoryRecordSet> lookupExistingRecordSet (OkapiClient okapiClient, InventoryQuery instanceQuery) {
         Promise<InventoryRecordSet> promise = Promise.promise();
@@ -91,32 +250,49 @@ public abstract class UpdatePlan {
             if (recordSet.succeeded()) {
                 JsonObject existingInventoryRecordSetJson = recordSet.result();
                 if (existingInventoryRecordSetJson != null) {
-                    promise.complete(new InventoryRecordSet(existingInventoryRecordSetJson));
+                    promise.complete(InventoryRecordSet.makeExistingRecordSet(existingInventoryRecordSetJson));
                 } else
                 {
                     promise.complete( null );
                 }
             } else {
-                promise.fail("Error looking up existing record set: " + recordSet.cause().getMessage());
+                promise.fail(recordSet.cause().getMessage());
             }
         });
         return promise.future();
     }
+    public boolean foundExistingRecordSet () {
+        return existingSet != null;
+    }
+
+    public boolean gotUpdatingRecordSet () {
+        return updatingSet != null;
+    }
+
+    protected boolean foundSecondaryExistingSet () {
+        return (secondaryExistingSet != null);
+    }
+    public abstract Future<Void> doInventoryDelete(OkapiClient client);
+    // DELETION
+
+    public abstract RequestValidation validateIncomingRecordSet (JsonObject inventoryRecordSet);
+
 
     /**
      * Set transaction type and ID for the instance
      */
-    protected void prepareTheUpdatingInstance() {
-      if (foundExistingRecordSet()) {
-        getUpdatingInstance().setUUID(getExistingInstance().getUUID());
-        getUpdatingInstance().setTransition(Transaction.UPDATE);
-        getUpdatingInstance().setVersion( getExistingInstance().getVersion() );
+    protected static void prepareTheUpdatingInstance(
+            InventoryRecordSet incomingSet, InventoryRecordSet existingSet) {
+      if (existingSet != null) {
+        incomingSet.getInstance().setUUID(existingSet.getInstance().getUUID());
+        incomingSet.getInstance().setTransition(Transaction.UPDATE);
+        incomingSet.getInstance().setVersion( existingSet.getInstance().getVersion() );
       } else {
         // Use UUID on incoming record if any, otherwise generate
-        if (!getUpdatingInstance().hasUUID()) {
-          getUpdatingInstance().generateUUID();
+        if (!incomingSet.getInstance().hasUUID()) {
+          incomingSet.getInstance().generateUUID();
         }
-        getUpdatingInstance().setTransition(Transaction.CREATE);
+        incomingSet.getInstance().setTransition(Transaction.CREATE);
       }
     }
 
@@ -144,22 +320,6 @@ public abstract class UpdatePlan {
         return foundExistingRecordSet() ? existingSet.getHoldingsRecordsByTransactionType(Transaction.DELETE) : new ArrayList<>();
     }
 
-    public List<HoldingsRecord> holdingsToCreate () {
-        return gotUpdatingRecordSet() ? updatingSet.getHoldingsRecordsByTransactionType(Transaction.CREATE) : new ArrayList<>();
-    }
-
-    public List<Item> itemsToCreate () {
-        return gotUpdatingRecordSet() ? updatingSet.getItemsByTransactionType(Transaction.CREATE) : new ArrayList<>();
-    }
-
-    public List<HoldingsRecord> holdingsToUpdate () {
-        return gotUpdatingRecordSet() ? updatingSet.getHoldingsRecordsByTransactionType(Transaction.UPDATE) : new ArrayList<>();
-    }
-
-    public List<Item> itemsToUpdate () {
-        return gotUpdatingRecordSet() ? updatingSet.getItemsByTransactionType(Transaction.UPDATE) : new ArrayList<>();
-    }
-
     public List<InstanceToInstanceRelation> instanceRelationsToDelete() {
         return foundExistingRecordSet() ? existingSet.getInstanceRelationsByTransactionType(Transaction.DELETE) : new ArrayList<>();
     }
@@ -168,145 +328,142 @@ public abstract class UpdatePlan {
         return gotUpdatingRecordSet() && updatingSet.getInstance().getTransaction() == Transaction.UPDATE;
     }
 
-    public boolean isInstanceCreating () {
-        return gotUpdatingRecordSet() && updatingSet.getInstance().getTransaction() == Transaction.CREATE;
-    }
 
     public boolean isInstanceDeleting () {
         return foundExistingRecordSet() && existingSet.getInstance().getTransaction() == Transaction.DELETE;
     }
 
-    public void writePlanToLog () {
-        logger.debug("Planning of " + (isDeletion ? " delete " : " create/update ") + " of Inventory records set done: ");
-        if (isDeletion) {
-            if (foundExistingRecordSet()) {
-                logger.debug("Instance transition: " + (gotUpdatingRecordSet() ? getUpdatingInstance().getTransaction() : getExistingInstance().getTransaction()));
-                logger.debug("Items to delete: ");
-                for (Item record : itemsToDelete()) {
-                    logger.debug(record.asJson().encodePrettily());
-                }
-                logger.debug("Holdings to delete: ");
-                for (HoldingsRecord record : holdingsToDelete()) {
-                    logger.debug(record.asJson().encodePrettily());
-                }
-                logger.debug("Relationships to delete: ");
-                for (InstanceToInstanceRelation record : instanceRelationsToDelete()) {
-                    logger.debug(record.asJson().encodePrettily());
-                }
-            } else {
-                logger.debug("Got delete request but no existing records found with provided identifier(s)");
-            }
-        } else {
-            logger.debug("Instance transition: " + getUpdatingInstance().getTransaction());
-            logger.debug("Holdings to create: ");
-            for (HoldingsRecord record : holdingsToCreate()) {
-                logger.debug(record.asJson().encodePrettily());
-            }
-            logger.debug("Holdings to update: ");
-            for (HoldingsRecord record : holdingsToUpdate()) {
-                logger.debug(record.asJson().encodePrettily());
-            }
-            logger.debug("Items to create: ");
-            for (Item record : itemsToCreate()) {
-                logger.debug(record.asJson().encodePrettily());
-            }
-            logger.debug("Items to update: ");
-            for (Item record : itemsToUpdate()) {
-                logger.debug(record.asJson().encodePrettily());
-            }
-            logger.debug("Items to delete: ");
-            for (Item record : itemsToDelete()) {
-                logger.debug(record.asJson().encodePrettily());
-            }
-            logger.debug("Holdings to delete: ");
-            for (HoldingsRecord record : holdingsToDelete()) {
-                logger.debug(record.asJson().encodePrettily());
-            }
-            logger.debug("Instance to Instance relations to create: ");
-            for (InstanceToInstanceRelation record : getUpdatingRecordSet().getInstanceRelationsController().instanceRelationsToCreate()) {
-                logger.debug(record.asJson().encodePrettily());
-            }
-            logger.debug("Provisional Instances to create: ");
-            for (Instance record : getUpdatingRecordSet().getInstanceRelationsController().provisionalInstancesToCreate()) {
-                logger.debug(record.asJson().encodePrettily());
-            }
-            logger.debug("Instance to Instance relationships to delete: ");
-            for (InstanceToInstanceRelation record : instanceRelationsToDelete()) {
-                logger.debug(record.asJson().encodePrettily());
-            }
-
-        }
-    }
 
     /* UPDATE METHODS */
 
-    /**
-     * Perform storage creates that other updates will depend on for successful completion
-     * (must by synchronized)
-     */
-    public Future<Void> createRecordsWithDependants (OkapiClient okapiClient) {
+
+    public Future<Void> doCreateRecordsWithDependants(OkapiClient okapiClient) {
         Promise<Void> promise = Promise.promise();
-        createNewInstanceIfAny(okapiClient).onComplete( instanceResult -> {
-            if (instanceResult.succeeded()) {
-                createNewHoldingsIfAny(okapiClient).onComplete(handler2 -> {
-                    if (handler2.succeeded()) {
+        doCreateNewInstances(okapiClient).onComplete(instances -> {
+            if (instances.succeeded()) {
+                doCreateNewHoldings(okapiClient).onComplete(holdings -> {
+                    if (holdings.succeeded()) {
                         promise.complete();
                     } else {
-                        promise.fail("Failed to create new holdings records: " + handler2.cause().getMessage());
+                        promise.fail(holdings.cause().getMessage());
                     }
                 });
             } else {
-                promise.fail("There was an error trying to create an instance: " + instanceResult.cause().getMessage());
+                promise.fail(instances.cause().getMessage());
             }
         });
         return promise.future();
+    }
+
+    public Future<Void> doCreateNewInstances(OkapiClient okapiClient) {
+        Promise<Void> promise = Promise.promise();
+        InventoryStorage.postInstances(okapiClient, repository.getInstancesToCreate()).onComplete(
+                handler -> {
+                    if (handler.succeeded()) {
+                        promise.complete();
+                    } else {
+                        logger.error("Message: " + handler.cause().getMessage());
+                        promise.fail(handler.cause().getMessage());
+                    }
+                });
+        return promise.future();
+    }
+
+    public Future<Void> doCreateNewHoldings(OkapiClient okapiClient) {
+        Promise<Void> promise = Promise.promise();
+        InventoryStorage.postHoldingsRecords(okapiClient, repository.getHoldingsToCreate()).onComplete(
+                handler -> {
+                    if (handler.succeeded()) {
+                        promise.complete();
+                    } else {
+                        promise.fail(handler.cause().getMessage());
+                    }
+                });
+        return promise.future();
+    }
+
+    public Future<Void> doUpdateInstancesAndHoldings(OkapiClient okapiClient) {
+        Promise<Void> promise = Promise.promise();
+        List<Future> updates = new ArrayList<>();
+        updates.add(InventoryStorage.postInstances(okapiClient,repository.getInstancesToUpdate()));
+        updates.add(InventoryStorage.postHoldingsRecords(okapiClient,repository.getHoldingsToUpdate()));
+        CompositeFuture.join(updates).onComplete(handler -> {
+            if (handler.succeeded()) {
+                promise.complete();
+            } else {
+                logger.error("Error updating instances/holdings: " + handler.cause().getMessage());
+                promise.fail(handler.cause().getMessage());
+            }
+        });
+        return promise.future();
+    }
+
+    public Future<Void> doUpdateOrCreateItems(OkapiClient okapiClient) {
+        Promise<Void> promise = Promise.promise();
+        List<Item> itemsToUpdateOrCreate = new ArrayList<>();
+        itemsToUpdateOrCreate.addAll(repository.getItemsToUpdate());
+        itemsToUpdateOrCreate.addAll(repository.getItemsToCreate());
+        InventoryStorage.postItems(okapiClient, itemsToUpdateOrCreate).onComplete(
+                handler -> {
+                    if (handler.succeeded()) {
+                        promise.complete();
+                    } else {
+                        promise.fail(handler.cause().getMessage());
+                    }
+                });
+        return promise.future();
+    }
+
+    public Future<Void> doDeleteRelationsItemsHoldings(OkapiClient okapiClient) {
+        Promise<Void> promise = Promise.promise();
+        List<Future> deleteRelationsDeleteItems = new ArrayList<>();
+        for (InstanceToInstanceRelation relation : repository.getInstanceRelationsToDelete()) {
+            deleteRelationsDeleteItems.add(InventoryStorage.deleteInventoryRecord(okapiClient,relation));
+        }
+        for (Item item : repository.getItemsToDelete()) {
+            deleteRelationsDeleteItems.add(InventoryStorage.deleteInventoryRecord(okapiClient, item));
+        }
+        CompositeFuture.join(deleteRelationsDeleteItems).onComplete ( relationshipsAndItemsDeleted -> {
+            if (relationshipsAndItemsDeleted.succeeded()) {
+                List<Future> deleteHoldingsRecords = new ArrayList<>();
+                for (HoldingsRecord holdingsRecord : repository.getHoldingsToDelete()) {
+                    deleteHoldingsRecords.add(InventoryStorage.deleteInventoryRecord(okapiClient, holdingsRecord));
+                }
+                CompositeFuture.join(deleteHoldingsRecords).onComplete( holdingsDeleted -> {
+                    if (holdingsDeleted.succeeded()) {
+                        promise.complete();
+                    } else {
+                        promise.fail(holdingsDeleted.cause().getMessage());
+                    }
+
+                });
+            } else {
+                promise.fail(relationshipsAndItemsDeleted.cause().getMessage());
+            }
+        });
+        return promise.future();
+
     }
 
     /**
      * Perform instance and holdings updates
      * @param okapiClient client for inventory storage requests
      */
-    public Future<Void> handleInstanceAndHoldingsUpdatesIfAny(OkapiClient okapiClient) {
+    public Future<Void> handleSingleInstanceUpdate(OkapiClient okapiClient) {
         Promise<Void> promise = Promise.promise();
         @SuppressWarnings("rawtypes")
         List<Future> instanceAndHoldingsFutures = new ArrayList<>();
         if (isInstanceUpdating()) {
             instanceAndHoldingsFutures.add(InventoryStorage.putInventoryRecord(okapiClient, getUpdatingInstance()));
         }
-        for (HoldingsRecord holdingsRecord : holdingsToUpdate()) {
-            instanceAndHoldingsFutures.add(InventoryStorage.putInventoryRecord(okapiClient, holdingsRecord));
-        }
         CompositeFuture.join(instanceAndHoldingsFutures).onComplete ( allDone -> {
             if (allDone.succeeded()) {
                 promise.complete();
             } else {
-                promise.fail("Failed to update some non-prerequisite records: " + allDone.cause().getMessage());
+                promise.fail(allDone.cause().getMessage());
             }
         });
 
-        return promise.future();
-    }
-
-    public Future<JsonObject> handleItemUpdatesAndCreatesIfAny (OkapiClient okapiClient) {
-        Promise<JsonObject> promise = Promise.promise();
-        @SuppressWarnings("rawtypes")
-        List<Future> itemFutures = new ArrayList<>();
-        for (Item item : itemsToUpdate()) {
-            // Since the items were updated by storage behind the scenes, triggered by the holdings record updates,
-            // the Item's versions have to be bumped again.
-            item.setVersion( item.getVersion() + 1 );
-            itemFutures.add(InventoryStorage.putInventoryRecord(okapiClient, item));
-        }
-        for (Item item : itemsToCreate()) {
-            itemFutures.add((InventoryStorage.postInventoryRecord(okapiClient, item)));
-        }
-        CompositeFuture.join(itemFutures).onComplete ( allItemsDone -> {
-            if (allItemsDone.succeeded()) {
-                promise.complete(new JsonObject());
-            } else {
-                promise.fail("There was an error updating/creating items: " + allItemsDone.cause().getMessage());
-            }
-        });
         return promise.future();
     }
 
@@ -315,7 +472,7 @@ public abstract class UpdatePlan {
      * deletions of items, holdings records, instance (if any and in that order)
      */
     @SuppressWarnings("rawtypes")
-    public Future<Void> handleDeletionsIfAny (OkapiClient okapiClient) {
+    public Future<Void> handleSingleSetDelete(OkapiClient okapiClient) {
         Promise<Void> promise = Promise.promise();
         List<Future> deleteRelationsDeleteItems = new ArrayList<>();
         for (InstanceToInstanceRelation relation : instanceRelationsToDelete()) {
@@ -338,52 +495,19 @@ public abstract class UpdatePlan {
                                 if (handler.succeeded()) {
                                     promise.complete();
                                 } else {
-                                    promise.fail("Failed to delete instance: " + handler.cause().getMessage());
+                                    promise.fail(handler.cause().getMessage());
                                 }
                             });
                         } else {
                             promise.complete();
                         }
                     } else {
-                        promise.fail("There was a problem deleting holdings record(s): " + allHoldingsDone.cause().getMessage());
+                        promise.fail(allHoldingsDone.cause().getMessage());
                     }
 
                 });
             } else {
-                promise.fail("Failed to delete item(s) and/or instance-to-instance relations: " + allRelationshipsDoneAllItemsDone.cause().getMessage());
-            }
-        });
-        return promise.future();
-    }
-
-    public Future<Void> createNewInstanceIfAny (OkapiClient okapiClient) {
-        Promise<Void> promise = Promise.promise();
-        if (isInstanceCreating()) {
-            InventoryStorage.postInventoryRecord(okapiClient, getUpdatingInstance()).onComplete(handler -> {
-                if (handler.succeeded()) {
-                    promise.complete();
-                } else {
-                    promise.fail("Failed to POST incoming instance: " + handler.cause().getMessage());
-                }
-            });
-        } else {
-            promise.complete();
-        }
-        return promise.future();
-    }
-
-    public Future<Void> createNewHoldingsIfAny (OkapiClient okapiClient) {
-        Promise<Void> promise = Promise.promise();
-        @SuppressWarnings("rawtypes")
-        List<Future> holdingsRecordCreated = new ArrayList<>();
-        for (HoldingsRecord record : holdingsToCreate()) {
-            holdingsRecordCreated.add(InventoryStorage.postInventoryRecord(okapiClient, record));
-        }
-        CompositeFuture.join(holdingsRecordCreated).onComplete( handler -> {
-            if (handler.succeeded()) {
-                promise.complete();
-            } else {
-                promise.fail("Failed to create new holdings records: " + handler.cause().toString());
+                promise.fail(allRelationshipsDoneAllItemsDone.cause().getMessage());
             }
         });
         return promise.future();
@@ -391,43 +515,142 @@ public abstract class UpdatePlan {
 
     /* END OF UPDATE METHODS */
 
-    public JsonObject getUpdatingRecordSetJson () {
-        return gotUpdatingRecordSet() ? updatingSet.asJson() : new JsonObject();
+
+    public JsonObject getOneUpdatingRecordSetJsonFromRepository() {
+        return (repository.getPairsOfRecordSets().size() == 1
+                && repository.getPairsOfRecordSets().get(0).hasIncomingRecordSet()) ?
+                repository.getPairsOfRecordSets().get(0).getIncomingRecordSet().asJson()
+                : new JsonObject();
     }
 
+    public UpdateMetrics getUpdateMetricsFromRepository() {
+        UpdateMetrics metrics = new UpdateMetrics();
+        for (PairedRecordSets pair : repository.getPairsOfRecordSets()) {
+            if (pair.hasIncomingRecordSet()) {
+                InventoryRecordSet updatingSet = pair.getIncomingRecordSet();
+                Instance updatingInstance = pair.getIncomingRecordSet().getInstance();
+                metrics.entity(Entity.INSTANCE).transaction(updatingInstance.getTransaction()).outcomes.increment(
+                        updatingInstance.getOutcome());
+                List<InventoryRecord> holdingsRecordsAndItemsInUpdatingSet = Stream.of(
+                        updatingSet.getHoldingsRecords(), updatingSet.getItems()).flatMap(
+                        Collection::stream).collect(Collectors.toList());
+                for (InventoryRecord record : holdingsRecordsAndItemsInUpdatingSet) {
+                    metrics.entity(record.entityType()).transaction(record.getTransaction()).outcomes.increment(record.getOutcome());
+                }
+                if (!updatingSet.getInstanceToInstanceRelations().isEmpty()) {
+                    for (InstanceToInstanceRelation record : updatingSet.getInstanceToInstanceRelations()) {
+                        if (!record.getTransaction().equals(InventoryRecord.Transaction.NONE)) {
+                            if (record.getTransaction().equals(Transaction.UNKNOWN)) {
+                                logger.debug("Cannot increment outcome for transaction UNKNOWN");
+                            } else {
+                                metrics.entity(record.entityType()).transaction(record.getTransaction()).outcomes.increment(
+                                        record.getOutcome());
+                                if (record.getProvisionalInstance() != null) {
+                                    ( (UpdateMetrics.InstanceRelationsMetrics) metrics.entity(
+                                            record.entityType()) ).provisionalInstanceMetrics.increment(
+                                            record.getProvisionalInstance().getOutcome());
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        if (!repository.getPairsOfRecordSets().isEmpty() && repository.getPairsOfRecordSets().get(
+                0).hasExistingRecordSet()) {
+            InventoryRecordSet existingSet = repository.getPairsOfRecordSets().get(0).getExistingRecordSet();
+            if (existingSet.getInstance().isDeleting()) {
+                InventoryRecord record = existingSet.getInstance();
+                metrics.entity(record.entityType()).transaction(record.getTransaction()).outcomes.increment(record.getOutcome());
+            }
+            List<InventoryRecord> holdingsRecordsAndItemsInExistingSet = Stream.of(existingSet.getHoldingsRecords(),
+                    existingSet.getItems()).flatMap(Collection::stream).collect(Collectors.toList());
+
+            for (InventoryRecord record : holdingsRecordsAndItemsInExistingSet) {
+                if (record.isDeleting()) {
+                    metrics.entity(record.entityType()).transaction(record.getTransaction()).outcomes.increment(record.getOutcome());
+                }
+            }
+            if (!existingSet.getInstanceToInstanceRelations().isEmpty()) {
+                for (InstanceToInstanceRelation record : existingSet.getInstanceToInstanceRelations()) {
+                    if (!record.getTransaction().equals(InventoryRecord.Transaction.NONE)) {
+                        metrics.entity(record.entityType()).transaction(record.getTransaction()).outcomes.increment(
+                                record.getOutcome());
+                        if (record.getProvisionalInstance() != null && !record.getProvisionalInstance().failed()) {
+                            Instance provisionalInstance = record.getProvisionalInstance();
+                            ( (UpdateMetrics.InstanceRelationsMetrics) metrics.entity(record.entityType()) ).provisionalInstanceMetrics.increment(
+                                    provisionalInstance.getOutcome());
+                        }
+                    }
+                }
+            }
+
+        }
+        return metrics;
+    }
 
     public JsonObject getUpdateStats () {
         UpdateMetrics metrics = new UpdateMetrics();
 
         if (gotUpdatingRecordSet()) {
-          metrics.entity(Entity.INSTANCE).transaction(getUpdatingInstance().getTransaction()).outcomes.increment(getUpdatingInstance().getOutcome());
-          List<InventoryRecord> holdingsRecordsAndItemsInUpdatingSet = Stream.of(
+            metrics.entity(Entity.INSTANCE).transaction(getUpdatingInstance().getTransaction()).outcomes.increment(getUpdatingInstance().getOutcome());
+            List<InventoryRecord> holdingsRecordsAndItemsInUpdatingSet = Stream.of(
                   updatingSet.getHoldingsRecords(),
                   updatingSet.getItems())
                   .flatMap(Collection::stream).collect(Collectors.toList());
 
-          for (InventoryRecord record : holdingsRecordsAndItemsInUpdatingSet) {
+            for (InventoryRecord record : holdingsRecordsAndItemsInUpdatingSet) {
               metrics.entity(record.entityType()).transaction(record.getTransaction()).outcomes.increment(record.getOutcome());
-          }
-          updatingSet.getInstanceRelationsController().writeToStats(metrics);
+            }
+            if (! updatingSet.getInstanceToInstanceRelations().isEmpty()) {
+                for ( InstanceToInstanceRelation record : updatingSet.getInstanceToInstanceRelations() ) {
+                    logger.debug("Record: " + record.asJson().encode());
+                    logger.debug("Transaction: " + record.getTransaction());
+                    logger.debug("Entity type: " + record.entityType());
+                    if ( !record.getTransaction().equals( InventoryRecord.Transaction.NONE ) ) {
+                        metrics.entity( record.entityType() ).transaction( record.getTransaction() ).outcomes.increment(
+                                record.getOutcome() );
+                        if ( record.requiresProvisionalInstanceToBeCreated() ) {
+                            Instance provisionalInstance = record.getProvisionalInstance();
+                            ( (UpdateMetrics.InstanceRelationsMetrics) metrics.entity( record.entityType() ) ).provisionalInstanceMetrics.increment(
+                                    provisionalInstance.getOutcome() );
+                        }
+                    }
+                }
+            }
         }
 
         if (foundExistingRecordSet()) {
-          if (existingSet.getInstance().isDeleting()) {
-              InventoryRecord record = existingSet.getInstance();
-              metrics.entity(record.entityType()).transaction(record.getTransaction()).outcomes.increment(record.getOutcome());
-          }
-          List<InventoryRecord> holdingsRecordsAndItemsInExistingSet = Stream.of(
+            if (existingSet.getInstance().isDeleting()) {
+                InventoryRecord record = existingSet.getInstance();
+                metrics.entity(record.entityType()).transaction(record.getTransaction()).outcomes.increment(record.getOutcome());
+            }
+            List<InventoryRecord> holdingsRecordsAndItemsInExistingSet = Stream.of(
               existingSet.getHoldingsRecords(),
               existingSet.getItems()
-          ).flatMap(Collection::stream).collect(Collectors.toList());
+            ).flatMap(Collection::stream).collect(Collectors.toList());
 
-          for (InventoryRecord record : holdingsRecordsAndItemsInExistingSet) {
-              if (record.isDeleting()) {
+            for (InventoryRecord record : holdingsRecordsAndItemsInExistingSet) {
+                if (record.isDeleting()) {
                   metrics.entity(record.entityType()).transaction(record.getTransaction()).outcomes.increment(record.getOutcome());
-              }
-          }
-          existingSet.getInstanceRelationsController().writeToStats(metrics);
+                }
+            }
+            if (! existingSet.getInstanceToInstanceRelations().isEmpty()) {
+                for ( InstanceToInstanceRelation record : existingSet.getInstanceToInstanceRelations() ) {
+                    logger.debug("Record: " + record.asJson().encode());
+                    logger.debug("Transaction: " + record.getTransaction());
+                    logger.debug("Entity type: " + record.entityType());
+                    if ( !record.getTransaction().equals( InventoryRecord.Transaction.NONE ) ) {
+                        metrics.entity( record.entityType() ).transaction( record.getTransaction() ).outcomes.increment(
+                                record.getOutcome() );
+                        if ( record.requiresProvisionalInstanceToBeCreated() ) {
+                            Instance provisionalInstance = record.getProvisionalInstance();
+                            ( (UpdateMetrics.InstanceRelationsMetrics) metrics.entity( record.entityType() ) ).provisionalInstanceMetrics.increment(
+                                    provisionalInstance.getOutcome() );
+                        }
+                    }
+                }
+            }
         }
 
         if (foundSecondaryExistingSet()) {
@@ -450,4 +673,5 @@ public abstract class UpdatePlan {
         // todo: combine error sets?
         return isDeletion ? getExistingRecordSet().getErrors() : getUpdatingRecordSet().getErrors();
     }
+
 }

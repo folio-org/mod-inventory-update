@@ -1,9 +1,13 @@
 package org.folio.inventoryupdate;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
+import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
+import io.vertx.ext.web.RoutingContext;
 import org.folio.inventoryupdate.entities.*;
 import org.folio.inventoryupdate.entities.InventoryRecord.Transaction;
 import org.folio.okapi.common.OkapiClient;
@@ -12,153 +16,107 @@ import io.vertx.core.CompositeFuture;
 import io.vertx.core.Future;
 import io.vertx.core.Promise;
 
+import static org.folio.inventoryupdate.ErrorReport.UNPROCESSABLE_ENTITY;
+import static org.folio.inventoryupdate.entities.InventoryRecordSet.*;
+
 public class UpdatePlanAllHRIDs extends UpdatePlan {
 
 
-    private static final String LF = System.lineSeparator();
-
-    private UpdatePlanAllHRIDs (InventoryRecordSet incomingInventoryRecordSet, InventoryQuery existingInstanceQuery) {
-        super(incomingInventoryRecordSet, existingInstanceQuery);
+    /**
+     * Constructs deletion plane
+     * @param existingInstanceQuery The query by which to find the instance to delete
+     */
+    private UpdatePlanAllHRIDs (InventoryQuery existingInstanceQuery) {
+        super(existingInstanceQuery);
     }
 
-    public static UpdatePlanAllHRIDs getUpsertPlan(InventoryRecordSet incomingInventoryRecordSet) {
-        InventoryQuery queryByInstanceHrid = new HridQuery(incomingInventoryRecordSet.getInstanceHRID());
-        return new UpdatePlanAllHRIDs( incomingInventoryRecordSet, queryByInstanceHrid );
+    public UpdatePlanAllHRIDs () {
     }
+
+    public static Future<Void> failProvisionalInstanceCreation (Instance provisionalInstance) {
+        Promise<Void> promise = Promise.promise();
+        promise.fail(provisionalInstance.getErrorAsJson().encodePrettily());
+        return promise.future();
+    }
+
+    @Override
+    public Repository getNewRepository() {
+        return new RepositoryByHrids();
+    }
+
 
     public static UpdatePlanAllHRIDs getDeletionPlan(InventoryQuery existingInstanceQuery) {
-        UpdatePlanAllHRIDs updatePlan =  new UpdatePlanAllHRIDs( null, existingInstanceQuery );
-        updatePlan.isDeletion = true;
-        return updatePlan;
+        return  new UpdatePlanAllHRIDs( existingInstanceQuery);
     }
 
-    /**
-     * Creates an in-memory representation of the instance, holdings, and items
-     * as well as possible instance-to-instance relationships, that need to be created,
-     * updated, or deleted in Inventory storage.
-     *
-     * @param okapiClient
-     * @return a Future to confirm that plan was created
-    */
     @Override
-    public Future<Void> planInventoryUpdates (OkapiClient okapiClient) {
-        Promise<Void> promisedPlan = Promise.promise();
-        RequestValidation validation = validateIncomingRecordSet(isDeletion ? new JsonObject() : updatingSet.getSourceJson());
-        if (validation.passed()) {
-            lookupExistingRecordSet(okapiClient, instanceQuery).onComplete(lookup -> {
-                if (lookup.succeeded()) {
-                    this.existingSet = lookup.result();
-                    // Plan instance update
-                    if (isDeletion) {
-                        if (foundExistingRecordSet()) {
-                            getExistingInstance().setTransition(Transaction.DELETE);
-                            for (HoldingsRecord holdings : getExistingInstance().getHoldingsRecords()) {
-                                holdings.setTransition(Transaction.DELETE);
-                                for (Item item : holdings.getItems()) {
-                                    item.setTransition(Transaction.DELETE);
-                                }
-                            }
-                            getExistingRecordSet().prepareAllInstanceRelationsForDeletion();
-                            promisedPlan.complete();
-                        } else {
-                            promisedPlan.fail("Instance to delete not found");
-                        }
+    public RequestValidation validateIncomingRecordSets (JsonArray incomingRecordSets) {
+        RequestValidation requestValidation = super.validateIncomingRecordSets(incomingRecordSets);
+        UpdatePlanAllHRIDs.checkForUniqueHRIDsInBatch(requestValidation, incomingRecordSets);
+        return requestValidation;
+    }
 
-                    } else {
-                        prepareTheUpdatingInstance();
-                        // Plan holdings/items updates
-                        if (foundExistingRecordSet()) {
-                            prepareUpdatesDeletesAndLocalMoves();
-                        }
-                        Future<Void> relationsFuture = getUpdatingRecordSet().prepareIncomingInstanceRelationRecords(okapiClient, getUpdatingInstance().getUUID());
-                        Future<Void> prepareNewRecordsAndImportsFuture = prepareNewRecordsAndImports(okapiClient);
-                        CompositeFuture.join(relationsFuture, prepareNewRecordsAndImportsFuture).onComplete(done -> {
-                            if (done.succeeded()) {
-                                getUpdatingRecordSet().getInstanceRelationsController().prepareIncomingInstanceRelations(updatingSet, existingSet);
-                                promisedPlan.complete();
-                            } else {
-                                promisedPlan.fail("There was a problem fetching existing relations, holdings and/or items from storage:" + LF + "  " + done.cause().getMessage());
-                            }
-                        });
-                    }
-                } else {
-                    promisedPlan.fail("There was a problem looking for an existing instance in Inventory Storage" + lookup.cause().getMessage());
-                }
-            });
-        } else {
-            promisedPlan.fail("Request did not provide a valid record set: " + validation);
+    @Override
+    public Future<List<InventoryUpdateOutcome>> multipleSingleRecordUpserts(RoutingContext routingContext, JsonArray inventoryRecordSets) {
+        List<JsonArray> arraysOfOneRecordSet = new ArrayList<>();
+        for (Object o : inventoryRecordSets) {
+            JsonArray batchOfOne = new JsonArray().add(o);
+            arraysOfOneRecordSet.add(batchOfOne);
         }
-        return promisedPlan.future();
-    }
-
-    @Override
-    public Future<Void> doInventoryUpdates (OkapiClient okapiClient) {
-        Promise<Void> promise = Promise.promise();
-        Future<Void> promisedPrerequisites = createRecordsWithDependants(okapiClient);
-        promisedPrerequisites.onComplete(prerequisites -> {
-            logger.debug("Successfully created records referenced by other records if any");
-
-            handleInstanceAndHoldingsUpdatesIfAny(okapiClient).onComplete( instanceAndHoldingsUpdates -> {
-
-                handleInstanceRelationCreatesIfAny(okapiClient).onComplete( relationsCreated -> {
-                    if (relationsCreated.succeeded()) {
-                        logger.debug("Successfully processed relationship create requests if any");
-                    } else {
-                        logger.error(relationsCreated.cause().getMessage());
-                    }
-                    handleItemUpdatesAndCreatesIfAny(okapiClient).onComplete(itemUpdatesAndCreates -> {
-                        if (prerequisites.succeeded() && instanceAndHoldingsUpdates.succeeded() && itemUpdatesAndCreates.succeeded()) {
-                            logger.debug("Successfully processed record create requests if any");
-                            handleDeletionsIfAny(okapiClient).onComplete(deletes -> {
-                                if (deletes.succeeded()) {
-                                    if (relationsCreated.succeeded()) {
-                                        promise.complete();
-                                    } else {
-                                        promise.fail("There was a problem creating Instance relationships: " + LF + relationsCreated.cause().getMessage());
-                                    }
-                                } else {
-                                    promise.fail("There was a problem processing Inventory deletes:" + LF + "  " + deletes.cause().getMessage());
-                                }
-                            });
-                        } else {
-                            promise.fail("There was a problem creating records, no deletes performed if any requested:" + LF + "  " +
-                                    (prerequisites.failed() ? prerequisites.cause().getMessage() : "")
-                                    + (instanceAndHoldingsUpdates.failed() ? " " + instanceAndHoldingsUpdates.cause().getMessage() : "")
-                                    + (itemUpdatesAndCreates.failed() ? " " + itemUpdatesAndCreates.cause().getMessage(): ""));
-                        }
-                    });
-                });
-            });
-        });
-        return promise.future();
+        return chainSingleRecordUpserts(routingContext, arraysOfOneRecordSet, new UpdatePlanAllHRIDs()::upsertBatch);
     }
 
     @Override
     public RequestValidation validateIncomingRecordSet(JsonObject inventoryRecordSet) {
         RequestValidation validationErrors = new RequestValidation();
         if (isDeletion) return validationErrors;
-        if (!inventoryRecordSet.getJsonObject("instance").containsKey("hrid")
-            || inventoryRecordSet.getJsonObject("instance").getString("hrid").isEmpty()) {
-            logger.error("Missing or empty HRID. Instances must have a HRID to be processed by this API");
-            validationErrors.registerError("Missing or empty HRID. Instances must have a HRID to be processed by this API " + inventoryRecordSet.encodePrettily());
+        String instanceHRID = inventoryRecordSet.getJsonObject(INSTANCE).getString(HRID_IDENTIFIER_KEY);
+        String instanceTitle = inventoryRecordSet.getJsonObject(INSTANCE).getString("title");
+        if (instanceHRID == null || instanceHRID.isEmpty()) {
+            logger.error("Missing or empty HRID. Instances must have a HRID to be processed by this API. Title: " + instanceTitle);
+            validationErrors.registerError(
+                    new ErrorReport(
+                            ErrorReport.ErrorCategory.VALIDATION,
+                            UNPROCESSABLE_ENTITY,
+                            "HRID is missing or empty.")
+                            .setRequestJson(inventoryRecordSet)
+                            .setEntityType(InventoryRecord.Entity.INSTANCE)
+                            .setEntity(inventoryRecordSet.getJsonObject(INSTANCE)));
         }
-        if (inventoryRecordSet.containsKey("holdingsRecords")) {
-            inventoryRecordSet.getJsonArray("holdingsRecords")
+        if (inventoryRecordSet.containsKey(HOLDINGS_RECORDS)) {
+            inventoryRecordSet.getJsonArray(HOLDINGS_RECORDS)
                     .stream()
                     .map( rec -> (JsonObject) rec)
                     .forEach( record -> {
-                        if (!record.containsKey("hrid")) {
-                            logger.error("Holdings Records must have a HRID to be processed by this API");
-                            validationErrors.registerError("Holdings Records must have a HRID to be processed by this API, received: " + record.encodePrettily());
+                        if (!record.containsKey(HRID_IDENTIFIER_KEY)) {
+                            logger.error("Holdings Records must have a HRID to be processed by this API. Received: " + record.encodePrettily());
+                            validationErrors.registerError(
+                                new ErrorReport(
+                                    ErrorReport.ErrorCategory.VALIDATION,
+                                    UNPROCESSABLE_ENTITY,
+                                    "Holdings must have a HRID to be processed by this API. Title: " + instanceTitle)
+                                        .setRequestJson(inventoryRecordSet)
+                                        .setShortMessage("Missing HRID in holdings record")
+                                        .setEntityType(InventoryRecord.Entity.HOLDINGS_RECORD)
+                                        .setEntity(record)
+                                        .setDetails(inventoryRecordSet));
                         }
-                        if (record.containsKey("items")) {
-                            record.getJsonArray("items")
+                        if (record.containsKey(ITEMS)) {
+                            record.getJsonArray(ITEMS)
                                     .stream()
                                     .map(item -> (JsonObject) item)
                                     .forEach(item -> {
-                                        if (!item.containsKey("hrid")) {
-                                            logger.error("Items must have a HRID to be processed by this API");
-                                            validationErrors.registerError("Items must have a HRID to be processed by this API, received: " + item.encodePrettily());
+                                        if (!item.containsKey(HRID_IDENTIFIER_KEY)) {
+                                            logger.error("Items must have a HRID to be processed by this API. Received: " + item.encodePrettily());
+                                            validationErrors.registerError(
+                                                 new ErrorReport(
+                                                    ErrorReport.ErrorCategory.VALIDATION,
+                                                    UNPROCESSABLE_ENTITY,
+                                                    "Items must have a HRID to be processed by this API. Title: " + instanceTitle)
+                                                         .setRequestJson(inventoryRecordSet)
+                                                         .setShortMessage("Missing HRID in Item")
+                                                         .setEntity(item)
+                                                         .setDetails(inventoryRecordSet));
                                         }
                                     });
                         }
@@ -167,145 +125,348 @@ public class UpdatePlanAllHRIDs extends UpdatePlan {
         return validationErrors;
     }
 
-    public Future<Void> handleInstanceRelationCreatesIfAny (OkapiClient okapiClient) {
-        if (!isDeletion) {
-            return getUpdatingRecordSet().getInstanceRelationsController().handleInstanceRelationCreatesIfAny(okapiClient);
-        } else {
-            return Future.succeededFuture();
-        }
-    }
+    public static void checkForUniqueHRIDsInBatch(RequestValidation validation, JsonArray inventoryRecordSets) {
+        Set<String> instanceHrids = new HashSet<>();
+        Set<String> holdingsHrids = new HashSet<>();
+        Set<String> itemHrids = new HashSet<>();
 
-    /* PLANNING METHODS */
-
-
-    /**
-     * For when there is an existing instance with the same ID already.
-     * Mark existing records for update.
-     * Find items that have moved between holdings locally and mark them for update.
-     * Find records that have disappeared and mark them for deletion.
-     */
-    private void prepareUpdatesDeletesAndLocalMoves() {
-        if (! getUpdatingInstance().ignoreHoldings()) { // If a record set came in with a list of holdings records (even if it was an empty list)
-            for (HoldingsRecord existingHoldingsRecord : getExistingInstance().getHoldingsRecords()) {
-                HoldingsRecord incomingHoldingsRecord = getUpdatingInstance().getHoldingsRecordByHRID(existingHoldingsRecord.getHRID());
-                // HoldingsRecord gone, mark for deletion and check for existing items to delete with it
-                if (incomingHoldingsRecord == null) {
-                    existingHoldingsRecord.setTransition(Transaction.DELETE);
+        for (Object recordSetObject : inventoryRecordSets) {
+            JsonObject recordSet = (JsonObject) recordSetObject;
+            String instanceHrid = recordSet.getJsonObject(INSTANCE).getString(HRID_IDENTIFIER_KEY);
+            if (instanceHrid != null) {
+                if (instanceHrids.contains(instanceHrid)) {
+                    validation.registerError(
+                            new ErrorReport(
+                                    ErrorReport.ErrorCategory.VALIDATION,
+                                    UNPROCESSABLE_ENTITY,
+                                    "Instance HRID " + instanceHrid + " occurs more that once in this batch.")
+                                    .setShortMessage("Instance HRID is repeated in this batch")
+                                    .setEntityType(InventoryRecord.Entity.INSTANCE)
+                                    .setEntity(recordSet.getJsonObject(INSTANCE)));
                 } else {
-                    // There is an existing holdings record with the same HRID, on the same Instance
-                    incomingHoldingsRecord.setUUID(existingHoldingsRecord.getUUID());
-                    incomingHoldingsRecord.setTransition(Transaction.UPDATE);
-                    incomingHoldingsRecord.setVersion( existingHoldingsRecord.getVersion() );
+                    instanceHrids.add(instanceHrid);
                 }
-                for (Item existingItem : existingHoldingsRecord.getItems()) {
-                    Item incomingItem = updatingSet.getItemByHRID(existingItem.getHRID());
-                    if (incomingItem == null) {
-                        existingItem.setTransition(Transaction.DELETE);
-                    } else {
-                        incomingItem.setUUID(existingItem.getUUID());
-                        incomingItem.setVersion( existingItem.getVersion() );
-                        incomingItem.setTransition(Transaction.UPDATE);
-                        ProcessingInstructions instr = new ProcessingInstructions(updatingSet.getProcessingInfoAsJson());
-                        if (instr.retainThisStatus(existingItem.getStatusName())) {
-                            incomingItem.setStatus(existingItem.getStatusName());
+            }
+            if (recordSet.containsKey(HOLDINGS_RECORDS)) {
+                for (Object holdingsObject : recordSet.getJsonArray(HOLDINGS_RECORDS)) {
+                    JsonObject holdingsRecord = ((JsonObject) holdingsObject);
+                    String holdingsHrid = holdingsRecord.getString(HRID_IDENTIFIER_KEY);
+                    if (holdingsHrid != null) {
+                        if (holdingsHrids.contains(holdingsHrid)) {
+                            validation.registerError(
+                               new ErrorReport(
+                                    ErrorReport.ErrorCategory.VALIDATION,
+                                    UNPROCESSABLE_ENTITY,
+                                    "Holdings record HRID " + holdingsHrid
+                                            + " appears more that once in batch.")
+                                    .setShortMessage("Recurring HRID detected in batch")
+                                    .setEntity(holdingsRecord)
+                                    .setEntityType(InventoryRecord.Entity.HOLDINGS_RECORD)
+                            );
+                        } else {
+                            holdingsHrids.add(holdingsHrid);
+                        }
+                    }
+                    if (holdingsRecord.containsKey(ITEMS)) {
+                        for (Object itemObject : holdingsRecord.getJsonArray(ITEMS)) {
+                            String itemHrid = ((JsonObject) itemObject).getString(HRID_IDENTIFIER_KEY);
+                            if (itemHrid != null) {
+                                if (itemHrids.contains(itemHrid)) {
+                                    validation.registerError(
+                                            new ErrorReport(
+                                                    ErrorReport.ErrorCategory.VALIDATION,
+                                                    UNPROCESSABLE_ENTITY,
+                                                    "Item HRID " + itemHrid
+                                                            + " appears more than once in batch.")
+                                                    .setShortMessage("Recurring HRID detected in batch")
+                                                    .setEntityType(InventoryRecord.Entity.ITEM)
+                                                    .setEntity((JsonObject) itemObject));
+                                } else {
+                                    itemHrids.add(itemHrid);
+                                }
+                            }
                         }
                     }
                 }
-
             }
         }
     }
 
+    /* PLANNING CREATES, UPDATES, DELETES */
     /**
-     * Catch up records that were not matched within an existing Instance (Transition = UNKNOWN)
-     * Look them up in other instances in storage and if not found generate UUIDs for them.
-     * @param okapiClient client for looking up existing records
-     * @return a future with all holdingsRecord and item lookups.
+     * Creates an in-memory representation of the instance, holdings, and items
+     * as well as possible instance-to-instance relationships, that need to be created,
+     * updated, or deleted in Inventory storage.
+     *
+     * @return a Future to confirm that plan was created
      */
-    public Future<Void> prepareNewRecordsAndImports(OkapiClient okapiClient) {
-        Promise<Void> promise = Promise.promise();
-        @SuppressWarnings("rawtypes")
-        List<Future> recordFutures = new ArrayList<>();
-        List<HoldingsRecord> holdingsRecords = updatingSet.getHoldingsRecordsByTransactionType(Transaction.UNKNOWN);
-        for (HoldingsRecord record : holdingsRecords) {
-            recordFutures.add(flagAndIdHoldingsByStorageLookup(okapiClient, record));
+    @Override
+    public UpdatePlanAllHRIDs planInventoryUpdates() {
+        for (PairedRecordSets pair : repository.getPairsOfRecordSets()) {
+            planInstanceHoldingsAndItems(pair);
+            planInstanceRelations(pair);
         }
-        List<Item> items = updatingSet.getItemsByTransactionType(Transaction.UNKNOWN);
-        for (Item item : items) {
-            recordFutures.add(flagAndIdItemsByStorageLookup(okapiClient, item));
-        }
-        CompositeFuture.all(recordFutures).onComplete( handler -> {
-            if (handler.succeeded()) {
-                promise.complete();
-            } else {
-                promise.fail("Failed to retrieve UUIDs:" + LF + "  " + handler.cause().getMessage());
-            }
-        });
-        return promise.future();
+    return this;
     }
 
-    /**
-     * Looks up existing holdings record by HRID and set UUID and transition state on incoming records
-     * according to whether they were matched with existing records or not
-     * @param okapiClient
-     * @param record The incoming record to match with an existing record if any
-     * @return empty future for determining when look-up is complete
-     */
-    private Future<Void> flagAndIdHoldingsByStorageLookup (OkapiClient okapiClient, InventoryRecord record) {
-        Promise<Void> promise = Promise.promise();
-        InventoryQuery hridQuery = new HridQuery(record.getHRID());
-        InventoryStorage.lookupHoldingsRecordByHRID(okapiClient, hridQuery).onComplete( result -> {
-            if (result.succeeded()) {
-                if (result.result() == null) {
-                    if (!record.hasUUID()) {
-                        record.generateUUID();
+    private void planInstanceHoldingsAndItems(PairedRecordSets pair) {
+        if (pair.hasIncomingRecordSet()) {
+            InventoryRecordSet incomingSet = pair.getIncomingRecordSet();
+            Instance incomingInstance = incomingSet.getInstance();
+            if (pair.hasExistingRecordSet()) {
+                // Updates, deletes
+                Instance existingInstance = pair.getExistingRecordSet().getInstance();
+                incomingInstance.setUUID(existingInstance.getUUID());
+                incomingInstance.setTransition(Transaction.UPDATE);
+                incomingInstance.setVersion(existingInstance.getVersion());
+                if (!incomingInstance.ignoreHoldings()) {
+                    // If a record set came in with a list of holdings records (even if it was an empty list)
+                    for (HoldingsRecord existingHoldingsRecord :
+                            pair.getExistingRecordSet().getInstance().getHoldingsRecords()) {
+                        HoldingsRecord incomingHoldingsRecord = incomingInstance.getHoldingsRecordByHRID(
+                                existingHoldingsRecord.getHRID());
+                        // HoldingsRecord gone, mark for deletion and check for existing items to delete with it
+                        if (incomingHoldingsRecord == null) {
+                            existingHoldingsRecord.setTransition(Transaction.DELETE);
+                        } else {
+                            // There is an existing holdings record with the same HRID,
+                            // on the same Instance, update
+                            incomingHoldingsRecord.setUUID(existingHoldingsRecord.getUUID());
+                            incomingHoldingsRecord.setTransition(Transaction.UPDATE);
+                            incomingHoldingsRecord.setVersion(existingHoldingsRecord.getVersion());
+                        }
+                        for (Item existingItem : existingHoldingsRecord.getItems()) {
+                            Item incomingItem = pair.getIncomingRecordSet().getItemByHRID(
+                                    existingItem.getHRID());
+                            if (incomingItem == null) {
+                                // An existing Item is gone from the Instance, delete
+                                existingItem.setTransition(Transaction.DELETE);
+                            } else {
+                                // Existing Item still exists in incoming record (possibly under
+                                // a different holdings record), update
+                                incomingItem.setUUID(existingItem.getUUID());
+                                incomingItem.setVersion(existingItem.getVersion());
+                                incomingItem.setTransition(Transaction.UPDATE);
+                                ProcessingInstructions instr = new ProcessingInstructions(
+                                        pair.getIncomingRecordSet().getProcessingInfoAsJson());
+                                if (instr.retainThisStatus(existingItem.getStatusName())) {
+                                    incomingItem.setStatus(existingItem.getStatusName());
+                                }
+                            }
+                        }
                     }
-                    record.setTransition(Transaction.CREATE);
-                } else {
-                    JsonObject existingHoldingsRecord = result.result();
-                    record.setUUID(existingHoldingsRecord.getString( "id" ));
-                    record.setVersion( existingHoldingsRecord.getInteger( InventoryRecord.VERSION ));
-                    record.setTransition(Transaction.UPDATE);
                 }
-                promise.complete();
             } else {
-                promise.fail("Failed to look up holdings record by HRID:" + LF + "  " + result.cause().getMessage());
+                if (!incomingInstance.hasUUID()) {
+                    incomingInstance.generateUUID();
+                }
+                incomingInstance.setTransition(Transaction.CREATE);
             }
-        });
-        return promise.future();
+            // Remaining holdings and item transactions: Creates, imports from other Instance(s)
+            // Find incoming holdings we didn't already resolve above
+            List<HoldingsRecord> holdingsRecords =
+                    incomingSet.getHoldingsRecordsByTransactionType(Transaction.UNKNOWN);
+            for (HoldingsRecord holdingsRecord : holdingsRecords) {
+                if (repository.existingHoldingsRecordsByHrid.containsKey(holdingsRecord.getHRID())) {
+                    // Import from different Instance
+                    HoldingsRecord existing = repository.existingHoldingsRecordsByHrid.get(
+                            holdingsRecord.getHRID());
+                    holdingsRecord.setTransition(Transaction.UPDATE);
+                    holdingsRecord.setUUID(existing.getUUID());
+                    holdingsRecord.setVersion(existing.getVersion());
+                } else {
+                    // The HRID does not exist in Inventory, create
+                    holdingsRecord.setTransition(Transaction.CREATE);
+                    if (!holdingsRecord.hasUUID()) {
+                        holdingsRecord.generateUUID();
+                    }
+                }
+
+            }
+            // Find incoming items we didn't already resolve (update or delete) above
+            List<Item> items = incomingSet.getItemsByTransactionType(Transaction.UNKNOWN);
+            for (Item item : items) {
+                if (repository.existingItemsByHrid.containsKey(item.getHRID())) {
+                    // Import from different Instance
+                    Item existing = repository.existingItemsByHrid.get(item.getHRID());
+                    item.setTransition(Transaction.UPDATE);
+                    item.setUUID(existing.getUUID());
+                    item.setVersion(existing.getVersion());
+                    ProcessingInstructions instr = new ProcessingInstructions(
+                            pair.getIncomingRecordSet().getProcessingInfoAsJson());
+                    if (instr.retainThisStatus(existing.getStatusName())) {
+                        item.setStatus(existing.getStatusName());
+                    }
+
+                } else {
+                    // The HRID does not exist in Inventory, create
+                    item.setTransition(Transaction.CREATE);
+                    if (!item.hasUUID()) {
+                        item.generateUUID();
+                    }
+                }
+            }
+        }
     }
 
+    private void planInstanceRelations(PairedRecordSets pair) {
+        // Plan creates and deletes
+        if (pair.hasIncomingRecordSet()) {
+            // Set UUIDs for from-instance and to-instance, create provisional instance if required and possible
+            pair.getIncomingRecordSet().resolveIncomingInstanceRelationsUsingRepository((RepositoryByHrids) repository);
 
-    /**
-     * Looks up existing item record by HRID and set UUID and transition state according to whether it's found or not
-     * @param record The incoming record to match with an existing record if any
-     * @return empty future for determining when loook-up is complete
-     */
-    private Future<Void> flagAndIdItemsByStorageLookup (OkapiClient okapiClient, InventoryRecord record) {
-        Promise<Void> promise = Promise.promise();
-        InventoryQuery hridQuery = new HridQuery(record.getHRID());
-        InventoryStorage.lookupItemByHRID(okapiClient, hridQuery).onComplete( result -> {
-            if (result.succeeded()) {
-                if (result.result() == null) {
-                    if (!record.hasUUID()) {
-                        record.generateUUID();
+            // Plan storage transactions
+            for (InstanceToInstanceRelation incomingRelation : pair.getIncomingRecordSet().getInstanceToInstanceRelations()) {
+                if (pair.hasExistingRecordSet()) {
+                    if (pair.getExistingRecordSet().hasThisRelation(incomingRelation)) {
+                        incomingRelation.skip();
+                    } else {
+                        incomingRelation.setTransition(Transaction.CREATE);
                     }
-                    record.setTransition(Transaction.CREATE);
                 } else {
-                    JsonObject existingItem = result.result();
-                    record.setUUID(existingItem.getString("id"));
-                    record.setVersion( existingItem.getInteger( InventoryRecord.VERSION ));
-                    record.setTransition(Transaction.UPDATE);
+                    incomingRelation.setTransition(Transaction.CREATE);
                 }
-                promise.complete();
+            }
+        }
+        if (pair.hasExistingRecordSet()) {
+            for (InstanceToInstanceRelation existingRelation : pair.getExistingRecordSet().getInstanceToInstanceRelations()) {
+                if (pair.getIncomingRecordSet().isThisRelationOmitted(existingRelation)) {
+                    existingRelation.setTransition(Transaction.DELETE);
+                } else {
+                    existingRelation.setTransition(Transaction.NONE);
+                }
+            }
+        }
+    }
+
+    @Override
+    public Future<Void> planInventoryDelete(OkapiClient okapiClient) {
+        Promise<Void> promisedPlan = Promise.promise();
+        lookupExistingRecordSet(okapiClient, instanceQuery).onComplete(lookup -> {
+            if (lookup.succeeded()) {
+                this.existingSet = lookup.result();
+                // Plan instance update
+                if (foundExistingRecordSet()) {
+                    getExistingInstance().setTransition(Transaction.DELETE);
+                    for (HoldingsRecord holdings : getExistingInstance().getHoldingsRecords()) {
+                        holdings.setTransition(Transaction.DELETE);
+                        for (Item item : holdings.getItems()) {
+                            item.setTransition(Transaction.DELETE);
+                        }
+                    }
+                    getExistingRecordSet().prepareAllInstanceRelationsForDeletion();
+                    promisedPlan.complete();
+                } else {
+                    promisedPlan.fail("Instance to delete not found");
+                }
             } else {
-                promise.fail("Failed to look up item by HRID:" + LF + "  " + result.cause().getMessage());
+                promisedPlan.fail(lookup.cause().getMessage());
             }
         });
-        return promise.future();
+        return promisedPlan.future();
     }
 
     /* END OF PLANNING METHODS */
 
+
+    // EXECUTE CREATES, UPDATES, DELETES.
+    @Override
+    public Future<Void> doInventoryDelete(OkapiClient okapiClient) {
+        Promise<Void> promise = Promise.promise();
+        handleSingleSetDelete(okapiClient).onComplete(deletes -> {
+            if (deletes.succeeded()) {
+                promise.complete();
+            } else {
+                promise.fail(deletes.cause().getMessage());
+            }
+        });
+        return promise.future();
+    }
+
+    public Future<Void> doInventoryUpdates(OkapiClient okapiClient) {
+        Promise<Void> promise = Promise.promise();
+        doCreateRecordsWithDependants(okapiClient).onComplete(prerequisitesCreated -> {
+            if (prerequisitesCreated.succeeded()) {
+                doUpdateInstancesAndHoldings(okapiClient).onComplete(instancesAndHoldingsUpdated -> {
+                    doCreateInstanceRelations(okapiClient).onComplete(relationsCreated -> {
+                        doUpdateOrCreateItems(okapiClient).onComplete(itemsUpdatedAndCreated ->{
+                            if (prerequisitesCreated.succeeded() && instancesAndHoldingsUpdated.succeeded() && itemsUpdatedAndCreated.succeeded()) {
+                                doDeleteRelationsItemsHoldings(okapiClient).onComplete(deletes -> {
+                                    if (deletes.succeeded()) {
+                                        if (relationsCreated.succeeded()) {
+                                            promise.complete();
+                                        } else {
+                                            promise.fail(relationsCreated.cause().getMessage());
+                                        }
+                                    } else {
+                                        promise.fail(deletes.cause().getMessage());
+                                    }
+                                });
+                            } else {
+                                if (prerequisitesCreated.failed()) {
+                                    promise.fail(prerequisitesCreated.cause().getMessage());
+                                } else if (instancesAndHoldingsUpdated.failed()) {
+                                    promise.fail(instancesAndHoldingsUpdated.cause().getMessage());
+                                } else if (itemsUpdatedAndCreated.failed()) {
+                                    promise.fail(itemsUpdatedAndCreated.cause().getMessage());
+                                }
+                            }
+                        });
+                    });
+                });
+
+            } else {
+                promise.fail(prerequisitesCreated.cause().getMessage());
+            }
+        });
+        return promise.future();
+    }
+
+    public Future<Void> doCreateInstanceRelations(OkapiClient okapiClient){
+        Promise<Void> promise = Promise.promise();
+
+        @SuppressWarnings("rawtypes")
+        List<Future> provisionalInstancesFutures = new ArrayList<>();
+        for (InstanceToInstanceRelation relation : repository.getInstanceRelationsToCreate()) {
+            if (relation.getProvisionalInstance() != null) {
+                if (relation.getProvisionalInstance().failed()) {
+                    provisionalInstancesFutures.add(
+                            failProvisionalInstanceCreation(relation.getProvisionalInstance()));
+                } else {
+                    provisionalInstancesFutures.add(
+                            InventoryStorage.postInventoryRecord(
+                                    okapiClient, relation.getProvisionalInstance()));
+                }
+            }
+        }
+        CompositeFuture.join(provisionalInstancesFutures).onComplete( allProvisionalInstancesCreated -> {
+            if (allProvisionalInstancesCreated.succeeded()) {
+                @SuppressWarnings("rawtypes")
+                List<Future> createFutures = new ArrayList<>();
+                for (InstanceToInstanceRelation relation : repository.getInstanceRelationsToCreate()) {
+                    createFutures.add(InventoryStorage.postInventoryRecord(okapiClient, relation));
+                }
+                CompositeFuture.join(createFutures).onComplete( allRelationsCreated -> {
+                    if (allRelationsCreated.succeeded()) {
+                        promise.complete();
+                    } else {
+                        promise.fail(
+                                ErrorReport.makeErrorReportFromJsonString(
+                                        allRelationsCreated.cause().getMessage())
+                                        .setShortMessage(
+                                                "UpdatePlan using repository: There was an error creating instance relations")
+                                        .asJsonString());
+                    }
+                });
+            } else {
+                promise.fail(ErrorReport.makeErrorReportFromJsonString(allProvisionalInstancesCreated.cause().getMessage())
+                        .setShortMessage("There was an error creating provisional Instances")
+                        .asJsonString());
+            }
+        });
+        return promise.future();
+    }
+
+    // END OF STORAGE METHODS
 
 }

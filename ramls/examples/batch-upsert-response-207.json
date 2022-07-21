@@ -110,7 +110,7 @@
       "instanceTypeId" : "6312d172-f0cf-40f6-b27d-9fa8feaf332f",
       "id" : "8f2b55de-2b20-4af9-ac57-1805fb191b1e"
     },
-    "statusCode" : 422,
+    "statusCode" : "422",
     "details" : { }
   }, {
     "category" : "STORAGE",
@@ -133,7 +133,7 @@
       "instanceTypeId" : "6312d172-f0cf-40f6-b27d-9fa8feaf332f",
       "id" : "08eb28cf-efb6-49c9-87cb-90572ac7277a"
     },
-    "statusCode" : 422,
+    "statusCode" : "422",
     "details" : { }
   } ]
 }

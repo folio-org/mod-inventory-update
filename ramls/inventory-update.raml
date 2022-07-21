@@ -48,7 +48,7 @@ traits:
         207:
             description: "Partially successful update of record set. Errors listed in response."
             body:
-                application/json
+                application/json:
                     type: upsert-response-207
         422:
             description: "One or more validation errors found in incoming record set. No updates performed."
@@ -159,7 +159,7 @@ traits:
         207:
             description: "Partially successful update of record set. Errors listed in response."
             body:
-                application/json
+                application/json:
                     type: upsert-response-207
         400:
           description: "Bad request, for example: non-JSON in request body; inventory record set without an Instance."
@@ -223,7 +223,7 @@ traits:
   put:
     body:
         application/json:
-            type: inventory-record-sets
+            type: inventory-record-set
     responses:
         200:
             description: "Batch of Inventory record sets successfully created or updated by match-key."

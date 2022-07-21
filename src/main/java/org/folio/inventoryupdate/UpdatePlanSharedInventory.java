@@ -47,6 +47,7 @@ public class UpdatePlanSharedInventory extends UpdatePlan {
         return new RepositoryByMatchKey();
     }
 
+    @Override
     public RequestValidation validateIncomingRecordSets (JsonArray incomingRecordSets) {
         RequestValidation requestValidation = super.validateIncomingRecordSets(incomingRecordSets);
         UpdatePlanSharedInventory.checkForUniqueIdentifiersInBatch(requestValidation, incomingRecordSets);
@@ -398,10 +399,12 @@ public class UpdatePlanSharedInventory extends UpdatePlan {
         return promise.future();
     }
 
+    @Override
     public Future<Void> doCreateInstanceRelations(OkapiClient okapiClient) {
         return Future.succeededFuture();
     }
 
+    @Override
     public Future<Void> doInventoryUpdates(OkapiClient okapiClient) {
         long startUpdates = System.currentTimeMillis();
         logger.debug("Doing Inventory updates using repository");

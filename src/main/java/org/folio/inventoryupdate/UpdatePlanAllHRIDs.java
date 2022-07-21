@@ -49,12 +49,14 @@ public class UpdatePlanAllHRIDs extends UpdatePlan {
         return  new UpdatePlanAllHRIDs( existingInstanceQuery);
     }
 
+    @Override
     public RequestValidation validateIncomingRecordSets (JsonArray incomingRecordSets) {
         RequestValidation requestValidation = super.validateIncomingRecordSets(incomingRecordSets);
         UpdatePlanAllHRIDs.checkForUniqueHRIDsInBatch(requestValidation, incomingRecordSets);
         return requestValidation;
     }
 
+    @Override
     public Future<List<InventoryUpdateOutcome>> multipleSingleRecordUpserts(RoutingContext routingContext, JsonArray inventoryRecordSets) {
         List<JsonArray> arraysOfOneRecordSet = new ArrayList<>();
         for (Object o : inventoryRecordSets) {
@@ -198,6 +200,7 @@ public class UpdatePlanAllHRIDs extends UpdatePlan {
      *
      * @return a Future to confirm that plan was created
      */
+    @Override
     public UpdatePlanAllHRIDs planInventoryUpdates() {
         for (PairedRecordSets pair : repository.getPairsOfRecordSets()) {
             planInstanceHoldingsAndItems(pair);

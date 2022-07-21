@@ -237,7 +237,7 @@ public abstract class UpdatePlan {
      * Constructor for plan for creating or updating an Inventory record set
      * @param existingInstanceQuery The query to use for checking if the instance already exists
      */
-    public UpdatePlan (InventoryQuery existingInstanceQuery) {
+    protected UpdatePlan (InventoryQuery existingInstanceQuery) {
         this.instanceQuery = existingInstanceQuery;
         this.isDeletion = true;
     }

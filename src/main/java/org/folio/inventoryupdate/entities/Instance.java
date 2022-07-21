@@ -45,10 +45,10 @@ public class Instance extends InventoryRecord {
 
     public String getMatchKey () {
         if (jsonRecord.getString(MATCH_KEY) == null ) {
-            jsonRecord.put("matchKey", new MatchKey(jsonRecord).getKey());
+            jsonRecord.put(MATCH_KEY, new MatchKey(jsonRecord).getKey());
         } else if (jsonRecord.getValue(MATCH_KEY) instanceof JsonObject) {
             // Received multipart match key object, translating it to match-key string
-            jsonRecord.put("matchKey", new MatchKey(jsonRecord).getKey());
+            jsonRecord.put(MATCH_KEY, new MatchKey(jsonRecord).getKey());
         }
         return jsonRecord.getString( MATCH_KEY );
     }

@@ -79,6 +79,19 @@ public abstract class Repository {
     }
   }
 
+  protected void stashExistingItems(AsyncResult<JsonArray> records) {
+    for (Object o : records.result()) {
+      Item item = new Item((JsonObject) o);
+      existingItemsByHrid.put(item.getHRID(), item);
+      if (!existingItemsByHoldingsRecordId.containsKey(item.getHoldingsRecordId())) {
+        existingItemsByHoldingsRecordId.put(item.getHoldingsRecordId(), new HashMap<>());
+      }
+      existingItemsByHoldingsRecordId.get(item.getHoldingsRecordId()).put(item.getUUID(),item);
+    }
+  }
+
+
+
   protected Future<Void> requestItemsByHoldingsRecordIds(RoutingContext routingContext,
                                                        List<String> holdingsRecordIds) {
     Promise<Void> promise = Promise.promise();
@@ -88,16 +101,7 @@ public abstract class Repository {
             .onComplete(records -> {
               if (records.succeeded()) {
                 if (records.result() != null) {
-                  for (Object o : records.result()) {
-                    Item item = new Item((JsonObject) o);
-                    existingItemsByHrid.put(item.getHRID(), item);
-                    if (!existingItemsByHoldingsRecordId.containsKey(item.getHoldingsRecordId())) {
-                      existingItemsByHoldingsRecordId.put(item.getHoldingsRecordId(), new HashMap<>());
-                    }
-                    existingItemsByHoldingsRecordId
-                            .get(item.getHoldingsRecordId())
-                            .put(item.getUUID(), item);
-                  }
+                  stashExistingItems(records);
                 }
                 promise.complete();
               } else {

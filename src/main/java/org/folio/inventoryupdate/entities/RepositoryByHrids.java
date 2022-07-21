@@ -1,5 +1,6 @@
 package org.folio.inventoryupdate.entities;
 
+import io.vertx.core.AsyncResult;
 import io.vertx.core.CompositeFuture;
 import io.vertx.core.Future;
 import io.vertx.core.Promise;
@@ -246,14 +247,7 @@ public class RepositoryByHrids extends Repository {
             .onComplete(records -> {
               if (records.succeeded()) {
                 if (records.result() != null) {
-                  for (Object o : records.result()) {
-                    Item item = new Item((JsonObject) o);
-                    existingItemsByHrid.put(item.getHRID(), item);
-                    if (!existingItemsByHoldingsRecordId.containsKey(item.getHoldingsRecordId())) {
-                      existingItemsByHoldingsRecordId.put(item.getHoldingsRecordId(), new HashMap<>());
-                    }
-                    existingItemsByHoldingsRecordId.get(item.getHoldingsRecordId()).put(item.getUUID(),item);
-                  }
+                  stashExistingItems(records);
                 }
                 promise.complete();
               } else {

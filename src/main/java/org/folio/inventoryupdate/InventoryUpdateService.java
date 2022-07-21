@@ -114,7 +114,7 @@ public class InventoryUpdateService {
                     }
                     compositeOutcome.setMetrics(accumulatedStats);
                     compositeOutcome.setErrors(accumulatedErrorReport);
-                    compositeOutcome.setResponseStatusCode(MULTI_STATUS);
+                    compositeOutcome.setResponseStatusCode(accumulatedErrorReport.size()==0? OK : MULTI_STATUS);
                     compositeOutcome.respond(routingContext);
                   });
         }

@@ -362,15 +362,14 @@ public class InventoryRecordSet extends JsonRepresentation {
                         if (referencedInstance != null) {
                             reference.setReferencedInstanceId(referencedInstance.getUUID());
                         }
-                    } else if (reference.hasReferenceUuid()) {
-                        if (reference.getReferenceUuid() != null) {
-                            Instance referencedInstance = repository.referencedInstancesByUUID.get(
-                                    reference.getReferenceUuid());
-                            if (referencedInstance != null) {
-                                reference.setReferencedInstanceId(referencedInstance.getUUID());
-                            }
+                    } else if (reference.hasReferenceUuid() && reference.getReferenceUuid() != null) {
+                        Instance referencedInstance = repository.referencedInstancesByUUID.get(
+                                reference.getReferenceUuid());
+                        if (referencedInstance != null) {
+                            reference.setReferencedInstanceId(referencedInstance.getUUID());
                         }
                     }
+
                     InstanceToInstanceRelation relation = reference.getInstanceToInstanceRelation();
                     if (relation != null) {
                         if (relation.instanceRelationClass == InstanceToInstanceRelation.InstanceRelationsClass.TO_PARENT) {

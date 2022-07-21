@@ -148,14 +148,6 @@ public class RepositoryByHrids extends Repository {
     return promise.future();
   }
 
-  protected void stashExistingInstances(AsyncResult<JsonArray> instances) {
-    for (Object o : instances.result()) {
-      Instance instance = new Instance((JsonObject) o);
-      existingInstancesByHrid.put(instance.getHRID(), instance);
-      existingInstancesByUUID.put(instance.getUUID(), instance);
-    }
-  }
-
   private Future<Void> requestReferencedInstancesByHRIDs(RoutingContext routingContext,
                                                          List<String> hrids) {
     Promise<Void> promise = Promise.promise();

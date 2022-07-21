@@ -235,12 +235,12 @@ public class InventoryUpdateTestSuite {
   public void batchByMatchKeyWithOneErrorWillCreate99NewInstances (TestContext testContext) {
     createInitialInstanceWithHrid1();
     BatchOfInventoryRecordSets batch = new BatchOfInventoryRecordSets();
-    for (int i=0; i<100; i++) {
+    for (int i=0; i<50; i++) {
       InputInstance instance = new InputInstance()
               .setTitle("New title " + i)
               .setInstanceTypeId("12345")
               .generateMatchKey();
-      if (i!=50) {
+      if (i!=25) {
         instance.setSource("test");
       }
       batch.addRecordSet(new JsonObject()
@@ -252,7 +252,7 @@ public class InventoryUpdateTestSuite {
             "Number of instance records for before PUT expected: 1" );
     Response response = batchUpsertByMatchKey(207, batch.getJson());
     JsonObject instancesAfterPutJson = getRecordsFromStorage(FakeInventoryStorage.INSTANCE_STORAGE_PATH, null);
-    testContext.assertEquals(instancesAfterPutJson.getInteger("totalRecords"), 100,
+    testContext.assertEquals(instancesAfterPutJson.getInteger("totalRecords"), 50,
             "Number of instance records after PUT expected: 100" );
   }
 
@@ -303,10 +303,10 @@ public class InventoryUpdateTestSuite {
   }
 
   @Test
-  public void batchByHridWithRepeatHridsWillCreate99NewInstances (TestContext testContext) {
+  public void batchByHridWithRepeatHridsWillCreate29NewInstances (TestContext testContext) {
     createInitialInstanceWithHrid1();
     BatchOfInventoryRecordSets batch = new BatchOfInventoryRecordSets();
-    for (int i=0; i<99; i++) {
+    for (int i=0; i<29; i++) {
       InputInstance instance = new InputInstance()
               .setTitle("New title " + i)
               .setSource("test")
@@ -315,25 +315,95 @@ public class InventoryUpdateTestSuite {
       batch.addRecordSet(new InventoryRecordSet(instance));
     }
     InputInstance instance = new InputInstance()
-            .setTitle("New title 50 updated")
+            .setTitle("New title 20 updated")
             .setSource("test")
-            .setHrid("in50")
+            .setHrid("in20")
             .setInstanceTypeId("12345");
     batch.addRecordSet(new InventoryRecordSet(instance));
 
     JsonObject instancesBeforePutJson = getRecordsFromStorage(FakeInventoryStorage.INSTANCE_STORAGE_PATH, null);
     testContext.assertEquals(instancesBeforePutJson.getInteger("totalRecords"), 1,
             "Number of instance records for before PUT expected: 1" );
-    Response response = batchUpsertByHrid(207,batch.getJson());
+    Response response = batchUpsertByHrid(200,batch.getJson());
     JsonObject responseJson = new JsonObject(response.asString());
     JsonObject metrics = responseJson.getJsonObject("metrics");
-    testContext.assertEquals(metrics.getJsonObject("INSTANCE").getJsonObject("CREATE").getInteger("COMPLETED"), 99,
-            "Number of instance records created after PUT of batch of 100 expected: 99");
+    testContext.assertEquals(metrics.getJsonObject("INSTANCE").getJsonObject("CREATE").getInteger("COMPLETED"), 29,
+            "Number of instance records created after PUT of batch of 29 expected: 29");
+    testContext.assertEquals(metrics.getJsonObject("INSTANCE").getJsonObject("UPDATE").getInteger("COMPLETED"), 1,
+            "Number of instance records updated after PUT of batch of 39 expected: 1");
+    JsonObject instancesAfterPutJson = getRecordsFromStorage(FakeInventoryStorage.INSTANCE_STORAGE_PATH, null);
+    testContext.assertEquals(instancesAfterPutJson.getInteger("totalRecords"), 30,
+            "Number of instance records after PUT expected: 30" );
+  }
+
+  @Test
+  public void batchByMatchKeyWithRepeatMatchKeyWillCreate29NewInstances (TestContext testContext) {
+    createInitialInstanceWithHrid1();
+    BatchOfInventoryRecordSets batch = new BatchOfInventoryRecordSets();
+    for (int i=0; i<29; i++) {
+      InputInstance instance = new InputInstance()
+              .setTitle("New title " + i)
+              .setSource("test")
+              .setInstanceTypeId("12345")
+              .generateMatchKey();
+      batch.addRecordSet(new InventoryRecordSet(instance));
+    }
+    InputInstance instance = new InputInstance()
+            .setTitle("New title 20")
+            .setSource("test")
+            .setInstanceTypeId("12345")
+            .generateMatchKey();
+    batch.addRecordSet(new InventoryRecordSet(instance));
+
+    JsonObject instancesBeforePutJson = getRecordsFromStorage(FakeInventoryStorage.INSTANCE_STORAGE_PATH, null);
+    testContext.assertEquals(instancesBeforePutJson.getInteger("totalRecords"), 1,
+            "Number of instance records for before PUT expected: 1" );
+    Response response = batchUpsertByMatchKey(200,batch.getJson());
+    logger.info(response.asPrettyString());
+    JsonObject responseJson = new JsonObject(response.asString());
+    JsonObject metrics = responseJson.getJsonObject("metrics");
+    testContext.assertEquals(metrics.getJsonObject("INSTANCE").getJsonObject("CREATE").getInteger("COMPLETED"), 29,
+            "Number of instance records created after PUT of batch of 29 expected: 29");
+    testContext.assertEquals(metrics.getJsonObject("INSTANCE").getJsonObject("UPDATE").getInteger("COMPLETED"), 1,
+            "Number of instance records updated after PUT of batch of 29 expected: 1");
+    JsonObject instancesAfterPutJson = getRecordsFromStorage(FakeInventoryStorage.INSTANCE_STORAGE_PATH, null);
+    testContext.assertEquals(instancesAfterPutJson.getInteger("totalRecords"), 30,
+            "Number of instance records after PUT expected: 30" );
+  }
+
+  @Test
+  public void batchByMatchKeyWithRepeatLocalIdentifierWillCreate29NewInstances (TestContext testContext) {
+    createInitialInstanceWithHrid1();
+    BatchOfInventoryRecordSets batch = new BatchOfInventoryRecordSets();
+    for (int i=0; i<29; i++) {
+      InputInstance instance = new InputInstance()
+              .setTitle("New title " + i)
+              .setSource("test")
+              .setInstanceTypeId("12345")
+              .generateMatchKey();
+      batch.addRecordSet(new InventoryRecordSet(instance).getJson().put(PROCESSING,new JsonObject().put("localIdentifier","id" + i)));
+    }
+    InputInstance instance = new InputInstance()
+            .setTitle("New title 20")
+            .setSource("test")
+            .setInstanceTypeId("12345")
+            .generateMatchKey();
+    batch.addRecordSet(new InventoryRecordSet(instance).getJson().put(PROCESSING,new JsonObject().put("localIdentifier","id" + 20)));
+
+    JsonObject instancesBeforePutJson = getRecordsFromStorage(FakeInventoryStorage.INSTANCE_STORAGE_PATH, null);
+    testContext.assertEquals(instancesBeforePutJson.getInteger("totalRecords"), 1,
+            "Number of instance records for before PUT expected: 1" );
+    Response response = batchUpsertByMatchKey(200,batch.getJson());
+    logger.info(response.asPrettyString());
+    JsonObject responseJson = new JsonObject(response.asString());
+    JsonObject metrics = responseJson.getJsonObject("metrics");
+    testContext.assertEquals(metrics.getJsonObject("INSTANCE").getJsonObject("CREATE").getInteger("COMPLETED"), 29,
+            "Number of instance records created after PUT of batch of 29 expected: 29");
     testContext.assertEquals(metrics.getJsonObject("INSTANCE").getJsonObject("UPDATE").getInteger("COMPLETED"), 1,
             "Number of instance records updated after PUT of batch of 100 expected: 1");
     JsonObject instancesAfterPutJson = getRecordsFromStorage(FakeInventoryStorage.INSTANCE_STORAGE_PATH, null);
-    testContext.assertEquals(instancesAfterPutJson.getInteger("totalRecords"), 100,
-            "Number of instance records after PUT expected: 100" );
+    testContext.assertEquals(instancesAfterPutJson.getInteger("totalRecords"), 30,
+            "Number of instance records after PUT expected: 30" );
   }
 
   @Test

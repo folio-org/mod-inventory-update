@@ -4,21 +4,24 @@ import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import io.vertx.core.Future;
 import io.vertx.core.impl.logging.Logger;
 import io.vertx.core.impl.logging.LoggerFactory;
+import org.folio.inventoryupdate.ErrorReport;
+import org.folio.inventoryupdate.InventoryUpdateOutcome;
 import org.folio.inventoryupdate.entities.InventoryRecord.Transaction;
 
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
-import org.folio.okapi.common.OkapiClient;
 
+import static org.folio.inventoryupdate.ErrorReport.BAD_REQUEST;
 import static org.folio.inventoryupdate.entities.RecordIdentifiers.OAI_IDENTIFIER;
 
 public class InventoryRecordSet extends JsonRepresentation {
 
-    private Instance anInstance = null;
-    private final Map<String,HoldingsRecord> holdingsRecordsByHRID = new HashMap<>();
+    private boolean isExisting = false;
+    private boolean isIncoming = false;
+
+    private Instance theInstance = null;
     private final Map<String,Item> itemsByHRID = new HashMap<>();
     private final List<HoldingsRecord> allHoldingsRecords = new ArrayList<>();
     private final List<Item> allItems = new ArrayList<>();
@@ -38,38 +41,75 @@ public class InventoryRecordSet extends JsonRepresentation {
     @SuppressWarnings("unused")
     private final Logger logger = LoggerFactory.getLogger("inventory-update");
 
-    // Controller handles planning and update logic for instance-to-instance relations
-    private InstanceRelationsManager instanceRelationsManager;
+
     // Instance relations properties that the controller access directly
     public List<InstanceToInstanceRelation> parentRelations = null;
     public List<InstanceToInstanceRelation> childRelations = null;
     public List<InstanceToInstanceRelation> succeedingTitles = null;
     public List<InstanceToInstanceRelation> precedingTitles = null;
-    public JsonObject instanceRelationsJson = new JsonObject();
+
+    // Incoming, intended relations
+    public JsonObject instanceRelationsJson;
+    public InstanceReferences instanceReferences;
     public JsonObject processing = new JsonObject();
 
 
-    public InventoryRecordSet (JsonObject inventoryRecordSet) {
+    private InventoryRecordSet (JsonObject inventoryRecordSet) {
         if (inventoryRecordSet != null) {
             logger.debug("Creating InventoryRecordSet from " + inventoryRecordSet.encodePrettily());
             sourceJson = new JsonObject(inventoryRecordSet.toString());
-            JsonObject instanceJson = inventoryRecordSet.getJsonObject(INSTANCE);
-            anInstance = new Instance(instanceJson);
-            JsonArray holdings = inventoryRecordSet.getJsonArray(HOLDINGS_RECORDS);
-            registerHoldingsRecordsAndItems(holdings);
-            instanceRelationsManager = new InstanceRelationsManager(this);
+            theInstance = new Instance(new JsonObject(inventoryRecordSet.getJsonObject(INSTANCE).encode()), sourceJson);
+            registerHoldingsRecordsAndItems(inventoryRecordSet.getJsonArray(HOLDINGS_RECORDS));
+            instanceRelationsJson = (sourceJson.containsKey(InstanceReferences.INSTANCE_RELATIONS) ? sourceJson.getJsonObject(
+                    InstanceReferences.INSTANCE_RELATIONS) : new JsonObject());
             logger.debug("Caching processing info: " + inventoryRecordSet.getJsonObject( PROCESSING ));
             processing = inventoryRecordSet.getJsonObject( PROCESSING );
         }
     }
 
-    public static boolean isValidInventoryRecordSet(JsonObject inventoryRecordSet) {
-        return inventoryRecordSet != null && inventoryRecordSet.containsKey(
-                INSTANCE ) && ( inventoryRecordSet.getValue( INSTANCE ) instanceof JsonObject );
+    public boolean isExisting () {
+        return isExisting;
     }
 
-    public boolean canLookForRecordsWithPreviousMatchKey() {
-        return getLocalIdentifier() != null && getLocalIdentifierTypeId() != null;
+    public boolean isIncoming () {
+        return isIncoming;
+    }
+
+    public static InventoryRecordSet makeExistingRecordSet(JsonObject inventoryRecordSet) {
+        InventoryRecordSet set = new InventoryRecordSet(inventoryRecordSet);
+        set.isExisting = true;
+        if (!set.instanceRelationsJson.isEmpty()) {
+            set.registerRelationshipJsonRecords(
+                    set.getInstance().getUUID(),
+                    set.instanceRelationsJson);
+        }
+        return set;
+    }
+
+    public static InventoryRecordSet makeIncomingRecordSet(JsonObject inventoryRecordSet) {
+        InventoryRecordSet set = new InventoryRecordSet(inventoryRecordSet);
+        set.isIncoming = true;
+        if (!set.instanceRelationsJson.isEmpty()) {
+            set.instanceReferences = new InstanceReferences(set.instanceRelationsJson, set.sourceJson);
+        }
+        return set;
+    }
+
+    public static InventoryUpdateOutcome isValidInventoryRecordSet(JsonObject inventoryRecordSet) {
+        if (inventoryRecordSet != null
+                && inventoryRecordSet.containsKey(INSTANCE )
+                && ( inventoryRecordSet.getValue( INSTANCE ) instanceof JsonObject )) {
+            return new InventoryUpdateOutcome();
+        } else {
+            return new InventoryUpdateOutcome(
+                    new ErrorReport(
+                            ErrorReport.ErrorCategory.VALIDATION,
+                            BAD_REQUEST,
+                            "Did not recognize input as an Inventory record set")
+                            .setRequestJson(inventoryRecordSet)
+                            .setShortMessage("Not an Inventory record set.")
+                            .setEntity(inventoryRecordSet));
+        }
     }
 
     public JsonObject getProcessingInfoAsJson () {
@@ -86,15 +126,15 @@ public class InventoryRecordSet extends JsonRepresentation {
         if (holdingsRecordsWithEmbeddedItems != null) {
             // If property with zero or more holdings is provided
             for (Object holdings : holdingsRecordsWithEmbeddedItems) {
-                JsonObject holdingsRecordJson = (JsonObject) holdings;
+                JsonObject holdingsRecordJson = new JsonObject(((JsonObject) holdings).encode());
                 JsonArray items = new JsonArray();
                 if (holdingsRecordJson.containsKey(ITEMS)) {
                     items = extractJsonArrayFromObject(holdingsRecordJson, ITEMS);
                 }
-                HoldingsRecord holdingsRecord = new HoldingsRecord(holdingsRecordJson);
+                HoldingsRecord holdingsRecord = new HoldingsRecord(holdingsRecordJson, sourceJson);
                 for (Object object : items) {
                     JsonObject itemJson = (JsonObject) object;
-                    Item item = new Item(itemJson);
+                    Item item = new Item(itemJson, sourceJson);
                     String itemHrid = itemJson.getString( HRID_IDENTIFIER_KEY );
                     if (itemHrid != null && !itemHrid.isEmpty()) {
                         itemsByHRID.put(itemHrid, item);
@@ -102,16 +142,12 @@ public class InventoryRecordSet extends JsonRepresentation {
                     holdingsRecord.addItem(item);
                     allItems.add(item);
                 }
-                String holdingsRecordHrid = holdingsRecordJson.getString( HRID_IDENTIFIER_KEY );
-                if (holdingsRecordHrid != null && !holdingsRecordHrid.isEmpty()) {
-                    holdingsRecordsByHRID.put(holdingsRecordHrid, holdingsRecord);
-                }
                 allHoldingsRecords.add(holdingsRecord);
-                anInstance.addHoldingsRecord(holdingsRecord);
+                theInstance.addHoldingsRecord(holdingsRecord);
             }
         } else {
             // If no holdings property provided, mark holdings to be ignored (ie don't delete holdings)
-            anInstance.ignoreHoldings(true);
+            theInstance.ignoreHoldings(true);
         }
     }
 
@@ -124,11 +160,11 @@ public class InventoryRecordSet extends JsonRepresentation {
     }
 
     public void modifyInstance (JsonObject updatedInstance) {
-        anInstance.replaceJson(updatedInstance);
+        theInstance.replaceJson(updatedInstance);
     }
 
     public Instance getInstance () {
-        return anInstance;
+        return theInstance;
     }
 
     public String getInstanceHRID () {
@@ -183,25 +219,189 @@ public class InventoryRecordSet extends JsonRepresentation {
                 Arrays.asList(getInstance()),
                 allHoldingsRecords,
                 allItems,
-                getInstanceRelationsController().getInstanceToInstanceRelations()
+                getInstanceToInstanceRelations()
         ).flatMap(Collection::stream).collect(Collectors.toList());
     }
 
-    // Instance-to-Instance relations methods
-    public InstanceRelationsManager getInstanceRelationsController() {
-        return instanceRelationsManager;
+    // INSTANCE-TO-INSTANCE RELATIONS METHODS
+
+    /**
+     * Planning: Takes Instance relation records from storage and creates Instance relations objects
+     *
+     * @param instanceId        The ID of the Instance to create relationship objects for
+     * @param instanceRelations a set of relations from storage
+     */
+    public void registerRelationshipJsonRecords(String instanceId, JsonObject instanceRelations) {
+        if (instanceRelations.containsKey(InstanceReferences.EXISTING_PARENT_CHILD_RELATIONS)) {
+            JsonArray existingRelations = instanceRelations.getJsonArray(
+                    InstanceReferences.EXISTING_PARENT_CHILD_RELATIONS);
+            for (Object o : existingRelations) {
+                InstanceRelationship relationship = InstanceRelationship.makeRelationshipFromJsonRecord(instanceId, (JsonObject) o);
+                if (relationship.isRelationToChild()) {
+                    if (childRelations == null) childRelations = new ArrayList<>();
+                    childRelations.add(relationship);
+                } else {
+                    if (parentRelations == null) parentRelations = new ArrayList<>();
+                    parentRelations.add(relationship);
+                }
+            }
+        }
+        if (instanceRelations.containsKey(InstanceReferences.EXISTING_PRECEDING_SUCCEEDING_TITLES)) {
+            JsonArray existingTitles = instanceRelations.getJsonArray(
+                    InstanceReferences.EXISTING_PRECEDING_SUCCEEDING_TITLES);
+            for (Object o : existingTitles) {
+                InstanceTitleSuccession relation = InstanceTitleSuccession.makeInstanceTitleSuccessionFromJsonRecord(instanceId, (JsonObject) o);
+                if (relation.isSucceedingTitle()) {
+                    if (succeedingTitles == null) succeedingTitles = new ArrayList<>();
+                    succeedingTitles.add(relation);
+                } else {
+                    if (precedingTitles == null) precedingTitles = new ArrayList<>();
+                    precedingTitles.add(relation);
+                }
+            }
+        }
     }
 
+
     public void prepareAllInstanceRelationsForDeletion() {
-        instanceRelationsManager.markAllRelationsForDeletion();
+        for (InstanceToInstanceRelation relation : getInstanceToInstanceRelations()) {
+            relation.setTransition(InventoryRecord.Transaction.DELETE);
+        }
     }
 
     public List<InstanceToInstanceRelation> getInstanceRelationsByTransactionType (Transaction transition) {
-        return instanceRelationsManager.getInstanceRelationsByTransactionType(transition);
+        List<InstanceToInstanceRelation> records = new ArrayList<>();
+        for (InstanceToInstanceRelation record : getInstanceToInstanceRelations())  {
+            if (record.getTransaction() == transition && ! record.skipped()) {
+                records.add(record);
+            }
+        }
+        return records;
+
     }
 
-    public Future<Void> prepareIncomingInstanceRelationRecords(OkapiClient client, String instanceId) {
-        return instanceRelationsManager.makeInstanceRelationRecordsFromIdentifiers(client, instanceId);
+    public List<InstanceToInstanceRelation> getInstanceToInstanceRelations() {
+        return Stream.of(
+                parentRelations == null ?
+                        new ArrayList<InstanceToInstanceRelation>() : parentRelations,
+                childRelations == null ?
+                        new ArrayList<InstanceToInstanceRelation>() : childRelations,
+                precedingTitles == null ?
+                        new ArrayList<InstanceToInstanceRelation>() : precedingTitles,
+                succeedingTitles == null ?
+                        new ArrayList<InstanceToInstanceRelation>() : succeedingTitles
+        ).flatMap(Collection::stream).collect(Collectors.toList());
+    }
+
+    public boolean hasThisRelation(InstanceToInstanceRelation relation) {
+        for (InstanceToInstanceRelation relationHere : getInstanceToInstanceRelations()) {
+            if (relation.equals(relationHere)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * A relation is considered omitted if the list it would be in exists but the relation is not in the list.
+     *
+     * Can be used to signal that relations of a given type should be deleted from the Instance by providing an
+     * empty list of that type. When no such list is provided, on the other hand, then existing relations of that type
+     * should be retained.
+     *
+     * @param relation Relationship to check
+     * @return true if the relation is not in a provides list of relations, false if its present or if no list was provided
+     */
+    public boolean isThisRelationOmitted(InstanceToInstanceRelation relation) {
+        switch (relation.instanceRelationClass) {
+            case TO_PARENT:
+                return ((instanceRelationsJson.containsKey(InstanceReferences.PARENT_INSTANCES)
+                        && instanceRelationsJson.getJsonArray(InstanceReferences.PARENT_INSTANCES).isEmpty())
+                        || isThisRelationOmitted(parentRelations, relation));
+            case TO_CHILD:
+                return ((instanceRelationsJson.containsKey(InstanceReferences.CHILD_INSTANCES)
+                        && instanceRelationsJson.getJsonArray(InstanceReferences.CHILD_INSTANCES).isEmpty())
+                        || isThisRelationOmitted(childRelations, relation));
+            case TO_PRECEDING:
+                return ((instanceRelationsJson.containsKey(InstanceReferences.PRECEDING_TITLES)
+                        && instanceRelationsJson.getJsonArray(InstanceReferences.PRECEDING_TITLES).isEmpty())
+                        || isThisRelationOmitted(precedingTitles, relation));
+            case TO_SUCCEEDING:
+                return ((instanceRelationsJson.containsKey(InstanceReferences.SUCCEEDING_TITLES)
+                        && instanceRelationsJson.getJsonArray(InstanceReferences.SUCCEEDING_TITLES).isEmpty())
+                        || isThisRelationOmitted(succeedingTitles, relation));
+        }
+        return false;
+    }
+
+    /**
+     * A relation is considered omitted from the list if the list exists (is not null) but the relation is not in it.
+     * @param list list of relations to check the relation against
+     * @param relation the relation to check
+     * @return true if a list was provided and the relation is not in the list
+     */
+    private boolean isThisRelationOmitted(
+            List<InstanceToInstanceRelation> list, InstanceToInstanceRelation relation) {
+        return ( list != null && !list.contains( relation ) );
+    }
+
+    /**
+     * Create Instance relationship records from incoming Instance references by HRIDs, by looking
+     * up the corresponding UUIDs for those HRIDs in the repository.
+     * Requires that the Instance is already assigned a UUID and that the repository is loaded.
+     * @param repository cache containing prefetched referenced Instances.
+     */
+    public void resolveIncomingInstanceRelationsUsingRepository(RepositoryByHrids repository) {
+        if (instanceReferences != null) {
+            for (InstanceReference reference : instanceReferences.references) {
+                if (reference.hasReferenceHrid() || reference.hasReferenceUuid()) {
+                    reference.setFromInstanceId(getInstanceUUID());
+                    if (reference.hasReferenceHrid()) {
+                        Instance referencedInstance = repository.referencedInstancesByHrid.get(
+                                reference.getReferenceHrid());
+                        if (referencedInstance != null) {
+                            reference.setReferencedInstanceId(referencedInstance.getUUID());
+                        }
+                    } else if (reference.hasReferenceUuid() && reference.getReferenceUuid() != null) {
+                        Instance referencedInstance = repository.referencedInstancesByUUID.get(
+                                reference.getReferenceUuid());
+                        if (referencedInstance != null) {
+                            reference.setReferencedInstanceId(referencedInstance.getUUID());
+                        }
+                    }
+
+                    InstanceToInstanceRelation relation = reference.getInstanceToInstanceRelation();
+                    if (relation != null) {
+                        if (relation.instanceRelationClass == InstanceToInstanceRelation.InstanceRelationsClass.TO_PARENT) {
+                            if (parentRelations == null) {
+                                parentRelations = new ArrayList<>();
+                            }
+                            parentRelations.add(relation);
+                        }
+                        if (relation.instanceRelationClass == InstanceToInstanceRelation.InstanceRelationsClass.TO_CHILD) {
+                            if (childRelations == null) {
+                                childRelations = new ArrayList<>();
+                            }
+                            childRelations.add(relation);
+
+                        }
+                        if (relation.instanceRelationClass == InstanceToInstanceRelation.InstanceRelationsClass.TO_SUCCEEDING) {
+                            if (succeedingTitles == null) {
+                                succeedingTitles = new ArrayList<>();
+                            }
+                            succeedingTitles.add(relation);
+                        }
+                        if (relation.instanceRelationClass == InstanceToInstanceRelation.InstanceRelationsClass.TO_PRECEDING) {
+                            if (precedingTitles == null) {
+                                precedingTitles = new ArrayList<>();
+                            }
+                            precedingTitles.add(relation);
+                        }
+                    }
+                }
+
+            }
+        }
     }
 
     public String getLocalIdentifierTypeId () {
@@ -217,24 +417,12 @@ public class InventoryRecordSet extends JsonRepresentation {
         }
     }
 
-    // Errors
-    @Override
-    public boolean hasErrors () {
-        for (InventoryRecord record : getAllInventoryRecords()) {
-            if (record.failed()) return true;
-        }
-        return false;
-    }
-
     @Override
     public JsonArray getErrors () {
         JsonArray errors = new JsonArray();
-        if (getInstance().failed()) {
-            errors.add(getInstance().getError());
-        }
         for (InventoryRecord record : getAllInventoryRecords()) {
             if (record.failed()) {
-                errors.add(record.getError());
+                errors.add(record.getErrorAsJson());
             }
         }
         return errors;
@@ -255,7 +443,38 @@ public class InventoryRecordSet extends JsonRepresentation {
             holdingsAndItemsArray.add(holdingsRecordJson);
         }
         recordSetJson.put(HOLDINGS_RECORDS, holdingsAndItemsArray);
-        recordSetJson.put( InstanceRelationsManager.INSTANCE_RELATIONS, instanceRelationsManager.asJson());
+        JsonObject relationsJson = new JsonObject();
+        for (InstanceToInstanceRelation relation : getInstanceToInstanceRelations()) {
+            JsonObject relationJson = new JsonObject(relation.asJsonString());
+            if (relation.hasPreparedProvisionalInstance() && relation.getProvisionalInstance().getHRID() != null) {
+                relationJson.put("CREATE_PROVISIONAL_INSTANCE", relation.getProvisionalInstance().asJson());
+            }
+            if (!relation.failed() && !(relation.hasPreparedProvisionalInstance() && relation.getProvisionalInstance().getHRID()==null)) {
+                switch ( relation.instanceRelationClass ) {
+                    case TO_PARENT:
+                        if (!relationsJson.containsKey(InstanceReferences.PARENT_INSTANCES)) relationsJson.put(
+                                InstanceReferences.PARENT_INSTANCES, new JsonArray());
+                        relationsJson.getJsonArray(InstanceReferences.PARENT_INSTANCES).add(relationJson);
+                        break;
+                    case TO_CHILD:
+                        if (!relationsJson.containsKey(InstanceReferences.CHILD_INSTANCES)) relationsJson.put(
+                                InstanceReferences.CHILD_INSTANCES, new JsonArray());
+                        relationsJson.getJsonArray(InstanceReferences.CHILD_INSTANCES).add(relationJson);
+                        break;
+                    case TO_PRECEDING:
+                        if (!relationsJson.containsKey(InstanceReferences.PRECEDING_TITLES)) relationsJson.put(
+                                InstanceReferences.PRECEDING_TITLES, new JsonArray());
+                        relationsJson.getJsonArray(InstanceReferences.PRECEDING_TITLES).add(relationJson);
+                        break;
+                    case TO_SUCCEEDING:
+                        if (!relationsJson.containsKey(InstanceReferences.SUCCEEDING_TITLES)) relationsJson.put(
+                                InstanceReferences.SUCCEEDING_TITLES, new JsonArray());
+                        relationsJson.getJsonArray(InstanceReferences.SUCCEEDING_TITLES).add(relationJson);
+                        break;
+                }
+            }
+        }
+        recordSetJson.put(InstanceReferences.INSTANCE_RELATIONS, relationsJson);
         recordSetJson.put(PROCESSING, processing);
         return recordSetJson;
     }

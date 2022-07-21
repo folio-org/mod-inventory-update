@@ -1,11 +1,11 @@
 package org.folio.inventoryupdate;
 
-public class SharedInstanceByLocalIdentifierQuery extends InventoryQuery {
+public class QuerySharedInstanceByLocalIdentifier extends InventoryQuery {
 
   private final String localIdentifier;
   private final String identifierTypeId;
 
-  public SharedInstanceByLocalIdentifierQuery(String localIdentifier, String identifierTypeId) {
+  public QuerySharedInstanceByLocalIdentifier(String localIdentifier, String identifierTypeId) {
     this.localIdentifier = localIdentifier;
     this.identifierTypeId = identifierTypeId;
     queryString = buildQuery();

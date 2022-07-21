@@ -17,6 +17,12 @@ public class HoldingsRecord extends InventoryRecord {
         entityType = Entity.HOLDINGS_RECORD;
     }
 
+    public HoldingsRecord(JsonObject holdingsRecord, JsonObject originJson) {
+        this.jsonRecord = holdingsRecord;
+        entityType = Entity.HOLDINGS_RECORD;
+        this.originJson = originJson;
+    }
+
     @Override
     public void setUUID (String uuid) {
         super.setUUID(uuid);

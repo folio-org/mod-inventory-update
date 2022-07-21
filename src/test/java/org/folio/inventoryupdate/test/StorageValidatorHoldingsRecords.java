@@ -11,10 +11,10 @@ import static org.folio.inventoryupdate.test.fakestorage.FakeInventoryStorage.*;
 
 public class StorageValidatorHoldingsRecords {
 
-    private static String FIRST_CALL_NUMBER = "TEST_CN_1";
-    private static String SECOND_CALL_NUMBER = "TEST_CN_2";
-    private static String INSTANCE_TITLE = "New InputInstance";
-    private static String NON_EXISTING_INSTANCE_ID = "456";
+    private static final String FIRST_CALL_NUMBER = "TEST_CN_1";
+    private static final String SECOND_CALL_NUMBER = "TEST_CN_2";
+    private static final String INSTANCE_TITLE = "New InputInstance";
+    private static final String NON_EXISTING_INSTANCE_ID = "456";
     private String existingInstanceId;
 
     protected void validateStorage(TestContext testContext) {
@@ -29,7 +29,7 @@ public class StorageValidatorHoldingsRecords {
     protected void createDependencies() {
         JsonObject responseOnPOST = FakeInventoryStorage.post(
                 INSTANCE_STORAGE_PATH,
-                new InputInstance().setTitle(INSTANCE_TITLE).setInstanceTypeId("123").getJson());
+                new InputInstance().setTitle(INSTANCE_TITLE).setInstanceTypeId("123").setSource("test").getJson());
         existingInstanceId = responseOnPOST.getString("id");
     }
 
@@ -81,7 +81,6 @@ public class StorageValidatorHoldingsRecords {
                 HOLDINGS_STORAGE_PATH,
                 new InputHoldingsRecord().setInstanceId(existingInstanceId).setPermanentLocationId("BAD_LOCATION").setCallNumber(FIRST_CALL_NUMBER).getJson(),
                 500);
-        System.out.println(responseOnPOST.encodePrettily());
         JsonObject responseJson = FakeInventoryStorage.getRecordsByQuery(
                 HOLDINGS_STORAGE_PATH,
                 "query="+ RecordStorage.encode("permanentLocationId==\""+ "BAD_LOCATION" +"\""));

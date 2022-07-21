@@ -1,9 +1,6 @@
 package org.folio.inventoryupdate.entities;
 
-import io.vertx.core.impl.logging.Logger;
-import io.vertx.core.impl.logging.LoggerFactory;
 import io.vertx.core.json.JsonObject;
-
 public class InstanceRelationship extends InstanceToInstanceRelation {
 
     private String instanceId;
@@ -11,10 +8,8 @@ public class InstanceRelationship extends InstanceToInstanceRelation {
     public static final String SUPER_INSTANCE_ID = "superInstanceId";
     public static final String INSTANCE_RELATIONSHIP_TYPE_ID = "instanceRelationshipTypeId";
 
-    protected static final Logger logger = LoggerFactory.getLogger("inventory-update");
-
     /**
-     * Builds an Instance relationship object from a JSON record.
+     * Builds an Instance relationship object from a JSON record from storage.
      * @param instanceId The UUID of the Instance to link from
      * @param instanceRelationJson Instance relation JSON object from storage
      * @return Relationship object
@@ -48,6 +43,15 @@ public class InstanceRelationship extends InstanceToInstanceRelation {
         return relation;
     }
 
+    public static InstanceRelationship makeParentRelationship(String instanceId,  String superInstanceId, String instanceRelationshipTypeId) {
+        return makeRelationship(instanceId, instanceId, superInstanceId, instanceRelationshipTypeId);
+    }
+
+    public static InstanceRelationship makeChildRelationship(String instanceId,  String subInstanceId, String instanceRelationshipTypeId) {
+        return makeRelationship(instanceId, subInstanceId, instanceId, instanceRelationshipTypeId);
+    }
+
+
     public boolean isRelationToChild () {
         return instanceId.equals(getSuperInstanceId());
     }
@@ -72,9 +76,7 @@ public class InstanceRelationship extends InstanceToInstanceRelation {
     public boolean equals (Object o) {
         if (o instanceof InstanceRelationship) {
             InstanceRelationship other = (InstanceRelationship) o;
-            return (other.getSubInstanceId() != null && other.getSubInstanceId().equals(this.getSubInstanceId()) &&
-                    other.getSuperInstanceId() != null && other.getSuperInstanceId().equals(this.getSuperInstanceId()) &&
-                    other.getInstanceRelationshipTypeId() != null && other.getInstanceRelationshipTypeId().equals(this.getInstanceRelationshipTypeId()));
+            return other.toString().equals(this.toString());
         } else {
             return false;
         }

@@ -1,11 +1,16 @@
 package org.folio.inventoryupdate;
 
+import static org.folio.inventoryupdate.InventoryStorage.getOkapiClient;
+import static org.folio.inventoryupdate.ErrorReport.*;
+import static org.folio.inventoryupdate.InventoryUpdateOutcome.MULTI_STATUS;
+import static org.folio.inventoryupdate.InventoryUpdateOutcome.OK;
 import static org.folio.okapi.common.HttpResponse.responseError;
 import static org.folio.okapi.common.HttpResponse.responseJson;
 
 import io.vertx.core.impl.logging.Logger;
 import io.vertx.core.impl.logging.LoggerFactory;
 import io.vertx.core.json.DecodeException;
+import io.vertx.core.json.JsonArray;
 import org.folio.inventoryupdate.entities.RecordIdentifiers;
 import org.folio.inventoryupdate.entities.InventoryRecordSet;
 import org.folio.okapi.common.OkapiClient;
@@ -19,117 +24,242 @@ import io.vertx.ext.web.RoutingContext;
  *
  */
 public class InventoryUpdateService {
-  private final Logger logger = LoggerFactory.getLogger("inventory-update");
+  private static final Logger logger = LoggerFactory.getLogger("inventory-update");
 
-  private static final String LF = System.lineSeparator();
-
-  public void handleUnrecognizedPath(RoutingContext routingContext) {
-    responseError(routingContext, 404, "No Service found for requested path " + routingContext.request().path());
+  public void handleInventoryUpsertByHRID(RoutingContext routingContext) {
+    UpdatePlan plan = new UpdatePlanAllHRIDs();
+    doUpsert(routingContext, plan);
   }
 
-  public void handleHealthCheck(RoutingContext routingContext) {
-    responseJson(routingContext, 200).end("{ \"status\": \"UP\" }");
+  public void handleInventoryUpsertByHRIDBatch(RoutingContext routingContext) {
+    UpdatePlan plan = new UpdatePlanAllHRIDs();
+    doBatchUpsert(routingContext, plan);
   }
 
-  public void handleSharedInventoryUpsertByMatchKey(RoutingContext routingCtx) {
-    if (contentTypeIsJson(routingCtx)) {
-      JsonObject incomingJson = getIncomingJsonBody(routingCtx);
-      if (InventoryRecordSet.isValidInventoryRecordSet(incomingJson)) {
-        InventoryRecordSet incomingSet = new InventoryRecordSet(incomingJson);
-        UpdatePlan updatePlan = UpdatePlanSharedInventory.getUpsertPlan(incomingSet);
-        runPlan(updatePlan, routingCtx);
-      } else {
-        responseError(routingCtx, 400, "Did not recognize input as an Inventory record set: "+
-                (incomingJson != null ? incomingJson.encodePrettily() : "no JSON object"));
-      }
-    }
+  public void handleSharedInventoryUpsertByMatchKey(RoutingContext routingContext) {
+    UpdatePlan plan = new UpdatePlanSharedInventory();
+    doUpsert(routingContext, plan);
   }
 
-  public void handleSharedInventoryRecordSetDeleteByIdentifiers(RoutingContext routingCtx) {
-    logger.debug("Handling delete request for shared index " + routingCtx.getBodyAsString());
-    if (contentTypeIsJson(routingCtx)) {
-      JsonObject deletionJson = getIncomingJsonBody(routingCtx);
-      RecordIdentifiers deletionIdentifiers = RecordIdentifiers.identifiersFromDeleteRequestJson(deletionJson);
-      UpdatePlan updatePlan = UpdatePlanSharedInventory.getDeletionPlan(deletionIdentifiers);
-      runPlan(updatePlan, routingCtx);
-    }
+  public void handleSharedInventoryUpsertByMatchKeyBatch(RoutingContext routingContext) {
+    UpdatePlan plan = new UpdatePlanSharedInventory();
+    doBatchUpsert(routingContext, plan);
   }
 
-  public void handleInventoryUpsertByHRID(RoutingContext routingCtx) {
-    if (! contentTypeIsJson(routingCtx)) {
+  /**
+   * Validates a single incoming record set and performs an upsert
+   * @param plan a shared-inventory/matchKey, or an inventory/hrid upsert plan.
+   */
+  private void doUpsert(RoutingContext routingContext, UpdatePlan plan) {
+    InventoryUpdateOutcome isJsonContentType = contentTypeIsJson(routingContext);
+    if (isJsonContentType.failed()) {
+      isJsonContentType.getErrorResponse().respond(routingContext);
       return;
     }
-    JsonObject incomingJson = getIncomingJsonBody(routingCtx);
-    if (incomingJson == null) {
+    InventoryUpdateOutcome incomingValidJson = getIncomingJsonBody(routingContext);
+    if (incomingValidJson.failed()) {
+      incomingValidJson.getErrorResponse().respond(routingContext);
       return;
     }
-    if (! InventoryRecordSet.isValidInventoryRecordSet(incomingJson)) {
-      responseError(routingCtx, 400, "Did not recognize input as an Inventory record set: " + incomingJson.encodePrettily());
+    InventoryUpdateOutcome validRecordSet = InventoryRecordSet.isValidInventoryRecordSet(incomingValidJson.result);
+    if (validRecordSet.failed()) {
+      validRecordSet.getErrorResponse().respond(routingContext);
       return;
     }
-    InventoryRecordSet incomingSet = new InventoryRecordSet(incomingJson);
-    UpdatePlan updatePlan = UpdatePlanAllHRIDs.getUpsertPlan(incomingSet);
-    runPlan(updatePlan, routingCtx);
-  }
-
-  public void handleInventoryRecordSetDeleteByHRID(RoutingContext routingCtx) {
-    if (contentTypeIsJson(routingCtx)) {
-      JsonObject deletionJson = getIncomingJsonBody(routingCtx);
-      InventoryQuery queryByInstanceHrid = new HridQuery(deletionJson.getString("hrid"));
-      UpdatePlan updatePlan = UpdatePlanAllHRIDs.getDeletionPlan(queryByInstanceHrid);
-      runPlan(updatePlan, routingCtx);
-    }
-  }
-
-  //TODO: invert not-found conditions in case of deletion?
-  private void runPlan(UpdatePlan updatePlan, RoutingContext routingCtx) {
-
-    OkapiClient okapiClient = InventoryStorage.getOkapiClient(routingCtx);
-    updatePlan.planInventoryUpdates(okapiClient).onComplete( planDone -> {
-      if (planDone.succeeded()) {
-        updatePlan.writePlanToLog();
-        updatePlan.doInventoryUpdates(okapiClient).onComplete( updatesDone -> {
-          JsonObject pushedRecordSetWithStats = updatePlan.getUpdatingRecordSetJson();
-          pushedRecordSetWithStats.put("metrics", updatePlan.getUpdateStats());
-          if (updatesDone.succeeded()) {
-            responseJson(routingCtx, 200).end(pushedRecordSetWithStats.encodePrettily());
-          } else {
-            pushedRecordSetWithStats.put("errors", updatePlan.getErrors());
-            responseJson(routingCtx, 422).end(pushedRecordSetWithStats.encodePrettily());
-          }
-        });
-      }  else {
-        if (updatePlan.isDeletion && !updatePlan.foundExistingRecordSet()) {
-          responseJson(routingCtx, 404).end("Error processing delete request:: "+ planDone.cause().getMessage());
+    JsonArray inventoryRecordSets = new JsonArray();
+    inventoryRecordSets.add(new JsonObject(incomingValidJson.result.encodePrettily()));
+    plan.upsertBatch(routingContext, inventoryRecordSets).onComplete(update ->{
+      if (update.succeeded()) {
+        if (update.result().statusCode == OK || update.result().statusCode == MULTI_STATUS) {
+          responseJson(routingContext, update.result().statusCode).end(update.result().getJson().encodePrettily());
         } else {
-          responseJson(routingCtx, 422).end("Error creating an inventory update plan:" + LF + "  " + planDone.cause().getMessage());
+          update.result().getErrorResponse().respond(routingContext);
         }
       }
     });
   }
 
-  private boolean contentTypeIsJson (RoutingContext routingCtx) {
-    String contentType = routingCtx.request().getHeader("Content-Type");
-    if (contentType != null && !contentType.startsWith("application/json")) {
-      logger.error("Only accepts Content-Type application/json, was: " + contentType);
-      responseError(routingCtx, 400, "Only accepts Content-Type application/json, content type was: "+ contentType);
-      return false;
+  /**
+   * Validates a batch of incoming record sets and performs a batch-upsert
+   * @param plan a shared-inventory/matchKey, or an inventory/hrid upsert plan.
+   */
+  private void doBatchUpsert(RoutingContext routingContext, UpdatePlan plan) {
+    InventoryUpdateOutcome incomingValidJson = getIncomingJsonBody(routingContext);
+
+    if (incomingValidJson.failed()) {
+      incomingValidJson.getErrorResponse().respond(routingContext);
+      return;
+    }
+    if (incomingValidJson.getJson().containsKey("inventoryRecordSets")) {
+      JsonArray inventoryRecordSets = incomingValidJson.getJson().getJsonArray("inventoryRecordSets");
+      plan.upsertBatch(routingContext, inventoryRecordSets).onComplete(update -> {
+        // The upsert could succeed, but with an error report, if it was a batch of one
+        // Only if a true batch upsert (of more than one) failed, will the promise fail.
+        if (update.succeeded()) {
+          update.result().respond(routingContext);
+        } else {
+          logger.error("A batch upsert failed, bringing down all records of the batch. Switching to record-by-record updates");
+          UpdateMetrics accumulatedStats = new UpdateMetrics();
+          JsonArray accumulatedErrorReport = new JsonArray();
+          InventoryUpdateOutcome compositeOutcome = new InventoryUpdateOutcome();
+          plan.multipleSingleRecordUpserts(routingContext, inventoryRecordSets).onComplete(
+                  listOfOutcomes -> {
+                    for (InventoryUpdateOutcome outcome : listOfOutcomes.result()) {
+                      if (outcome.hasMetrics()) {
+                        accumulatedStats.add(outcome.metrics);
+                      }
+                      if (outcome.hasError()) {
+                        accumulatedErrorReport.add(outcome.getError().asJson());
+                      }
+                    }
+                    compositeOutcome.setMetrics(accumulatedStats);
+                    compositeOutcome.setErrors(accumulatedErrorReport);
+                    compositeOutcome.setResponseStatusCode(accumulatedErrorReport.size()==0? OK : MULTI_STATUS);
+                    compositeOutcome.respond(routingContext);
+                  });
+        }
+      });
     } else {
-      return true;
+      new ErrorReport(
+              ErrorCategory.VALIDATION,
+              BAD_REQUEST,
+              "Did not recognize request body as a batch of Inventory record sets")
+              .setShortMessage("Not a batch of Inventory record sets")
+              .setRequestJson(incomingValidJson.getJson())
+              .respond(routingContext);
     }
   }
 
-  private JsonObject getIncomingJsonBody(RoutingContext routingCtx) {
-    String bodyAsString = "no body";
+  // DELETE REQUESTS
+  public void handleInventoryRecordSetDeleteByHRID(RoutingContext routingCtx) {
+    InventoryUpdateOutcome isJsonContentType = contentTypeIsJson(routingCtx);
+    if (isJsonContentType.failed()) {
+      isJsonContentType.getErrorResponse().respond(routingCtx);
+      return;
+    }
+
+    InventoryUpdateOutcome incomingValidJson =  getIncomingJsonBody(routingCtx);
+
+    if (incomingValidJson.failed()) {
+      incomingValidJson.getErrorResponse().respond(routingCtx);
+      return;
+    }
+
+    InventoryQuery queryByInstanceHrid = new QueryByHrid(incomingValidJson.getJson().getString("hrid"));
+    UpdatePlan updatePlan = UpdatePlanAllHRIDs.getDeletionPlan(queryByInstanceHrid);
+    runDeletionPlan(updatePlan, routingCtx);
+  }
+
+  public void handleSharedInventoryRecordSetDeleteByIdentifiers(RoutingContext routingContext) {
+    logger.debug("Handling delete request for shared index " + routingContext.getBodyAsString());
+    InventoryUpdateOutcome isJsonContentType = contentTypeIsJson(routingContext);
+    if (isJsonContentType.failed()) {
+      isJsonContentType.getErrorResponse().respond(routingContext);
+      return;
+    }
+
+    InventoryUpdateOutcome incomingValidJson = getIncomingJsonBody(routingContext);
+    if (incomingValidJson.failed()) {
+      incomingValidJson.getErrorResponse().respond(routingContext);
+      return;
+    }
+
+    RecordIdentifiers deletionIdentifiers = RecordIdentifiers.identifiersFromDeleteRequestJson(incomingValidJson.getJson());
+    UpdatePlan updatePlan = UpdatePlanSharedInventory.getDeletionPlan(deletionIdentifiers);
+    runDeletionPlan(updatePlan, routingContext);
+  }
+
+  private void runDeletionPlan(UpdatePlan updatePlan, RoutingContext routingCtx) {
+
+    OkapiClient okapiClient = getOkapiClient(routingCtx);
+    updatePlan.planInventoryDelete(okapiClient).onComplete(planDone -> {
+      if (planDone.succeeded()) {
+          updatePlan.doInventoryDelete(okapiClient).onComplete(deletionsDone -> {
+          JsonObject response = new JsonObject();
+          response.put("metrics", updatePlan.getUpdateStats());
+          if (deletionsDone.succeeded()) {
+            respondWithOK(routingCtx,response);
+          } else {
+            response.put("errors", updatePlan.getErrors());
+            response.getJsonArray("errors")
+                    .add(new ErrorReport(
+                            ErrorCategory.STORAGE,
+                            INTERNAL_SERVER_ERROR,
+                            deletionsDone.cause().getMessage())
+                            .asJson());
+            respondWithMultiStatus(routingCtx,response);
+          }
+        });
+      }  else {
+        if (updatePlan.isDeletion && !updatePlan.foundExistingRecordSet()) {
+          new ErrorReport(
+                  ErrorReport.ErrorCategory.STORAGE,
+                  NOT_FOUND,
+                  "Error processing delete request: "+ planDone.cause().getMessage())
+                  .respond(routingCtx);
+        } else {
+          new ErrorReport(
+                  ErrorReport.ErrorCategory.STORAGE,
+                  INTERNAL_SERVER_ERROR,
+                  planDone.cause().getMessage())
+                  .respond(routingCtx);
+        }
+      }
+    });
+  }
+
+  // UTILS
+  public void handleHealthCheck(RoutingContext routingContext) {
+    responseJson(routingContext, OK).end("{ \"status\": \"UP\" }");
+  }
+
+  public void handleUnrecognizedPath(RoutingContext routingContext) {
+    responseError(routingContext, NOT_FOUND, "No Service found for requested path " + routingContext.request().path());
+  }
+
+  private InventoryUpdateOutcome contentTypeIsJson (RoutingContext routingCtx) {
+    String contentType = routingCtx.request().getHeader("Content-Type");
+    if (contentType != null && !contentType.startsWith("application/json")) {
+      logger.error("Only accepts Content-Type application/json, was: " + contentType);
+      return new InventoryUpdateOutcome(new ErrorReport(
+              ErrorReport.ErrorCategory.VALIDATION,
+              BAD_REQUEST,
+              "Only accepts Content-Type application/json, content type was: "+ contentType)
+              .setShortMessage("Only accepts application/json")
+              .setStatusCode(BAD_REQUEST));
+    } else {
+      return new InventoryUpdateOutcome(new JsonObject().put("succeeded", "yes"));
+    }
+  }
+
+  private InventoryUpdateOutcome getIncomingJsonBody(RoutingContext routingCtx) {
+    String bodyAsString;
     try {
       bodyAsString = routingCtx.getBodyAsString("UTF-8");
+      if (bodyAsString == null) {
+        return new InventoryUpdateOutcome(
+                new ErrorReport(
+                        ErrorReport.ErrorCategory.VALIDATION,
+                        BAD_REQUEST,
+                        "No request body provided."));
+      }
       JsonObject bodyAsJson = new JsonObject(bodyAsString);
       logger.debug("Request body " + bodyAsJson.encodePrettily());
-      return bodyAsJson;
+      return new InventoryUpdateOutcome(bodyAsJson);
     } catch (DecodeException de) {
-      responseError(routingCtx, 400, "Only accepts json, content was: "+ bodyAsString);
-      return null;
+      return new InventoryUpdateOutcome(new ErrorReport(ErrorReport.ErrorCategory.VALIDATION,
+              BAD_REQUEST,
+              "Could not parse JSON body of the request: " + de.getMessage())
+              .setShortMessage("Could not parse request JSON"));
     }
+  }
+
+  public void respondWithOK(RoutingContext routingContext, JsonObject message) {
+    responseJson(routingContext, OK).end(message.encodePrettily());
+  }
+
+  public void respondWithMultiStatus(RoutingContext routingContext, JsonObject message) {
+    responseJson(routingContext, MULTI_STATUS).end(message.encodePrettily());
   }
 
 }

@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import io.vertx.core.json.JsonObject;
+import org.folio.inventoryupdate.MatchKey;
 
 public class Instance extends InventoryRecord {
 
@@ -13,6 +14,12 @@ public class Instance extends InventoryRecord {
 
     public Instance (JsonObject instance) {
         jsonRecord = instance;
+        entityType = Entity.INSTANCE;
+    }
+
+    public Instance (JsonObject instance, JsonObject originJson) {
+        jsonRecord = new JsonObject(instance.encode());
+        this.originJson = originJson;
         entityType = Entity.INSTANCE;
     }
 
@@ -37,6 +44,12 @@ public class Instance extends InventoryRecord {
     }
 
     public String getMatchKey () {
+        if (jsonRecord.getString(MATCH_KEY) == null ) {
+            jsonRecord.put(MATCH_KEY, new MatchKey(jsonRecord).getKey());
+        } else if (jsonRecord.getValue(MATCH_KEY) instanceof JsonObject) {
+            // Received multipart match key object, translating it to match-key string
+            jsonRecord.put(MATCH_KEY, new MatchKey(jsonRecord).getKey());
+        }
         return jsonRecord.getString( MATCH_KEY );
     }
 

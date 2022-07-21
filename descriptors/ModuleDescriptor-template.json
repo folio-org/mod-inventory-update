@@ -65,6 +65,47 @@
       ]
     },
     {
+      "id": "inventory-batch-upsert-hrid",
+      "version": "1.0",
+      "handlers": [
+        {
+          "methods": ["PUT"],
+          "pathPattern": "/inventory-batch-upsert-hrid",
+          "permissionsRequired": ["inventory-upsert-hrid.item.put"],
+          "modulePermissions": [
+            "inventory-storage.items.collection.get",
+            "inventory-storage.items.item.get",
+            "inventory-storage.items.item.post",
+            "inventory-storage.items.item.put",
+            "inventory-storage.items.item.delete",
+            "inventory-storage.holdings.collection.get",
+            "inventory-storage.holdings.item.get",
+            "inventory-storage.holdings.item.post",
+            "inventory-storage.holdings.item.put",
+            "inventory-storage.holdings.item.delete",
+            "inventory-storage.instances.collection.get",
+            "inventory-storage.instances.item.get",
+            "inventory-storage.instances.item.post",
+            "inventory-storage.instances.item.put",
+            "inventory-storage.instances.item.delete",
+            "inventory-storage.locations.collection.get",
+            "inventory-storage.locations.item.get",
+            "inventory-storage.preceding-succeeding-titles.collection.get",
+            "inventory-storage.preceding-succeeding-titles.item.get",
+            "inventory-storage.preceding-succeeding-titles.item.post",
+            "inventory-storage.preceding-succeeding-titles.item.put",
+            "inventory-storage.preceding-succeeding-titles.item.delete",
+            "inventory-storage.instances.preceding-succeeding-titles.collection.put",
+            "inventory-storage.instance-relationships.collection.get",
+            "inventory-storage.instance-relationships.item.post",
+            "inventory-storage.instance-relationships.item.get",
+            "inventory-storage.instance-relationships.item.put",
+            "inventory-storage.instance-relationships.item.delete"
+          ]
+        }
+      ]
+    },
+    {
       "id": "shared-inventory-upsert-matchkey",
       "version": "1.2",
       "handlers": [
@@ -120,6 +161,47 @@
             "inventory-storage.preceding-succeeding-titles.item.get",
             "inventory-storage.instance-relationships.collection.get",
             "inventory-storage.instance-relationships.item.get"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "shared-inventory-batch-upsert-matchkey",
+      "version": "1.0",
+      "handlers": [
+        {
+          "methods": ["PUT"],
+          "pathPattern": "/shared-inventory-batch-upsert-matchkey",
+          "permissionsRequired": ["shared-inventory-upsert-matchkey.item.put"],
+          "modulePermissions": [
+            "inventory-storage.items.collection.get",
+            "inventory-storage.items.item.get",
+            "inventory-storage.items.item.post",
+            "inventory-storage.items.item.put",
+            "inventory-storage.items.item.delete",
+            "inventory-storage.holdings.collection.get",
+            "inventory-storage.holdings.item.get",
+            "inventory-storage.holdings.item.post",
+            "inventory-storage.holdings.item.put",
+            "inventory-storage.holdings.item.delete",
+            "inventory-storage.instances.collection.get",
+            "inventory-storage.instances.item.get",
+            "inventory-storage.instances.item.post",
+            "inventory-storage.instances.item.put",
+            "inventory-storage.instances.item.delete",
+            "inventory-storage.locations.collection.get",
+            "inventory-storage.locations.item.get",
+            "inventory-storage.preceding-succeeding-titles.collection.get",
+            "inventory-storage.preceding-succeeding-titles.item.get",
+            "inventory-storage.preceding-succeeding-titles.item.post",
+            "inventory-storage.preceding-succeeding-titles.item.put",
+            "inventory-storage.preceding-succeeding-titles.item.delete",
+            "inventory-storage.instances.preceding-succeeding-titles.collection.put",
+            "inventory-storage.instance-relationships.collection.get",
+            "inventory-storage.instance-relationships.item.post",
+            "inventory-storage.instance-relationships.item.get",
+            "inventory-storage.instance-relationships.item.put",
+            "inventory-storage.instance-relationships.item.delete"
           ]
         }
       ]

@@ -2,9 +2,14 @@ package org.folio.inventoryupdate.entities;
 
 import java.util.UUID;
 
+import io.vertx.core.impl.logging.Logger;
+import io.vertx.core.impl.logging.LoggerFactory;
 import io.vertx.core.json.DecodeException;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
+import org.folio.inventoryupdate.ErrorReport;
+
+import static org.folio.inventoryupdate.ErrorReport.UNPROCESSABLE_ENTITY;
 
 
 /**
@@ -42,8 +47,9 @@ public abstract class InventoryRecord {
     }
 
     protected JsonObject jsonRecord;
+    protected JsonObject originJson;
     public static final String VERSION = "_version";
-    protected JsonObject error = new JsonObject();
+    protected ErrorReport error;
     protected Entity entityType;
     protected Transaction transaction = Transaction.UNKNOWN;
     protected Outcome outcome = Outcome.PENDING;
@@ -51,6 +57,7 @@ public abstract class InventoryRecord {
     private static final String ERRORS = "errors";
     private static final String PARAMETERS = "parameters";
 
+    protected static final Logger logger = LoggerFactory.getLogger("inventory-update");
 
     public void setTransition (Transaction transaction) {
         this.transaction = transaction;
@@ -62,6 +69,14 @@ public abstract class InventoryRecord {
 
     public boolean isDeleting () {
         return (transaction == Transaction.DELETE);
+    }
+
+    public boolean isCreating () {
+        return (transaction == Transaction.CREATE);
+    }
+
+    public boolean isUpdating () {
+        return (transaction == Transaction.UPDATE);
     }
 
     public String generateUUID () {
@@ -115,6 +130,10 @@ public abstract class InventoryRecord {
         return this.outcome;
     }
 
+    public JsonObject getOriginJson () {
+        return this.originJson;
+    }
+
     public void complete() {
         this.outcome = Outcome.COMPLETED;
     }
@@ -135,18 +154,23 @@ public abstract class InventoryRecord {
         return this.outcome == Outcome.SKIPPED;
     }
 
-    public void logError (String error, int statusCode) {
+    public void logError (String error, int statusCode, ErrorReport.ErrorCategory category, JsonObject originJson) {
         Object message = maybeJson(error);
-        logError(error, statusCode, findShortMessage(message));
+        logError(error, statusCode, category, findShortMessage(message), originJson);
     }
 
-    public void logError (String error, int statusCode, String shortMessage) {
-        this.error.put("entityType", entityType());
-        this.error.put("transaction", getTransaction());
-        this.error.put("statusCode", statusCode);
-        this.error.put("shortMessage", shortMessage);
-        this.error.put(MESSAGE, maybeJson(error));
-        this.error.put("entity", jsonRecord);
+    public void logError (String error, int statusCode, ErrorReport.ErrorCategory category, String shortMessage, JsonObject originJson) {
+        Object message = maybeJson(error);
+        this.error = new ErrorReport(
+                category,
+                UNPROCESSABLE_ENTITY,
+                message)
+                .setEntityType(entityType())
+                .setTransaction(getTransaction() == null ? "" : getTransaction().toString())
+                .setStatusCode(statusCode)
+                .setShortMessage(shortMessage)
+                .setEntity(jsonRecord)
+                .setRequestJson(originJson);
     }
 
     protected static Object maybeJson (String message) {
@@ -173,7 +197,7 @@ public abstract class InventoryRecord {
             }
         } else if (inventoryMessage instanceof String && inventoryMessage.toString().length()>1) {
             // In some error scenarios, Inventory just returns a simple string.
-            shortMessage = inventoryMessage.toString().substring(0, Math.min(inventoryMessage.toString().length()-1,60));
+            shortMessage = inventoryMessage.toString().substring(0, Math.min(inventoryMessage.toString().length(),60));
         } else {
             // fallback
             shortMessage = "Error: " + getTransaction() + " of " + entityType();
@@ -200,10 +224,33 @@ public abstract class InventoryRecord {
         return shortMessage;
     }
 
-    public JsonObject getError () {
+    public JsonObject getErrorAsJson() {
+        return error.asJson();
+    }
+
+    public ErrorReport getErrorReport () {
         return error;
     }
 
     public abstract void skipDependants ();
+
+    public static InventoryRecord.Entity getEntityTypeFromString (String entityType) {
+        switch (entityType.toUpperCase()) {
+            case "INSTANCE":
+                return InventoryRecord.Entity.INSTANCE;
+            case "ITEM":
+                return InventoryRecord.Entity.ITEM;
+            case "HOLDINGS_RECORD":
+                return InventoryRecord.Entity.HOLDINGS_RECORD;
+            case "INSTANCE_RELATIONSHIP":
+                return InventoryRecord.Entity.INSTANCE_RELATIONSHIP;
+            case "INSTANCE_TITLE_SUCCESSION":
+                return InventoryRecord.Entity.INSTANCE_TITLE_SUCCESSION;
+            case "LOCATION":
+                return InventoryRecord.Entity.LOCATION;
+            default:
+                return null;
+        }
+    }
 
 }

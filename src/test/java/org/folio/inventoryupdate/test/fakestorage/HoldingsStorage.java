@@ -13,4 +13,9 @@ public class HoldingsStorage extends RecordStorage {
         fakeStorage.locationStorage.acceptDependant(this, "permanentLocationId");
     }
 
+    @Override
+    protected void declareMandatoryProperties() {
+        mandatoryProperties.add("permanentLocationId");
+    }
+
 }

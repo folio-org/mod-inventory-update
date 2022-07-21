@@ -15,6 +15,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import static org.folio.inventoryupdate.entities.InventoryRecordSet.*;
+
 public abstract class Repository {
 
   protected final Map<String,Instance> existingInstancesByUUID = new HashMap<>();
@@ -90,6 +92,26 @@ public abstract class Repository {
     }
   }
 
+  protected JsonObject assembleRecordSetJsonFromRepository(Instance existingInstance) {
+    JsonObject existingRecordSetJson = new JsonObject();
+    existingRecordSetJson.put(INSTANCE, existingInstance.asJson());
+    if (existingHoldingsRecordsByInstanceId.containsKey(existingInstance.getUUID())) {
+      JsonArray holdingsWithItems = new JsonArray();
+      for (HoldingsRecord holdingsRecord : existingHoldingsRecordsByInstanceId.get(
+              existingInstance.getUUID()).values()) {
+        JsonObject jsonRecord = holdingsRecord.asJson();
+        if (existingItemsByHoldingsRecordId.containsKey(holdingsRecord.getUUID())) {
+          jsonRecord.put(ITEMS, new JsonArray());
+          for (Item item : existingItemsByHoldingsRecordId.get(holdingsRecord.getUUID()).values()) {
+            jsonRecord.getJsonArray(ITEMS).add(item.asJson());
+          }
+        }
+        holdingsWithItems.add(jsonRecord);
+      }
+      existingRecordSetJson.put(HOLDINGS_RECORDS, holdingsWithItems);
+    }
+    return existingRecordSetJson;
+  }
 
 
   protected Future<Void> requestItemsByHoldingsRecordIds(RoutingContext routingContext,

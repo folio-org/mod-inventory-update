@@ -119,6 +119,7 @@
     },
     "metrics" : {
       "type": "object",
+      "description": "Reports the number of operations performed by record type, transaction type, and outcome",
       "$ref": "metrics.json"
     }
   }

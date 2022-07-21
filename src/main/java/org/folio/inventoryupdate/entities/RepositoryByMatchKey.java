@@ -96,24 +96,8 @@ public class RepositoryByMatchKey extends Repository {
     for (PairedRecordSets pair : pairsOfRecordSets) {
       String incomingInstanceMatchKey = pair.getIncomingRecordSet().getInstance().getMatchKey();
       if (existingInstancesByMatchKey.containsKey(incomingInstanceMatchKey)) {
-        JsonObject existingRecordSetJson = new JsonObject();
         Instance existingInstance = existingInstancesByMatchKey.get(incomingInstanceMatchKey);
-        existingRecordSetJson.put(INSTANCE, existingInstance.asJson());
-        if (existingHoldingsRecordsByInstanceId.containsKey(existingInstance.getUUID())) {
-          JsonArray holdingsWithItems = new JsonArray();
-          for (HoldingsRecord holdingsRecord : existingHoldingsRecordsByInstanceId.get(
-                  existingInstance.getUUID()).values()) {
-            JsonObject jsonRecord = holdingsRecord.asJson();
-            if (existingItemsByHoldingsRecordId.containsKey(holdingsRecord.getUUID())) {
-              jsonRecord.put(ITEMS, new JsonArray());
-              for (Item item : existingItemsByHoldingsRecordId.get(holdingsRecord.getUUID()).values()) {
-                jsonRecord.getJsonArray(ITEMS).add(item.asJson());
-              }
-            }
-            holdingsWithItems.add(jsonRecord);
-          }
-          existingRecordSetJson.put(HOLDINGS_RECORDS, holdingsWithItems);
-        }
+        JsonObject existingRecordSetJson = assembleRecordSetJsonFromRepository(existingInstance);
         InventoryRecordSet existingSet = InventoryRecordSet.makeExistingRecordSet(existingRecordSetJson);
         pair.setExistingRecordSet(existingSet);
       }

@@ -107,24 +107,8 @@ public class RepositoryByHrids extends Repository {
     for (PairedRecordSets pair : pairsOfRecordSets) {
       String incomingInstanceHrid = pair.getIncomingRecordSet().getInstanceHRID();
       if (existingInstancesByHrid.containsKey(incomingInstanceHrid)) {
-        JsonObject existingRecordSetJson = new JsonObject();
         Instance existingInstance = existingInstancesByHrid.get(incomingInstanceHrid);
-        existingRecordSetJson.put(INSTANCE,existingInstance.asJson());
-        if (existingHoldingsRecordsByInstanceId.containsKey(existingInstance.getUUID())) {
-          JsonArray holdingsWithItems = new JsonArray();
-          for (HoldingsRecord holdingsRecord : existingHoldingsRecordsByInstanceId.get(
-                  existingInstance.getUUID()).values()) {
-            JsonObject jsonRecord = holdingsRecord.asJson();
-            if (existingItemsByHoldingsRecordId.containsKey(holdingsRecord.getUUID())) {
-              jsonRecord.put(ITEMS, new JsonArray());
-              for (Item item : existingItemsByHoldingsRecordId.get(holdingsRecord.getUUID()).values()) {
-                jsonRecord.getJsonArray(ITEMS).add(item.asJson());
-              }
-            }
-            holdingsWithItems.add(jsonRecord);
-          }
-          existingRecordSetJson.put(HOLDINGS_RECORDS, holdingsWithItems);
-        }
+        JsonObject existingRecordSetJson = assembleRecordSetJsonFromRepository(existingInstance);
         InventoryRecordSet existingSet = InventoryRecordSet.makeExistingRecordSet(existingRecordSetJson);
         if (existingParentRelationsByChildId.get(existingInstance.getUUID()) != null) {
           existingSet.parentRelations = new ArrayList<>(existingParentRelationsByChildId.get(existingInstance.getUUID()).values());
@@ -143,6 +127,8 @@ public class RepositoryByHrids extends Repository {
       }
     }
   }
+
+
   private Future<Void> requestInstancesByHRIDs(RoutingContext routingContext,
                                                List<String> hrids) {
     Promise<Void> promise = Promise.promise();

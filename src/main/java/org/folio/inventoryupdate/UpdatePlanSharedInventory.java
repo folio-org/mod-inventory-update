@@ -87,30 +87,20 @@ public class UpdatePlanSharedInventory extends UpdatePlan {
 
     @Override
     public UpdatePlan planInventoryUpdates() {
-        try {
-            long startPlanning = System.currentTimeMillis();
-            for (PairedRecordSets pair : repository.getPairsOfRecordSets()) {
-                Instance secondaryInstance = null;
-                if (pair.hasIncomingRecordSet()) {
-                    secondaryInstance = ((RepositoryByMatchKey) repository).secondaryInstancesByLocalIdentifier.get(pair.getIncomingRecordSet().getLocalIdentifier());
-                    if (secondaryInstance != null) {
-                        for (HoldingsRecord holdingsRecord : repository.existingHoldingsRecordsByInstanceId.get(secondaryInstance.getUUID()).values()) {
-                            for (Item item : repository.existingItemsByHoldingsRecordId.get(holdingsRecord.getUUID()).values()) {
-                                holdingsRecord.addItem(item);
-                            }
-                            secondaryInstance.addHoldingsRecord(holdingsRecord);
+        for (PairedRecordSets pair : repository.getPairsOfRecordSets()) {
+            Instance secondaryInstance = null;
+            if (pair.hasIncomingRecordSet()) {
+                secondaryInstance = ((RepositoryByMatchKey) repository).secondaryInstancesByLocalIdentifier.get(pair.getIncomingRecordSet().getLocalIdentifier());
+                if (secondaryInstance != null) {
+                    for (HoldingsRecord holdingsRecord : repository.existingHoldingsRecordsByInstanceId.get(secondaryInstance.getUUID()).values()) {
+                        for (Item item : repository.existingItemsByHoldingsRecordId.get(holdingsRecord.getUUID()).values()) {
+                            holdingsRecord.addItem(item);
                         }
+                        secondaryInstance.addHoldingsRecord(holdingsRecord);
                     }
                 }
-                planInstanceHoldingsAndItems(pair, secondaryInstance, isDeletion, deletionIdentifiers);
             }
-            long planningMs = System.currentTimeMillis() - startPlanning;
-        } catch (NullPointerException npe) {
-            StackTraceElement element1 = npe.getStackTrace()[0];
-            StackTraceElement element2 = npe.getStackTrace()[1];
-            logger.error("Null pointer at : "
-                    + element1.getMethodName()+"("+element1.getFileName()+":"+element1.getLineNumber()+")"
-                    + element2.getMethodName()+"("+element2.getFileName()+":"+element2.getLineNumber()+")");
+            planInstanceHoldingsAndItems(pair, secondaryInstance, isDeletion, deletionIdentifiers);
         }
         return this;
 

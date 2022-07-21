@@ -106,9 +106,8 @@ public class InventoryUpdateTestSuite {
             .setInstanceTypeId("123")
             .setTitle("Initial InputInstance")
             .setHrid("1")
-            .setSource("test");
-    MatchKey matchKey = new MatchKey(instance.getJson());
-    instance.setMatchKeyAsString(matchKey.getKey());
+            .setSource("test")
+            .generateMatchKey();
     fakeInventoryStorage.instanceStorage.insert(instance);
   }
 
@@ -146,7 +145,8 @@ public class InventoryUpdateTestSuite {
     InputInstance instance = new InputInstance()
             .setTitle("New title")
             .setInstanceTypeId("12345")
-            .setSource("test");
+            .setSource("test")
+            .generateMatchKey();
     MatchKey matchKey = new MatchKey(instance.getJson());
     instance.setMatchKeyAsString(matchKey.getKey());
     InventoryRecordSet recordSet = new InventoryRecordSet(instance);
@@ -215,18 +215,16 @@ public class InventoryUpdateTestSuite {
     createInitialInstanceWithHrid1();
     BatchOfInventoryRecordSets batch = new BatchOfInventoryRecordSets();
     for (int i=0; i<200; i++) {
-      InputInstance instance = new InputInstance()
+      batch.addRecordSet(new InventoryRecordSet(new InputInstance()
               .setTitle("New title " + i)
               .setHrid("in"+i)
               .setSource("test")
-              .setInstanceTypeId("12345");
-      MatchKey matchKey = new MatchKey(instance.getJson());
-      instance.setMatchKeyAsString(matchKey.getKey());
-      batch.addRecordSet(new InventoryRecordSet(instance));
+              .setInstanceTypeId("12345")
+              .generateMatchKey()));
     }
     JsonObject instancesBeforePutJson = getRecordsFromStorage(FakeInventoryStorage.INSTANCE_STORAGE_PATH, null);
     testContext.assertEquals(instancesBeforePutJson.getInteger("totalRecords"), 1,
-            "Number of instance records for before PUT expected: 1" );
+            "Number of instance records before PUT expected: 1" );
     batchUpsertByHrid(batch.getJson());
     JsonObject instancesAfterPutJson = getRecordsFromStorage(FakeInventoryStorage.INSTANCE_STORAGE_PATH, null);
     testContext.assertEquals(instancesAfterPutJson.getInteger("totalRecords"), 201,
@@ -240,12 +238,11 @@ public class InventoryUpdateTestSuite {
     for (int i=0; i<100; i++) {
       InputInstance instance = new InputInstance()
               .setTitle("New title " + i)
-              .setInstanceTypeId("12345");
+              .setInstanceTypeId("12345")
+              .generateMatchKey();
       if (i!=50) {
         instance.setSource("test");
       }
-      MatchKey matchKey = new MatchKey(instance.getJson());
-      instance.setMatchKeyAsString(matchKey.getKey());
       batch.addRecordSet(new JsonObject()
               .put("instance", instance.getJson())
               .put("processing", new JsonObject().put("localIdentifier","id" + i)));
@@ -340,7 +337,7 @@ public class InventoryUpdateTestSuite {
   }
 
   @Test
-  public void batchWithMultipleLowLevelProblemsWillRespondWithMultipleErrors (TestContext testContext) {
+  public void batchByHRIDWithMultipleLowLevelProblemsWillRespondWithMultipleErrors (TestContext testContext) {
     BatchOfInventoryRecordSets batch = new BatchOfInventoryRecordSets();
     int i = 1;
 
@@ -384,6 +381,115 @@ public class InventoryUpdateTestSuite {
                       .setHrid("in" + i)
                       .setInstanceTypeId("12345")
                       .getJson())
+              .put("holdingsRecords", new JsonArray()
+                      .add(new InputHoldingsRecord()
+                              .setHrid("H" + i + "-1")
+                              .setPermanentLocationId(LOCATION_ID_1)
+                              .getJson()
+                              .put("items", new JsonArray()
+                                      .add(new InputItem()
+                                              .setStatus(STATUS_UNKNOWN)
+                                              .setMaterialTypeId(MATERIAL_TYPE_TEXT)
+                                              .setHrid("I" + i + "-1-1")
+                                              .getJson())))
+                      .add(new InputHoldingsRecord()
+                              .setHrid("H" + i + "-2")
+                              .setPermanentLocationId(LOCATION_ID_2)
+                              .getJson()
+                              .put("items", new JsonArray())))
+              .put(PROCESSING, new JsonObject().put(CLIENTS_RECORD_IDENTIFIER, "in" + i)));
+    }
+    Response response = batchUpsertByHrid(207, batch.getJson());
+    JsonObject responseJson = new JsonObject(response.getBody().asString());
+    JsonArray errors = responseJson.getJsonArray("errors", new JsonArray());
+    testContext.assertTrue(( errors != null && !errors.isEmpty() && errors.size() == 2 ),
+            "Response should contain two error reports.");
+    boolean hasItemError = false;
+    JsonObject itemErrorRequestJson = null;
+    boolean hasHoldingsError = false;
+    JsonObject holdingsErrorRequestJson = null;
+    for (Object o : errors) {
+      if ("ITEM".equals(( (JsonObject) o ).getString("entityType"))) {
+        hasItemError = true;
+        itemErrorRequestJson = ((JsonObject) o).getJsonObject("requestJson");
+      }
+      if ("HOLDINGS_RECORD".equals(( (JsonObject) o ).getString("entityType"))) {
+        hasHoldingsError = true;
+        holdingsErrorRequestJson = ((JsonObject) o).getJsonObject("requestJson");
+      }
+    }
+    testContext.assertTrue(hasItemError && hasHoldingsError,
+            "Response should have an Item error and a HoldingsRecord error.");
+    JsonObject instances = getRecordsFromStorage(INSTANCE_STORAGE_PATH, null);
+    testContext.assertEquals(instances.getInteger("totalRecords"), 5,
+            "The batch upsert should create five Instances");
+    JsonObject holdings = getRecordsFromStorage(HOLDINGS_STORAGE_PATH, null);
+    testContext.assertEquals(holdings.getInteger("totalRecords"), 8,
+            "The batch upsert should create eight holdings records");
+    JsonObject items = getRecordsFromStorage(ITEM_STORAGE_PATH, null);
+    testContext.assertEquals(items.getInteger("totalRecords"), 3,
+            "The batch upsert should create three items");
+    testContext.assertEquals(getMetric(responseJson, HOLDINGS_RECORD, CREATE, COMPLETED), 8,
+            "Upsert metrics response should report [8] holdings records successfully created " + responseJson.encodePrettily());
+    testContext.assertEquals(getMetric(responseJson, HOLDINGS_RECORD, CREATE, FAILED), 2,
+            "Upsert metrics response should report [2] holdings records creations failed " + responseJson.encodePrettily());
+    testContext.assertEquals(getMetric(responseJson, ITEM, CREATE, COMPLETED), 3,
+            "Upsert metrics response should report [3] items successfully created " + responseJson.encodePrettily());
+    testContext.assertEquals(getMetric(responseJson, ITEM, CREATE, FAILED), 1,
+            "Upsert metrics response should report [1] item creation failed " + responseJson.encodePrettily());
+    testContext.assertEquals(getMetric(responseJson, ITEM, CREATE, SKIPPED), 1,
+            "Upsert metrics response should report [1] item creation skipped " + responseJson.encodePrettily());
+    testContext.assertNotNull(itemErrorRequestJson, "Response should contain item error with 'requestJson'");
+    testContext.assertNotNull(holdingsErrorRequestJson, "Response should contain holdings record error with 'requestJson'");
+    testContext.assertEquals(itemErrorRequestJson.getJsonObject("instance").getString("title"), "New title a","Request JSON with failed item should be reported in response with title 'New title a'");
+    testContext.assertEquals(holdingsErrorRequestJson.getJsonObject("instance").getString("title"), "New title b","Request JSON with failed holdings should be reported in response 'New title b'");
+  }
+
+  @Test
+  public void batchByMatchKeyWithMultipleLowLevelProblemsWillRespondWithMultipleErrors (TestContext testContext) {
+    BatchOfInventoryRecordSets batch = new BatchOfInventoryRecordSets();
+    int i = 1;
+
+    for (; i <= 2; i++) {
+      // 2 good record sets
+      batch.addRecordSet(new JsonObject().put("instance",
+                      new InputInstance().setTitle("New title " + i).setSource("test").setHrid("in" + i).setInstanceTypeId("12345").generateMatchKey().getJson()).put("holdingsRecords",
+                      new JsonArray().add(new InputHoldingsRecord().setHrid("H" + i + "-1").setPermanentLocationId(
+                              LOCATION_ID_1).getJson().put("items", new JsonArray().add(
+                              new InputItem().setStatus(STATUS_UNKNOWN).setMaterialTypeId(MATERIAL_TYPE_TEXT).setHrid(
+                                      "I" + i + "-1-1").getJson()))).add(new InputHoldingsRecord().setHrid("H" + i + "-2").setPermanentLocationId(
+                              LOCATION_ID_2).getJson().put("items", new JsonArray())))
+              .put("processing", new JsonObject().put(CLIENTS_RECORD_IDENTIFIER, i)));
+    }
+    // Missing item.status, .materialType
+    batch.addRecordSet(new JsonObject().put("instance",new InputInstance().setTitle("New title a").setSource("test").setHrid("in-a").setInstanceTypeId("12345").generateMatchKey().getJson()).put("holdingsRecords",
+                    new JsonArray().add(new InputHoldingsRecord().setHrid("H-a-1").setPermanentLocationId(
+                            LOCATION_ID_1).getJson().put("items", new JsonArray().add(new InputItem().setHrid("I-a-1-1").getJson()))).add(
+                            new InputHoldingsRecord().setHrid("H-a-2").setPermanentLocationId(
+                                    LOCATION_ID_2).getJson().put("items", new JsonArray())))
+            .put(PROCESSING, new JsonObject()
+                    .put(CLIENTS_RECORD_IDENTIFIER, i)));
+    i++;
+    // Missing holdingsRecord.permanentLocationId
+    batch.addRecordSet(new JsonObject().put("instance",
+                    new InputInstance().setTitle("New title b").setSource("test").setHrid("in-b").setInstanceTypeId("12345").generateMatchKey().getJson()).put("holdingsRecords",
+                    new JsonArray().add(new InputHoldingsRecord().setHrid("H-b-1").getJson().put("items",
+                            new JsonArray().add(new InputItem().setStatus(STATUS_UNKNOWN).setMaterialTypeId(
+                                    MATERIAL_TYPE_TEXT).setHrid("I-b-1-1").getJson()))).add(new InputHoldingsRecord().setHrid("H-b-2").setPermanentLocationId(
+                            LOCATION_ID_2).getJson().put("items", new JsonArray())))
+            .put(PROCESSING, new JsonObject()
+                    .put(CLIENTS_RECORD_IDENTIFIER, i)));
+    i++;
+    for (; i <= 5; i++) {
+      // 1 good record
+      batch.addRecordSet(new JsonObject().put("instance",
+                      new InputInstance()
+                              .setTitle("New title " + i)
+                              .setSource("test")
+                              .setHrid("in" + i)
+                              .setInstanceTypeId("12345")
+                              .generateMatchKey()
+                              .getJson())
               .put("holdingsRecords", new JsonArray()
                       .add(new InputHoldingsRecord()
                               .setHrid("H" + i + "-1")
@@ -1005,6 +1111,7 @@ public class InventoryUpdateTestSuite {
                     .put("localIdentifier","DOES_NOT_EXIST")
                     .put("identifierTypeId", "DOES_NOT_EXIST"));
   }
+
 
   /**
    * Tests API /inventory-upsert-hrid
@@ -2570,6 +2677,12 @@ public class InventoryUpdateTestSuite {
   }
 
   @Test
+  public void testSendingNonInventoryRecordSetArrayToBatchApi (TestContext testContext) {
+    Response response = batchUpsertByHrid(400,new JsonObject().put("unknownProperty", new JsonArray()));
+    batchUpsertByMatchKey(400, new JsonObject().put("unknownProperty", new JsonArray()));
+  }
+
+  @Test
   public void testForcedItemCreateFailure (TestContext testContext) {
     fakeInventoryStorage.itemStorage.failOnCreate = true;
     Response response = upsertByHrid(207,new JsonObject()
@@ -2939,7 +3052,7 @@ public class InventoryUpdateTestSuite {
   }
 
   @Test
-  public void testWithEmptyLocationsTable (TestContext testContext) {
+  public void testUpsertByMatchKeyWithEmptyLocationsTable (TestContext testContext) {
     RestAssured.given()
             .body("{}")
             .header("Content-type","application/json")
@@ -2979,6 +3092,127 @@ public class InventoryUpdateTestSuite {
 
   }
 
+  @Test
+  public void testDeleteByIdentifierWithEmptyLocationsTable (TestContext testContext) {
+    final String identifierTypeId1 = "iti-001";
+    final String identifierValue1 = "111";
+
+    JsonObject upsertResponseJson1 = upsertByMatchKey(new JsonObject()
+            .put("instance",
+                    new InputInstance().setTitle("Shared InputInstance")
+                            .setInstanceTypeId("12345")
+                            .setSource("test")
+                            .setIdentifiers(new JsonArray().add(new JsonObject().put("identifierTypeId",identifierTypeId1).put("value",identifierValue1))).getJson())
+            .put("holdingsRecords", new JsonArray()
+                    .add(new InputHoldingsRecord().setPermanentLocationId(LOCATION_ID_1).setCallNumber("test-cn-1").getJson()
+                            .put("items", new JsonArray()
+                                    .add(new InputItem()
+                                            .setStatus(STATUS_UNKNOWN)
+                                            .setMaterialTypeId(MATERIAL_TYPE_TEXT)
+                                            .setBarcode("BC-001").getJson())
+                                    .add(new InputItem()
+                                            .setStatus(STATUS_UNKNOWN)
+                                            .setMaterialTypeId(MATERIAL_TYPE_TEXT)
+                                            .setBarcode("BC-002").getJson())))
+                    .add(new InputHoldingsRecord().setPermanentLocationId(LOCATION_ID_1).setCallNumber("test-cn-2").getJson()
+                            .put("items", new JsonArray()
+                                    .add(new InputItem()
+                                            .setStatus(STATUS_UNKNOWN)
+                                            .setMaterialTypeId(MATERIAL_TYPE_TEXT)
+                                            .setBarcode("BC-003").getJson())))));
+
+    JsonObject deleteSignal = new JsonObject()
+            .put("institutionId", INSTITUTION_ID_1)
+            .put("localIdentifier",identifierValue1)
+            .put("identifierTypeId", identifierTypeId1);
+
+    UpdatePlanSharedInventory.locationsToInstitutionsMap.clear();
+
+    delete(200,MainVerticle.SHARED_INVENTORY_UPSERT_MATCHKEY_PATH, deleteSignal);
+
+  }
+
+  @Test
+  public void testDeleteByIdentifiersWithGetLocationsFailure (TestContext testContext) {
+    final String identifierTypeId1 = "iti-001";
+    final String identifierValue1 = "111";
+
+    JsonObject upsertResponseJson1 = upsertByMatchKey(new JsonObject()
+            .put("instance",
+                    new InputInstance().setTitle("Shared InputInstance")
+                            .setInstanceTypeId("12345")
+                            .setSource("test")
+                            .setIdentifiers(new JsonArray().add(new JsonObject().put("identifierTypeId",identifierTypeId1).put("value",identifierValue1))).getJson())
+            .put("holdingsRecords", new JsonArray()
+                    .add(new InputHoldingsRecord().setPermanentLocationId(LOCATION_ID_1).setCallNumber("test-cn-1").getJson()
+                            .put("items", new JsonArray()
+                                    .add(new InputItem()
+                                            .setStatus(STATUS_UNKNOWN)
+                                            .setMaterialTypeId(MATERIAL_TYPE_TEXT)
+                                            .setBarcode("BC-001").getJson())
+                                    .add(new InputItem()
+                                            .setStatus(STATUS_UNKNOWN)
+                                            .setMaterialTypeId(MATERIAL_TYPE_TEXT)
+                                            .setBarcode("BC-002").getJson())))
+                    .add(new InputHoldingsRecord().setPermanentLocationId(LOCATION_ID_1).setCallNumber("test-cn-2").getJson()
+                            .put("items", new JsonArray()
+                                    .add(new InputItem()
+                                            .setStatus(STATUS_UNKNOWN)
+                                            .setMaterialTypeId(MATERIAL_TYPE_TEXT)
+                                            .setBarcode("BC-003").getJson())))));
+
+    fakeInventoryStorage.locationStorage.failOnGetRecords = true;
+
+    JsonObject deleteSignal = new JsonObject()
+            .put("institutionId", INSTITUTION_ID_1)
+            .put("localIdentifier",identifierValue1)
+            .put("identifierTypeId", identifierTypeId1);
+
+    UpdatePlanSharedInventory.locationsToInstitutionsMap.clear();
+
+    delete(500,MainVerticle.SHARED_INVENTORY_UPSERT_MATCHKEY_PATH, deleteSignal);
+
+  }
+
+  @Test
+  public void testDeleteByIdentifiersWithDeleteRequestFailure (TestContext testContext) {
+    final String identifierTypeId1 = "iti-001";
+    final String identifierValue1 = "111";
+
+    JsonObject upsertResponseJson1 = upsertByMatchKey(new JsonObject()
+            .put("instance",
+                    new InputInstance().setTitle("Shared InputInstance")
+                            .setInstanceTypeId("12345")
+                            .setSource("test")
+                            .setIdentifiers(new JsonArray().add(new JsonObject().put("identifierTypeId",identifierTypeId1).put("value",identifierValue1))).getJson())
+            .put("holdingsRecords", new JsonArray()
+                    .add(new InputHoldingsRecord().setPermanentLocationId(LOCATION_ID_1).setCallNumber("test-cn-1").getJson()
+                            .put("items", new JsonArray()
+                                    .add(new InputItem()
+                                            .setStatus(STATUS_UNKNOWN)
+                                            .setMaterialTypeId(MATERIAL_TYPE_TEXT)
+                                            .setBarcode("BC-001").getJson())
+                                    .add(new InputItem()
+                                            .setStatus(STATUS_UNKNOWN)
+                                            .setMaterialTypeId(MATERIAL_TYPE_TEXT)
+                                            .setBarcode("BC-002").getJson())))
+                    .add(new InputHoldingsRecord().setPermanentLocationId(LOCATION_ID_1).setCallNumber("test-cn-2").getJson()
+                            .put("items", new JsonArray()
+                                    .add(new InputItem()
+                                            .setStatus(STATUS_UNKNOWN)
+                                            .setMaterialTypeId(MATERIAL_TYPE_TEXT)
+                                            .setBarcode("BC-003").getJson())))));
+
+    fakeInventoryStorage.holdingsStorage.failOnDelete = true;
+
+    JsonObject deleteSignal = new JsonObject()
+            .put("institutionId", INSTITUTION_ID_1)
+            .put("localIdentifier",identifierValue1)
+            .put("identifierTypeId", identifierTypeId1);
+
+    delete(207,MainVerticle.SHARED_INVENTORY_UPSERT_MATCHKEY_PATH, deleteSignal);
+
+  }
 
   @After
   public void tearDown(TestContext context) {

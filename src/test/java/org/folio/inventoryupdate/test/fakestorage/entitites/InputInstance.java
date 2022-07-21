@@ -2,6 +2,7 @@ package org.folio.inventoryupdate.test.fakestorage.entitites;
 
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
+import org.folio.inventoryupdate.MatchKey;
 
 public class InputInstance extends InventoryRecord {
 
@@ -104,6 +105,11 @@ public class InputInstance extends InventoryRecord {
 
   public InputInstance setMatchKeyAsObject ( JsonObject matchKey ) {
     recordJson.put(MATCH_KEY, matchKey);
+    return this;
+  }
+
+  public InputInstance generateMatchKey () {
+    setMatchKeyAsString(new MatchKey(recordJson).getKey());
     return this;
   }
 

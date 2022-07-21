@@ -79,13 +79,9 @@ public class InstanceReference {
     if (provisionalInstanceProperties == null) {
       return false;
     } else {
-      if (provisionalInstanceProperties.getString( TITLE) != null
-              && provisionalInstanceProperties.getString( SOURCE) != null
-              && provisionalInstanceProperties.getString( INSTANCE_TYPE_ID) != null) {
-        return true;
-      } else {
-        return false;
-      }
+      return provisionalInstanceProperties.getString(TITLE) != null
+              && provisionalInstanceProperties.getString(SOURCE) != null
+              && provisionalInstanceProperties.getString(INSTANCE_TYPE_ID) != null;
     }
   }
 

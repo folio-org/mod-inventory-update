@@ -1,7 +1,5 @@
 package org.folio.inventoryupdate.entities;
 
-import io.vertx.core.impl.logging.Logger;
-import io.vertx.core.impl.logging.LoggerFactory;
 import io.vertx.core.json.JsonObject;
 public class InstanceRelationship extends InstanceToInstanceRelation {
 

@@ -251,7 +251,6 @@ public class InventoryUpdateService {
               BAD_REQUEST,
               "Could not parse JSON body of the request: " + de.getMessage())
               .setShortMessage("Could not parse request JSON"));
-           //   .respond(routingCtx);
     }
   }
 

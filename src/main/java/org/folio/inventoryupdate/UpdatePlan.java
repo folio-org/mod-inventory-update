@@ -7,7 +7,6 @@ import java.util.function.BiFunction;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import io.vertx.core.AsyncResult;
 import io.vertx.core.impl.logging.Logger;
 import io.vertx.core.impl.logging.LoggerFactory;
 import io.vertx.ext.web.RoutingContext;
@@ -636,7 +635,6 @@ public abstract class UpdatePlan {
                   metrics.entity(record.entityType()).transaction(record.getTransaction()).outcomes.increment(record.getOutcome());
                 }
             }
-            //existingSet.getInstanceRelationsController().writeToStats(metrics);
             if (! existingSet.getInstanceToInstanceRelations().isEmpty()) {
                 for ( InstanceToInstanceRelation record : existingSet.getInstanceToInstanceRelations() ) {
                     logger.debug("Record: " + record.asJson().encode());

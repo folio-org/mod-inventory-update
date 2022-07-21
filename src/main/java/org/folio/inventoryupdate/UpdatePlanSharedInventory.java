@@ -27,6 +27,7 @@ import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 
 import static org.folio.inventoryupdate.ErrorReport.UNPROCESSABLE_ENTITY;
+import static org.folio.inventoryupdate.entities.InventoryRecordSet.*;
 
 public class UpdatePlanSharedInventory extends UpdatePlan {
 
@@ -66,7 +67,7 @@ public class UpdatePlanSharedInventory extends UpdatePlan {
                                 "Local identifier " + set.getLocalIdentifier() + " occurs more that once in this batch.")
                                 .setShortMessage("A local identifier is repeated in this batch")
                                 .setEntityType(InventoryRecord.Entity.INSTANCE)
-                                .setEntity(recordSet.getJsonObject("processing")));
+                                .setEntity(recordSet.getJsonObject(PROCESSING)));
             } else {
                 localIdentifiers.add(set.getLocalIdentifier());
             }
@@ -78,7 +79,7 @@ public class UpdatePlanSharedInventory extends UpdatePlan {
                                 "MatchKey " + set.getInstance().getMatchKey() + " occurs more that once in this batch.")
                                 .setShortMessage("A match key is repeated in this batch")
                                 .setEntityType(InventoryRecord.Entity.INSTANCE)
-                                .setEntity(recordSet.getJsonObject("instance")));
+                                .setEntity(recordSet.getJsonObject(INSTANCE)));
             } else {
                 matchKeys.add(set.getInstance().getMatchKey());
             }
@@ -131,7 +132,7 @@ public class UpdatePlanSharedInventory extends UpdatePlan {
      */
     private static InventoryRecordSet createUpdatingRecordSetFromExistingSet (InventoryRecordSet existingSet, RecordIdentifiers recordIdentifiers) {
       JsonObject inventoryRecordSetForInstanceDeletion = new JsonObject();
-      inventoryRecordSetForInstanceDeletion.put(InventoryRecordSet.INSTANCE, existingSet.getInstance().asJson());
+      inventoryRecordSetForInstanceDeletion.put(INSTANCE, existingSet.getInstance().asJson());
       inventoryRecordSetForInstanceDeletion.put(InventoryRecordSet.HOLDINGS_RECORDS, new JsonArray());
       JsonObject processing = new JsonObject();
       processing.put(InventoryRecordSet.LOCAL_IDENTIFIER, recordIdentifiers.localIdentifier());
@@ -146,7 +147,7 @@ public class UpdatePlanSharedInventory extends UpdatePlan {
       JsonArray identifiers = instance.getJsonArray("identifiers");
       for (int i=0; i<identifiers.size(); i++) {
         JsonObject identifierObject = identifiers.getJsonObject(i);
-        if ( recordIdentifiers.identifierTypeId().equals(identifierObject.getString("identifierTypeId"))
+        if ( recordIdentifiers.identifierTypeId().equals(identifierObject.getString(IDENTIFIER_TYPE_ID))
            && recordIdentifiers.localIdentifier().equals(identifierObject.getString("value"))) {
           identifiers.remove(i);
           break;
@@ -169,7 +170,7 @@ public class UpdatePlanSharedInventory extends UpdatePlan {
                 existingInstance.getJsonArray("identifiers"),
                 newInstance.getJsonArray("identifiers"));
         mergedInstance.put("identifiers", uniqueIdentifiers);
-        mergedInstance.put("hrid", existingInstance.getString("hrid"));
+        mergedInstance.put(HRID_IDENTIFIER_KEY, existingInstance.getString(HRID_IDENTIFIER_KEY));
         return mergedInstance;
     }
 
@@ -276,7 +277,7 @@ public class UpdatePlanSharedInventory extends UpdatePlan {
                         Iterator<?> locationsIterator = locationsJson.iterator();
                         while (locationsIterator.hasNext()) {
                             JsonObject location = (JsonObject) locationsIterator.next();
-                            locationsToInstitutionsMap.put(location.getString("id"), location.getString("institutionId"));
+                            locationsToInstitutionsMap.put(location.getString("id"), location.getString(INSTITUTION_ID));
 
                         }
                         logger.debug("Updated a map of " + locationsToInstitutionsMap.size() + " FOLIO locations to institutions.");

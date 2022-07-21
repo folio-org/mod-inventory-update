@@ -13,8 +13,8 @@ public class InventoryUpdateOutcome {
   public static final int OK = 200;
   public static final int MULTI_STATUS = 207;
 
-  public static final String METRICS = "metrics";
-  public static final String ERRORS = "errors";
+  public static final String P_METRICS = "metrics";
+  public static final String P_ERRORS = "errors";
   int statusCode;
   JsonObject result = new JsonObject();
   List<ErrorReport> errors = new ArrayList<>();
@@ -30,20 +30,20 @@ public class InventoryUpdateOutcome {
 
   public InventoryUpdateOutcome (JsonObject result) {
     this.result = result;
-    if (result.containsKey(ERRORS) && result.getValue(ERRORS) instanceof JsonArray) {
+    if (result.containsKey(P_ERRORS) && result.getValue(P_ERRORS) instanceof JsonArray) {
 
-      for (Object o : result.getJsonArray(ERRORS)) {
+      for (Object o : result.getJsonArray(P_ERRORS)) {
         errors.add(ErrorReport.makeErrorReportFromJsonString(((JsonObject) o).encode()));
       }
     }
-    if (result.containsKey(METRICS) && result.getValue(METRICS) instanceof JsonObject) {
-      metrics = UpdateMetrics.makeMetricsFromJson(result.getJsonObject(METRICS));
+    if (result.containsKey(P_METRICS) && result.getValue(P_METRICS) instanceof JsonObject) {
+      metrics = UpdateMetrics.makeMetricsFromJson(result.getJsonObject(P_METRICS));
     }
   }
 
   public InventoryUpdateOutcome setMetrics (UpdateMetrics metrics) {
     this.metrics = metrics;
-    getJson().put(METRICS,metrics.asJson());
+    getJson().put(P_METRICS,metrics.asJson());
     return this;
   }
 
@@ -56,7 +56,7 @@ public class InventoryUpdateOutcome {
   }
 
   public InventoryUpdateOutcome setErrors (JsonArray errors) {
-    getJson().put(ERRORS, errors);
+    getJson().put(P_ERRORS, errors);
     return this;
   }
 

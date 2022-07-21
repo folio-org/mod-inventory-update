@@ -17,12 +17,10 @@ import io.vertx.core.Future;
 import io.vertx.core.Promise;
 
 import static org.folio.inventoryupdate.ErrorReport.UNPROCESSABLE_ENTITY;
-import static org.folio.inventoryupdate.entities.InventoryRecordSet.INSTANCE;
+import static org.folio.inventoryupdate.entities.InventoryRecordSet.*;
 
 public class UpdatePlanAllHRIDs extends UpdatePlan {
 
-
-    private static final String LF = System.lineSeparator();
 
     /**
      * Constructs deletion plane
@@ -70,8 +68,8 @@ public class UpdatePlanAllHRIDs extends UpdatePlan {
     public RequestValidation validateIncomingRecordSet(JsonObject inventoryRecordSet) {
         RequestValidation validationErrors = new RequestValidation();
         if (isDeletion) return validationErrors;
-        String instanceHRID = inventoryRecordSet.getJsonObject("instance").getString("hrid");
-        String instanceTitle = inventoryRecordSet.getJsonObject("instance").getString("title");
+        String instanceHRID = inventoryRecordSet.getJsonObject(INSTANCE).getString(HRID_IDENTIFIER_KEY);
+        String instanceTitle = inventoryRecordSet.getJsonObject(INSTANCE).getString("title");
         if (instanceHRID == null || instanceHRID.isEmpty()) {
             logger.error("Missing or empty HRID. Instances must have a HRID to be processed by this API. Title: " + instanceTitle);
             validationErrors.registerError(
@@ -83,12 +81,12 @@ public class UpdatePlanAllHRIDs extends UpdatePlan {
                             .setEntityType(InventoryRecord.Entity.INSTANCE)
                             .setEntity(inventoryRecordSet.getJsonObject(INSTANCE)));
         }
-        if (inventoryRecordSet.containsKey("holdingsRecords")) {
-            inventoryRecordSet.getJsonArray("holdingsRecords")
+        if (inventoryRecordSet.containsKey(HOLDINGS_RECORDS)) {
+            inventoryRecordSet.getJsonArray(HOLDINGS_RECORDS)
                     .stream()
                     .map( rec -> (JsonObject) rec)
                     .forEach( record -> {
-                        if (!record.containsKey("hrid")) {
+                        if (!record.containsKey(HRID_IDENTIFIER_KEY)) {
                             logger.error("Holdings Records must have a HRID to be processed by this API. Received: " + record.encodePrettily());
                             validationErrors.registerError(
                                 new ErrorReport(
@@ -101,12 +99,12 @@ public class UpdatePlanAllHRIDs extends UpdatePlan {
                                         .setEntity(record)
                                         .setDetails(inventoryRecordSet));
                         }
-                        if (record.containsKey("items")) {
-                            record.getJsonArray("items")
+                        if (record.containsKey(ITEMS)) {
+                            record.getJsonArray(ITEMS)
                                     .stream()
                                     .map(item -> (JsonObject) item)
                                     .forEach(item -> {
-                                        if (!item.containsKey("hrid")) {
+                                        if (!item.containsKey(HRID_IDENTIFIER_KEY)) {
                                             logger.error("Items must have a HRID to be processed by this API. Received: " + item.encodePrettily());
                                             validationErrors.registerError(
                                                  new ErrorReport(
@@ -132,7 +130,7 @@ public class UpdatePlanAllHRIDs extends UpdatePlan {
 
         for (Object recordSetObject : inventoryRecordSets) {
             JsonObject recordSet = (JsonObject) recordSetObject;
-            String instanceHrid = recordSet.getJsonObject("instance").getString("hrid");
+            String instanceHrid = recordSet.getJsonObject(INSTANCE).getString(HRID_IDENTIFIER_KEY);
             if (instanceHrid != null) {
                 if (instanceHrids.contains(instanceHrid)) {
                     validation.registerError(
@@ -142,15 +140,15 @@ public class UpdatePlanAllHRIDs extends UpdatePlan {
                                     "Instance HRID " + instanceHrid + " occurs more that once in this batch.")
                                     .setShortMessage("Instance HRID is repeated in this batch")
                                     .setEntityType(InventoryRecord.Entity.INSTANCE)
-                                    .setEntity(recordSet.getJsonObject("instance")));
+                                    .setEntity(recordSet.getJsonObject(INSTANCE)));
                 } else {
                     instanceHrids.add(instanceHrid);
                 }
             }
-            if (recordSet.containsKey("holdingsRecords")) {
-                for (Object holdingsObject : recordSet.getJsonArray("holdingsRecords")) {
+            if (recordSet.containsKey(HOLDINGS_RECORDS)) {
+                for (Object holdingsObject : recordSet.getJsonArray(HOLDINGS_RECORDS)) {
                     JsonObject holdingsRecord = ((JsonObject) holdingsObject);
-                    String holdingsHrid = holdingsRecord.getString("hrid");
+                    String holdingsHrid = holdingsRecord.getString(HRID_IDENTIFIER_KEY);
                     if (holdingsHrid != null) {
                         if (holdingsHrids.contains(holdingsHrid)) {
                             validation.registerError(
@@ -167,9 +165,9 @@ public class UpdatePlanAllHRIDs extends UpdatePlan {
                             holdingsHrids.add(holdingsHrid);
                         }
                     }
-                    if (holdingsRecord.containsKey("items")) {
-                        for (Object itemObject : holdingsRecord.getJsonArray("items")) {
-                            String itemHrid = ((JsonObject) itemObject).getString("hrid");
+                    if (holdingsRecord.containsKey(ITEMS)) {
+                        for (Object itemObject : holdingsRecord.getJsonArray(ITEMS)) {
+                            String itemHrid = ((JsonObject) itemObject).getString(HRID_IDENTIFIER_KEY);
                             if (itemHrid != null) {
                                 if (itemHrids.contains(itemHrid)) {
                                     validation.registerError(

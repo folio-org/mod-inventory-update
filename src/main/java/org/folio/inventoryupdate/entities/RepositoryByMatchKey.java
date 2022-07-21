@@ -26,7 +26,7 @@ public class RepositoryByMatchKey extends Repository {
   protected final Map<String,Instance> existingInstancesByMatchKey = new HashMap<>();
   public final Map<String,Instance> secondaryInstancesByLocalIdentifier = new HashMap<>();
 
-
+  @Override
   public Future<Void> buildRepositoryFromStorage (RoutingContext routingContext) {
     Promise<Void> promise = Promise.promise();
     List<Future> existingRecordsByMatchKeyFutures = new ArrayList<>();
@@ -78,6 +78,7 @@ public class RepositoryByMatchKey extends Repository {
     return promise.future();
   }
 
+  @Override
   protected List<String> getExistingInstanceIds () {
     return new ArrayList<>(existingInstancesByUUID.keySet());
   }
@@ -90,6 +91,7 @@ public class RepositoryByMatchKey extends Repository {
     return instanceIds;
   }
 
+  @Override
   protected void setExistingRecordSets () {
     for (PairedRecordSets pair : pairsOfRecordSets) {
       String incomingInstanceMatchKey = pair.getIncomingRecordSet().getInstance().getMatchKey();
@@ -224,6 +226,7 @@ public class RepositoryByMatchKey extends Repository {
     return mapReady.future();
   }
 
+  @Override
   public List<Instance> getInstancesToUpdate() {
     List<Instance> instances = super.getInstancesToUpdate();
     for (Instance instance : secondaryInstancesByLocalIdentifier.values()) {
@@ -234,6 +237,7 @@ public class RepositoryByMatchKey extends Repository {
     return instances;
   }
 
+  @Override
   public List<Item> getItemsToDelete () {
     List<Item> list = new ArrayList<>();
     for (PairedRecordSets pair : pairsOfRecordSets) {
@@ -257,6 +261,7 @@ public class RepositoryByMatchKey extends Repository {
     return list;
   }
 
+  @Override
   public List<HoldingsRecord> getHoldingsToDelete () {
     List<HoldingsRecord> list = new ArrayList<>();
     for (PairedRecordSets pair : pairsOfRecordSets) {

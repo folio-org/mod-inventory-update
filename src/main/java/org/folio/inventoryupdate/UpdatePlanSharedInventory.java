@@ -313,7 +313,7 @@ public class UpdatePlanSharedInventory extends UpdatePlan {
           flagAndIdIncomingHoldingsAndItemsForCreation(updatingSet);
         }
       }
-      if (secondaryInstance != null) {
+      if (secondaryInstance != null && updatingSet != null) {
         RecordIdentifiers identifiers =
                   RecordIdentifiers.identifiersWithLocalIdentifier(
                           null,
@@ -382,19 +382,6 @@ public class UpdatePlanSharedInventory extends UpdatePlan {
                       promise.complete();
                   } else {
                     promise.fail(instanceAndHoldingsUpdates.cause().getMessage());
-                  /*
-                  shiftingMatchKeyManager.handleUpdateOfInstanceWithPreviousMatchKeyIfAny(okapiClient).onComplete( previousInstanceUpdated -> {
-                      if ( instanceAndHoldingsUpdates.succeeded())
-                      {
-                          promise.complete();
-                      } else {
-                          promise.fail(ErrorReport.makeErrorReportFromJsonString(
-                                  instanceAndHoldingsUpdates.cause().getMessage())
-                                  .setShortMessage("One or more errors occurred updating Inventory records")
-                                  .asJsonString());
-                      }
-
-                  */
                   }
               });
           } else {

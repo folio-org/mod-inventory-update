@@ -201,19 +201,11 @@ public class UpdatePlanAllHRIDs extends UpdatePlan {
      * @return a Future to confirm that plan was created
      */
     public UpdatePlanAllHRIDs planInventoryUpdates() {
-        logger.debug("Planning inventory updates using repository");
-        logger.debug( "Got " + repository.getPairsOfRecordSets().size() + " pair(s)");
-        try {
-            for (PairedRecordSets pair : repository.getPairsOfRecordSets()) {
-                planInstanceHoldingsAndItems(pair);
-                planInstanceRelations(pair);
-            }
-        } catch (NullPointerException npe) {
-            logger.error("Null pointer in planInventoryUpdatesFromRepo");
-            // TODO: return stack trace
-            npe.printStackTrace();
+        for (PairedRecordSets pair : repository.getPairsOfRecordSets()) {
+            planInstanceHoldingsAndItems(pair);
+            planInstanceRelations(pair);
         }
-        return this;
+    return this;
     }
 
     private void planInstanceHoldingsAndItems(PairedRecordSets pair) {

@@ -98,15 +98,10 @@ public class InventoryUpdateOutcome {
   }
 
   public void respond (RoutingContext routingContext) {
-    try {
-      if (statusCode == OK || statusCode == MULTI_STATUS) {
-        responseJson(routingContext, statusCode).end(getJson().encodePrettily());
-      } else {
-        getErrorResponse().respond(routingContext);
-      }
+    if (statusCode == OK || statusCode == MULTI_STATUS) {
+      responseJson(routingContext, statusCode).end(getJson().encodePrettily());
+    } else {
+      getErrorResponse().respond(routingContext);
     }
-    catch (Exception e) {
-      e.printStackTrace();
-    }
-  }
+}
 }

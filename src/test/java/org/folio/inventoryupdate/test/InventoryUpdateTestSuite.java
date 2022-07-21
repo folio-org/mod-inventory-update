@@ -245,7 +245,7 @@ public class InventoryUpdateTestSuite {
       }
       batch.addRecordSet(new JsonObject()
               .put("instance", instance.getJson())
-              .put("processing", new JsonObject().put("localIdentifier","id" + i)));
+              .put("processing", new JsonObject().put("batchIndex",i)));
     }
     JsonObject instancesBeforePutJson = getRecordsFromStorage(FakeInventoryStorage.INSTANCE_STORAGE_PATH, null);
     testContext.assertEquals(instancesBeforePutJson.getInteger("totalRecords"), 1,

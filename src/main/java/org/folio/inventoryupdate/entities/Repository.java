@@ -1,5 +1,6 @@
 package org.folio.inventoryupdate.entities;
 
+import io.vertx.core.AsyncResult;
 import io.vertx.core.Future;
 import io.vertx.core.Promise;
 import io.vertx.core.json.JsonArray;
@@ -54,16 +55,7 @@ public abstract class Repository {
             .onComplete(records -> {
               if (records.succeeded()) {
                 if (records.result() != null) {
-                  for (Object o : records.result()) {
-                    HoldingsRecord holdingsRecord = new HoldingsRecord((JsonObject) o);
-                    existingHoldingsRecordsByHrid.put(holdingsRecord.getHRID(), holdingsRecord);
-                    existingHoldingsRecordsByUUID.put(holdingsRecord.getUUID(), holdingsRecord);
-                    if (!existingHoldingsRecordsByInstanceId.containsKey(holdingsRecord.getInstanceId())) {
-                      existingHoldingsRecordsByInstanceId.put(holdingsRecord.getInstanceId(), new HashMap<>());
-                    }
-                    existingHoldingsRecordsByInstanceId.get(holdingsRecord.getInstanceId()).put(
-                            holdingsRecord.getUUID(), holdingsRecord);
-                  }
+                  stashExistingHoldingsRecords(records);
                 }
                 promise.complete();
               } else {
@@ -72,6 +64,19 @@ public abstract class Repository {
 
             });
     return promise.future();
+  }
+
+  protected void stashExistingHoldingsRecords(AsyncResult<JsonArray> records) {
+    for (Object o : records.result()) {
+      HoldingsRecord holdingsRecord = new HoldingsRecord((JsonObject) o);
+      existingHoldingsRecordsByHrid.put(holdingsRecord.getHRID(), holdingsRecord);
+      existingHoldingsRecordsByUUID.put(holdingsRecord.getUUID(), holdingsRecord);
+      if (!existingHoldingsRecordsByInstanceId.containsKey(holdingsRecord.getInstanceId())) {
+        existingHoldingsRecordsByInstanceId.put(holdingsRecord.getInstanceId(), new HashMap<>());
+      }
+      existingHoldingsRecordsByInstanceId.get(holdingsRecord.getInstanceId()).put(
+              holdingsRecord.getUUID(), holdingsRecord);
+    }
   }
 
   protected Future<Void> requestItemsByHoldingsRecordIds(RoutingContext routingContext,

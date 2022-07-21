@@ -125,16 +125,16 @@ public class RepositoryByHrids extends Repository {
           existingRecordSetJson.put(HOLDINGS_RECORDS, holdingsWithItems);
         }
         InventoryRecordSet existingSet = InventoryRecordSet.makeExistingRecordSet(existingRecordSetJson);
-        if (!existingParentRelationsByChildId.isEmpty() && existingParentRelationsByChildId.get(existingInstance.getUUID()) != null) {
+        if (existingParentRelationsByChildId.get(existingInstance.getUUID()) != null) {
           existingSet.parentRelations = new ArrayList<>(existingParentRelationsByChildId.get(existingInstance.getUUID()).values());
         }
-        if (!existingChildRelationsByParentId.isEmpty() && existingChildRelationsByParentId.get(existingInstance.getUUID()) != null) {
+        if (existingChildRelationsByParentId.get(existingInstance.getUUID()) != null) {
           existingSet.childRelations = new ArrayList<>(existingChildRelationsByParentId.get(existingInstance.getUUID()).values());
         }
-        if (!existingPrecedingRelationsBySucceedingId.isEmpty() && existingPrecedingRelationsBySucceedingId.get(existingInstance.getUUID()) != null) {
+        if (existingPrecedingRelationsBySucceedingId.get(existingInstance.getUUID()) != null) {
           existingSet.precedingTitles = new ArrayList<>(existingPrecedingRelationsBySucceedingId.get(existingInstance.getUUID()).values());
         }
-        if (!existingSucceedingRelationsByPrecedingId.isEmpty() && existingSucceedingRelationsByPrecedingId.get(existingInstance.getUUID()) != null) {
+        if (existingSucceedingRelationsByPrecedingId.get(existingInstance.getUUID()) != null) {
           existingSet.succeedingTitles = new ArrayList<>(existingSucceedingRelationsByPrecedingId.get(existingInstance.getUUID()).values());
         }
         pair.setExistingRecordSet(existingSet);
@@ -223,16 +223,7 @@ public class RepositoryByHrids extends Repository {
             .onComplete(records -> {
               if (records.succeeded()) {
                 if (records.result() != null) {
-                  for (Object o : records.result()) {
-                    HoldingsRecord holdingsRecord = new HoldingsRecord((JsonObject) o);
-                    existingHoldingsRecordsByHrid.put(holdingsRecord.getHRID(), holdingsRecord);
-                    existingHoldingsRecordsByUUID.put(holdingsRecord.getUUID(), holdingsRecord);
-                    if (!existingHoldingsRecordsByInstanceId.containsKey(holdingsRecord.getInstanceId())) {
-                      existingHoldingsRecordsByInstanceId.put(holdingsRecord.getInstanceId(), new HashMap<>());
-                    }
-                    existingHoldingsRecordsByInstanceId.get(holdingsRecord.getInstanceId()).put(
-                            holdingsRecord.getUUID(), holdingsRecord);
-                  }
+                  stashExistingHoldingsRecords(records);
                 }
                 promise.complete();
               } else {

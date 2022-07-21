@@ -20,6 +20,8 @@ import static org.folio.inventoryupdate.entities.InventoryRecordSet.*;
 public abstract class Repository {
 
   protected final Map<String,Instance> existingInstancesByUUID = new HashMap<>();
+  protected final Map<String,Instance> existingInstancesByHrid = new HashMap<>();
+
   protected final Map<String,HoldingsRecord> existingHoldingsRecordsByUUID = new HashMap<>();
 
   public final Map<String, Map<String,HoldingsRecord>> existingHoldingsRecordsByInstanceId = new HashMap<>();
@@ -66,6 +68,14 @@ public abstract class Repository {
 
             });
     return promise.future();
+  }
+
+  protected void stashExistingInstances(AsyncResult<JsonArray> instances) {
+    for (Object o : instances.result()) {
+      Instance instance = new Instance((JsonObject) o);
+      existingInstancesByHrid.put(instance.getHRID(), instance);
+      existingInstancesByUUID.put(instance.getUUID(), instance);
+    }
   }
 
   protected void stashExistingHoldingsRecords(AsyncResult<JsonArray> records) {

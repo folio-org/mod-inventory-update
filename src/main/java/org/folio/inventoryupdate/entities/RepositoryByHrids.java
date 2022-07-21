@@ -21,7 +21,6 @@ import java.util.Map;
 import static org.folio.inventoryupdate.entities.InventoryRecordSet.*;
 
 public class RepositoryByHrids extends Repository {
-  protected final Map<String,Instance> existingInstancesByHrid = new HashMap<>();
 
   protected final Map<String,Map<String,InstanceToInstanceRelation>> existingParentRelationsByChildId = new HashMap<>();
   protected final Map<String,Map<String,InstanceToInstanceRelation>> existingChildRelationsByParentId = new HashMap<>();
@@ -138,11 +137,7 @@ public class RepositoryByHrids extends Repository {
             .onComplete(instances -> {
               if (instances.succeeded()) {
                 if (instances.result() != null) {
-                  for (Object o : instances.result()) {
-                    Instance instance = new Instance((JsonObject) o);
-                    existingInstancesByHrid.put(instance.getHRID(), instance);
-                    existingInstancesByUUID.put(instance.getUUID(), instance);
-                  }
+                  stashExistingInstances(instances);
                 }
                 promise.complete();
               } else {
@@ -151,6 +146,14 @@ public class RepositoryByHrids extends Repository {
 
             });
     return promise.future();
+  }
+
+  protected void stashExistingInstances(AsyncResult<JsonArray> instances) {
+    for (Object o : instances.result()) {
+      Instance instance = new Instance((JsonObject) o);
+      existingInstancesByHrid.put(instance.getHRID(), instance);
+      existingInstancesByUUID.put(instance.getUUID(), instance);
+    }
   }
 
   private Future<Void> requestReferencedInstancesByHRIDs(RoutingContext routingContext,
@@ -162,11 +165,7 @@ public class RepositoryByHrids extends Repository {
             .onComplete(instances -> {
               if (instances.succeeded()) {
                 if (instances.result() != null) {
-                  for (Object o : instances.result()) {
-                    Instance instance = new Instance((JsonObject) o);
-                    referencedInstancesByHrid.put(instance.getHRID(), instance);
-                    referencedInstancesByUUID.put(instance.getUUID(), instance);
-                  }
+                  stashReferencedInstances(instances);
                 }
                 promise.complete();
               } else {
@@ -175,6 +174,14 @@ public class RepositoryByHrids extends Repository {
 
             });
     return promise.future();
+  }
+
+  private void stashReferencedInstances(AsyncResult<JsonArray> instances) {
+    for (Object o : instances.result()) {
+      Instance instance = new Instance((JsonObject) o);
+      referencedInstancesByHrid.put(instance.getHRID(), instance);
+      referencedInstancesByUUID.put(instance.getUUID(), instance);
+    }
   }
 
   private Future<Void> requestReferencedInstancesByUUIDs(RoutingContext routingContext,
@@ -186,11 +193,7 @@ public class RepositoryByHrids extends Repository {
             .onComplete(instances -> {
               if (instances.succeeded()) {
                 if (instances.result() != null) {
-                  for (Object o : instances.result()) {
-                    Instance instance = new Instance((JsonObject) o);
-                    referencedInstancesByHrid.put(instance.getHRID(), instance);
-                    referencedInstancesByUUID.put(instance.getUUID(), instance);
-                  }
+                  stashReferencedInstances(instances);
                 }
                 promise.complete();
               } else {

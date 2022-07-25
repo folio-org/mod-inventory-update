@@ -1,6 +1,6 @@
 # mod-inventory-update
 
-Copyright (C) 2019-2021 The Open Library Foundation
+Copyright (C) 2019-2022 The Open Library Foundation
 
 This software is distributed under the terms of the Apache License, Version 2.0. See the file "[LICENSE](LICENSE)" for
 more information.
@@ -169,9 +169,9 @@ set an identifier in the inventory record set property "processing". The name an
 up to the client, Inventory Update will simply return the data it gets, so it could be a simple sequence number for the
 batch, like
 
-``` 
-{ 
- "inventoryRecordSets": 
+```
+{
+ "inventoryRecordSets":
   [
    {
     "instances": ...
@@ -187,7 +187,7 @@ batch, like
       ...
       "batchIndex": 2
     }
-} 
+}
 ```
 
 A response of a batch upsert of 100 Instances where the 50th failed, the error message is tagged with the clients batch
@@ -285,7 +285,7 @@ index.
                 }
             },
             "details": {
-                
+
             }
         }
     ]
@@ -412,13 +412,13 @@ entities from storage and get the latest version numbers from that anyway.
 
 The most recently released versions are marked in `code`.
 
-| Interface                           | Interface version | Breaking changes         | Implementing modules                           | Implementation versions ¹                |  
+| Interface                           | Interface version | Breaking changes         | Implementing modules                           | Implementation versions ¹                |
 |-------------------------------------|-------------------|--------------------------|------------------------------------------------|------------------------------------------|
 | `/instance-storage-match`           | 2.1               |                          | mod-inventory-match                            | 2.4.3                                    |
 |                                     | 3.0               | Changes to the match-key | mod-inventory-match                            | 3.0.0                                    |
 |                                     | `3.1 `            |                          | mod-inventory-match<br/>`mod-inventory-update` | 3.1.0 (last version)<br/>1.0.0 - `1.3.0` |
 |                                     | Removed           |                          | mod-inventory-update                           | 2.0.0-SNAPSHOT                           |
-| `/inventory-upsert-hrid`            | `1.0`             |                          | `mod-inventory-update`                         | 1.2.0 - `1.3.0`                          | 
+| `/inventory-upsert-hrid`            | `1.0`             |                          | `mod-inventory-update`                         | 1.2.0 - `1.3.0`                          |
 |                                     | 1.1               |                          | mod-inventory-update                           | 2.0.0-SNAPSHOT                           |
 | `/shared-inventory-upsert-matchkey` | 1.0               |                          | mod-inventory-update                           | 1.0.0                                    |
 |                                     | `1.1`             |                          | `mod-inventory-update`                         | 1.2.0 - `1.3.0`<br/>2.0.0-SNAPSHOT       |

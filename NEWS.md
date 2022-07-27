@@ -1,3 +1,9 @@
+## 2.2.0 2022-07-27
+
+* Provides `inventory-batch-upsert-hrid 1.0`  (MODINVUP-41)
+* Provides `shared-inventory-batch-upsert-matchkey 1.0` (MODINVUP-41)
+
+
 ## 2.1.0 2022-05-13
 
 * Provides option for controlling overwrite of Item statuses (MODINVUP-6)

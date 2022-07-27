@@ -16,7 +16,7 @@ public class RecordIdentifiers
   public static final String IDENTIFIER_TYPE_ID = "identifierTypeId";
   public static final String INSTITUTION_ID = "institutionId";
 
-  JsonObject deletionRequestBody; 
+  JsonObject deletionRequestBody;
   String recordIdentifier = null;
   String identifierTypeId;
   String institutionId;
@@ -52,11 +52,11 @@ public class RecordIdentifiers
   public String localIdentifier () {
     return recordIdentifier;
   }
-  
+
   public String identifierTypeId () {
     return identifierTypeId;
   }
-  
+
   public String institutionId () {
     return institutionId;
   }

@@ -293,8 +293,10 @@ index.
 ```
 
 Note that any given batch cannot touch the same records twice, since that would require a certain order of processing,
-something that batching will not be able to guarantee. For the upsert by HRID for example, if any HRID appears twice in the
-batch, the module will fall back to record-by-record updates and process the record sets in the order it receives them. Same
+something that batching will not be able to guarantee. For the upsert by HRID for example, if any HRID appears twice in
+the
+batch, the module will fall back to record-by-record updates and process the record sets in the order it receives them.
+Same
 for the upsert by match-key, if any match-key appears twice in the batch.
 
 ### APIs for fetching an Inventory record set
@@ -410,21 +412,19 @@ entities from storage and get the latest version numbers from that anyway.
 
 ## Interfaces implemented by Inventory Update
 
-The most recently released versions are marked in `code`.
-
-| Interface                           | Interface version | Breaking changes         | Implementing modules                           | Implementation versions ¹                |
-|-------------------------------------|-------------------|--------------------------|------------------------------------------------|------------------------------------------|
-| `/instance-storage-match`           | 2.1               |                          | mod-inventory-match                            | 2.4.3                                    |
-|                                     | 3.0               | Changes to the match-key | mod-inventory-match                            | 3.0.0                                    |
-|                                     | `3.1 `            |                          | mod-inventory-match<br/>`mod-inventory-update` | 3.1.0 (last version)<br/>1.0.0 - `1.3.0` |
-|                                     | Removed           |                          | mod-inventory-update                           | 2.0.0-SNAPSHOT                           |
-| `/inventory-upsert-hrid`            | `1.0`             |                          | `mod-inventory-update`                         | 1.2.0 - `1.3.0`                          |
-|                                     | 1.1               |                          | mod-inventory-update                           | 2.0.0-SNAPSHOT                           |
-| `/shared-inventory-upsert-matchkey` | 1.0               |                          | mod-inventory-update                           | 1.0.0                                    |
-|                                     | `1.1`             |                          | `mod-inventory-update`                         | 1.2.0 - `1.3.0`<br/>2.0.0-SNAPSHOT       |
-
-[ 1 ] All the versions of the module that implement the interface version, or the version where the module stopped
-implementing the interface.
+| Interface                                  | Interface version | Breaking changes         | Implementing modules                         | Implementation module versions |
+|--------------------------------------------|-------------------|--------------------------|----------------------------------------------|--------------------------------|
+| `/instance-storage-match`                  | 2.1               |                          | mod-inventory-match                          | 2.4.3                          |
+|                                            | 3.0               | Changes to the match-key | mod-inventory-match                          | 3.0.0                          |
+|                                            | 3.1               |                          | mod-inventory-match<br/>mod-inventory-update | 3.1.0 <br/>1.0.0 - 1.3.4       |
+|                                            | Removed           |                          | mod-inventory-update                         | (removed with 2.0.0)           |
+| `/inventory-upsert-hrid`                   | 1.0               |                          | mod-inventory-update                         | 1.1.1 - 1.3.4                  |
+|                                            | 1.1               |                          | mod-inventory-update                         | 2.0.0 - 2.2.0                  |
+| `/shared-inventory-upsert-matchkey`        | 1.0               |                          | mod-inventory-update                         | 1.0.0                          |
+|                                            | 1.1               |                          | mod-inventory-update                         | 1.1.1 - 1.3.4                  |
+|                                            | 1.2               |                          | mod-inventory-update                         | 2.0.0 - 2.2.0                  |
+| `/inventory-batch-upsert-hrid`             | 1.0               |                          | mod-inventory-update                         | 2.2.0                          |
+| `/shared-inventory-batch-upsert-matchkey`  | 1.0               |                          | mod-inventory-update                         | 2.2.0                          |
 
 ## Planned developments
 

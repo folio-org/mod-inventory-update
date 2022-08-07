@@ -352,7 +352,7 @@ public class InventoryStorage {
       var itemList = holding.getJsonArray(ITEMS);
       if (itemList == null) {
         itemList = new JsonArray();
-        holding.put("items", itemList);
+        holding.put(ITEMS, itemList);
       }
       itemList.add(item);
     });

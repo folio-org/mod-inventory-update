@@ -1,7 +1,6 @@
 package org.folio.inventoryupdate.entities;
 
 import io.vertx.core.AsyncResult;
-import io.vertx.core.CompositeFuture;
 import io.vertx.core.Future;
 import io.vertx.core.Promise;
 import io.vertx.core.json.JsonArray;
@@ -10,6 +9,7 @@ import io.vertx.ext.web.RoutingContext;
 import org.folio.inventoryupdate.ErrorReport;
 import org.folio.inventoryupdate.InventoryStorage;
 import org.folio.inventoryupdate.QueryByListOfIds;
+import org.folio.okapi.common.GenericCompositeFuture;
 import org.folio.okapi.common.OkapiClient;
 
 import java.util.ArrayList;
@@ -30,10 +30,9 @@ public class RepositoryByHrids extends Repository {
   public final Map<String,Instance> referencedInstancesByUUID = new HashMap<>();
 
   public Future<Void> buildRepositoryFromStorage (RoutingContext routingContext) {
-    Promise<Void> promise = Promise.promise();
-    List<Future> existingRecordsByHridsFutures = new ArrayList<>();
-    for (List<String> idList : getSubListsOfFifty(getIncomingInstanceHRIDs())) {
-      existingRecordsByHridsFutures.add(requestInstancesByHRIDs(routingContext, idList));
+    List<Future<Void>> existingRecordsByHridsFutures = new ArrayList<>();
+    for (List<String> idList : getSubListsOfTen(getIncomingInstanceHRIDs())) {
+      existingRecordsByHridsFutures.add(requestInstanceSetsByHRIDs(routingContext, idList));
     }
     for (List<String> idList : getSubListsOfFifty(getIncomingHoldingsRecordHRIDs())) {
       existingRecordsByHridsFutures.add(requestHoldingsRecordsByHRIDs(routingContext, idList));
@@ -47,59 +46,9 @@ public class RepositoryByHrids extends Repository {
     for (List<String> idList : getSubListsOfFifty(getIncomingReferencedInstanceIds())) {
       existingRecordsByHridsFutures.add(requestReferencedInstancesByUUIDs(routingContext, idList));
     }
-    CompositeFuture.join(existingRecordsByHridsFutures).onComplete(recordsByHrids -> {
-      if (recordsByHrids.succeeded()) {
-        List<Future> instanceRelationsFutures = new ArrayList<>();
-        for (List<String> idList : getSubListsOfFifty(getExistingInstanceIds())) {
-          instanceRelationsFutures.add(requestParentRelationsByChildInstanceIds(routingContext, idList));
-        }
-        for (List<String> idList : getSubListsOfFifty(getExistingInstanceIds())) {
-          instanceRelationsFutures.add(requestChildRelationsByParentInstanceIds(routingContext, idList));
-        }
-        for (List<String> idList : getSubListsOfFifty(getExistingInstanceIds())) {
-          instanceRelationsFutures.add(requestSucceedingByPrecedingIds(routingContext, idList));
-        }
-        for (List<String> idList : getSubListsOfFifty(getExistingInstanceIds())) {
-          instanceRelationsFutures.add(requestPrecedingBySucceedingIds(routingContext, idList));
-        }
-        CompositeFuture.join(instanceRelationsFutures).onComplete(instanceRelations -> {
-          if (instanceRelations.succeeded()) {
-            List<Future> holdingsRecordsFutures = new ArrayList<>();
-            for (List<String> idList : getSubListsOfFifty(getExistingInstanceIds())) {
-              holdingsRecordsFutures.add(requestHoldingsRecordsByInstanceIds(routingContext, idList));
-            }
-            CompositeFuture.join(holdingsRecordsFutures).onComplete(holdingsRecordsByInstanceIds -> {
-              if (holdingsRecordsByInstanceIds.succeeded()) {
-                List<Future> itemsFutures = new ArrayList<>();
-                for (List<String> idList : getSubListsOfFifty(getExistingHoldingsRecordIds())) {
-                  itemsFutures.add(requestItemsByHoldingsRecordIds(routingContext, idList));
-                }
-                CompositeFuture.join(itemsFutures).onComplete(itemsByHoldingsRecordIds -> {
-                  if (itemsByHoldingsRecordIds.succeeded()) {
-                    setExistingRecordSets();
-                    promise.complete();
-                  } else {
-                    promise.fail(itemsByHoldingsRecordIds.cause().getMessage());
-                  }
-                });
-              } else {
-                promise.fail(
-                        ErrorReport.makeErrorReportFromJsonString(
-                                holdingsRecordsByInstanceIds.cause().getMessage())
-                                .setShortMessage("Problem fetching holdings records from storage before upsert.")
-                                .asJsonString());
-              }
-            });
-          } else {
-            promise.fail(instanceRelations.cause().getMessage());
-          }
-        });
-
-      } else {
-        promise.fail(recordsByHrids.cause().getMessage());
-      }
-    });
-    return promise.future();
+    return GenericCompositeFuture.join(existingRecordsByHridsFutures)
+        .onSuccess(x -> setExistingRecordSets())
+        .mapEmpty();
   }
 
   protected void setExistingRecordSets () {
@@ -128,24 +77,65 @@ public class RepositoryByHrids extends Repository {
   }
 
 
-  private Future<Void> requestInstancesByHRIDs(RoutingContext routingContext,
+  private Future<Void> requestInstanceSetsByHRIDs(RoutingContext routingContext,
                                                List<String> hrids) {
-    Promise<Void> promise = Promise.promise();
     OkapiClient okapiClient = InventoryStorage.getOkapiClient(routingContext);
-    InventoryStorage.lookupInstances(okapiClient,
-                    new QueryByListOfIds("hrid", hrids))
-            .onComplete(instances -> {
-              if (instances.succeeded()) {
-                if (instances.result() != null) {
-                  stashExistingInstances(instances);
-                }
-                promise.complete();
-              } else {
-                promise.fail(instances.cause().getMessage());
-              }
+    return InventoryStorage.lookupInstanceSets(okapiClient, new QueryByListOfIds("hrid", hrids))
+        .onSuccess(this::stashInstanceSets)
+        .mapEmpty();
+  }
 
-            });
-    return promise.future();
+  private void stashInstanceSets(JsonArray instanceSets) {
+    if (instanceSets == null) {
+      return;
+    }
+    instanceSets.forEach(o -> stashInstanceSet((JsonObject) o));
+  }
+
+  private void stashInstanceSet(JsonObject instanceSet) {
+    stashExistingInstance(instanceSet.getJsonObject("instance"));
+    stashExistingHoldingsRecords(instanceSet.getJsonArray("holdingsRecords"));
+    stashExistingItems(instanceSet.getJsonArray("items"));
+    instanceSet.getJsonArray("superInstanceRelationships")
+    .forEach(o -> stashRelationByChildId((JsonObject) o));
+    instanceSet.getJsonArray("subInstanceRelationships")
+    .forEach(o -> stashRelationByParentId((JsonObject) o));
+    instanceSet.getJsonArray("succeedingTitles")
+    .forEach(o -> stashRelationByPrecedingId((JsonObject) o));
+    instanceSet.getJsonArray("precedingTitles")
+    .forEach(o -> stashRelationBySucceedingId((JsonObject) o));
+  }
+
+  private void stashRelationByChildId(JsonObject instanceRelationshipObject) {
+    var subInstanceId = instanceRelationshipObject.getString("subInstanceId");
+    InstanceRelationship relationship = InstanceRelationship.makeRelationshipFromJsonRecord(
+            subInstanceId, instanceRelationshipObject);
+    existingParentRelationsByChildId.computeIfAbsent(subInstanceId, k -> new HashMap<>())
+    .put(relationship.getSuperInstanceId(), relationship);
+  }
+
+  private void stashRelationByParentId(JsonObject instanceRelationshipObject) {
+    var superInstanceId = instanceRelationshipObject.getString("superInstanceId");
+    InstanceRelationship relationship = InstanceRelationship.makeRelationshipFromJsonRecord(
+            superInstanceId, instanceRelationshipObject);
+    existingChildRelationsByParentId.computeIfAbsent(superInstanceId, k -> new HashMap<>())
+    .put(relationship.getSubInstanceId(), relationship);
+  }
+
+  private void stashRelationByPrecedingId(JsonObject succeedingRelationshipObject) {
+    var precedingInstanceId = succeedingRelationshipObject.getString("precedingInstanceId");
+    InstanceTitleSuccession relationship = InstanceTitleSuccession.makeInstanceTitleSuccessionFromJsonRecord(
+            precedingInstanceId, succeedingRelationshipObject);
+    existingSucceedingRelationsByPrecedingId.computeIfAbsent(precedingInstanceId, k -> new HashMap<>())
+    .put(relationship.getSucceedingInstanceId(), relationship);
+  }
+
+  private void stashRelationBySucceedingId(JsonObject precedingRelationshipObject) {
+    var succeecedingInstanceId = precedingRelationshipObject.getString("succeedingInstanceId");
+    InstanceTitleSuccession relationship = InstanceTitleSuccession.makeInstanceTitleSuccessionFromJsonRecord(
+            succeecedingInstanceId, precedingRelationshipObject);
+    existingPrecedingRelationsBySucceedingId.computeIfAbsent(succeecedingInstanceId, k -> new HashMap<>())
+    .put(relationship.getPrecedingInstanceId(), relationship);
   }
 
   private Future<Void> requestReferencedInstancesByHRIDs(RoutingContext routingContext,
@@ -229,135 +219,6 @@ public class RepositoryByHrids extends Repository {
               if (records.succeeded()) {
                 if (records.result() != null) {
                   stashExistingItems(records);
-                }
-                promise.complete();
-              } else {
-                promise.fail(records.cause().getMessage());
-              }
-
-            });
-    return promise.future();
-  }
-
-
-  private Future<Void> requestParentRelationsByChildInstanceIds(RoutingContext routingContext,
-                                                                List<String> childInstanceIds) {
-    Promise<Void> promise = Promise.promise();
-    OkapiClient okapiClient = InventoryStorage.getOkapiClient(routingContext);
-    InventoryStorage.lookupParentChildRelationships(okapiClient,
-                    new QueryByListOfIds("subInstanceId", childInstanceIds))
-            .onComplete(records -> {
-              if (records.succeeded()) {
-                if (records.result() != null) {
-                  for (Object o : records.result()) {
-                    JsonObject relation = (JsonObject) o;
-                    InstanceRelationship relationship =
-                            InstanceRelationship.makeRelationshipFromJsonRecord(
-                                    relation.getString("subInstanceId"),
-                                    relation);
-                    if (!existingParentRelationsByChildId.containsKey(relationship.getSubInstanceId())) {
-                      existingParentRelationsByChildId.put(relationship.getSubInstanceId(), new HashMap<>());
-                    }
-                    existingParentRelationsByChildId
-                            .get(relationship.getSubInstanceId())
-                            .put(relationship.getSuperInstanceId(), relationship);
-                  }
-                }
-                promise.complete();
-              } else {
-                promise.fail(records.cause().getMessage());
-              }
-
-            });
-    return promise.future();
-  }
-
-  private Future<Void> requestChildRelationsByParentInstanceIds(RoutingContext routingContext,
-                                                                List<String> parentInstanceIds) {
-    Promise<Void> promise = Promise.promise();
-    OkapiClient okapiClient = InventoryStorage.getOkapiClient(routingContext);
-    InventoryStorage.lookupParentChildRelationships(okapiClient,
-                    new QueryByListOfIds("superInstanceId", parentInstanceIds))
-            .onComplete(records -> {
-              if (records.succeeded()) {
-                if (records.result() != null) {
-                  for (Object o : records.result()) {
-                    JsonObject relation = (JsonObject) o;
-                    InstanceRelationship relationship =
-                            InstanceRelationship.makeRelationshipFromJsonRecord(
-                                    relation.getString("superInstanceId"),
-                                    relation);
-                    if (!existingChildRelationsByParentId.containsKey(relationship.getSuperInstanceId())) {
-                      existingChildRelationsByParentId.put(relationship.getSuperInstanceId(), new HashMap<>());
-                    }
-                    existingChildRelationsByParentId
-                            .get(relationship.getSuperInstanceId())
-                            .put(relationship.getSubInstanceId(), relationship);
-                  }
-                }
-                promise.complete();
-              } else {
-                promise.fail(records.cause().getMessage());
-              }
-
-            });
-    return promise.future();
-  }
-
-  private Future<Void> requestSucceedingByPrecedingIds(RoutingContext routingContext,
-                                                       List<String> precedingIds) {
-    Promise<Void> promise = Promise.promise();
-    OkapiClient okapiClient = InventoryStorage.getOkapiClient(routingContext);
-    InventoryStorage.lookupTitleSuccessions(okapiClient,
-                    new QueryByListOfIds("precedingInstanceId", precedingIds))
-            .onComplete(records -> {
-              if (records.succeeded()) {
-                if (records.result() != null) {
-                  for (Object o : records.result()) {
-                    JsonObject relation = (JsonObject) o;
-                    InstanceTitleSuccession relationship =
-                            InstanceTitleSuccession.makeInstanceTitleSuccessionFromJsonRecord(
-                                    relation.getString("precedingInstanceId"),
-                                    relation);
-                    if (!existingSucceedingRelationsByPrecedingId.containsKey(relationship.getPrecedingInstanceId())) {
-                      existingSucceedingRelationsByPrecedingId.put(relationship.getPrecedingInstanceId(), new HashMap<>());
-                    }
-                    existingSucceedingRelationsByPrecedingId
-                            .get(relationship.getPrecedingInstanceId())
-                            .put(relationship.getSucceedingInstanceId(), relationship);
-                  }
-                }
-                promise.complete();
-              } else {
-                promise.fail(records.cause().getMessage());
-              }
-
-            });
-    return promise.future();
-  }
-
-  private Future<Void> requestPrecedingBySucceedingIds(RoutingContext routingContext,
-                                                       List<String> succeedingIds) {
-    Promise<Void> promise = Promise.promise();
-    OkapiClient okapiClient = InventoryStorage.getOkapiClient(routingContext);
-    InventoryStorage.lookupTitleSuccessions(okapiClient,
-                    new QueryByListOfIds("succeedingInstanceId", succeedingIds))
-            .onComplete(records -> {
-              if (records.succeeded()) {
-                if (records.result() != null) {
-                  for (Object o : records.result()) {
-                    JsonObject relation = (JsonObject) o;
-                    InstanceTitleSuccession relationship =
-                            InstanceTitleSuccession.makeInstanceTitleSuccessionFromJsonRecord(
-                                    relation.getString("succeedingInstanceId"),
-                                    relation);
-                    if (!existingPrecedingRelationsBySucceedingId.containsKey(relationship.getSucceedingInstanceId())) {
-                      existingPrecedingRelationsBySucceedingId.put(relationship.getSucceedingInstanceId(), new HashMap<>());
-                    }
-                    existingPrecedingRelationsBySucceedingId
-                            .get(relationship.getSucceedingInstanceId())
-                            .put(relationship.getPrecedingInstanceId(), relationship);
-                  }
                 }
                 promise.complete();
               } else {

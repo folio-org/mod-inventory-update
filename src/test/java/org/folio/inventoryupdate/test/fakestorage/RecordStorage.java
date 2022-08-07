@@ -16,6 +16,7 @@ public abstract class RecordStorage {
     public final static String TOTAL_RECORDS = "totalRecords";
     // Property keys, JSON responses
     public final static String INSTANCES = "instances";
+    public final static String INSTANCE_SETS = "instanceSets";
     public static final String HOLDINGS_RECORDS = "holdingsRecords";
     public static final String ITEMS = "items";
     public static final String INSTANCE_RELATIONSHIPS = "instanceRelationships";
@@ -318,7 +319,7 @@ public abstract class RecordStorage {
     }
     // HELPERS FOR RESPONSE PROCESSING
 
-    private JsonObject buildJsonRecordsResponse(String optionalQuery) {
+    JsonObject buildJsonRecordsResponse(String optionalQuery) {
         if (failOnGetRecords) return null;
         JsonObject response = new JsonObject();
         JsonArray jsonRecords = new JsonArray();

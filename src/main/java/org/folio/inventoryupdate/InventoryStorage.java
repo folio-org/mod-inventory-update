@@ -31,15 +31,25 @@ import org.folio.okapi.common.WebClientFactory;
 public class InventoryStorage {
 
   private static final Logger logger = LoggerFactory.getLogger("inventory-update");
+  @SuppressWarnings("java:S1075")  // suppress "URIs should not be hardcoded"
   private static final String INSTANCE_STORAGE_PATH = "/instance-storage/instances";
+  @SuppressWarnings("java:S1075")  // suppress "URIs should not be hardcoded"
   private static final String INSTANCE_SET_PATH = "/inventory-view/instance-set";
+  @SuppressWarnings("java:S1075")  // suppress "URIs should not be hardcoded"
   public static final String INSTANCE_STORAGE_BATCH_PATH = "/instance-storage/batch/synchronous";
+  @SuppressWarnings("java:S1075")  // suppress "URIs should not be hardcoded"
   private static final String INSTANCE_RELATIONSHIP_STORAGE_PATH = "/instance-storage/instance-relationships";
+  @SuppressWarnings("java:S1075")  // suppress "URIs should not be hardcoded"
   private static final String PRECEDING_SUCCEEDING_TITLE_STORAGE_PATH = "/preceding-succeeding-titles";
+  @SuppressWarnings("java:S1075")  // suppress "URIs should not be hardcoded"
   private static final String HOLDINGS_STORAGE_PATH = "/holdings-storage/holdings";
+  @SuppressWarnings("java:S1075")  // suppress "URIs should not be hardcoded"
   public static final String HOLDINGS_STORAGE_BATCH_PATH = "/holdings-storage/batch/synchronous";
+  @SuppressWarnings("java:S1075")  // suppress "URIs should not be hardcoded"
   private static final String ITEM_STORAGE_PATH = "/item-storage/items";
+  @SuppressWarnings("java:S1075")  // suppress "URIs should not be hardcoded"
   public static final String ITEM_STORAGE_BATCH_PATH = "/item-storage/batch/synchronous";
+  @SuppressWarnings("java:S1075")  // suppress "URIs should not be hardcoded"
   private static final String LOCATION_STORAGE_PATH = "/locations";
 
   // Property keys, JSON responses
@@ -309,8 +319,8 @@ public class InventoryStorage {
             return null;
           }
           var input = sets.getJsonObject(0);
-          var holdings = input.getJsonArray("holdingsRecords");
-          mergeItemsIntoHoldings(holdings, input.getJsonArray("items"));
+          var holdings = input.getJsonArray(HOLDINGS_RECORDS);
+          mergeItemsIntoHoldings(holdings, input.getJsonArray(ITEMS));
           var precedingSucceeding = new JsonArray()
               .addAll(input.getJsonArray("precedingTitles"))
               .addAll(input.getJsonArray("succeedingTitles"));
@@ -339,7 +349,7 @@ public class InventoryStorage {
     items.forEach(i -> {
       var item = (JsonObject) i;
       var holding = holdings.get(item.getString("holdingsRecordId"));
-      var itemList = holding.getJsonArray("items");
+      var itemList = holding.getJsonArray(ITEMS);
       if (itemList == null) {
         itemList = new JsonArray();
         holding.put("items", itemList);

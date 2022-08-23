@@ -70,16 +70,18 @@ public abstract class Repository {
     return promise.future();
   }
 
-  protected void stashExistingInstances(AsyncResult<JsonArray> instances) {
-    for (Object o : instances.result()) {
-      Instance instance = new Instance((JsonObject) o);
-      existingInstancesByHrid.put(instance.getHRID(), instance);
-      existingInstancesByUUID.put(instance.getUUID(), instance);
-    }
+  protected void stashExistingInstance(JsonObject instanceObject) {
+    Instance instance = new Instance(instanceObject);
+    existingInstancesByHrid.put(instance.getHRID(), instance);
+    existingInstancesByUUID.put(instance.getUUID(), instance);
   }
 
-  protected void stashExistingHoldingsRecords(AsyncResult<JsonArray> records) {
-    for (Object o : records.result()) {
+  void stashExistingHoldingsRecords(AsyncResult<JsonArray> records) {
+    stashExistingHoldingsRecords(records.result());
+  }
+
+  void stashExistingHoldingsRecords(JsonArray records) {
+    for (Object o : records) {
       HoldingsRecord holdingsRecord = new HoldingsRecord((JsonObject) o);
       existingHoldingsRecordsByHrid.put(holdingsRecord.getHRID(), holdingsRecord);
       existingHoldingsRecordsByUUID.put(holdingsRecord.getUUID(), holdingsRecord);
@@ -91,8 +93,12 @@ public abstract class Repository {
     }
   }
 
-  protected void stashExistingItems(AsyncResult<JsonArray> records) {
-    for (Object o : records.result()) {
+  void stashExistingItems(AsyncResult<JsonArray> records) {
+    stashExistingItems(records.result());
+  }
+
+  void stashExistingItems(JsonArray records) {
+    for (Object o : records) {
       Item item = new Item((JsonObject) o);
       existingItemsByHrid.put(item.getHRID(), item);
       if (!existingItemsByHoldingsRecordId.containsKey(item.getHoldingsRecordId())) {
@@ -166,8 +172,12 @@ public abstract class Repository {
   }
 
   public static List<List<String>> getSubListsOfFifty (List<String> list) {
-    return getSubLists(list, 50);
-  }
+      return getSubLists(list, 50);
+    }
+
+  public static List<List<String>> getSubListsOfTen (List<String> list) {
+      return getSubLists(list, 10);
+    }
 
   public static List<List<String>> getSubListsOfFive (List<String> list) {
     return getSubLists(list, 5);

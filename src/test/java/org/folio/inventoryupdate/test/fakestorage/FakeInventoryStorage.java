@@ -12,6 +12,7 @@ import io.vertx.ext.web.handler.BodyHandler;
 public class FakeInventoryStorage {
     public final static int PORT_INVENTORY_STORAGE = 9030;
     public final static String INSTANCE_STORAGE_PATH = "/instance-storage/instances";
+    public final static String INSTANCE_SET_PATH = "/inventory-view/instance-set";
     public static final String INSTANCE_RELATIONSHIP_STORAGE_PATH = "/instance-storage/instance-relationships";
     public static final String PRECEDING_SUCCEEDING_TITLE_STORAGE_PATH = "/preceding-succeeding-titles";
     public static final String HOLDINGS_STORAGE_PATH = "/holdings-storage/holdings";
@@ -28,6 +29,7 @@ public class FakeInventoryStorage {
 
     public LocationStorage locationStorage = new LocationStorage();
     public InstanceStorage instanceStorage = new InstanceStorage();
+    public InstanceSetView instanceSetview = new InstanceSetView();
     public HoldingsStorage holdingsStorage = new HoldingsStorage();
     public ItemStorage itemStorage = new ItemStorage();
     public InstanceRelationshipStorage instanceRelationshipStorage = new InstanceRelationshipStorage();
@@ -36,6 +38,7 @@ public class FakeInventoryStorage {
     public FakeInventoryStorage(Vertx vertx, TestContext testContext) {
         locationStorage.attachToFakeStorage(this);
         instanceStorage.attachToFakeStorage(this);
+        instanceSetview.attachToFakeStorage(this);
         holdingsStorage.attachToFakeStorage(this);
         itemStorage.attachToFakeStorage(this);
         instanceRelationshipStorage.attachToFakeStorage(this);
@@ -46,6 +49,7 @@ public class FakeInventoryStorage {
         router.get(LOCATION_STORAGE_PATH + "/:id").handler(locationStorage::getRecordById);
         router.get(INSTANCE_STORAGE_PATH).handler(instanceStorage::getRecords);
         router.get(INSTANCE_STORAGE_PATH + "/:id").handler(instanceStorage::getRecordById);
+        router.get(INSTANCE_SET_PATH).handler(instanceSetview::getRecords);
         router.get(HOLDINGS_STORAGE_PATH).handler(holdingsStorage::getRecords);
         router.get(HOLDINGS_STORAGE_PATH + "/:id").handler(holdingsStorage::getRecordById);
         router.get(ITEM_STORAGE_PATH).handler(itemStorage::getRecords);

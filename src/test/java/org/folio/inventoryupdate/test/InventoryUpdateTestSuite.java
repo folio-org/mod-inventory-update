@@ -1,6 +1,5 @@
 package org.folio.inventoryupdate.test;
 
-import io.vertx.core.json.Json;
 import io.vertx.core.json.JsonArray;
 import org.folio.inventoryupdate.MainVerticle;
 import org.folio.inventoryupdate.MatchKey;

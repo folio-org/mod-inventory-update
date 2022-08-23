@@ -1,3 +1,7 @@
+## IN-PROGRESS
+
+* Also support interfaces `instance-storage` `9.0`, `holdings-storage` `6.0`, `item-storage` `10.0` (MODINVUP-49)
+
 ## 2.2.0 2022-07-27
 
 * Provides `inventory-batch-upsert-hrid 1.0`  (MODINVUP-41)

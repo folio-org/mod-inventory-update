@@ -1,9 +1,9 @@
 package org.folio.inventoryupdate.entities;
 public abstract class InstanceToInstanceRelation extends InventoryRecord {
     public static final String PROVISIONAL_INSTANCE = "provisionalInstance";
-    private boolean needsProvisionalInstance = false;
     protected Instance provisionalInstance = null;
     protected InstanceRelationsClass instanceRelationClass = null;
+    private String referencedInstanceHrid;
 
     public enum InstanceRelationsClass {
         TO_PARENT,
@@ -14,18 +14,6 @@ public abstract class InstanceToInstanceRelation extends InventoryRecord {
 
     public void setInstanceRelationsClass (InstanceRelationsClass typeOfRelation) {
         instanceRelationClass = typeOfRelation;
-    }
-
-    public void requiresProvisionalInstanceToBeCreated(boolean bool) {
-        needsProvisionalInstance = bool;
-    }
-
-    public boolean requiresProvisionalInstanceToBeCreated () {
-        return needsProvisionalInstance;
-    }
-
-    public void setProvisionalInstance (Instance provisionalInstance) {
-        this.provisionalInstance = provisionalInstance;
     }
 
     public boolean hasPreparedProvisionalInstance () {
@@ -39,4 +27,13 @@ public abstract class InstanceToInstanceRelation extends InventoryRecord {
     public abstract boolean equals (Object o);
 
     public abstract int hashCode ();
+
+    public void setReferencedInstanceHrid(String hrid) {
+      this.referencedInstanceHrid = hrid;
+    }
+
+    public String getReferenceInstanceHrid () {
+      return referencedInstanceHrid;
+    }
+
 }

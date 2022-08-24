@@ -59,12 +59,12 @@ public class InstanceReference {
     this.referencedInstanceId = uuid;
   }
 
-  private boolean hasProvisionalInstance () {
+  private boolean hasProvisionalInstanceJson() {
     return instanceReferenceJson.containsKey(PROVISIONAL_INSTANCE);
   }
 
-  private boolean provisionalInstanceIsValid() {
-    return hasProvisionalInstance()
+  public boolean hasValidProvisionalInstanceJson() {
+    return hasProvisionalInstanceJson()
             && validateProvisionalInstanceProperties(
                     instanceReferenceJson.getJsonObject(PROVISIONAL_INSTANCE));
   }
@@ -85,57 +85,49 @@ public class InstanceReference {
     }
   }
 
-  private Instance getProvisionalInstance () {
+  public Instance getProvisionalInstance () {
     JsonObject json = new JsonObject(getProvisionalInstanceJson().toString());
     if (! json.containsKey( HRID_IDENTIFIER_KEY ) && hasReferenceHrid()) {
       json.put( HRID_IDENTIFIER_KEY, getReferenceHrid());
     }
-    if (! json.containsKey("id")) {
-      json.put("id", UUID.randomUUID().toString());
+    Instance provisionalInstance = new Instance(json);
+    if (hasValidProvisionalInstanceJson()) {
+      if (!json.containsKey("id")) {
+        json.put("id", UUID.randomUUID().toString());
+      }
+    } else {
+      provisionalInstance.fail();
+      provisionalInstance.logError(
+          "Provided data not sufficient for creating provisional Instance",
+          422,
+          ErrorReport.ErrorCategory.STORAGE,originJson);
     }
-    return new Instance(json);
-
+    return provisionalInstance;
   }
 
   public InstanceToInstanceRelation getInstanceToInstanceRelation () {
     InstanceToInstanceRelation relation = null;
-    String toInstanceId;
-    Instance provisionalInstance = null;
 
-    if (referencedInstanceId != null) { // Found existing Instance for HRID to link to
-      toInstanceId = referencedInstanceId;
-    } else { // Create provisional Instance to link to
-      provisionalInstance = getProvisionalInstance();
-      toInstanceId = provisionalInstance.getUUID();
-    }
     if (typeOfRelation == InstanceToInstanceRelation.InstanceRelationsClass.TO_PARENT) {
-      relation = InstanceRelationship.makeParentRelationship(fromInstanceId, toInstanceId,
-              getRelationshipTypeId());
+      relation = InstanceRelationship.makeParentRelationship(fromInstanceId, referencedInstanceId,
+          getRelationshipTypeId());
     } else if (typeOfRelation == InstanceToInstanceRelation.InstanceRelationsClass.TO_CHILD) {
-      relation = InstanceRelationship.makeChildRelationship(fromInstanceId, toInstanceId,
-              getRelationshipTypeId());
+      relation = InstanceRelationship.makeChildRelationship(fromInstanceId, referencedInstanceId,
+          getRelationshipTypeId());
     } else if (typeOfRelation == InstanceToInstanceRelation.InstanceRelationsClass.TO_SUCCEEDING) {
-      relation = InstanceTitleSuccession.makeRelationToSucceeding(fromInstanceId, toInstanceId);
+      relation = InstanceTitleSuccession.makeRelationToSucceeding(fromInstanceId,
+          referencedInstanceId);
     } else if (typeOfRelation == InstanceToInstanceRelation.InstanceRelationsClass.TO_PRECEDING) {
-      relation = InstanceTitleSuccession.makeRelationToPreceding(fromInstanceId, toInstanceId);
+      relation = InstanceTitleSuccession.makeRelationToPreceding(fromInstanceId,
+          referencedInstanceId);
     }
-    if (referencedInstanceId == null && relation != null) {
-      if ((relation.getHRID() != null) || (provisionalInstance != null && provisionalInstance.getHRID() != null)) {
-        // Silently omit relation / provisional if no HRID provided, otherwise:
-        relation.requiresProvisionalInstanceToBeCreated(true);
-        if (!provisionalInstanceIsValid() && provisionalInstance!=null) {
-          provisionalInstance.fail();
-          provisionalInstance.logError(
-                  "Provided data not sufficient for creating provisional Instance",
-                  422,
-                  ErrorReport.ErrorCategory.STORAGE,relation.originJson);
-          relation.fail();
-          relation.logError(
-                  "Cannot create relation; Instance not found and miss data for provisional instance",
-                  422,
-                  ErrorReport.ErrorCategory.STORAGE, relation.originJson);
-        }
-        relation.setProvisionalInstance(provisionalInstance);
+    if (relation != null) {
+      relation.setReferencedInstanceHrid(getReferenceHrid());
+      if (referencedInstanceId == null) {
+        relation.fail();
+        relation.logError(
+            "Cannot create relation; Referenced Instance not found and miss data for provisional instance",
+            422, ErrorReport.ErrorCategory.STORAGE, relation.originJson);
       }
     }
     return relation;

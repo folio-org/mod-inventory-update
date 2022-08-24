@@ -32,6 +32,7 @@ public abstract class RecordStorage {
     List<ForeignKey> dependentEntities = new ArrayList<>();
     List<ForeignKey> masterEntities = new ArrayList<>();
     List<String> mandatoryProperties = new ArrayList<>();
+    List<String> uniqueProperties = new ArrayList<>();
 
     protected FakeInventoryStorage fakeStorage;
 
@@ -42,6 +43,7 @@ public abstract class RecordStorage {
         this.fakeStorage = fakeStorage;
         declareDependencies();
         declareMandatoryProperties();
+        declareUniqueProperties();
     }
 
     // PROPERTY NAME OF THE OBJECT THAT API RESULTS ARE RETURNED IN, IMPLEMENTED PER STORAGE ENTITY
@@ -76,7 +78,16 @@ public abstract class RecordStorage {
         }
         if (records.containsKey(record.getId())) {
             logger.error("Fake record storage already contains a record with id " + record.getId() + ", cannot create " + record.getJson().encodePrettily());
-            return new Resp(400, "add duplicate key message here");
+            return new Resp(400, "Record storage already contains a record with id " + record.getId());
+        }
+        for (InventoryRecord existingRecord : records.values()) {
+          for (String nameOfUniqueProperty : uniqueProperties) {
+            if (record.getStringValue(nameOfUniqueProperty) != null && existingRecord.getStringValue(nameOfUniqueProperty) != null ) {
+              if (record.getStringValue(nameOfUniqueProperty).equals(existingRecord.getStringValue(nameOfUniqueProperty))) {
+                return new Resp(400,  this.STORAGE_NAME +" already contains a record with " + nameOfUniqueProperty + " = " + record.getStringValue(nameOfUniqueProperty));
+              }
+            }
+          }
         }
         logger.debug("Checking foreign keys");
         logger.debug("Got " + masterEntities.size() + " foreign keys");
@@ -203,6 +214,7 @@ public abstract class RecordStorage {
 
     protected abstract void declareMandatoryProperties ();
 
+    protected void declareUniqueProperties () {};
     // API REQUEST HANDLERS
 
     /**

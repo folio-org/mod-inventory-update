@@ -3,6 +3,7 @@ package org.folio.inventoryupdate;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 import java.util.function.BiFunction;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -545,11 +546,16 @@ public abstract class UpdatePlan {
                             } else {
                                 metrics.entity(record.entityType()).transaction(record.getTransaction()).outcomes.increment(
                                         record.getOutcome());
-                                if (record.getProvisionalInstance() != null) {
-                                    ( (UpdateMetrics.InstanceRelationsMetrics) metrics.entity(
-                                            record.entityType()) ).provisionalInstanceMetrics.increment(
-                                            record.getProvisionalInstance().getOutcome());
+                              if (repository instanceof RepositoryByHrids) {
+                                Map<String, Instance> provisionalInstances = ((RepositoryByHrids) repository).provisionalInstancesByHrid;
+                                if (provisionalInstances.containsKey(record.getReferenceInstanceHrid()))
+                                {
+                                  logger.info("metrics: relation has provisional, did it fail? " + provisionalInstances.get(record.getReferenceInstanceHrid()).failed());
+                                  Instance provisional = provisionalInstances.get(record.getReferenceInstanceHrid());
+                                  ( (UpdateMetrics.InstanceRelationsMetrics) metrics.entity(record.entityType()) ).provisionalInstanceMetrics.increment(
+                                      provisional.getOutcome());
                                 }
+                              }
                             }
                         }
                     }
@@ -576,15 +582,18 @@ public abstract class UpdatePlan {
                     if (!record.getTransaction().equals(InventoryRecord.Transaction.NONE)) {
                         metrics.entity(record.entityType()).transaction(record.getTransaction()).outcomes.increment(
                                 record.getOutcome());
-                        if (record.getProvisionalInstance() != null && !record.getProvisionalInstance().failed()) {
-                            Instance provisionalInstance = record.getProvisionalInstance();
-                            ( (UpdateMetrics.InstanceRelationsMetrics) metrics.entity(record.entityType()) ).provisionalInstanceMetrics.increment(
-                                    provisionalInstance.getOutcome());
+                        if (repository instanceof RepositoryByHrids) {
+                          Map<String, Instance> provisionalInstances = ((RepositoryByHrids) repository).provisionalInstancesByHrid;
+                          if (provisionalInstances.containsKey(record.getReferenceInstanceHrid()))
+                          {
+                            Instance provisional = provisionalInstances.get(record.getReferenceInstanceHrid());
+                              ( (UpdateMetrics.InstanceRelationsMetrics) metrics.entity(record.entityType()) ).provisionalInstanceMetrics.increment(
+                                  provisional.getOutcome());
+                          }
                         }
                     }
                 }
             }
-
         }
         return metrics;
     }
@@ -598,26 +607,6 @@ public abstract class UpdatePlan {
                   updatingSet.getHoldingsRecords(),
                   updatingSet.getItems())
                   .flatMap(Collection::stream).collect(Collectors.toList());
-
-            for (InventoryRecord record : holdingsRecordsAndItemsInUpdatingSet) {
-              metrics.entity(record.entityType()).transaction(record.getTransaction()).outcomes.increment(record.getOutcome());
-            }
-            if (! updatingSet.getInstanceToInstanceRelations().isEmpty()) {
-                for ( InstanceToInstanceRelation record : updatingSet.getInstanceToInstanceRelations() ) {
-                    logger.debug("Record: " + record.asJson().encode());
-                    logger.debug("Transaction: " + record.getTransaction());
-                    logger.debug("Entity type: " + record.entityType());
-                    if ( !record.getTransaction().equals( InventoryRecord.Transaction.NONE ) ) {
-                        metrics.entity( record.entityType() ).transaction( record.getTransaction() ).outcomes.increment(
-                                record.getOutcome() );
-                        if ( record.requiresProvisionalInstanceToBeCreated() ) {
-                            Instance provisionalInstance = record.getProvisionalInstance();
-                            ( (UpdateMetrics.InstanceRelationsMetrics) metrics.entity( record.entityType() ) ).provisionalInstanceMetrics.increment(
-                                    provisionalInstance.getOutcome() );
-                        }
-                    }
-                }
-            }
         }
 
         if (foundExistingRecordSet()) {
@@ -643,11 +632,6 @@ public abstract class UpdatePlan {
                     if ( !record.getTransaction().equals( InventoryRecord.Transaction.NONE ) ) {
                         metrics.entity( record.entityType() ).transaction( record.getTransaction() ).outcomes.increment(
                                 record.getOutcome() );
-                        if ( record.requiresProvisionalInstanceToBeCreated() ) {
-                            Instance provisionalInstance = record.getProvisionalInstance();
-                            ( (UpdateMetrics.InstanceRelationsMetrics) metrics.entity( record.entityType() ) ).provisionalInstanceMetrics.increment(
-                                    provisionalInstance.getOutcome() );
-                        }
                     }
                 }
             }

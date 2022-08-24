@@ -238,6 +238,15 @@ public class RepositoryByHrids extends Repository {
     return hrids;
   }
 
+  public Instance getCreatingInstanceByHrid (String hrid) {
+    for (Instance instance : getInstancesToCreate()) {
+      if (instance.getHRID().equals(hrid) && !instance.failed()) {
+        return instance;
+      }
+    }
+    return null;
+  }
+
   private List<String> getIncomingReferencedInstanceHrids () {
     List<String> hrids = new ArrayList<>();
     for (PairedRecordSets pair : pairsOfRecordSets) {

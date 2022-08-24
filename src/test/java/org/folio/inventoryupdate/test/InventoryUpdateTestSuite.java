@@ -358,7 +358,6 @@ public class InventoryUpdateTestSuite {
     testContext.assertEquals(instancesBeforePutJson.getInteger("totalRecords"), 1,
             "Number of instance records for before PUT expected: 1" );
     Response response = batchUpsertByMatchKey(200,batch.getJson());
-    logger.info(response.asPrettyString());
     JsonObject responseJson = new JsonObject(response.asString());
     JsonObject metrics = responseJson.getJsonObject("metrics");
     testContext.assertEquals(metrics.getJsonObject("INSTANCE").getJsonObject("CREATE").getInteger("COMPLETED"), 29,
@@ -393,7 +392,7 @@ public class InventoryUpdateTestSuite {
     testContext.assertEquals(instancesBeforePutJson.getInteger("totalRecords"), 1,
             "Number of instance records for before PUT expected: 1" );
     Response response = batchUpsertByMatchKey(200,batch.getJson());
-    logger.info(response.asPrettyString());
+
     JsonObject responseJson = new JsonObject(response.asString());
     JsonObject metrics = responseJson.getJsonObject("metrics");
     testContext.assertEquals(metrics.getJsonObject("INSTANCE").getJsonObject("CREATE").getInteger("COMPLETED"), 29,
@@ -2194,8 +2193,43 @@ public class InventoryUpdateTestSuite {
                             .setInstanceTypeId("12345").getJson()).getJson()))));
 
     Response response = batchUpsertByHrid(200, batch.getJson());
-    logger.info(response.asPrettyString());
+
   }
+
+  @Test
+  public void upsertByHridWillNotCreateProvisionalInstanceIfTheRegularInstanceWasCreatedInBatch (TestContext testContext) {
+    String childHrid1 = "002-1";
+    String parentHrid = "001";
+
+    BatchOfInventoryRecordSets batch = new BatchOfInventoryRecordSets();
+
+    batch.addRecordSet(new JsonObject()
+        .put("instance",
+            new InputInstance().setTitle("Parent InputInstance 1").setInstanceTypeId("12345").setHrid(parentHrid).setSource("test").getJson()));
+
+    batch.addRecordSet(new JsonObject()
+        .put("instance",
+            new InputInstance().setTitle("Child InputInstance 2").setInstanceTypeId("12345").setHrid(childHrid1).setSource("test").getJson())
+        .put("instanceRelations", new JsonObject()
+            .put("parentInstances", new JsonArray()
+                .add(new InputInstanceRelationship().setInstanceIdentifierHrid(parentHrid)
+                    .setProvisionalInstance(
+                        new InputInstance()
+                            .setTitle("Provisional Instance")
+                            .setSource("MARC")
+                            .setInstanceTypeId("12345").getJson()).getJson()))));
+
+    JsonObject response = new JsonObject(batchUpsertByHrid(200, batch.getJson()).asString());
+    testContext.assertEquals(getMetric(response, INSTANCE, CREATE, COMPLETED), 2,
+        "Upsert metrics response should report [2] instances successfully created " + response.encodePrettily());
+    testContext.assertEquals(getMetric(response, INSTANCE_RELATIONSHIP, CREATE, COMPLETED), 1,
+        "Upsert metrics should report [1] relationship successfully created");
+    testContext.assertEquals(getMetric(response, PROVISIONAL_INSTANCE, CREATE, COMPLETED), -1,
+        "Upsert metrics should not report any provisional instance created");
+
+  }
+
+
 
   @Test
   public void upsertByHridWillGraciouslyFailToCreateRelationWithoutProvisionalInstance (TestContext testContext) {

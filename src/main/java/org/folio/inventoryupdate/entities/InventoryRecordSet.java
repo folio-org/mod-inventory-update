@@ -71,10 +71,6 @@ public class InventoryRecordSet extends JsonRepresentation {
         return isExisting;
     }
 
-    public boolean isIncoming () {
-        return isIncoming;
-    }
-
     public static InventoryRecordSet makeExistingRecordSet(JsonObject inventoryRecordSet) {
         InventoryRecordSet set = new InventoryRecordSet(inventoryRecordSet);
         set.isExisting = true;
@@ -361,6 +357,15 @@ public class InventoryRecordSet extends JsonRepresentation {
                                 reference.getReferenceHrid());
                         if (referencedInstance != null) {
                             reference.setReferencedInstanceId(referencedInstance.getUUID());
+                        } else {
+                          if (repository.provisionalInstancesByHrid.containsKey(reference.getReferenceHrid())) {
+                            reference.setReferencedInstanceId(repository.provisionalInstancesByHrid.get(reference.getReferenceHrid()).getUUID());
+                          } else {
+                            Instance provisionalInstance = reference.getProvisionalInstance();
+                            repository.provisionalInstancesByHrid.put(provisionalInstance.getHRID(),provisionalInstance);
+                            reference.setReferencedInstanceId(provisionalInstance.getUUID());
+
+                          }
                         }
                     } else if (reference.hasReferenceUuid() && reference.getReferenceUuid() != null) {
                         Instance referencedInstance = repository.referencedInstancesByUUID.get(

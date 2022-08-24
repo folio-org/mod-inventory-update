@@ -33,12 +33,6 @@ public class UpdatePlanAllHRIDs extends UpdatePlan {
     public UpdatePlanAllHRIDs () {
     }
 
-    public static Future<Void> failProvisionalInstanceCreation (Instance provisionalInstance) {
-        Promise<Void> promise = Promise.promise();
-        promise.fail(provisionalInstance.getErrorAsJson().encodePrettily());
-        return promise.future();
-    }
-
     @Override
     public Repository getNewRepository() {
         return new RepositoryByHrids();
@@ -427,17 +421,11 @@ public class UpdatePlanAllHRIDs extends UpdatePlan {
 
         @SuppressWarnings("rawtypes")
         List<Future> provisionalInstancesFutures = new ArrayList<>();
-        for (InstanceToInstanceRelation relation : repository.getInstanceRelationsToCreate()) {
-            if (relation.getProvisionalInstance() != null) {
-                if (relation.getProvisionalInstance().failed()) {
-                    provisionalInstancesFutures.add(
-                            failProvisionalInstanceCreation(relation.getProvisionalInstance()));
-                } else {
-                    provisionalInstancesFutures.add(
-                            InventoryStorage.postInventoryRecord(
-                                    okapiClient, relation.getProvisionalInstance()));
-                }
-            }
+        for (Instance instance : ((RepositoryByHrids) repository).provisionalInstancesByHrid.values()) {
+          provisionalInstancesFutures.add(
+              InventoryStorage.postInventoryRecord(
+                  okapiClient, instance));
+
         }
         CompositeFuture.join(provisionalInstancesFutures).onComplete( allProvisionalInstancesCreated -> {
             if (allProvisionalInstancesCreated.succeeded()) {

@@ -2162,6 +2162,42 @@ public class InventoryUpdateTestSuite {
   }
 
   @Test
+  public void upsertByHridWillCreateJustOneProvisionalInstanceIfTwoRelationsRequireTheSame (TestContext testContext) {
+    String childHrid1 = "002-1";
+    String childHrid2 = "002-2";
+    String parentHrid = "001";
+
+    BatchOfInventoryRecordSets batch = new BatchOfInventoryRecordSets();
+
+    batch.addRecordSet(new JsonObject()
+        .put("instance",
+            new InputInstance().setTitle("Child InputInstance 1").setInstanceTypeId("12345").setHrid(childHrid1).setSource("test").getJson())
+        .put("instanceRelations", new JsonObject()
+            .put("parentInstances", new JsonArray()
+                .add(new InputInstanceRelationship().setInstanceIdentifierHrid(parentHrid)
+                    .setProvisionalInstance(
+                        new InputInstance()
+                            .setTitle("Provisional Instance")
+                            .setSource("MARC")
+                            .setInstanceTypeId("12345").getJson()).getJson()))));
+
+    batch.addRecordSet(new JsonObject()
+        .put("instance",
+            new InputInstance().setTitle("Child InputInstance 2").setInstanceTypeId("12345").setHrid(childHrid2).setSource("test").getJson())
+        .put("instanceRelations", new JsonObject()
+            .put("parentInstances", new JsonArray()
+                .add(new InputInstanceRelationship().setInstanceIdentifierHrid(parentHrid)
+                    .setProvisionalInstance(
+                        new InputInstance()
+                            .setTitle("Provisional Instance")
+                            .setSource("MARC")
+                            .setInstanceTypeId("12345").getJson()).getJson()))));
+
+    Response response = batchUpsertByHrid(200, batch.getJson());
+    logger.info(response.asPrettyString());
+  }
+
+  @Test
   public void upsertByHridWillGraciouslyFailToCreateRelationWithoutProvisionalInstance (TestContext testContext) {
     String childHrid = "002";
     String parentHrid = "001";
@@ -2185,7 +2221,6 @@ public class InventoryUpdateTestSuite {
                             .add(new InputInstanceRelationship().setInstanceIdentifierHrid(parentHrid)
                                     .setProvisionalInstance(
                                             new InputInstance()
-                                                    .setSource("MARC")
                                                     .setInstanceTypeId("12345").getJson()).getJson()))));
 
     responseJson = new JsonObject(childResponse.getBody().asString());

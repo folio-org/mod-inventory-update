@@ -28,6 +28,7 @@ public class RepositoryByHrids extends Repository {
   protected final Map<String,Map<String,InstanceToInstanceRelation>> existingPrecedingRelationsBySucceedingId = new HashMap<>();
   public final Map<String,Instance> referencedInstancesByHrid = new HashMap<>();
   public final Map<String,Instance> referencedInstancesByUUID = new HashMap<>();
+  public final Map<String,Instance> provisionalInstancesByHrid = new HashMap<>();
 
   public Future<Void> buildRepositoryFromStorage (RoutingContext routingContext) {
     List<Future<Void>> existingRecordsByHridsFutures = new ArrayList<>();

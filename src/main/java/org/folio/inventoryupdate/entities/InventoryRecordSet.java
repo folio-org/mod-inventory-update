@@ -19,7 +19,6 @@ import static org.folio.inventoryupdate.entities.RecordIdentifiers.OAI_IDENTIFIE
 public class InventoryRecordSet extends JsonRepresentation {
 
     private boolean isExisting = false;
-    private boolean isIncoming = false;
 
     private Instance theInstance = null;
     private final Map<String,Item> itemsByHRID = new HashMap<>();
@@ -71,10 +70,6 @@ public class InventoryRecordSet extends JsonRepresentation {
         return isExisting;
     }
 
-    public boolean isIncoming () {
-        return isIncoming;
-    }
-
     public static InventoryRecordSet makeExistingRecordSet(JsonObject inventoryRecordSet) {
         InventoryRecordSet set = new InventoryRecordSet(inventoryRecordSet);
         set.isExisting = true;
@@ -88,7 +83,6 @@ public class InventoryRecordSet extends JsonRepresentation {
 
     public static InventoryRecordSet makeIncomingRecordSet(JsonObject inventoryRecordSet) {
         InventoryRecordSet set = new InventoryRecordSet(inventoryRecordSet);
-        set.isIncoming = true;
         if (!set.instanceRelationsJson.isEmpty()) {
             set.instanceReferences = new InstanceReferences(set.instanceRelationsJson, set.sourceJson);
         }
@@ -357,8 +351,19 @@ public class InventoryRecordSet extends JsonRepresentation {
                 if (reference.hasReferenceHrid() || reference.hasReferenceUuid()) {
                     reference.setFromInstanceId(getInstanceUUID());
                     if (reference.hasReferenceHrid()) {
-                        Instance referencedInstance = repository.referencedInstancesByHrid.get(
-                                reference.getReferenceHrid());
+                        Instance referencedInstance =
+                            repository.referencedInstancesByHrid.get(reference.getReferenceHrid());
+                        if (referencedInstance == null) {
+                          referencedInstance = repository.getCreatingInstanceByHrid(reference.getReferenceHrid());
+                        }
+                        if (referencedInstance == null) {
+                          if (repository.provisionalInstancesByHrid.containsKey(reference.getReferenceHrid())) {
+                            referencedInstance = repository.provisionalInstancesByHrid.get(reference.getReferenceHrid());
+                          } else {
+                            referencedInstance = reference.getProvisionalInstance();
+                            repository.provisionalInstancesByHrid.put(referencedInstance.getHRID(),referencedInstance);
+                          }
+                        }
                         if (referencedInstance != null) {
                             reference.setReferencedInstanceId(referencedInstance.getUUID());
                         }

@@ -28,6 +28,7 @@ public class RepositoryByHrids extends Repository {
   protected final Map<String,Map<String,InstanceToInstanceRelation>> existingPrecedingRelationsBySucceedingId = new HashMap<>();
   public final Map<String,Instance> referencedInstancesByHrid = new HashMap<>();
   public final Map<String,Instance> referencedInstancesByUUID = new HashMap<>();
+  public final Map<String,Instance> provisionalInstancesByHrid = new HashMap<>();
 
   public Future<Void> buildRepositoryFromStorage (RoutingContext routingContext) {
     List<Future<Void>> existingRecordsByHridsFutures = new ArrayList<>();
@@ -235,6 +236,15 @@ public class RepositoryByHrids extends Repository {
       hrids.add(pair.getIncomingRecordSet().getInstanceHRID());
     }
     return hrids;
+  }
+
+  public Instance getCreatingInstanceByHrid (String hrid) {
+    for (Instance instance : getInstancesToCreate()) {
+      if (instance.getHRID().equals(hrid) && !instance.failed()) {
+        return instance;
+      }
+    }
+    return null;
   }
 
   private List<String> getIncomingReferencedInstanceHrids () {

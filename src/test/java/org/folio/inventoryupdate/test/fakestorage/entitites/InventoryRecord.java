@@ -13,9 +13,7 @@ public class InventoryRecord {
     public static final String VERSION = "_version";
     protected JsonObject recordJson;
 
-    public UUID transaction;
-
-    private Logger logger = io.vertx.core.impl.logging.LoggerFactory.getLogger("InventoryRecord");
+    private final Logger logger = io.vertx.core.impl.logging.LoggerFactory.getLogger("InventoryRecord");
 
     public InventoryRecord() {
         recordJson = new JsonObject();
@@ -25,6 +23,10 @@ public class InventoryRecord {
         recordJson = record;
     }
 
+
+    public String getStringValue (String propertyName) {
+      return recordJson.containsKey(propertyName) ? recordJson.getValue(propertyName).toString() : null;
+    }
 
     public JsonObject getJson() {
         return recordJson;

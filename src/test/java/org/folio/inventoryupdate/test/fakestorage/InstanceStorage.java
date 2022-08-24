@@ -16,4 +16,8 @@ public class InstanceStorage extends RecordStorage {
         mandatoryProperties.add("source");
     }
 
+    protected void declareUniqueProperties() {
+      uniqueProperties.add("hrid");
+    }
+
 }

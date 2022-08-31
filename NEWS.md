@@ -1,6 +1,10 @@
-## IN-PROGRESS
+## 2.3.0 2022-08-31
 
-* Also support interfaces `instance-storage` `9.0`, `holdings-storage` `6.0`, `item-storage` `10.0` (MODINVUP-49)
+* Requires interface `instance-storage` `7.4 8.0 9.0`
+* Requires interface `holdings-storage` `4.1 5.0 6.0`
+* Requires interface `item-storage` `8.2 9.0 10.0`
+* Performance enhancement in fetching from storage (MODINVUP-45)
+* Bug-fix for provisional instance duplication scenarios with batch (MODINVUP-48)
 
 ## 2.2.0 2022-07-27
 

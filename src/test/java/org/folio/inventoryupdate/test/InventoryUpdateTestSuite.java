@@ -2197,15 +2197,11 @@ public class InventoryUpdateTestSuite {
   }
 
   @Test
-  public void upsertByHridWillNotCreateProvisionalInstanceIfTheRegularInstanceWasCreatedInBatch (TestContext testContext) {
+  public void upsertByHridWillNotCreateProvisionalInstanceIfTheRegularInstanceIsCreatedInBatch(TestContext testContext) {
     String childHrid1 = "002-1";
     String parentHrid = "001";
 
     BatchOfInventoryRecordSets batch = new BatchOfInventoryRecordSets();
-
-    batch.addRecordSet(new JsonObject()
-        .put("instance",
-            new InputInstance().setTitle("Parent InputInstance 1").setInstanceTypeId("12345").setHrid(parentHrid).setSource("test").getJson()));
 
     batch.addRecordSet(new JsonObject()
         .put("instance",
@@ -2218,6 +2214,10 @@ public class InventoryUpdateTestSuite {
                             .setTitle("Provisional Instance")
                             .setSource("MARC")
                             .setInstanceTypeId("12345").getJson()).getJson()))));
+
+    batch.addRecordSet(new JsonObject()
+        .put("instance",
+            new InputInstance().setTitle("Parent InputInstance 1").setInstanceTypeId("12345").setHrid(parentHrid).setSource("test").getJson()));
 
     JsonObject response = new JsonObject(batchUpsertByHrid(200, batch.getJson()).asString());
     testContext.assertEquals(getMetric(response, INSTANCE, CREATE, COMPLETED), 2,

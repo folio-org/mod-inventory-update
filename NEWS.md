@@ -1,3 +1,6 @@
+## 2.3.1 2022-09-05
+* Bug-fix for a provisional instance duplication scenario with batch (MODINVUP-51)
+
 ## 2.3.0 2022-08-31
 
 * Requires interface `instance-storage` `7.4 8.0 9.0`

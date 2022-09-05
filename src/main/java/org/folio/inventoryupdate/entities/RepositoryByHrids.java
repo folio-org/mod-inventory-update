@@ -132,10 +132,10 @@ public class RepositoryByHrids extends Repository {
   }
 
   private void stashRelationBySucceedingId(JsonObject precedingRelationshipObject) {
-    var succeecedingInstanceId = precedingRelationshipObject.getString("succeedingInstanceId");
+    var succeedingInstanceId = precedingRelationshipObject.getString("succeedingInstanceId");
     InstanceTitleSuccession relationship = InstanceTitleSuccession.makeInstanceTitleSuccessionFromJsonRecord(
-            succeecedingInstanceId, precedingRelationshipObject);
-    existingPrecedingRelationsBySucceedingId.computeIfAbsent(succeecedingInstanceId, k -> new HashMap<>())
+            succeedingInstanceId, precedingRelationshipObject);
+    existingPrecedingRelationsBySucceedingId.computeIfAbsent(succeedingInstanceId, k -> new HashMap<>())
     .put(relationship.getPrecedingInstanceId(), relationship);
   }
 

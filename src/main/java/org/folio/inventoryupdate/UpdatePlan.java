@@ -550,7 +550,6 @@ public abstract class UpdatePlan {
                                 Map<String, Instance> provisionalInstances = ((RepositoryByHrids) repository).provisionalInstancesByHrid;
                                 if (provisionalInstances.containsKey(record.getReferenceInstanceHrid()))
                                 {
-                                  logger.info("metrics: relation has provisional, did it fail? " + provisionalInstances.get(record.getReferenceInstanceHrid()).failed());
                                   Instance provisional = provisionalInstances.get(record.getReferenceInstanceHrid());
                                   ( (UpdateMetrics.InstanceRelationsMetrics) metrics.entity(record.entityType()) ).provisionalInstanceMetrics.increment(
                                       provisional.getOutcome());

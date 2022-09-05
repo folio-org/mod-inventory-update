@@ -198,7 +198,11 @@ public class UpdatePlanAllHRIDs extends UpdatePlan {
     public UpdatePlanAllHRIDs planInventoryUpdates() {
         for (PairedRecordSets pair : repository.getPairsOfRecordSets()) {
             planInstanceHoldingsAndItems(pair);
-            planInstanceRelations(pair);
+        }
+        // Do two iterations of pairs because ALL Instances in a batch must be planned before any
+        // relations to avoid duplicate HRID scenarios with provisional instances.
+        for (PairedRecordSets pair : repository.getPairsOfRecordSets()) {
+          planInstanceRelations(pair);
         }
     return this;
     }

@@ -1,4 +1,4 @@
-# mod-inventory-update
+# mod-inventory-update (MIU)
 
 Copyright (C) 2019-2022 The Open Library Foundation
 
@@ -7,12 +7,12 @@ more information.
 
 ## Purpose
 
-Mod-inventory-update is an Okapi service that can be put in front of mod-inventory-storage (Inventory Storage) for
+Mod-inventory-update (MIU) is an Okapi service that can be put in front of mod-inventory-storage (Inventory Storage) for
 populating the storage with Instances, holdings and items according to one of multiple different update schemes.
 
 ## API
 
-Inventory Update so far supports two different update schemes implemented by two different end-points, which both
+MIU so far supports two different update schemes implemented by two different end-points, which both
 accept PUT requests with a payload of an [Inventory Record Set JSON body](ramls/inventory-record-set.json)
 , `inventor-upsert-hrid` and `shared-inventory-upsert-matchkey`. An
 inventory record set is a set of records including an Inventory Instance, and an array of holdings records with embedded
@@ -166,7 +166,7 @@ processed record-by-record.
 
 If the client needs to pair up error reports in the response with any original records it holds itself, the client can
 set an identifier in the inventory record set property "processing". The name and content of that property is entirely
-up to the client, Inventory Update will simply return the data it gets, so it could be a simple sequence number for the
+up to the client, MIU will simply return the data it gets, so it could be a simple sequence number for the
 batch, like
 
 ```
@@ -410,7 +410,7 @@ The `_version` fields for optimistic locking can be seen in the output above. Th
 to the upsert API. As the service receives the record set JSON in a PUT request, it will pull new versions of the
 entities from storage and get the latest version numbers from that anyway.
 
-## Interfaces implemented by Inventory Update
+## Interfaces implemented by MIU
 
 | Interface                                  | Interface version | Breaking changes         | Implementing modules                         | Implementation module versions |
 |--------------------------------------------|-------------------|--------------------------|----------------------------------------------|--------------------------------|

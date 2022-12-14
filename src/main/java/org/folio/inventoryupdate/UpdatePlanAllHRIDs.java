@@ -387,15 +387,21 @@ public class UpdatePlanAllHRIDs extends UpdatePlan {
             if (prerequisitesCreated.succeeded()) {
                 doUpdateInstancesAndHoldings(okapiClient).onComplete(instancesAndHoldingsUpdated -> {
                     doCreateInstanceRelations(okapiClient).onComplete(relationsCreated -> {
-                        doUpdateOrCreateItems(okapiClient).onComplete(itemsUpdatedAndCreated ->{
-                            if (prerequisitesCreated.succeeded() && instancesAndHoldingsUpdated.succeeded() && itemsUpdatedAndCreated.succeeded()) {
+                        doUpdateItems(okapiClient).onComplete(itemsUpdated ->{
+                            if (prerequisitesCreated.succeeded() && instancesAndHoldingsUpdated.succeeded() && itemsUpdated.succeeded()) {
                                 doDeleteRelationsItemsHoldings(okapiClient).onComplete(deletes -> {
                                     if (deletes.succeeded()) {
-                                        if (relationsCreated.succeeded()) {
+                                      doCreateItems(okapiClient). onComplete(itemsCreated -> {
+                                        if (itemsCreated.succeeded()) {
+                                          if (relationsCreated.succeeded()) {
                                             promise.complete();
-                                        } else {
+                                          } else {
                                             promise.fail(relationsCreated.cause().getMessage());
+                                          }
+                                        } else {
+                                          promise.fail(itemsCreated.cause().getMessage());
                                         }
+                                      });
                                     } else {
                                         promise.fail(deletes.cause().getMessage());
                                     }
@@ -405,8 +411,8 @@ public class UpdatePlanAllHRIDs extends UpdatePlan {
                                     promise.fail(prerequisitesCreated.cause().getMessage());
                                 } else if (instancesAndHoldingsUpdated.failed()) {
                                     promise.fail(instancesAndHoldingsUpdated.cause().getMessage());
-                                } else if (itemsUpdatedAndCreated.failed()) {
-                                    promise.fail(itemsUpdatedAndCreated.cause().getMessage());
+                                } else if (itemsUpdated.failed()) {
+                                    promise.fail(itemsUpdated.cause().getMessage());
                                 }
                             }
                         });

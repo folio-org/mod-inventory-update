@@ -723,6 +723,31 @@ public class InventoryUpdateTestSuite {
   }
 
   @Test
+  public void upsertByMatchKeyWillFailToCreateItemIfMaterialTypeIsMissing(TestContext testContext) {
+    String instanceHrid = "1";
+    upsertByMatchKey(207, new JsonObject()
+        .put("instance",
+            new InputInstance().setTitle("Initial InputInstance").setInstanceTypeId("12345").setHrid(instanceHrid).setSource("test").getJson())
+        .put("holdingsRecords", new JsonArray()
+            .add(new InputHoldingsRecord().setHrid("HOL-001").setPermanentLocationId(LOCATION_ID_1).setCallNumber("test-cn-1").getJson()
+                .put("items", new JsonArray()
+                    .add(new InputItem().setHrid("ITM-001")
+                        .setStatus(STATUS_UNKNOWN)
+                        .setMaterialTypeId(MATERIAL_TYPE_TEXT)
+                        .setBarcode("BC-001").getJson())
+                    .add(new InputItem().setHrid("ITM-002")
+                        .setStatus(STATUS_UNKNOWN)
+                        .setMaterialTypeId(MATERIAL_TYPE_TEXT)
+                        .setBarcode("BC-002").getJson())))
+            .add(new InputHoldingsRecord().setHrid("HOL-002").setPermanentLocationId(LOCATION_ID_1).setCallNumber("test-cn-2").getJson()
+                .put("items", new JsonArray()
+                    .add(new InputItem().setHrid("ITM-003")
+                        .setStatus(STATUS_UNKNOWN)
+                        .setBarcode("BC-003").getJson())))));
+
+  }
+
+  @Test
   public void upsertByMatchKeyWillUpdateHoldingsAndItems (TestContext testContext) {
     String instanceHrid = "1";
     JsonObject upsertResponseJson = upsertByMatchKey(new JsonObject()

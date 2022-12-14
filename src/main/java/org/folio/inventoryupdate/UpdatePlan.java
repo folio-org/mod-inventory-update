@@ -399,12 +399,9 @@ public abstract class UpdatePlan {
         return promise.future();
     }
 
-    public Future<Void> doUpdateOrCreateItems(OkapiClient okapiClient) {
+    public Future<Void> doUpdateItems(OkapiClient okapiClient) {
         Promise<Void> promise = Promise.promise();
-        List<Item> itemsToUpdateOrCreate = new ArrayList<>();
-        itemsToUpdateOrCreate.addAll(repository.getItemsToUpdate());
-        itemsToUpdateOrCreate.addAll(repository.getItemsToCreate());
-        InventoryStorage.postItems(okapiClient, itemsToUpdateOrCreate).onComplete(
+        InventoryStorage.postItems(okapiClient, repository.getItemsToUpdate()).onComplete(
                 handler -> {
                     if (handler.succeeded()) {
                         promise.complete();
@@ -415,7 +412,21 @@ public abstract class UpdatePlan {
         return promise.future();
     }
 
-    public Future<Void> doDeleteRelationsItemsHoldings(OkapiClient okapiClient) {
+  public Future<Void> doCreateItems(OkapiClient okapiClient) {
+    Promise<Void> promise = Promise.promise();
+    InventoryStorage.postItems(okapiClient, repository.getItemsToCreate()).onComplete(
+        handler -> {
+          if (handler.succeeded()) {
+            promise.complete();
+          } else {
+            promise.fail(handler.cause().getMessage());
+          }
+        });
+    return promise.future();
+  }
+
+
+  public Future<Void> doDeleteRelationsItemsHoldings(OkapiClient okapiClient) {
         Promise<Void> promise = Promise.promise();
         List<Future> deleteRelationsDeleteItems = new ArrayList<>();
         for (InstanceToInstanceRelation relation : repository.getInstanceRelationsToDelete()) {

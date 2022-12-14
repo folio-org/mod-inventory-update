@@ -413,32 +413,31 @@ public class UpdatePlanSharedInventory extends UpdatePlan {
                 doCreateRecordsWithDependants(okapiClient).onComplete(prerequisites -> {
                     doUpdateInstancesAndHoldings(okapiClient).onComplete(instanceAndHoldingsUpdates -> {
                         doCreateInstanceRelations(okapiClient).onComplete(relationsCreated -> {
-                            doUpdateItems(okapiClient).onComplete(itemUpdates -> {
-                              doCreateItems(okapiClient).onComplete(itemCreates -> {
-                                if (prerequisites.succeeded()
-                                    && instanceAndHoldingsUpdates.succeeded()
-                                    && itemUpdates.succeeded()
-                                    && itemCreates.succeeded()) {
-                                  long updatesDone = System.currentTimeMillis() - startUpdates;
-                                  logger.debug("Updates performed in " + updatesDone + " ms.");
-                                  promise.complete();
-                                } else {
-                                  String error = "";
-                                  if (prerequisites.failed()) {
-                                    error = prerequisites.cause().getMessage();
-                                  } else if (instanceAndHoldingsUpdates.failed()) {
-                                    error = instanceAndHoldingsUpdates.cause().getMessage();
-                                  } else if (itemCreates.failed()) {
-                                    error = itemCreates.cause().getMessage();
+                            doUpdateItems(okapiClient).onComplete(itemUpdates ->
+                                doCreateItems(okapiClient).onComplete(itemCreates -> {
+                                  if (prerequisites.succeeded()
+                                      && instanceAndHoldingsUpdates.succeeded()
+                                      && itemUpdates.succeeded()
+                                      && itemCreates.succeeded()) {
+                                    long updatesDone = System.currentTimeMillis() - startUpdates;
+                                    logger.debug("Updates performed in " + updatesDone + " ms.");
+                                    promise.complete();
+                                  } else {
+                                    String error = "";
+                                    if (prerequisites.failed()) {
+                                      error = prerequisites.cause().getMessage();
+                                    } else if (instanceAndHoldingsUpdates.failed()) {
+                                      error = instanceAndHoldingsUpdates.cause().getMessage();
+                                    } else if (itemCreates.failed()) {
+                                      error = itemCreates.cause().getMessage();
+                                    }
+                                    promise.fail(
+                                        ErrorReport.makeErrorReportFromJsonString(error)
+                                            .setShortMessage(
+                                                "One or more errors occurred updating Inventory records")
+                                            .asJsonString());
                                   }
-                                  promise.fail(
-                                      ErrorReport.makeErrorReportFromJsonString(error)
-                                          .setShortMessage(
-                                              "One or more errors occurred updating Inventory records")
-                                          .asJsonString());
-                                }
-                              });
-                            });
+                                }));
                         });
                     });
                 });

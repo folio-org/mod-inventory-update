@@ -428,8 +428,6 @@ public class UpdatePlanSharedInventory extends UpdatePlan {
                                     error = prerequisites.cause().getMessage();
                                   } else if (instanceAndHoldingsUpdates.failed()) {
                                     error = instanceAndHoldingsUpdates.cause().getMessage();
-                                  } else if (itemUpdates.failed()) {
-                                    error = itemUpdates.cause().getMessage();
                                   } else if (itemCreates.failed()) {
                                     error = itemCreates.cause().getMessage();
                                   }

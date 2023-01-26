@@ -75,6 +75,12 @@
           "alternativeTitle": {
             "type": "string",
             "description": "An alternative title for the resource"
+          },
+          "authorityId": {
+            "type": "string",
+            "description": "UUID of authority record that controls an alternative title",
+            "$ref": "raml-util/schemas/uuid.schema",
+            "readonly": true
           }
         }
       },
@@ -92,7 +98,23 @@
       "type": "array",
       "description": "List of series titles associated with the resource (e.g. Harry Potter)",
       "items": {
-        "type": "string"
+        "type": "object",
+        "properties": {
+          "value": {
+            "type": "string",
+            "description": "Series title value"
+          },
+          "authorityId": {
+            "type": "string",
+            "description": "UUID of authority record that controls an series title",
+            "$ref": "raml-util/schemas/uuid.schema",
+            "readonly": true
+          }
+        },
+        "additionalProperties": false,
+        "required": [
+          "value"
+        ]
       },
       "uniqueItems": true
     },
@@ -142,6 +164,11 @@
             "type": "string",
             "description": "Contributor type terms defined by the MARC code list for relators"
           },
+          "authorityId": {
+            "type": "string",
+            "description": "UUID of authority record that controls the contributor",
+            "$ref": "raml-util/schemas/uuid.schema"
+          },
           "primary": {
             "type": "boolean",
             "description": "Whether this is the primary contributor"
@@ -158,7 +185,23 @@
       "type": "array",
       "description": "List of subject headings",
       "items": {
-        "type": "string"
+        "type": "object",
+        "properties": {
+          "value": {
+            "type": "string",
+            "description": "Subject heading value"
+          },
+          "authorityId": {
+            "type": "string",
+            "description": "UUID of authority record that controls a subject heading",
+            "$ref": "raml-util/schemas/uuid.schema",
+            "readonly": true
+          }
+        },
+        "additionalProperties": false,
+        "required": [
+          "value"
+        ]
       },
       "uniqueItems": true
     },

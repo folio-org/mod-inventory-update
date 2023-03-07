@@ -384,44 +384,43 @@ public class UpdatePlanAllHRIDs extends UpdatePlan {
     public Future<Void> doInventoryUpdates(OkapiClient okapiClient) {
         Promise<Void> promise = Promise.promise();
         doCreateRecordsWithDependants(okapiClient).onComplete(prerequisitesCreated -> {
-            if (prerequisitesCreated.succeeded()) {
-                doUpdateInstancesAndHoldings(okapiClient).onComplete(instancesAndHoldingsUpdated -> {
-                    doCreateInstanceRelations(okapiClient).onComplete(relationsCreated -> {
-                        doUpdateItems(okapiClient).onComplete(itemsUpdated ->{
-                            if (prerequisitesCreated.succeeded() && instancesAndHoldingsUpdated.succeeded() && itemsUpdated.succeeded()) {
-                                doDeleteRelationsItemsHoldings(okapiClient).onComplete(deletes -> {
-                                    if (deletes.succeeded()) {
-                                      doCreateItems(okapiClient). onComplete(itemsCreated -> {
-                                        if (itemsCreated.succeeded()) {
-                                          if (relationsCreated.succeeded()) {
-                                            promise.complete();
-                                          } else {
-                                            promise.fail(relationsCreated.cause().getMessage());
-                                          }
-                                        } else {
-                                          promise.fail(itemsCreated.cause().getMessage());
-                                        }
-                                      });
-                                    } else {
-                                        promise.fail(deletes.cause().getMessage());
-                                    }
-                                });
+          doUpdateInstancesAndHoldings(okapiClient).onComplete(instancesAndHoldingsUpdated -> {
+            doUpdateItems(okapiClient).onComplete(itemsUpdated ->{
+              if (prerequisitesCreated.succeeded()) {
+                doCreateInstanceRelations(okapiClient).onComplete(relationsCreated -> {
+                  if (instancesAndHoldingsUpdated.succeeded() && itemsUpdated.succeeded()) {
+                    doDeleteRelationsItemsHoldings(okapiClient).onComplete(deletes -> {
+                      if (deletes.succeeded()) {
+                        doCreateItems(okapiClient). onComplete(itemsCreated -> {
+                          if (itemsCreated.succeeded()) {
+                            if (relationsCreated.succeeded()) {
+                              promise.complete();
                             } else {
-                                if (prerequisitesCreated.failed()) {
-                                    promise.fail(prerequisitesCreated.cause().getMessage());
-                                } else if (instancesAndHoldingsUpdated.failed()) {
-                                    promise.fail(instancesAndHoldingsUpdated.cause().getMessage());
-                                } else if (itemsUpdated.failed()) {
-                                    promise.fail(itemsUpdated.cause().getMessage());
-                                }
+                              promise.fail(relationsCreated.cause().getMessage());
                             }
+                          } else {
+                            promise.fail(itemsCreated.cause().getMessage());
+                          }
                         });
+                      } else {
+                        promise.fail(deletes.cause().getMessage());
+                      }
                     });
+                  } else {
+                    if (prerequisitesCreated.failed()) {
+                      promise.fail(prerequisitesCreated.cause().getMessage());
+                    } else if (instancesAndHoldingsUpdated.failed()) {
+                      promise.fail(instancesAndHoldingsUpdated.cause().getMessage());
+                    } else if (itemsUpdated.failed()) {
+                      promise.fail(itemsUpdated.cause().getMessage());
+                    }
+                  }
                 });
-
-            } else {
+              } else {
                 promise.fail(prerequisitesCreated.cause().getMessage());
-            }
+              }
+            });
+          });
         });
         return promise.future();
     }

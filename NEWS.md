@@ -1,3 +1,7 @@
+## 3.0.1 2023-03-07
+
+* Updates Instance even if holdings create fails (MODINVUP-62)
+
 ## 3.0.0 2023-02-17
 
 * Adapts to schema changes in Inventory Storage (MODINVUP-57)

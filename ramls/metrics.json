@@ -13,11 +13,11 @@
           "properties": {
             "COMPLETED": {
               "type": "integer",
-              "description": "Number of successfully completed Instance create operations (0 or 1)"
+              "description": "Number of successfully completed Instance create operations."
             },
             "FAILED": {
               "type": "integer",
-              "description": "Number of failed Instance create operations (0 or 1)"
+              "description": "Number of failed Instance create operations."
             },
             "SKIPPED": {
               "type": "integer",
@@ -25,7 +25,7 @@
             },
             "PENDING": {
               "type": "integer",
-              "description": "Number of Instance create operations not completed (should always be 0)"
+              "description": "Number of Instance create operations not completed (0 unless there is a logical error in MIU)"
             }
           }
         },
@@ -35,11 +35,11 @@
           "properties": {
             "COMPLETED": {
               "type": "integer",
-              "description": "Number of successfully completed Instance update operations (0 or 1)"
+              "description": "Number of successfully completed Instance update operations"
             },
             "FAILED": {
               "type": "integer",
-              "description": "Number of failed Instance update operations (0 or 1)"
+              "description": "Number of failed Instance update operations"
             },
             "SKIPPED": {
               "type": "integer",
@@ -47,7 +47,7 @@
             },
             "PENDING": {
               "type": "integer",
-              "description": "Number of Instance update operations not completed (should always be 0)"
+              "description": "Number of Instance update operations not completed (0 unless there is a logical error in MIU)"
             }
           }
         },
@@ -69,7 +69,7 @@
             },
             "PENDING": {
               "type": "integer",
-              "description": "Number of Instance delete operations not completed (should always be 0)"
+              "description": "Number of Instance delete operations not completed (0 unless there is a logical error in MIU)"
             }
           }
         }
@@ -97,7 +97,7 @@
             },
             "PENDING": {
               "type": "integer",
-              "description": "Number of HoldingsRecord create operations not completed (should always be 0)"
+              "description": "Number of HoldingsRecord create operations not completed (0 unless there is a logical error in MIU)"
             }
           }
         },
@@ -119,7 +119,7 @@
             },
             "PENDING": {
               "type": "integer",
-              "description": "Number of HoldingsRecord update operations not completed (should always be 0)"
+              "description": "Number of HoldingsRecord update operations not completed (0 unless there is a logical error in MIU)"
             }
           }
         },
@@ -141,7 +141,7 @@
             },
             "PENDING": {
               "type": "integer",
-              "description": "Number of HoldingsRecord delete operations not completed (should always be 0)"
+              "description": "Number of HoldingsRecord delete operations not completed (0 unless there is a logical error in MIU)"
             }
           }
         }
@@ -169,7 +169,7 @@
             },
             "PENDING": {
               "type": "integer",
-              "description": "Number of Item create operations not completed (should always be 0)"
+              "description": "Number of Item create operations not completed (0 unless there is a logical error in MIU)"
             }
           }
         },
@@ -191,7 +191,7 @@
             },
             "PENDING": {
               "type": "integer",
-              "description": "Number of Item update operations not completed (should always be 0)"
+              "description": "Number of Item update operations not completed (0 unless there is a logical error in MIU)"
             }
           }
         },
@@ -213,7 +213,7 @@
             },
             "PENDING": {
               "type": "integer",
-              "description": "Number of Item delete operations not completed (should always be 0)"
+              "description": "Number of Item delete operations not completed (0 unless there is a logical error in MIU)"
             }
           }
         }
@@ -241,7 +241,7 @@
             },
             "PENDING": {
               "type": "integer",
-              "description": "Number of Item relationship operations not completed (should always be 0)"
+              "description": "Number of Item relationship operations not completed (0 unless there is a logical error in MIU)"
             }
           }
         },
@@ -263,7 +263,7 @@
             },
             "PENDING": {
               "type": "integer",
-              "description": "Number of relationship delete operations not completed (should always be 0)"
+              "description": "Number of relationship delete operations not completed (0 unless there is a logical error in MIU)"
             }
           }
         },
@@ -285,7 +285,7 @@
             },
             "PENDING": {
               "type": "integer",
-              "description": "1 if creation was required but not completed (should always be 0)"
+              "description": "1 if creation was required but not completed (0 unless there is a logical error in MIU)"
             }
           }
         }
@@ -313,7 +313,7 @@
             },
             "PENDING": {
               "type": "integer",
-              "description": "Number of title succession create operations not completed (should always be 0)"
+              "description": "Number of title succession create operations not completed (0 unless there is a logical error in MIU)"
             }
           }
         },
@@ -335,7 +335,7 @@
             },
             "PENDING": {
               "type": "integer",
-              "description": "Number of title succession delete operations not completed (should always be 0)"
+              "description": "Number of title succession delete operations not completed (0 unless there is a logical error in MIU)"
             }
           }
         },
@@ -357,7 +357,7 @@
             },
             "PENDING": {
               "type": "integer",
-              "description": "1 if creation was required but not completed (should always be 0)"
+              "description": "1 if creation was required but not completed (0 unless there is a logical error in MIU)"
             }
           }
         }

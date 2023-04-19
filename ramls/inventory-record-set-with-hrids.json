@@ -206,9 +206,17 @@
       "type": "object",
       "properties": {
         "item": {
-          "description": "Instructions for processing Inventory items",
+          "description": "Instructions for processing Inventory Items",
           "type": "object",
           "properties": {
+            "retain": {
+              "description": "List of incoming Item properties to ignore if the Item is updating; retain existing values, that is.",
+              "type": "array",
+              "items": {
+                "description": "Instructs MIU to retain any existing value for this property.",
+                "type": "string"
+              }
+            },
             "status": {
               "description": "Instructions for retaining or overwriting status when updating an item",
               "type": "object",
@@ -261,7 +269,20 @@
               "required": ["policy"]
             }
           }
-        }
+        },
+        "holdingsRecord": {
+          "description": "Instructions for processing Inventory holdings records",
+          "type": "object",
+          "properties": {
+            "retain": {
+              "description": "List of incoming holdings record properties to ignore if the holdings record is updating; retain existing values, that is.",
+              "type": "array",
+              "items": {
+                "description": "Instruction for MIU to retain any existing value for this holdings record property.",
+                "type": "string"
+              }
+            }
+          }
       }
     }
   },

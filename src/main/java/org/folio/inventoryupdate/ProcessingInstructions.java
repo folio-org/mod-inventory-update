@@ -31,6 +31,11 @@ public class ProcessingInstructions {
   public static final String ITEM_STATUS_POLICY_APPLIES_TO_KEY = "ifStatusWas";
   public static final String ITEM_STATUS_NAME_KEY = "name";
 
+  public static final String ITEM_RETENTION_KEY = "retain";
+
+  public static final String HOLDINGS_INSTRUCTIONS_KEY = "holdingsRecord";
+  public static final String HOLDINGS_RECORD_RETENTION_KEY = "retain";
+
   public ProcessingInstructions (JsonObject processing) {
     this.processing = processing;
   }
@@ -102,4 +107,25 @@ public class ProcessingInstructions {
     }
     return statuses;
   }
+
+  public JsonArray getHoldingsRecordPropertiesToRetain() {
+    if (processing != null
+        && processing.containsKey(HOLDINGS_INSTRUCTIONS_KEY)
+        && processing.getJsonObject(HOLDINGS_INSTRUCTIONS_KEY).containsKey(HOLDINGS_RECORD_RETENTION_KEY)) {
+      return processing.getJsonObject(HOLDINGS_INSTRUCTIONS_KEY).getJsonArray(HOLDINGS_RECORD_RETENTION_KEY);
+    } else {
+      return new JsonArray();
+    }
+  }
+
+  public JsonArray getItemPropertiesToRetain() {
+    if (processing != null
+        && processing.containsKey(ITEM_INSTRUCTIONS_KEY)
+        && processing.getJsonObject(ITEM_INSTRUCTIONS_KEY).containsKey(ITEM_RETENTION_KEY))  {
+      return processing.getJsonObject(ITEM_INSTRUCTIONS_KEY).getJsonArray(ITEM_RETENTION_KEY);
+    } else {
+      return new JsonArray();
+    }
+  }
+
 }

@@ -110,6 +110,30 @@ public abstract class InventoryRecord {
         return this;
     }
 
+    public InventoryRecord removeProperty(String propertyName) {
+      jsonRecord.remove(propertyName);
+      return this;
+    }
+
+    /**
+     * This.jsonRecord (=incoming) is merged onto the baseJson (=existing) and then replaced by the result.
+     * This is to overlay an existing record with an incoming JSON
+     * in order to subsequently commit the resulting JSON to the database. The result would, for example,
+     * retain any existing JSON properties that are not present in the incoming JSON.
+     * Any properties in `propertiesToRetain` are retained even if they are present in the incoming record.
+     * @param record The record to use as base to merge this record onto.
+     * @param propertiesToRetain Names of incoming properties to discard (retain existing) in any case.
+     */
+    public InventoryRecord mergeWith(InventoryRecord record, JsonArray propertiesToRetain) {
+      JsonObject clone = record.jsonRecord.copy();
+      for (Object property : propertiesToRetain) {
+        removeProperty(property.toString());
+      }
+      clone.mergeIn(jsonRecord);
+      jsonRecord = clone;
+      return this;
+    }
+
     public JsonObject asJson() {
         return jsonRecord;
     }

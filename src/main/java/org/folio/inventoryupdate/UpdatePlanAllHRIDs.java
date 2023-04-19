@@ -211,6 +211,8 @@ public class UpdatePlanAllHRIDs extends UpdatePlan {
         if (pair.hasIncomingRecordSet()) {
             InventoryRecordSet incomingSet = pair.getIncomingRecordSet();
             Instance incomingInstance = incomingSet.getInstance();
+            ProcessingInstructions instr = new ProcessingInstructions(
+                pair.getIncomingRecordSet().getProcessingInfoAsJson());
             if (pair.hasExistingRecordSet()) {
                 // Updates, deletes
                 Instance existingInstance = pair.getExistingRecordSet().getInstance();
@@ -232,6 +234,10 @@ public class UpdatePlanAllHRIDs extends UpdatePlan {
                             incomingHoldingsRecord.setUUID(existingHoldingsRecord.getUUID());
                             incomingHoldingsRecord.setTransition(Transaction.UPDATE);
                             incomingHoldingsRecord.setVersion(existingHoldingsRecord.getVersion());
+                            // Retain existing properties that are either not present in the incoming holdings record
+                            // or are explicitly configured to be retained regardless.
+                            incomingHoldingsRecord.mergeWith(
+                                existingHoldingsRecord, instr.getHoldingsRecordPropertiesToRetain());
                         }
                         for (Item existingItem : existingHoldingsRecord.getItems()) {
                             Item incomingItem = pair.getIncomingRecordSet().getItemByHRID(
@@ -245,11 +251,12 @@ public class UpdatePlanAllHRIDs extends UpdatePlan {
                                 incomingItem.setUUID(existingItem.getUUID());
                                 incomingItem.setVersion(existingItem.getVersion());
                                 incomingItem.setTransition(Transaction.UPDATE);
-                                ProcessingInstructions instr = new ProcessingInstructions(
-                                        pair.getIncomingRecordSet().getProcessingInfoAsJson());
                                 if (instr.retainThisStatus(existingItem.getStatusName())) {
                                     incomingItem.setStatus(existingItem.getStatusName());
                                 }
+                                // Retain existing properties that are either not present in the incoming item
+                                // or are explicitly configured to be retained regardless.
+                                incomingItem.mergeWith(existingItem, instr.getItemPropertiesToRetain());
                             }
                         }
                     }
@@ -272,6 +279,10 @@ public class UpdatePlanAllHRIDs extends UpdatePlan {
                     holdingsRecord.setTransition(Transaction.UPDATE);
                     holdingsRecord.setUUID(existing.getUUID());
                     holdingsRecord.setVersion(existing.getVersion());
+                    // Retain existing properties that are either not present in the incoming holdings record
+                    // or are explicitly configured to be retained regardless.
+                    holdingsRecord.mergeWith(
+                      existing, instr.getHoldingsRecordPropertiesToRetain());
                 } else {
                     // The HRID does not exist in Inventory, create
                     holdingsRecord.setTransition(Transaction.CREATE);
@@ -290,11 +301,12 @@ public class UpdatePlanAllHRIDs extends UpdatePlan {
                     item.setTransition(Transaction.UPDATE);
                     item.setUUID(existing.getUUID());
                     item.setVersion(existing.getVersion());
-                    ProcessingInstructions instr = new ProcessingInstructions(
-                            pair.getIncomingRecordSet().getProcessingInfoAsJson());
                     if (instr.retainThisStatus(existing.getStatusName())) {
                         item.setStatus(existing.getStatusName());
                     }
+                    // Retain existing properties that are either not present in the incoming item
+                    // or are explicitly configured to be retained regardless.
+                    item.mergeWith(existing, instr.getItemPropertiesToRetain());
 
                 } else {
                     // The HRID does not exist in Inventory, create

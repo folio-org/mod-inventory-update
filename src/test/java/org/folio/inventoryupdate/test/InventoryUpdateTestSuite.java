@@ -1377,7 +1377,156 @@ public class InventoryUpdateTestSuite {
       testContext.assertEquals(((JsonObject)item).getString("barcode"), "updated",
               "The barcode of all items should be updated to 'updated' after upsert of existing record set with holdings and items");
     });
+  }
 
+  @Test
+  public void upsertByHridWillRetainExistingValuesOfHoldingsAndItemsIfNotPresentInIncoming (TestContext testContext) {
+    String instanceHrid = "1";
+    upsertByHrid(new JsonObject()
+        .put("instance",
+            new InputInstance().setTitle("Initial InputInstance").setInstanceTypeId("12345").setHrid(instanceHrid).setSource("test").getJson())
+        .put("holdingsRecords", new JsonArray()
+            .add(new InputHoldingsRecord().setHrid("HOL-001").setPermanentLocationId(LOCATION_ID_1).setCallNumber("test-cn-1")
+                .setAcquisitionFormat("original")
+                .setShelvingTitle("retainMe").getJson()
+                .put("items", new JsonArray()
+                    .add(new InputItem().setHrid("ITM-001")
+                        .setStatus(STATUS_UNKNOWN)
+                        .setMaterialTypeId(MATERIAL_TYPE_TEXT)
+                        .setBarcode("BC-001")
+                        .setYearCaption("retainMe").getJson())
+                    .add(new InputItem().setHrid("ITM-002")
+                        .setStatus(STATUS_UNKNOWN)
+                        .setMaterialTypeId(MATERIAL_TYPE_TEXT)
+                        .setBarcode("BC-002")
+                        .setYearCaption("retainMe").getJson())))
+            .add(new InputHoldingsRecord().setHrid("HOL-002").setPermanentLocationId(LOCATION_ID_1).setCallNumber("test-cn-2")
+                .setAcquisitionFormat("original")
+                .setShelvingTitle("retainMe").getJson()
+                .put("items", new JsonArray()
+                    .add(new InputItem()
+                        .setStatus(STATUS_UNKNOWN)
+                        .setMaterialTypeId(MATERIAL_TYPE_TEXT)
+                        .setHrid("ITM-003").setBarcode("BC-003")
+                        .setYearCaption("retainMe").getJson())))));
+
+
+    upsertByHrid(new JsonObject()
+        .put("instance",
+            new InputInstance().setTitle("Initial InputInstance").setInstanceTypeId("12345").setHrid(instanceHrid).setSource("test").getJson())
+        .put("holdingsRecords", new JsonArray()
+            .add(new InputHoldingsRecord().setHrid("HOL-001").setPermanentLocationId(LOCATION_ID_1).setCallNumber("updated-1")
+                .setAcquisitionFormat("updated").getJson()
+                .put("items", new JsonArray()
+                    .add(new InputItem().setHrid("ITM-001")
+                        .setStatus(STATUS_UNKNOWN)
+                        .setMaterialTypeId(MATERIAL_TYPE_TEXT)
+                        .setBarcode("updated").getJson())
+                    .add(new InputItem().setHrid("ITM-002")
+                        .setStatus(STATUS_UNKNOWN)
+                        .setMaterialTypeId(MATERIAL_TYPE_TEXT)
+                        .setBarcode("updated").getJson())))
+            .add(new InputHoldingsRecord().setHrid("HOL-002").setPermanentLocationId(LOCATION_ID_1).setCallNumber("updated-2")
+                .setAcquisitionFormat("updated").getJson()
+                .put("items", new JsonArray()
+                    .add(new InputItem().setHrid("ITM-003")
+                        .setStatus(STATUS_UNKNOWN)
+                        .setMaterialTypeId(MATERIAL_TYPE_TEXT)
+                        .setBarcode("updated").getJson())))));
+
+    getRecordsFromStorage(FakeInventoryStorage.ITEM_STORAGE_PATH,null).getJsonArray("items").stream().forEach(item -> {
+      testContext.assertEquals(((JsonObject)item).getString("barcode"), "updated",
+          "The barcode of all items should be updated to 'updated' after upsert of existing record set with holdings and items");
+      testContext.assertEquals(((JsonObject)item).getJsonArray("yearCaption").getString(0), "retainMe",
+          "The yearCaption of all items should be retained as 'retainMe' after upsert of existing record set with holdings and items");
+    });
+
+    getRecordsFromStorage(FakeInventoryStorage.HOLDINGS_STORAGE_PATH,null).getJsonArray("holdingsRecords").stream().forEach(holdingsRecord -> {
+      testContext.assertEquals(((JsonObject)holdingsRecord).getString("acquisitionFormat"), "updated",
+          "The acquisitionFormat of all holdings records should be updated to 'updated' after upsert of existing record set with holdings and items");
+      testContext.assertEquals(((JsonObject)holdingsRecord).getString("shelvingTitle"), "retainMe",
+          "The shelvingTitle of all holdings records should be retained as 'retainMe' after upsert of existing record set with holdings and items");
+    });
+
+  }
+
+  @Test
+  public void upsertByHridWillRetainExistingValuesOfHoldingsAndItemsThatAreConfiguredForIt (TestContext testContext) {
+    String instanceHrid = "1";
+    upsertByHrid(new JsonObject()
+        .put("instance",
+            new InputInstance().setTitle("Initial InputInstance").setInstanceTypeId("12345").setHrid(instanceHrid).setSource("test").getJson())
+        .put("holdingsRecords", new JsonArray()
+            .add(new InputHoldingsRecord().setHrid("HOL-001").setPermanentLocationId(LOCATION_ID_1).setCallNumber("test-cn-1")
+                .setAcquisitionFormat("original")
+                .setShelvingTitle("retainMe").getJson()
+                .put("items", new JsonArray()
+                    .add(new InputItem().setHrid("ITM-001")
+                        .setStatus(STATUS_UNKNOWN)
+                        .setMaterialTypeId(MATERIAL_TYPE_TEXT)
+                        .setBarcode("BC-001")
+                        .setYearCaption("retainMe").getJson())
+                    .add(new InputItem().setHrid("ITM-002")
+                        .setStatus(STATUS_UNKNOWN)
+                        .setMaterialTypeId(MATERIAL_TYPE_TEXT)
+                        .setBarcode("BC-002")
+                        .setYearCaption("retainMe").getJson())))
+            .add(new InputHoldingsRecord().setHrid("HOL-002").setPermanentLocationId(LOCATION_ID_1).setCallNumber("test-cn-2")
+                .setAcquisitionFormat("original")
+                .setShelvingTitle("retainMe").getJson()
+                .put("items", new JsonArray()
+                    .add(new InputItem()
+                        .setStatus(STATUS_UNKNOWN)
+                        .setMaterialTypeId(MATERIAL_TYPE_TEXT)
+                        .setHrid("ITM-003").setBarcode("BC-003")
+                        .setYearCaption("retainMe").getJson())))));
+
+
+    JsonObject response = upsertByHrid(new JsonObject()
+        .put("instance",
+            new InputInstance().setTitle("Initial InputInstance").setInstanceTypeId("12345").setHrid(instanceHrid).setSource("test").getJson())
+        .put("holdingsRecords", new JsonArray()
+            .add(new InputHoldingsRecord().setHrid("HOL-001").setPermanentLocationId(LOCATION_ID_1).setCallNumber("updated-1")
+                .setAcquisitionFormat("updated")
+                .setShelvingTitle("updated").getJson()
+                .put("items", new JsonArray()
+                    .add(new InputItem().setHrid("ITM-001")
+                        .setStatus(STATUS_UNKNOWN)
+                        .setMaterialTypeId(MATERIAL_TYPE_TEXT)
+                        .setBarcode("updated")
+                        .setYearCaption("updated").getJson())
+                    .add(new InputItem().setHrid("ITM-002")
+                        .setStatus(STATUS_UNKNOWN)
+                        .setMaterialTypeId(MATERIAL_TYPE_TEXT)
+                        .setBarcode("updated")
+                        .setYearCaption("updated").getJson())))
+            .add(new InputHoldingsRecord().setHrid("HOL-002").setPermanentLocationId(LOCATION_ID_1).setCallNumber("updated-2")
+                .setAcquisitionFormat("updated")
+                .setShelvingTitle("updated").getJson()
+                .put("items", new JsonArray()
+                    .add(new InputItem().setHrid("ITM-003")
+                        .setStatus(STATUS_UNKNOWN)
+                        .setMaterialTypeId(MATERIAL_TYPE_TEXT)
+                        .setBarcode("updated")
+                        .setYearCaption("updated").getJson()))))
+        .put(PROCESSING, new InputProcessingInstructions()
+            .setHoldingsRecordPropertiesToRetain("shelvingTitle","someOtherProp")
+            .setItemPropertiesToRetain("someProp","yearCaption").getJson()));
+
+    logger.info("Response: " + response.encodePrettily());
+    getRecordsFromStorage(FakeInventoryStorage.ITEM_STORAGE_PATH,null).getJsonArray("items").stream().forEach(item -> {
+      testContext.assertEquals(((JsonObject)item).getString("barcode"), "updated",
+          "The barcode of all items should be updated to 'updated' after upsert of existing record set with holdings and items");
+      testContext.assertEquals(((JsonObject)item).getJsonArray("yearCaption").getString(0), "retainMe",
+          "The yearCaption of all items should be retained as 'retainMe' after upsert of existing record set with holdings and items");
+    });
+
+    getRecordsFromStorage(FakeInventoryStorage.HOLDINGS_STORAGE_PATH,null).getJsonArray("holdingsRecords").stream().forEach(holdingsRecord -> {
+      testContext.assertEquals(((JsonObject)holdingsRecord).getString("acquisitionFormat"), "updated",
+          "The acquisitionFormat of all holdings records should be updated to 'updated' after upsert of existing record set with holdings and items");
+      testContext.assertEquals(((JsonObject)holdingsRecord).getString("shelvingTitle"), "retainMe",
+          "The shelvingTitle of all holdings records should be retained as 'retainMe' after upsert of existing record set with holdings and items");
+    });
   }
 
   @Test

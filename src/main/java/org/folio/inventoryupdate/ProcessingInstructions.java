@@ -5,6 +5,7 @@ import io.vertx.core.json.JsonObject;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * Wraps JSON structure like this:
@@ -23,7 +24,12 @@ import java.util.List;
  */
 public class ProcessingInstructions {
   JsonObject processing;
+  public static final String INSTANCE_INSTRUCTIONS_KEY = "instance";
+  public static final String HOLDINGS_INSTRUCTIONS_KEY = "holdingsRecord";
   public static final String ITEM_INSTRUCTIONS_KEY = "item";
+  public static final String VALUE_RETENTION_KEY = "retainExistingValues";
+  public static final String OMITTED_PROPERTIES_RETENTION_KEY = "forOmittedProperties";
+  public static final String SPECIFIC_PROPERTIES_RETENTION_KEY = "forTheseProperties";
   public static final String ITEM_STATUS_INSTRUCTION_KEY = "status";
   public static final String ITEM_STATUS_POLICY_KEY = "policy";
   public static final String ITEM_STATUS_POLICY_RETAIN = "retain";
@@ -31,22 +37,28 @@ public class ProcessingInstructions {
   public static final String ITEM_STATUS_POLICY_APPLIES_TO_KEY = "ifStatusWas";
   public static final String ITEM_STATUS_NAME_KEY = "name";
 
-  public static final String ITEM_RETENTION_KEY = "retain";
-
-  public static final String HOLDINGS_INSTRUCTIONS_KEY = "holdingsRecord";
-  public static final String HOLDINGS_RECORD_RETENTION_KEY = "retain";
+  public InstanceInstructions instanceInstructions;
+  public HoldingsRecordInstructions holdingsRecordInstructions;
+  public ItemInstructions itemInstructions;
 
   public ProcessingInstructions (JsonObject processing) {
     this.processing = processing;
+    instanceInstructions = new InstanceInstructions(processing);
+    holdingsRecordInstructions = new HoldingsRecordInstructions(processing);
+    itemInstructions = new ItemInstructions(processing);
+  }
+
+  private boolean hasItemInstructions () {
+    return processing != null && processing.containsKey(ITEM_INSTRUCTIONS_KEY);
+  }
+
+  private JsonObject getItemInstructions() {
+    return processing.getJsonObject(ITEM_INSTRUCTIONS_KEY);
   }
 
   private JsonObject getItemStatusInstructions() {
-    if (processing != null
-            && processing.containsKey(ITEM_INSTRUCTIONS_KEY)
-            && processing.getJsonObject(ITEM_INSTRUCTIONS_KEY).containsKey(
-            ITEM_STATUS_INSTRUCTION_KEY)) {
-      return processing.getJsonObject(ITEM_INSTRUCTIONS_KEY)
-              .getJsonObject(ITEM_STATUS_INSTRUCTION_KEY);
+    if (hasItemInstructions() && getItemInstructions().containsKey(ITEM_STATUS_INSTRUCTION_KEY)) {
+      return getItemInstructions().getJsonObject(ITEM_STATUS_INSTRUCTION_KEY);
     } else {
       return null;
     }
@@ -108,23 +120,66 @@ public class ProcessingInstructions {
     return statuses;
   }
 
-  public JsonArray getHoldingsRecordPropertiesToRetain() {
-    if (processing != null
-        && processing.containsKey(HOLDINGS_INSTRUCTIONS_KEY)
-        && processing.getJsonObject(HOLDINGS_INSTRUCTIONS_KEY).containsKey(HOLDINGS_RECORD_RETENTION_KEY)) {
-      return processing.getJsonObject(HOLDINGS_INSTRUCTIONS_KEY).getJsonArray(HOLDINGS_RECORD_RETENTION_KEY);
-    } else {
-      return new JsonArray();
+  static class EntityInstructions {
+    ValueRetention valueRetention;
+
+    boolean retainOmittedProperties() {
+      return valueRetention.forOmittedProperties;
+    }
+
+    List<String> retainTheseProperties() {
+      return valueRetention.forSpecificProperties;
+    }
+
+  }
+  static class InstanceInstructions extends EntityInstructions  {
+    InstanceInstructions(JsonObject processing) {
+      if (processing != null) {
+        valueRetention = new ValueRetention(processing.getJsonObject(INSTANCE_INSTRUCTIONS_KEY));
+      } else {
+        valueRetention = new ValueRetention(null);
+      }
+
     }
   }
 
-  public JsonArray getItemPropertiesToRetain() {
-    if (processing != null
-        && processing.containsKey(ITEM_INSTRUCTIONS_KEY)
-        && processing.getJsonObject(ITEM_INSTRUCTIONS_KEY).containsKey(ITEM_RETENTION_KEY))  {
-      return processing.getJsonObject(ITEM_INSTRUCTIONS_KEY).getJsonArray(ITEM_RETENTION_KEY);
-    } else {
-      return new JsonArray();
+  static class HoldingsRecordInstructions extends EntityInstructions {
+    HoldingsRecordInstructions(JsonObject processing) {
+      if (processing != null) {
+        valueRetention = new ValueRetention(processing.getJsonObject(HOLDINGS_INSTRUCTIONS_KEY));
+      } else {
+        valueRetention = new ValueRetention(null);
+      }
+    }
+  }
+
+  static class ItemInstructions extends EntityInstructions {
+    ItemInstructions(JsonObject processing) {
+      if (processing != null) {
+        valueRetention = new ValueRetention(processing.getJsonObject(ITEM_INSTRUCTIONS_KEY));
+      } else {
+        valueRetention = new ValueRetention(null);
+      }
+    }
+  }
+
+
+  static class ValueRetention {
+    boolean forOmittedProperties = false;
+    List<String> forSpecificProperties = new ArrayList<>();
+    ValueRetention(JsonObject json) {
+       if (json != null) {
+         JsonObject valueRetention = json.getJsonObject(VALUE_RETENTION_KEY);
+         if (valueRetention != null) {
+           if (valueRetention.containsKey(OMITTED_PROPERTIES_RETENTION_KEY)) {
+             forOmittedProperties = valueRetention.getBoolean(OMITTED_PROPERTIES_RETENTION_KEY);
+           }
+           if (valueRetention.containsKey(SPECIFIC_PROPERTIES_RETENTION_KEY)) {
+             forSpecificProperties = valueRetention.getJsonArray(SPECIFIC_PROPERTIES_RETENTION_KEY)
+                 .stream().map(Object::toString).collect(Collectors.toList());
+           }
+         }
+       }
     }
   }
 

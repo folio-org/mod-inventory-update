@@ -1,5 +1,6 @@
 package org.folio.inventoryupdate.entities;
 
+import java.util.List;
 import java.util.UUID;
 
 import io.vertx.core.impl.logging.Logger;
@@ -116,7 +117,7 @@ public abstract class InventoryRecord {
     }
 
     /**
-     * This.jsonRecord (=incoming) is merged onto the baseJson (=existing) and then replaced by the result.
+     * This.jsonRecord (=incoming) is merged onto the record (=existing) and then replaced by the result.
      * This is to overlay an existing record with an incoming JSON
      * in order to subsequently commit the resulting JSON to the database. The result would, for example,
      * retain any existing JSON properties that are not present in the incoming JSON.
@@ -124,14 +125,27 @@ public abstract class InventoryRecord {
      * @param record The record to use as base to merge this record onto.
      * @param propertiesToRetain Names of incoming properties to discard (retain existing) in any case.
      */
-    public InventoryRecord mergeWith(InventoryRecord record, JsonArray propertiesToRetain) {
-      JsonObject clone = record.jsonRecord.copy();
-      for (Object property : propertiesToRetain) {
-        removeProperty(property.toString());
+    public void applyOverlay(InventoryRecord record, boolean retainOmitted, List<String> propertiesToRetain) {
+      if (retainOmitted) {
+        // clone existing
+        JsonObject clone = record.jsonRecord.copy();
+        // remove specific properties from incoming
+        for (Object property : propertiesToRetain) {
+          removeProperty(property.toString());
+        }
+        // merge incoming onto existing
+        clone.mergeIn(jsonRecord);
+        // replace incoming with the result
+        jsonRecord = clone;
+      } else {
+        // transfer specific properties from existing to incoming
+        for (String property : propertiesToRetain) {
+          // Silently ignore non-existing property names
+          if (record.asJson().containsKey(property)) {
+            jsonRecord.put(property, record.asJson().getValue(property));
+          }
+        }
       }
-      clone.mergeIn(jsonRecord);
-      jsonRecord = clone;
-      return this;
     }
 
     public JsonObject asJson() {

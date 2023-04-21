@@ -62,14 +62,71 @@ public class InputProcessingInstructions {
     return processingInstructions.getJsonObject(ProcessingInstructions.HOLDINGS_INSTRUCTIONS_KEY);
   }
 
+  public JsonObject getInstanceInstructions() {
+    if (!processingInstructions.containsKey(ProcessingInstructions.INSTANCE_INSTRUCTIONS_KEY)) {
+      setInstanceInstructions();
+    }
+    return processingInstructions.getJsonObject(ProcessingInstructions.INSTANCE_INSTRUCTIONS_KEY);
+  }
+
+  public void setInstanceInstructions() {
+    processingInstructions.put(ProcessingInstructions.INSTANCE_INSTRUCTIONS_KEY, new JsonObject());
+  }
+
+  public InputProcessingInstructions setInstancePropertiesToRetain(String ...propertyNames) {
+    JsonArray propNames = new JsonArray();
+    for (String prop : propertyNames) {
+      propNames.add(prop);
+    }
+    if (!getInstanceInstructions().containsKey(ProcessingInstructions.VALUE_RETENTION_KEY)) {
+      getInstanceInstructions().put(ProcessingInstructions.VALUE_RETENTION_KEY, new JsonObject());
+    }
+    getInstanceInstructions().getJsonObject(ProcessingInstructions.VALUE_RETENTION_KEY)
+        .put(ProcessingInstructions.SPECIFIC_PROPERTIES_RETENTION_KEY, propNames);
+    return this;
+  }
+
   public InputProcessingInstructions setHoldingsRecordPropertiesToRetain(String ...propertyNames) {
     JsonArray propNames = new JsonArray();
     for (String prop : propertyNames) {
       propNames.add(prop);
     }
-    getHoldingsRecordInstructions().put(ProcessingInstructions.HOLDINGS_RECORD_RETENTION_KEY, propNames);
+    if (!getHoldingsRecordInstructions().containsKey(ProcessingInstructions.VALUE_RETENTION_KEY)) {
+      getHoldingsRecordInstructions().put(ProcessingInstructions.VALUE_RETENTION_KEY, new JsonObject());
+    }
+    getHoldingsRecordInstructions().getJsonObject(ProcessingInstructions.VALUE_RETENTION_KEY)
+        .put(ProcessingInstructions.SPECIFIC_PROPERTIES_RETENTION_KEY, propNames);
     return this;
 
+  }
+
+  public InputProcessingInstructions setRetainOmittedInstanceProperties (boolean on) {
+    if (!getInstanceInstructions().containsKey(ProcessingInstructions.VALUE_RETENTION_KEY)) {
+      getInstanceInstructions().put(ProcessingInstructions.VALUE_RETENTION_KEY, new JsonObject());
+    }
+    getInstanceInstructions().getJsonObject(ProcessingInstructions.VALUE_RETENTION_KEY)
+        .put(ProcessingInstructions.OMITTED_PROPERTIES_RETENTION_KEY,on);
+    return this;
+
+  }
+
+  public InputProcessingInstructions setRetainOmittedHoldingsRecordProperties (boolean on) {
+    if (!getHoldingsRecordInstructions().containsKey(ProcessingInstructions.VALUE_RETENTION_KEY)) {
+      getHoldingsRecordInstructions().put(ProcessingInstructions.VALUE_RETENTION_KEY, new JsonObject());
+    }
+    getHoldingsRecordInstructions().getJsonObject(ProcessingInstructions.VALUE_RETENTION_KEY)
+        .put(ProcessingInstructions.OMITTED_PROPERTIES_RETENTION_KEY,on);
+    return this;
+  }
+
+  public InputProcessingInstructions setRetainOmittedItemProperties (boolean on) {
+    if (!getItemInstructions().containsKey(ProcessingInstructions.VALUE_RETENTION_KEY)) {
+      getItemInstructions().put(ProcessingInstructions.VALUE_RETENTION_KEY, new JsonObject());
+    }
+
+    getItemInstructions().getJsonObject(ProcessingInstructions.VALUE_RETENTION_KEY)
+        .put(ProcessingInstructions.OMITTED_PROPERTIES_RETENTION_KEY,on);
+    return this;
   }
 
   public InputProcessingInstructions setItemPropertiesToRetain(String ...propertyNames) {
@@ -77,7 +134,11 @@ public class InputProcessingInstructions {
     for (String prop : propertyNames) {
       propNames.add(prop);
     }
-    getItemInstructions().put(ProcessingInstructions.ITEM_RETENTION_KEY, propNames);
+    if (!getItemInstructions().containsKey(ProcessingInstructions.VALUE_RETENTION_KEY)) {
+      getItemInstructions().put(ProcessingInstructions.VALUE_RETENTION_KEY, new JsonObject());
+    }
+    getItemInstructions().getJsonObject(ProcessingInstructions.VALUE_RETENTION_KEY)
+        .put(ProcessingInstructions.SPECIFIC_PROPERTIES_RETENTION_KEY, propNames);
     return this;
   }
 

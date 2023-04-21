@@ -219,6 +219,10 @@ public class UpdatePlanAllHRIDs extends UpdatePlan {
                 incomingInstance.setUUID(existingInstance.getUUID());
                 incomingInstance.setTransition(Transaction.UPDATE);
                 incomingInstance.setVersion(existingInstance.getVersion());
+                incomingInstance.applyOverlay(
+                    existingInstance,
+                    instr.instanceInstructions.retainOmittedProperties(),
+                    instr.instanceInstructions.retainTheseProperties());
                 if (!incomingInstance.ignoreHoldings()) {
                     // If a record set came in with a list of holdings records (even if it was an empty list)
                     for (HoldingsRecord existingHoldingsRecord :
@@ -236,8 +240,10 @@ public class UpdatePlanAllHRIDs extends UpdatePlan {
                             incomingHoldingsRecord.setVersion(existingHoldingsRecord.getVersion());
                             // Retain existing properties that are either not present in the incoming holdings record
                             // or are explicitly configured to be retained regardless.
-                            incomingHoldingsRecord.mergeWith(
-                                existingHoldingsRecord, instr.getHoldingsRecordPropertiesToRetain());
+                            incomingHoldingsRecord.applyOverlay(
+                                existingHoldingsRecord,
+                                instr.holdingsRecordInstructions.retainOmittedProperties(),
+                                instr.holdingsRecordInstructions.retainTheseProperties());
                         }
                         for (Item existingItem : existingHoldingsRecord.getItems()) {
                             Item incomingItem = pair.getIncomingRecordSet().getItemByHRID(
@@ -256,7 +262,10 @@ public class UpdatePlanAllHRIDs extends UpdatePlan {
                                 }
                                 // Retain existing properties that are either not present in the incoming item
                                 // or are explicitly configured to be retained regardless.
-                                incomingItem.mergeWith(existingItem, instr.getItemPropertiesToRetain());
+                                incomingItem.applyOverlay(
+                                    existingItem,
+                                    instr.itemInstructions.retainOmittedProperties(),
+                                    instr.itemInstructions.retainTheseProperties());
                             }
                         }
                     }
@@ -281,8 +290,10 @@ public class UpdatePlanAllHRIDs extends UpdatePlan {
                     holdingsRecord.setVersion(existing.getVersion());
                     // Retain existing properties that are either not present in the incoming holdings record
                     // or are explicitly configured to be retained regardless.
-                    holdingsRecord.mergeWith(
-                      existing, instr.getHoldingsRecordPropertiesToRetain());
+                    holdingsRecord.applyOverlay(
+                        existing,
+                        instr.holdingsRecordInstructions.retainOmittedProperties(),
+                        instr.holdingsRecordInstructions.retainTheseProperties());
                 } else {
                     // The HRID does not exist in Inventory, create
                     holdingsRecord.setTransition(Transaction.CREATE);
@@ -306,7 +317,10 @@ public class UpdatePlanAllHRIDs extends UpdatePlan {
                     }
                     // Retain existing properties that are either not present in the incoming item
                     // or are explicitly configured to be retained regardless.
-                    item.mergeWith(existing, instr.getItemPropertiesToRetain());
+                    item.applyOverlay(
+                        existing,
+                        instr.itemInstructions.retainOmittedProperties(),
+                        instr.itemInstructions.retainTheseProperties());
 
                 } else {
                     // The HRID does not exist in Inventory, create

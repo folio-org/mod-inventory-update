@@ -1380,11 +1380,16 @@ public class InventoryUpdateTestSuite {
   }
 
   @Test
-  public void upsertByHridWillRetainExistingValuesOfHoldingsAndItemsIfNotPresentInIncoming (TestContext testContext) {
+  public void upsertByHridWillRetainExistingValuesForOmittedPropertiesIfAsked(TestContext testContext) {
     String instanceHrid = "1";
     upsertByHrid(new JsonObject()
         .put("instance",
-            new InputInstance().setTitle("Initial InputInstance").setInstanceTypeId("12345").setHrid(instanceHrid).setSource("test").getJson())
+            new InputInstance()
+                .setTitle("Initial InputInstance")
+                .setInstanceTypeId("12345")
+                .setHrid(instanceHrid)
+                .setSource("test")
+                .setEdition("retainMe").getJson())
         .put("holdingsRecords", new JsonArray()
             .add(new InputHoldingsRecord().setHrid("HOL-001").setPermanentLocationId(LOCATION_ID_1).setCallNumber("test-cn-1")
                 .setAcquisitionFormat("original")
@@ -1411,9 +1416,12 @@ public class InventoryUpdateTestSuite {
                         .setYearCaption("retainMe").getJson())))));
 
 
-    upsertByHrid(new JsonObject()
+    JsonObject resp = upsertByHrid(new JsonObject()
         .put("instance",
-            new InputInstance().setTitle("Initial InputInstance").setInstanceTypeId("12345").setHrid(instanceHrid).setSource("test").getJson())
+            new InputInstance()
+                .setTitle("Initial InputInstance")
+                .setInstanceTypeId("12345")
+                .setHrid(instanceHrid).setSource("test").getJson())
         .put("holdingsRecords", new JsonArray()
             .add(new InputHoldingsRecord().setHrid("HOL-001").setPermanentLocationId(LOCATION_ID_1).setCallNumber("updated-1")
                 .setAcquisitionFormat("updated").getJson()
@@ -1432,7 +1440,16 @@ public class InventoryUpdateTestSuite {
                     .add(new InputItem().setHrid("ITM-003")
                         .setStatus(STATUS_UNKNOWN)
                         .setMaterialTypeId(MATERIAL_TYPE_TEXT)
-                        .setBarcode("updated").getJson())))));
+                        .setBarcode("updated").getJson()))))
+        .put(PROCESSING, new InputProcessingInstructions()
+            .setRetainOmittedInstanceProperties(true)
+            .setRetainOmittedHoldingsRecordProperties(true)
+            .setRetainOmittedItemProperties(true).getJson()));
+
+    getRecordsFromStorage(INSTANCE_STORAGE_PATH,null).getJsonArray("instances").stream().forEach(record -> {
+      testContext.assertEquals(((JsonObject)record).getJsonArray("editions").getString(0), "retainMe",
+          "The editions should be retained as 'retainMe' after upsert of existing record set");
+    });
 
     getRecordsFromStorage(FakeInventoryStorage.ITEM_STORAGE_PATH,null).getJsonArray("items").stream().forEach(item -> {
       testContext.assertEquals(((JsonObject)item).getString("barcode"), "updated",
@@ -1451,11 +1468,16 @@ public class InventoryUpdateTestSuite {
   }
 
   @Test
-  public void upsertByHridWillRetainExistingValuesOfHoldingsAndItemsThatAreConfiguredForIt (TestContext testContext) {
+  public void upsertByHridWillRetainExistingValuesOfSpecifiedProperties (TestContext testContext) {
     String instanceHrid = "1";
-    upsertByHrid(new JsonObject()
+    JsonObject init = upsertByHrid(new JsonObject()
         .put("instance",
-            new InputInstance().setTitle("Initial InputInstance").setInstanceTypeId("12345").setHrid(instanceHrid).setSource("test").getJson())
+            new InputInstance()
+                .setTitle("Initial InputInstance")
+                .setInstanceTypeId("12345")
+                .setHrid(instanceHrid)
+                .setSource("test")
+                .setEdition("retainMe").getJson())
         .put("holdingsRecords", new JsonArray()
             .add(new InputHoldingsRecord().setHrid("HOL-001").setPermanentLocationId(LOCATION_ID_1).setCallNumber("test-cn-1")
                 .setAcquisitionFormat("original")
@@ -1479,12 +1501,19 @@ public class InventoryUpdateTestSuite {
                         .setStatus(STATUS_UNKNOWN)
                         .setMaterialTypeId(MATERIAL_TYPE_TEXT)
                         .setHrid("ITM-003").setBarcode("BC-003")
-                        .setYearCaption("retainMe").getJson())))));
-
+                        .setYearCaption("retainMe").getJson()))))
+        .put(PROCESSING, new InputProcessingInstructions()
+            .setHoldingsRecordPropertiesToRetain("shelvingTitle","someOtherProp")
+            .setItemPropertiesToRetain("someProp","yearCaption").getJson()));
 
     JsonObject response = upsertByHrid(new JsonObject()
         .put("instance",
-            new InputInstance().setTitle("Initial InputInstance").setInstanceTypeId("12345").setHrid(instanceHrid).setSource("test").getJson())
+            new InputInstance()
+                .setTitle("Initial InputInstance")
+                .setInstanceTypeId("12345")
+                .setHrid(instanceHrid)
+                .setSource("updated")
+                .setEdition("updated").getJson())
         .put("holdingsRecords", new JsonArray()
             .add(new InputHoldingsRecord().setHrid("HOL-001").setPermanentLocationId(LOCATION_ID_1).setCallNumber("updated-1")
                 .setAcquisitionFormat("updated")
@@ -1510,10 +1539,17 @@ public class InventoryUpdateTestSuite {
                         .setBarcode("updated")
                         .setYearCaption("updated").getJson()))))
         .put(PROCESSING, new InputProcessingInstructions()
+            .setInstancePropertiesToRetain("editions")
             .setHoldingsRecordPropertiesToRetain("shelvingTitle","someOtherProp")
             .setItemPropertiesToRetain("someProp","yearCaption").getJson()));
 
-    logger.info("Response: " + response.encodePrettily());
+    getRecordsFromStorage(INSTANCE_STORAGE_PATH,null).getJsonArray("instances").stream().forEach(record -> {
+      testContext.assertEquals(((JsonObject)record).getString("source"), "updated",
+          "The Instance.source should be updated to 'updated' after upsert of existing record set");
+      testContext.assertEquals(((JsonObject)record).getJsonArray("editions").getString(0), "retainMe",
+          "The Instance.edition should be retained as 'retainMe' after upsert of existing record set");
+    });
+
     getRecordsFromStorage(FakeInventoryStorage.ITEM_STORAGE_PATH,null).getJsonArray("items").stream().forEach(item -> {
       testContext.assertEquals(((JsonObject)item).getString("barcode"), "updated",
           "The barcode of all items should be updated to 'updated' after upsert of existing record set with holdings and items");

@@ -49,17 +49,19 @@ of relationships that tie multipart monographs together or relations pointing to
 on a comparison with the set of relationships that may be registered for the Instance in storage already, relationships
 will be created and/or deleted (updating relationships is obsolete).
 
-#### Control overlay of Item status with `processing` instructions
+#### Control record overlay on updates.
 
-The JSON property [`processing`](ramls/instructions/processing.json) can be used for controlling the update behaviour of MIU per request. For example how Item status is handled on Item updates, or which existing values that should be retained when MIU updates records.
+The default behavior of MIU is to simply replace the entire record on updates, for example override the entire holdingsRecord, with the input JSON it receives from the client, except for the ID (UUID) and version.
+
+The default behavior can be changed per request using structures in [`processing`](ramls/instructions/processing.json).
+
 
 ##### Prevent MIU from override existing values
 
 MIU can be instructed to leave certain properties in place when updating Instances, holdings records, and Items.
 
-The default behavior of MIU is to simply replace the entire record, except for the ID (UUID) and version. The default behavior can be changed using the `retainExistingValues` [schema](ramls/instructions/retention.json).
+For example, to retain all existing Item properties that are not included in the request body to MIU, use the `retainExistingValues` [schema](ramls/instructions/retention.json).
 
-For example, to retain all existing Item properties that are not included in the request body to MIU, use these instructions:
 
 ```
 "processing": {

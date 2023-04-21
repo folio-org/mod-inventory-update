@@ -57,7 +57,9 @@ The JSON property [`processing`](ramls/instructions/processing.json) can be used
 
 MIU can be instructed to leave certain properties in place when updating Instances, holdings records, and Items.
 
-For example to retain all existing values in Item records that are not include in the request body to MIU, use the retainExistingValues [schema](ramls/instructions/retention.json)
+The default behavior of MIU is to simply replace the entire record, except for the ID (UUID) and version. The default behavior can be changed using the `retainExistingValues` [schema](ramls/instructions/retention.json).
+
+For example, to retain all existing Item properties that are not included in the request body to MIU, use these instructions:
 
 ```
 "processing": {
@@ -85,7 +87,7 @@ If MIU sets certain properties on insert but should not touch them in subsequent
 
 The two settings can be combined to not touch neither omitted properties nor the explicitly listed properties.
 
-If `forOmittedProperties` is used it requires some careful distinguishing between sending and empty property vs not sending the property at all. Say an Instance had `contributors` before but now they were removed in the source catalog. If this is communicated to MIU by an empty `contributors` property, then it's fine, it will become empty in Inventory Storage too, but if the property is simply removed from the request body altogether, then the existing value of `contributors` will be retained in storage if `forOmittedProperties` is set to true.
+If `forOmittedProperties` is used it requires the client to distinguish between sending an empty property vs not sending the property at all. Say an Instance had `contributors` before, but now they were removed in the source catalog. If this is communicated to MIU by an empty `contributors` property, then it's fine, it will become empty in Inventory Storage too, but if the property is simply removed from the request body altogether, then the existing value of `contributors` will be retained in storage if `forOmittedProperties` is set to true.
 
 ##### Instruct MIU to leave the item status unmodified under certain circumstance.
 

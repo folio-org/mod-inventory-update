@@ -38,4 +38,14 @@ public class InputHoldingsRecord extends InventoryRecord {
         return this;
     }
 
+    public InputHoldingsRecord setShelvingTitle (String shelvingTitle) {
+        recordJson.put("shelvingTitle", shelvingTitle);
+        return this;
+    }
+
+    public InputHoldingsRecord setAcquisitionFormat (String acquisitionFormat) {
+        recordJson.put("acquisitionFormat", acquisitionFormat);
+        return this;
+    }
+
 }

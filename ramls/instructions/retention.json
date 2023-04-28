@@ -1,0 +1,15 @@
+{
+  "description": "Defines retention policies for existing values when updating records.",
+  "forOmittedProperties": {
+    "description": "If set to true, MIU retains existing properties if they are absent from the incoming record. If set to false (default), MIU removes absent properties from the existing record too.",
+    "type": "boolean",
+    "default": false
+  },
+  "forTheseProperties": {
+    "description": "List of properties to retain existing values for, whether they are present or not in the incoming record.",
+    "type": "array",
+    "items": {
+      "type": "string"
+    }
+  }
+}

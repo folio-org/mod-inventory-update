@@ -49,12 +49,51 @@ of relationships that tie multipart monographs together or relations pointing to
 on a comparison with the set of relationships that may be registered for the Instance in storage already, relationships
 will be created and/or deleted (updating relationships is obsolete).
 
-#### Control overlay of Item status with `processing` instructions
+#### Control record overlay on updates.
 
-The JSON property `processing` can be used for controlling how Item status is handled on Item updates. This is to
-support Item status being managed outside the update API, likely by FOLIO Circulation. With instructions the requester
-can ask that certain or all existing status values are updated or that certain or all status values are retained on Item
-updates.
+The default behavior of MIU is to simply replace the entire record on updates, for example override the entire holdingsRecord, with the input JSON it receives from the client, except for the ID (UUID) and version.
+
+The default behavior can be changed per request using structures in [`processing`](ramls/instructions/processing.json).
+
+
+##### Prevent MIU from override existing values
+
+MIU can be instructed to leave certain properties in place when updating Instances, holdings records, and Items.
+
+For example, to retain all existing Item properties that are not included in the request body to MIU, use the `retainExistingValues` [schema](ramls/instructions/retention.json).
+
+
+```
+"processing": {
+   "item": {
+     "retainExistingValues": {
+       "forOmittedProperties": true
+     }
+   }
+}
+```
+
+This is a way to have MIU only update the set of properties it should be concerned with and let other properties be the responsibility of other processes if required.
+
+If MIU sets certain properties on insert but should not touch them in subsequent updates -- even though they are provided in the request body to MIU -- those properties can be explicitly turned off in updates:
+
+```
+"processing": {
+   "item": {
+     "retainExistingValues": {
+       "forTheseProperties": [ "a", "b", "c" ]
+     }
+   }
+}
+```
+
+The two settings can be combined to not touch neither omitted properties nor the explicitly listed properties.
+
+If `forOmittedProperties` is used it requires the client to distinguish between sending an empty property vs not sending the property at all. Say an Instance had `contributors` before, but now they were removed in the source catalog. If this is communicated to MIU by an empty `contributors` property, then it's fine, it will become empty in Inventory Storage too, but if the property is simply removed from the request body altogether, then the existing value of `contributors` will be retained in storage if `forOmittedProperties` is set to true.
+
+##### Instruct MIU to leave the item status unmodified under certain circumstance.
+
+In case the Item status is being managed outside the MIU update process, likely by FOLIO Circulation, MIU can be instructed to only touch the status under certain circumstances.
 
 For example, to only overwrite a status of "On order" and retain any other statuses, do:
 

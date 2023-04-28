@@ -1,5 +1,6 @@
 package org.folio.inventoryupdate.test.fakestorage.entitites;
 
+import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 
 public class InputItem extends InventoryRecord {
@@ -41,6 +42,13 @@ public class InputItem extends InventoryRecord {
     public InputItem setMaterialTypeId (String materialTypeId) {
         recordJson.put("materialTypeId", materialTypeId);
         return this;
+    }
+
+    public InputItem setYearCaption (String yearCaption) {
+      JsonArray array = new JsonArray();
+      array.add(yearCaption);
+      recordJson.put("yearCaption", array);
+      return this;
     }
 
 }

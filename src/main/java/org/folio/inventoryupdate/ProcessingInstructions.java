@@ -124,7 +124,7 @@ public class ProcessingInstructions {
     ValueRetention valueRetention;
 
     boolean retainOmittedProperties() {
-      return valueRetention.forOmittedProperties;
+      return valueRetention.forOmittedProperties.equals("true");
     }
 
     List<String> retainTheseProperties() {
@@ -165,14 +165,14 @@ public class ProcessingInstructions {
 
 
   static class ValueRetention {
-    boolean forOmittedProperties = false;
+    String forOmittedProperties = "false";
     List<String> forSpecificProperties = new ArrayList<>();
     ValueRetention(JsonObject json) {
        if (json != null) {
          JsonObject valueRetention = json.getJsonObject(VALUE_RETENTION_KEY);
          if (valueRetention != null) {
            if (valueRetention.containsKey(OMITTED_PROPERTIES_RETENTION_KEY)) {
-             forOmittedProperties = valueRetention.getBoolean(OMITTED_PROPERTIES_RETENTION_KEY);
+             forOmittedProperties = valueRetention.getString(OMITTED_PROPERTIES_RETENTION_KEY).toLowerCase();
            }
            if (valueRetention.containsKey(SPECIFIC_PROPERTIES_RETENTION_KEY)) {
              forSpecificProperties = valueRetention.getJsonArray(SPECIFIC_PROPERTIES_RETENTION_KEY)

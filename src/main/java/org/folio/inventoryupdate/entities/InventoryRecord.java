@@ -140,7 +140,7 @@ public abstract class InventoryRecord {
       } else {
         // transfer specific properties from existing to incoming
         for (String property : propertiesToRetain) {
-          // Silently ignore non-existing property names
+          // Retain specific, but silently ignore non-existing property names in the list
           if (record.asJson().containsKey(property)) {
             jsonRecord.put(property, record.asJson().getValue(property));
           }

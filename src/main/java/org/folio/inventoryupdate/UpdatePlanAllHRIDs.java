@@ -219,8 +219,7 @@ public class UpdatePlanAllHRIDs extends UpdatePlan {
             if (pair.hasExistingRecordSet()) {
                 // Updates, deletes
                 Instance existingInstance = pair.getExistingRecordSet().getInstance();
-                incomingInstance.setTransition(UPDATE)
-                    .applyOverlays(existingInstance, rules.forInstance());
+                incomingInstance.setTransition(UPDATE).applyOverlays(existingInstance, rules.forInstance());
                 if (!incomingInstance.ignoreHoldings()) {
                     // If a record set came in with a list of holdings records (even if it was an empty list)
                     for (HoldingsRecord existingHoldingsRecord : existingInstance.getHoldingsRecords()) {
@@ -264,7 +263,6 @@ public class UpdatePlanAllHRIDs extends UpdatePlan {
                     // The HRID does not exist in Inventory, create
                     holdingsRecord.setTransition(CREATE).generateUUIDIfNotProvided();
                 }
-
             }
             // Find incoming items we didn't already resolve (update or delete) above
             List<Item> items = incomingSet.getItemsByTransactionType(Transaction.UNKNOWN);
@@ -276,10 +274,7 @@ public class UpdatePlanAllHRIDs extends UpdatePlan {
                     item.applyOverlays(existing, rules.forItem());
                 } else {
                     // The HRID does not exist in Inventory, create
-                    item.setTransition(CREATE);
-                    if (!item.hasUUID()) {
-                        item.generateUUID();
-                    }
+                    item.setTransition(CREATE).generateUUIDIfNotProvided();
                 }
             }
         }

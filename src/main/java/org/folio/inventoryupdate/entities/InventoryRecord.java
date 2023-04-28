@@ -1,6 +1,5 @@
 package org.folio.inventoryupdate.entities;
 
-import java.util.List;
 import java.util.UUID;
 
 import io.vertx.core.impl.logging.Logger;
@@ -113,9 +112,8 @@ public abstract class InventoryRecord {
         return this;
     }
 
-    public InventoryRecord removeProperty(String propertyName) {
+    public void removeProperty(String propertyName) {
       jsonRecord.remove(propertyName);
-      return this;
     }
 
     /**
@@ -125,7 +123,6 @@ public abstract class InventoryRecord {
      * retain any existing JSON properties that are not present in the incoming JSON.
      * Any properties in `propertiesToRetain` are retained even if they are present in the incoming record.
      * @param existingRecord The record to use as base to merge this record onto.
-     * @param propertiesToRetain Names of incoming properties to discard (retain existing) in any case.
      */
     public void applyOverlays(InventoryRecord existingRecord, ProcessingInstructions.EntityInstructions instr) {
 

@@ -244,11 +244,8 @@ public class UpdatePlanAllHRIDs extends UpdatePlan {
                             } else {
                                 // Existing Item still exists in incoming record (possibly under a
                                 // different holdings record)
-                                if (rules.retainThisStatus(existingItem.getStatusName())) {
-                                    incomingItem.setStatus(existingItem.getStatusName());
-                                }
-                                incomingItem.setTransition(UPDATE)
-                                  .applyOverlays(existingItem, rules.forItem());
+                                incomingItem.setTransition(UPDATE);
+                                incomingItem.applyOverlays(existingItem, rules.forItem());
                             }
                         }
                     }
@@ -285,10 +282,8 @@ public class UpdatePlanAllHRIDs extends UpdatePlan {
                 if (repository.existingItemsByHrid.containsKey(item.getHRID())) {
                     // Import from different Instance
                     Item existing = repository.existingItemsByHrid.get(item.getHRID());
-                    if (rules.retainThisStatus(existing.getStatusName())) {
-                        item.setStatus(existing.getStatusName());
-                    }
-                    item.setTransition(UPDATE).applyOverlays(existing, rules.forItem());
+                    item.setTransition(UPDATE);
+                    item.applyOverlays(existing, rules.forItem());
                 } else {
                     // The HRID does not exist in Inventory, create
                     item.setTransition(CREATE);

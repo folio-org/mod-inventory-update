@@ -37,9 +37,9 @@ public class ProcessingInstructions {
   public static final String ITEM_STATUS_POLICY_APPLIES_TO_KEY = "ifStatusWas";
   public static final String ITEM_STATUS_NAME_KEY = "name";
 
-  private InstanceInstructions instanceInstructions;
-  private HoldingsRecordInstructions holdingsRecordInstructions;
-  private ItemInstructions itemInstructions;
+  private final InstanceInstructions instanceInstructions;
+  private final HoldingsRecordInstructions holdingsRecordInstructions;
+  private final ItemInstructions itemInstructions;
 
   public ProcessingInstructions (JsonObject processing) {
     this.processing = processing;
@@ -60,80 +60,26 @@ public class ProcessingInstructions {
     return itemInstructions;
   }
 
-  private boolean hasItemInstructions () {
-    return processing != null && processing.containsKey(ITEM_INSTRUCTIONS_KEY);
-  }
-
-  private JsonObject getItemInstructions() {
-    return processing.getJsonObject(ITEM_INSTRUCTIONS_KEY);
-  }
-
-  private JsonObject getItemStatusInstructions() {
-    if (hasItemInstructions() && getItemInstructions().containsKey(ITEM_STATUS_INSTRUCTION_KEY)) {
-      return getItemInstructions().getJsonObject(ITEM_STATUS_INSTRUCTION_KEY);
-    } else {
-      return null;
-    }
-  }
-
-  private boolean hasItemStatusInstructions() {
-    return ( getItemStatusInstructions() != null);
-  }
-
-  private boolean itemStatusPolicyIsOverwrite() {
-    return ITEM_STATUS_POLICY_OVERWRITE.equalsIgnoreCase(getItemStatusUpdatePolicy());
-  }
-
-  private boolean itemStatusPolicyIsRetain() {
-    return ITEM_STATUS_POLICY_RETAIN.equalsIgnoreCase(getItemStatusUpdatePolicy());
-  }
-
-  private boolean hasListOfItemStatuses() {
-    if (hasItemStatusInstructions()) {
-      return getItemStatusInstructions().containsKey(ITEM_STATUS_POLICY_APPLIES_TO_KEY);
-    } else {
-      return false;
-    }
-  }
-
-  private String getItemStatusUpdatePolicy() {
-    if (hasItemStatusInstructions()) {
-      return getItemStatusInstructions().getString(ITEM_STATUS_POLICY_KEY);
-   }
-    return null;
-  }
-
-  public boolean retainThisStatus(String statusName) {
-    if (itemStatusPolicyIsRetain()) {
-      if (hasListOfItemStatuses()) {
-        return getListOfStatuses().contains(statusName);
-      } else {
-        return true;
-      }
-    } else if (itemStatusPolicyIsOverwrite()) {
-      if (hasListOfItemStatuses()) {
-        return !getListOfStatuses().contains(statusName);
-      } else {
-        return false;
-      }
-    }
-    return false;
-  }
-
-  private List<String> getListOfStatuses () {
-    List<String> statuses = new ArrayList<>();
-    if (hasItemStatusInstructions()) {
-      JsonArray itemStatuses = getItemStatusInstructions()
-              .getJsonArray(ITEM_STATUS_POLICY_APPLIES_TO_KEY);
-      for (Object o : itemStatuses) {
-        statuses.add(((JsonObject) o).getString(ITEM_STATUS_NAME_KEY));
-      }
-    }
-    return statuses;
-  }
-
   public static class EntityInstructions {
+    String key;
     ValueRetention valueRetention;
+    JsonObject processing;
+    JsonObject entityInstructions;
+
+    EntityInstructions(JsonObject processing, String entityInstructionsKey) {
+      this.processing = processing;
+      this.key = entityInstructionsKey;
+      if (processing != null) {
+        this.entityInstructions = processing.getJsonObject(entityInstructionsKey);
+        valueRetention = new ValueRetention(entityInstructions);
+      } else {
+        valueRetention = new ValueRetention(null);
+      }
+    }
+
+    public boolean hasInstructions() {
+      return processing != null && processing.containsKey(key);
+    }
 
     public boolean retainOmittedProperties() {
       return valueRetention.forOmittedProperties.equals("true");
@@ -145,55 +91,102 @@ public class ProcessingInstructions {
 
   }
 
+  static class ValueRetention {
+    String forOmittedProperties = "false";
+    List<String> forSpecificProperties = new ArrayList<>();
+    ValueRetention(JsonObject json) {
+      if (json != null) {
+        JsonObject valueRetention = json.getJsonObject(VALUE_RETENTION_KEY);
+        if (valueRetention != null) {
+          if (valueRetention.containsKey(OMITTED_PROPERTIES_RETENTION_KEY)) {
+            forOmittedProperties = valueRetention.getString(OMITTED_PROPERTIES_RETENTION_KEY).toLowerCase();
+          }
+          if (valueRetention.containsKey(SPECIFIC_PROPERTIES_RETENTION_KEY)) {
+            forSpecificProperties = valueRetention.getJsonArray(SPECIFIC_PROPERTIES_RETENTION_KEY)
+                .stream().map(Object::toString).collect(Collectors.toList());
+          }
+        }
+      }
+    }
+  }
+
   static class InstanceInstructions extends EntityInstructions  {
     InstanceInstructions(JsonObject processing) {
-      if (processing != null) {
-        valueRetention = new ValueRetention(processing.getJsonObject(INSTANCE_INSTRUCTIONS_KEY));
-      } else {
-        valueRetention = new ValueRetention(null);
-      }
-
+      super(processing, INSTANCE_INSTRUCTIONS_KEY);
     }
   }
 
   static class HoldingsRecordInstructions extends EntityInstructions {
     HoldingsRecordInstructions(JsonObject processing) {
-      if (processing != null) {
-        valueRetention = new ValueRetention(processing.getJsonObject(HOLDINGS_INSTRUCTIONS_KEY));
-      } else {
-        valueRetention = new ValueRetention(null);
-      }
+      super(processing, HOLDINGS_INSTRUCTIONS_KEY);
     }
   }
 
-  static class ItemInstructions extends EntityInstructions {
+  public static class ItemInstructions extends EntityInstructions {
     ItemInstructions(JsonObject processing) {
-      if (processing != null) {
-        valueRetention = new ValueRetention(processing.getJsonObject(ITEM_INSTRUCTIONS_KEY));
+      super(processing, ITEM_INSTRUCTIONS_KEY);
+    }
+
+    public boolean retainThisStatus(String statusName) {
+      if (itemStatusPolicyIsRetain()) {
+        if (hasListOfItemStatuses()) {
+          return getListOfStatuses().contains(statusName);
+        } else {
+          return true;
+        }
+      } else if (itemStatusPolicyIsOverwrite()) {
+        if (hasListOfItemStatuses()) {
+          return !getListOfStatuses().contains(statusName);
+        } else {
+          return false;
+        }
+      }
+      return false;
+    }
+
+    private JsonObject getItemStatusInstructions() {
+      if (hasInstructions() && entityInstructions.containsKey(ITEM_STATUS_INSTRUCTION_KEY)) {
+        return entityInstructions.getJsonObject(ITEM_STATUS_INSTRUCTION_KEY);
       } else {
-        valueRetention = new ValueRetention(null);
+        return null;
       }
     }
-  }
 
-
-  static class ValueRetention {
-    String forOmittedProperties = "false";
-    List<String> forSpecificProperties = new ArrayList<>();
-    ValueRetention(JsonObject json) {
-       if (json != null) {
-         JsonObject valueRetention = json.getJsonObject(VALUE_RETENTION_KEY);
-         if (valueRetention != null) {
-           if (valueRetention.containsKey(OMITTED_PROPERTIES_RETENTION_KEY)) {
-             forOmittedProperties = valueRetention.getString(OMITTED_PROPERTIES_RETENTION_KEY).toLowerCase();
-           }
-           if (valueRetention.containsKey(SPECIFIC_PROPERTIES_RETENTION_KEY)) {
-             forSpecificProperties = valueRetention.getJsonArray(SPECIFIC_PROPERTIES_RETENTION_KEY)
-                 .stream().map(Object::toString).collect(Collectors.toList());
-           }
-         }
-       }
+    private boolean itemStatusPolicyIsOverwrite() {
+      return ITEM_STATUS_POLICY_OVERWRITE.equalsIgnoreCase(getItemStatusUpdatePolicy());
     }
+
+    private boolean itemStatusPolicyIsRetain() {
+      return ITEM_STATUS_POLICY_RETAIN.equalsIgnoreCase(getItemStatusUpdatePolicy());
+    }
+
+    private boolean hasListOfItemStatuses() {
+      if (getItemStatusInstructions() != null) {
+        return getItemStatusInstructions().containsKey(ITEM_STATUS_POLICY_APPLIES_TO_KEY);
+      } else {
+        return false;
+      }
+    }
+
+    private String getItemStatusUpdatePolicy() {
+      if (getItemStatusInstructions() != null) {
+        return getItemStatusInstructions().getString(ITEM_STATUS_POLICY_KEY);
+      }
+      return null;
+    }
+
+    private List<String> getListOfStatuses () {
+      List<String> statuses = new ArrayList<>();
+      if (getItemStatusInstructions() != null) {
+        JsonArray itemStatuses = getItemStatusInstructions()
+            .getJsonArray(ITEM_STATUS_POLICY_APPLIES_TO_KEY);
+        for (Object o : itemStatuses) {
+          statuses.add(((JsonObject) o).getString(ITEM_STATUS_NAME_KEY));
+        }
+      }
+      return statuses;
+    }
+
   }
 
 }

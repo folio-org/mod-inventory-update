@@ -1,4 +1,23 @@
+## 3.0.1 2023-03-07
+
+* Updates Instance even if holdings create fails (MODINVUP-62)
+
+## 3.0.0 2023-02-17
+
+* Adapts to schema changes in Inventory Storage (MODINVUP-57)
+* Provides `inventory-upsert-hrid 2.0` (MODINVUP-57)
+* Provides `inventory-batch-upsert-hrid 2.0` (MODINVUP-57)
+* Provides `shared-inventory-upsert-matchkey 2.0` (MODINVUP-57)
+* Provides `shared-inventory-batch-upsert-matchkey 2.0` (MODINVUP-57)
+* Requires `instance-storage 10.0` (MODINVUP-57)
+* Requires `instance-storage-batch-sync 2.0` (MODINVUP-57)
+* Requires `inventory-view-instance-set 2.0` (MODINVUP-57)
+* Requires `holdings-storage-batch-sync 1.1`
+* Requires `item-storage-batch-sync 1.0`
+* Fixes order of item deletes and creates to avoid "intermittent" duplicate IDs (MODINVUP-46)
+
 ## 2.3.1 2022-09-05
+
 * Bug-fix for a provisional instance duplication scenario with batch (MODINVUP-51)
 
 ## 2.3.0 2022-08-31

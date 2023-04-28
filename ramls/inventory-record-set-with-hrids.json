@@ -201,72 +201,13 @@
         }
       }
     },
-    "processing" : {
-      "description": "An object holding supporting pieces of data and/or processing instructions for Inventory update processing",
+    "processing": {
+      "description": "Processing instructions, for example for value retention on updates.",
       "type": "object",
-      "properties": {
-        "item": {
-          "description": "Instructions for processing Inventory items",
-          "type": "object",
-          "properties": {
-            "status": {
-              "description": "Instructions for retaining or overwriting status when updating an item",
-              "type": "object",
-              "properties": {
-                "policy": {
-                  "description": "Update instruction for item status",
-                  "type": "string",
-                  "enum": [
-                    "retain",
-                    "overwrite"
-                  ]
-                },
-                "ifStatusWas": {
-                  "description": "List of statuses that policy applies to",
-                  "type": "array",
-                  "items": {
-                    "type": "object",
-                    "properties": {
-                      "name": {
-                        "description": "status name",
-                        "type": "string",
-                        "enum": [
-                          "Aged to lost",
-                          "Available",
-                          "Awaiting pickup",
-                          "Awaiting delivery",
-                          "Checked out",
-                          "Claimed returned",
-                          "Declared lost",
-                          "In process",
-                          "In process (non-requestable)",
-                          "In transit",
-                          "Intellectual item",
-                          "Long missing",
-                          "Lost and paid",
-                          "Missing",
-                          "On order",
-                          "Paged",
-                          "Restricted",
-                          "Order closed",
-                          "Unavailable",
-                          "Unknown",
-                          "Withdrawn"
-                        ]
-                      }
-                    }
-                  }
-                }
-              },
-              "required": ["policy"]
-            }
-          }
-        }
-      }
+      "$ref": "instructions/processing.json"
     }
   },
   "required": [
-    "instance",
-    "holdingsRecords"
+    "instance"
   ]
 }

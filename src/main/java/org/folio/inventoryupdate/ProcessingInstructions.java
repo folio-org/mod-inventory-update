@@ -37,15 +37,27 @@ public class ProcessingInstructions {
   public static final String ITEM_STATUS_POLICY_APPLIES_TO_KEY = "ifStatusWas";
   public static final String ITEM_STATUS_NAME_KEY = "name";
 
-  public InstanceInstructions instanceInstructions;
-  public HoldingsRecordInstructions holdingsRecordInstructions;
-  public ItemInstructions itemInstructions;
+  private InstanceInstructions instanceInstructions;
+  private HoldingsRecordInstructions holdingsRecordInstructions;
+  private ItemInstructions itemInstructions;
 
   public ProcessingInstructions (JsonObject processing) {
     this.processing = processing;
     instanceInstructions = new InstanceInstructions(processing);
     holdingsRecordInstructions = new HoldingsRecordInstructions(processing);
     itemInstructions = new ItemInstructions(processing);
+  }
+
+  InstanceInstructions forInstance() {
+    return instanceInstructions;
+  }
+
+  HoldingsRecordInstructions forHoldingsRecord() {
+    return holdingsRecordInstructions;
+  }
+
+  ItemInstructions forItem() {
+    return itemInstructions;
   }
 
   private boolean hasItemInstructions () {
@@ -120,18 +132,19 @@ public class ProcessingInstructions {
     return statuses;
   }
 
-  static class EntityInstructions {
+  public static class EntityInstructions {
     ValueRetention valueRetention;
 
-    boolean retainOmittedProperties() {
+    public boolean retainOmittedProperties() {
       return valueRetention.forOmittedProperties.equals("true");
     }
 
-    List<String> retainTheseProperties() {
+    public List<String> retainTheseProperties() {
       return valueRetention.forSpecificProperties;
     }
 
   }
+
   static class InstanceInstructions extends EntityInstructions  {
     InstanceInstructions(JsonObject processing) {
       if (processing != null) {

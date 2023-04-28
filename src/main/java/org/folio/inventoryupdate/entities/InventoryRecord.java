@@ -9,6 +9,7 @@ import io.vertx.core.json.DecodeException;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import org.folio.inventoryupdate.ErrorReport;
+import org.folio.inventoryupdate.ProcessingInstructions;
 
 import static org.folio.inventoryupdate.ErrorReport.UNPROCESSABLE_ENTITY;
 
@@ -60,8 +61,9 @@ public abstract class InventoryRecord {
 
     protected static final Logger logger = LoggerFactory.getLogger("inventory-update");
 
-    public void setTransition (Transaction transaction) {
+    public InventoryRecord setTransition (Transaction transaction) {
         this.transaction = transaction;
+        return this;
     }
 
     public Transaction getTransaction () {
@@ -122,27 +124,31 @@ public abstract class InventoryRecord {
      * in order to subsequently commit the resulting JSON to the database. The result would, for example,
      * retain any existing JSON properties that are not present in the incoming JSON.
      * Any properties in `propertiesToRetain` are retained even if they are present in the incoming record.
-     * @param record The record to use as base to merge this record onto.
+     * @param existingRecord The record to use as base to merge this record onto.
      * @param propertiesToRetain Names of incoming properties to discard (retain existing) in any case.
      */
-    public void applyOverlay(InventoryRecord record, boolean retainOmitted, List<String> propertiesToRetain) {
-      if (retainOmitted) {
+    public void applyOverlays(InventoryRecord existingRecord, ProcessingInstructions.EntityInstructions instr) {
+
+      setUUID(existingRecord.getUUID());
+      setVersion(existingRecord.getVersion());
+
+      if (instr.retainOmittedProperties()) {
         // clone existing
-        JsonObject clone = record.jsonRecord.copy();
+        JsonObject clonedBase = existingRecord.jsonRecord.copy();
         // remove specific properties from incoming
-        for (Object property : propertiesToRetain) {
+        for (Object property : instr.retainTheseProperties()) {
           removeProperty(property.toString());
         }
         // merge incoming onto existing
-        clone.mergeIn(jsonRecord);
+        clonedBase.mergeIn(this.jsonRecord);
         // replace incoming with the result
-        jsonRecord = clone;
+        this.jsonRecord = clonedBase;
       } else {
         // transfer specific properties from existing to incoming
-        for (String property : propertiesToRetain) {
+        for (String property : instr.retainTheseProperties()) {
           // Retain specific, but silently ignore non-existing property names in the list
-          if (record.asJson().containsKey(property)) {
-            jsonRecord.put(property, record.asJson().getValue(property));
+          if (existingRecord.asJson().containsKey(property)) {
+            this.jsonRecord.put(property, existingRecord.asJson().getValue(property));
           }
         }
       }

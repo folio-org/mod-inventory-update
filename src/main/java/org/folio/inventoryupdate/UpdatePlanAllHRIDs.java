@@ -18,6 +18,9 @@ import io.vertx.core.Promise;
 
 import static org.folio.inventoryupdate.ErrorReport.UNPROCESSABLE_ENTITY;
 import static org.folio.inventoryupdate.entities.InventoryRecordSet.*;
+import static org.folio.inventoryupdate.entities.InventoryRecord.Transaction.CREATE;
+import static org.folio.inventoryupdate.entities.InventoryRecord.Transaction.DELETE;
+import static org.folio.inventoryupdate.entities.InventoryRecord.Transaction.UPDATE;
 
 public class UpdatePlanAllHRIDs extends UpdatePlan {
 
@@ -211,18 +214,13 @@ public class UpdatePlanAllHRIDs extends UpdatePlan {
         if (pair.hasIncomingRecordSet()) {
             InventoryRecordSet incomingSet = pair.getIncomingRecordSet();
             Instance incomingInstance = incomingSet.getInstance();
-            ProcessingInstructions instr = new ProcessingInstructions(
+            ProcessingInstructions rules = new ProcessingInstructions(
                 pair.getIncomingRecordSet().getProcessingInfoAsJson());
             if (pair.hasExistingRecordSet()) {
                 // Updates, deletes
                 Instance existingInstance = pair.getExistingRecordSet().getInstance();
-                incomingInstance.setUUID(existingInstance.getUUID());
-                incomingInstance.setTransition(Transaction.UPDATE);
-                incomingInstance.setVersion(existingInstance.getVersion());
-                incomingInstance.applyOverlay(
-                    existingInstance,
-                    instr.instanceInstructions.retainOmittedProperties(),
-                    instr.instanceInstructions.retainTheseProperties());
+                incomingInstance.setTransition(UPDATE)
+                    .applyOverlays(existingInstance, rules.forInstance());
                 if (!incomingInstance.ignoreHoldings()) {
                     // If a record set came in with a list of holdings records (even if it was an empty list)
                     for (HoldingsRecord existingHoldingsRecord :
@@ -231,41 +229,26 @@ public class UpdatePlanAllHRIDs extends UpdatePlan {
                                 existingHoldingsRecord.getHRID());
                         // HoldingsRecord gone, mark for deletion and check for existing items to delete with it
                         if (incomingHoldingsRecord == null) {
-                            existingHoldingsRecord.setTransition(Transaction.DELETE);
+                            existingHoldingsRecord.setTransition(DELETE);
                         } else {
-                            // There is an existing holdings record with the same HRID,
-                            // on the same Instance, update
-                            incomingHoldingsRecord.setUUID(existingHoldingsRecord.getUUID());
-                            incomingHoldingsRecord.setTransition(Transaction.UPDATE);
-                            incomingHoldingsRecord.setVersion(existingHoldingsRecord.getVersion());
-                            // Retain existing properties that are either not present in the incoming holdings record
-                            // or are explicitly configured to be retained regardless.
-                            incomingHoldingsRecord.applyOverlay(
-                                existingHoldingsRecord,
-                                instr.holdingsRecordInstructions.retainOmittedProperties(),
-                                instr.holdingsRecordInstructions.retainTheseProperties());
+                            // There is an existing holdings record with the same HRID on the same Instance
+                            incomingHoldingsRecord.setTransition(UPDATE)
+                               .applyOverlays(existingHoldingsRecord, rules.forHoldingsRecord());
                         }
                         for (Item existingItem : existingHoldingsRecord.getItems()) {
                             Item incomingItem = pair.getIncomingRecordSet().getItemByHRID(
                                     existingItem.getHRID());
                             if (incomingItem == null) {
                                 // An existing Item is gone from the Instance, delete
-                                existingItem.setTransition(Transaction.DELETE);
+                                existingItem.setTransition(DELETE);
                             } else {
-                                // Existing Item still exists in incoming record (possibly under
-                                // a different holdings record), update
-                                incomingItem.setUUID(existingItem.getUUID());
-                                incomingItem.setVersion(existingItem.getVersion());
-                                incomingItem.setTransition(Transaction.UPDATE);
-                                if (instr.retainThisStatus(existingItem.getStatusName())) {
+                                // Existing Item still exists in incoming record (possibly under a
+                                // different holdings record)
+                                if (rules.retainThisStatus(existingItem.getStatusName())) {
                                     incomingItem.setStatus(existingItem.getStatusName());
                                 }
-                                // Retain existing properties that are either not present in the incoming item
-                                // or are explicitly configured to be retained regardless.
-                                incomingItem.applyOverlay(
-                                    existingItem,
-                                    instr.itemInstructions.retainOmittedProperties(),
-                                    instr.itemInstructions.retainTheseProperties());
+                                incomingItem.setTransition(UPDATE)
+                                  .applyOverlays(existingItem, rules.forItem());
                             }
                         }
                     }
@@ -274,7 +257,7 @@ public class UpdatePlanAllHRIDs extends UpdatePlan {
                 if (!incomingInstance.hasUUID()) {
                     incomingInstance.generateUUID();
                 }
-                incomingInstance.setTransition(Transaction.CREATE);
+                incomingInstance.setTransition(CREATE);
             }
             // Remaining holdings and item transactions: Creates, imports from other Instance(s)
             // Find incoming holdings we didn't already resolve above
@@ -285,18 +268,11 @@ public class UpdatePlanAllHRIDs extends UpdatePlan {
                     // Import from different Instance
                     HoldingsRecord existing = repository.existingHoldingsRecordsByHrid.get(
                             holdingsRecord.getHRID());
-                    holdingsRecord.setTransition(Transaction.UPDATE);
-                    holdingsRecord.setUUID(existing.getUUID());
-                    holdingsRecord.setVersion(existing.getVersion());
-                    // Retain existing properties that are either not present in the incoming holdings record
-                    // or are explicitly configured to be retained regardless.
-                    holdingsRecord.applyOverlay(
-                        existing,
-                        instr.holdingsRecordInstructions.retainOmittedProperties(),
-                        instr.holdingsRecordInstructions.retainTheseProperties());
+                    holdingsRecord
+                      .setTransition(UPDATE).applyOverlays(existing, rules.forHoldingsRecord());
                 } else {
                     // The HRID does not exist in Inventory, create
-                    holdingsRecord.setTransition(Transaction.CREATE);
+                    holdingsRecord.setTransition(CREATE);
                     if (!holdingsRecord.hasUUID()) {
                         holdingsRecord.generateUUID();
                     }
@@ -309,22 +285,13 @@ public class UpdatePlanAllHRIDs extends UpdatePlan {
                 if (repository.existingItemsByHrid.containsKey(item.getHRID())) {
                     // Import from different Instance
                     Item existing = repository.existingItemsByHrid.get(item.getHRID());
-                    item.setTransition(Transaction.UPDATE);
-                    item.setUUID(existing.getUUID());
-                    item.setVersion(existing.getVersion());
-                    if (instr.retainThisStatus(existing.getStatusName())) {
+                    if (rules.retainThisStatus(existing.getStatusName())) {
                         item.setStatus(existing.getStatusName());
                     }
-                    // Retain existing properties that are either not present in the incoming item
-                    // or are explicitly configured to be retained regardless.
-                    item.applyOverlay(
-                        existing,
-                        instr.itemInstructions.retainOmittedProperties(),
-                        instr.itemInstructions.retainTheseProperties());
-
+                    item.setTransition(UPDATE).applyOverlays(existing, rules.forItem());
                 } else {
                     // The HRID does not exist in Inventory, create
-                    item.setTransition(Transaction.CREATE);
+                    item.setTransition(CREATE);
                     if (!item.hasUUID()) {
                         item.generateUUID();
                     }

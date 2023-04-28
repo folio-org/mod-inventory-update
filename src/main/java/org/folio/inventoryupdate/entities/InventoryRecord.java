@@ -87,7 +87,13 @@ public abstract class InventoryRecord {
         return uuid.toString();
     }
 
-    public void setUUID (String uuid) {
+  public void generateUUIDIfNotProvided() {
+    if (!hasUUID()) {
+      generateUUID();
+    }
+  }
+
+  public void setUUID (String uuid) {
         jsonRecord.put("id", uuid);
     }
 

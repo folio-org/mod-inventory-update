@@ -42,6 +42,7 @@ public class Item extends InventoryRecord {
     return jsonRecord.getJsonObject("status").getString("name");
   }
 
+  @Override
   public void applyOverlays(InventoryRecord existingRecord, ProcessingInstructions.EntityInstructions instr) {
     Item existingItem = (Item) existingRecord;
     ProcessingInstructions.ItemInstructions itemInstr = (ProcessingInstructions.ItemInstructions) instr;

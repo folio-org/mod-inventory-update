@@ -64,14 +64,14 @@ public class ProcessingInstructions {
     String key;
     ValueRetention valueRetention;
     JsonObject processing;
-    JsonObject entityInstructions;
+    JsonObject entityInstructionsJson;
 
     EntityInstructions(JsonObject processing, String entityInstructionsKey) {
       this.processing = processing;
       this.key = entityInstructionsKey;
       if (processing != null) {
-        this.entityInstructions = processing.getJsonObject(entityInstructionsKey);
-        valueRetention = new ValueRetention(entityInstructions);
+        this.entityInstructionsJson = processing.getJsonObject(entityInstructionsKey);
+        valueRetention = new ValueRetention(entityInstructionsJson);
       } else {
         valueRetention = new ValueRetention(null);
       }
@@ -145,8 +145,8 @@ public class ProcessingInstructions {
     }
 
     private JsonObject getItemStatusInstructions() {
-      if (hasInstructions() && entityInstructions.containsKey(ITEM_STATUS_INSTRUCTION_KEY)) {
-        return entityInstructions.getJsonObject(ITEM_STATUS_INSTRUCTION_KEY);
+      if (hasInstructions() && entityInstructionsJson.containsKey(ITEM_STATUS_INSTRUCTION_KEY)) {
+        return entityInstructionsJson.getJsonObject(ITEM_STATUS_INSTRUCTION_KEY);
       } else {
         return null;
       }

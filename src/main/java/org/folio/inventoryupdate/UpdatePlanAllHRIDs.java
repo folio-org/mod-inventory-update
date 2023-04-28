@@ -223,8 +223,7 @@ public class UpdatePlanAllHRIDs extends UpdatePlan {
                     .applyOverlays(existingInstance, rules.forInstance());
                 if (!incomingInstance.ignoreHoldings()) {
                     // If a record set came in with a list of holdings records (even if it was an empty list)
-                    for (HoldingsRecord existingHoldingsRecord :
-                            pair.getExistingRecordSet().getInstance().getHoldingsRecords()) {
+                    for (HoldingsRecord existingHoldingsRecord : existingInstance.getHoldingsRecords()) {
                         HoldingsRecord incomingHoldingsRecord = incomingInstance.getHoldingsRecordByHRID(
                                 existingHoldingsRecord.getHRID());
                         // HoldingsRecord gone, mark for deletion and check for existing items to delete with it
@@ -236,8 +235,7 @@ public class UpdatePlanAllHRIDs extends UpdatePlan {
                                .applyOverlays(existingHoldingsRecord, rules.forHoldingsRecord());
                         }
                         for (Item existingItem : existingHoldingsRecord.getItems()) {
-                            Item incomingItem = pair.getIncomingRecordSet().getItemByHRID(
-                                    existingItem.getHRID());
+                            Item incomingItem = pair.getIncomingRecordSet().getItemByHRID(existingItem.getHRID());
                             if (incomingItem == null) {
                                 // An existing Item is gone from the Instance, delete
                                 existingItem.setTransition(DELETE);
@@ -251,10 +249,7 @@ public class UpdatePlanAllHRIDs extends UpdatePlan {
                     }
                 }
             } else {
-                if (!incomingInstance.hasUUID()) {
-                    incomingInstance.generateUUID();
-                }
-                incomingInstance.setTransition(CREATE);
+                incomingInstance.setTransition(CREATE).generateUUIDIfNotProvided();
             }
             // Remaining holdings and item transactions: Creates, imports from other Instance(s)
             // Find incoming holdings we didn't already resolve above
@@ -263,16 +258,11 @@ public class UpdatePlanAllHRIDs extends UpdatePlan {
             for (HoldingsRecord holdingsRecord : holdingsRecords) {
                 if (repository.existingHoldingsRecordsByHrid.containsKey(holdingsRecord.getHRID())) {
                     // Import from different Instance
-                    HoldingsRecord existing = repository.existingHoldingsRecordsByHrid.get(
-                            holdingsRecord.getHRID());
-                    holdingsRecord
-                      .setTransition(UPDATE).applyOverlays(existing, rules.forHoldingsRecord());
+                    HoldingsRecord existing = repository.existingHoldingsRecordsByHrid.get(holdingsRecord.getHRID());
+                    holdingsRecord.setTransition(UPDATE).applyOverlays(existing, rules.forHoldingsRecord());
                 } else {
                     // The HRID does not exist in Inventory, create
-                    holdingsRecord.setTransition(CREATE);
-                    if (!holdingsRecord.hasUUID()) {
-                        holdingsRecord.generateUUID();
-                    }
+                    holdingsRecord.setTransition(CREATE).generateUUIDIfNotProvided();
                 }
 
             }

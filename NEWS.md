@@ -1,4 +1,4 @@
-## 3.1.0
+## 3.1.0 2023-05-01
 
 * Provides `inventory-upsert-hrid 2.1`
 * Provides `inventory-batch-upsert-hrid 2.1`

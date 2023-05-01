@@ -182,6 +182,7 @@
       }
     },
     "subjects": {
+      "description": "List of subject headings",
       "oneOf": [
         {
           "type": "array",

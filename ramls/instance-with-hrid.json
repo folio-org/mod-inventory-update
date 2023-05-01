@@ -69,6 +69,7 @@
       "uniqueItems": true
     },
     "series": {
+      "description": "List of series titles associated with the resource (e.g. Harry Potter)",
       "oneOf" : [
         {
           "type": "array",
@@ -168,6 +169,7 @@
       }
     },
     "subjects": {
+      "description": "List of subject headings",
       "oneOf": [
         {
           "type": "array",

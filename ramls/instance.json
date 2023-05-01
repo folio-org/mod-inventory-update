@@ -182,28 +182,41 @@
       }
     },
     "subjects": {
-      "type": "array",
       "description": "List of subject headings",
-      "items": {
-        "type": "object",
-        "properties": {
-          "value": {
-            "type": "string",
-            "description": "Subject heading value"
+      "oneOf": [
+        {
+          "type": "array",
+          "description": "List of subject headings",
+          "items": {
+            "type": "string"
           },
-          "authorityId": {
-            "type": "string",
-            "description": "UUID of authority record that controls a subject heading",
-            "$ref": "raml-util/schemas/uuid.schema",
-            "readonly": true
-          }
+          "uniqueItems": true
         },
-        "additionalProperties": false,
-        "required": [
-          "value"
-        ]
-      },
-      "uniqueItems": true
+        {
+          "type": "array",
+          "description": "List of subject headings",
+          "items": {
+            "type": "object",
+            "properties": {
+              "value": {
+                "type": "string",
+                "description": "Subject heading value"
+              },
+              "authorityId": {
+                "type": "string",
+                "description": "UUID of authority record that controls a subject heading",
+                "$ref": "raml-util/schemas/uuid.schema",
+                "readonly": true
+              }
+            },
+            "additionalProperties": false,
+            "required": [
+              "value"
+            ]
+          },
+          "uniqueItems": true
+        }
+      ]
     },
     "classifications": {
       "type": "array",

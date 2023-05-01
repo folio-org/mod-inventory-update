@@ -4,7 +4,7 @@
   "provides": [
     {
       "id": "inventory-upsert-hrid",
-      "version": "2.0",
+      "version": "2.1",
       "handlers": [
         {
           "methods": ["PUT", "DELETE"],
@@ -67,7 +67,7 @@
     },
     {
       "id": "inventory-batch-upsert-hrid",
-      "version": "2.0",
+      "version": "2.1",
       "handlers": [
         {
           "methods": ["PUT"],

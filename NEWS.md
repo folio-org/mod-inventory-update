@@ -1,3 +1,10 @@
+## 3.1.0
+
+* Provides `inventory-upsert-hrid 2.1`
+* Provides `inventory-batch-upsert-hrid 2.1`
+* Offers per-record configuration of overlays/retention (MODINVUP-54)
+* Offers backwards compatibility with Inventory Storage 25.x (MODINVUP-59)
+
 ## 3.0.1 2023-03-07
 
 * Updates Instance even if holdings create fails (MODINVUP-62)

@@ -484,7 +484,7 @@ unique local identifiers for their records, for example:
 
 ## Prerequisites
 
-- Java 11 JDK
+- Java 17 JDK
 - Maven 3.3.9
 
 ## Git Submodules

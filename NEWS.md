@@ -1,3 +1,7 @@
+## 3.2.0 2023-10-11
+
+* Upgrade mod-inventory-update to Java 17 (MODINVUP-71)
+
 ## 3.1.0 2023-05-01
 
 * Provides `inventory-upsert-hrid 2.1`

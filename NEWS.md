@@ -1,3 +1,7 @@
+## 3.2.1 2023-10-13
+
+* Upgrade vertx-stack-depchain to 4.4.5 (MODINVUP-78)
+
 ## 3.2.0 2023-10-11
 
 * Upgrade mod-inventory-update to Java 17 (MODINVUP-71)

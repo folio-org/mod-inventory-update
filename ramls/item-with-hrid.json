@@ -358,7 +358,6 @@
     "required": [
       "materialTypeId",
       "permanentLoanTypeId",
-      "holdingsRecordId",
       "status",
       "hrid"
     ]

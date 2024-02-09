@@ -361,6 +361,10 @@
             "$ref": "raml-util/schemas/uuid.schema"
           }
         }
+      },
+      "displaySummary": {
+        "description": "A summary of the item",
+        "type": "string"
       }
     },
     "additionalProperties": false,

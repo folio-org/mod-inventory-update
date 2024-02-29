@@ -118,6 +118,9 @@ public abstract class InventoryRecord {
         return this;
     }
 
+    public void removeGetPropertiesDisallowedInPut(JsonObject record) {
+    }
+
     public void removeProperty(String propertyName) {
       jsonRecord.remove(propertyName);
     }
@@ -138,6 +141,8 @@ public abstract class InventoryRecord {
       if (instr.retainOmittedProperties()) {
         // clone existing
         JsonObject clonedBase = existingRecord.jsonRecord.copy();
+        // remove disallowed properties from GET of existing record
+        removeGetPropertiesDisallowedInPut(clonedBase);
         // remove specific properties from incoming
         for (Object property : instr.retainTheseProperties()) {
           removeProperty(property.toString());
@@ -255,14 +260,14 @@ public abstract class InventoryRecord {
     private String getMessageFromFolioSchemaValidationError(JsonObject jsonFormattedError) {
         String shortMessage = "";
         JsonArray errors = jsonFormattedError.getJsonArray(ERRORS);
-        if (errors.size()>0 && errors.getValue(0) instanceof JsonObject) {
+        if (!errors.isEmpty() && errors.getValue(0) instanceof JsonObject) {
             JsonObject firstError = errors.getJsonObject(0);
             if (firstError.containsKey(MESSAGE) && firstError.getValue(MESSAGE) instanceof String) {
                 shortMessage += firstError.getString(MESSAGE);
             }
             if (firstError.containsKey(PARAMETERS) && firstError.getValue(PARAMETERS) instanceof JsonArray) {
                 JsonArray parameters = firstError.getJsonArray(PARAMETERS);
-                if (parameters.size()>0 && parameters.getValue(0) instanceof JsonObject) {
+                if (!parameters.isEmpty() && parameters.getValue(0) instanceof JsonObject) {
                     JsonObject firstParameter = parameters.getJsonObject(0);
                     shortMessage +=  ": " + firstParameter.getValue("key");
                 }

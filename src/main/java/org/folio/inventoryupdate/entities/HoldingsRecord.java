@@ -79,4 +79,18 @@ public class HoldingsRecord extends InventoryRecord {
         }
     }
 
+    /**
+     * Some GET properties from /holdings-storage/holdings cannot be PUT
+     * @param existingRecord The record from Inventory storage
+     */
+    @Override
+    public void removeGetPropertiesDisallowedInPut(JsonObject existingRecord) {
+        existingRecord.remove("permanentLocation");
+        existingRecord.remove("illPolicy");
+        existingRecord.remove("holdingsItems");
+        existingRecord.remove("bareHoldingsItems");
+        existingRecord.remove("holdingsInstance");
+    }
+
+
 }

@@ -7,6 +7,23 @@
       "description": "Instructions for processing Inventory Items",
       "type": "object",
       "properties": {
+        "retainItem": {
+          "description": "Property value matching as conditions for blocking deletion of an item",
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "field": {
+                "description": "Name of field containing value to evaluate",
+                "type": "string"
+              },
+              "pattern": {
+                "description": "Pattern to match field's value by. Block deletion of the item if there is a match.",
+                "type": "string"
+              }
+            }
+          }
+        },
         "retainExistingValues": {
           "description": "Instructions for value retention on updates.",
           "type": "object",

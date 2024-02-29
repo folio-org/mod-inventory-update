@@ -118,7 +118,7 @@ public abstract class InventoryRecord {
         return this;
     }
 
-    public void removeGetPropertiesDisallowedInPut(JsonObject record) {
+    public void removeGetPropertiesDisallowedInPut(JsonObject jsonRecord) {
     }
 
     public void removeProperty(String propertyName) {

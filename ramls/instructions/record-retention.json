@@ -1,5 +1,5 @@
 {
-  "description": "Defines deletion block for existing record missing in input, using pattern matching.",
+  "description": "Configures prevention of deletion of existing record when missing in input, using pattern matching.",
   "properties": {
     "field": {
       "description": "Name of field to match",

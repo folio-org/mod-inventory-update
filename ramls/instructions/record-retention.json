@@ -9,5 +9,9 @@
       "description": "Block deletion of a record if 'field' is matched by 'pattern'.",
       "type": "string"
     }
-  }
+  },
+  "additionalProperties": false,
+  "required": [
+    "field", "pattern"
+  ]
 }

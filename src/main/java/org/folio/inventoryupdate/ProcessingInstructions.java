@@ -2,6 +2,7 @@ package org.folio.inventoryupdate;
 
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
+import org.folio.inventoryupdate.entities.InventoryRecord;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -27,6 +28,9 @@ public class ProcessingInstructions {
   public static final String INSTANCE_INSTRUCTIONS_KEY = "instance";
   public static final String HOLDINGS_INSTRUCTIONS_KEY = "holdingsRecord";
   public static final String ITEM_INSTRUCTIONS_KEY = "item";
+  public static final String RECORD_RETENTION_KEY = "retainRecord";
+  public static final String RECORD_RETENTION_CRITERION_FIELD = "field";
+  public static final String RECORD_RETENTION_CRITERION_PATTERN = "pattern";
   public static final String VALUE_RETENTION_KEY = "retainExistingValues";
   public static final String OMITTED_PROPERTIES_RETENTION_KEY = "forOmittedProperties";
   public static final String SPECIFIC_PROPERTIES_RETENTION_KEY = "forTheseProperties";
@@ -63,6 +67,7 @@ public class ProcessingInstructions {
   public static class EntityInstructions {
     String key;
     ValueRetention valueRetention;
+    RecordRetention recordRetention;
     JsonObject processing;
     JsonObject entityInstructionsJson;
 
@@ -72,8 +77,10 @@ public class ProcessingInstructions {
       if (processing != null) {
         this.entityInstructionsJson = processing.getJsonObject(entityInstructionsKey);
         valueRetention = new ValueRetention(entityInstructionsJson);
+        recordRetention = new RecordRetention(entityInstructionsJson);
       } else {
         valueRetention = new ValueRetention(null);
+        recordRetention = new RecordRetention(null);
       }
     }
 
@@ -89,11 +96,16 @@ public class ProcessingInstructions {
       return valueRetention.forSpecificProperties;
     }
 
+    public boolean retainRecord(InventoryRecord inventoryRecord) {
+      return recordRetention.retain(inventoryRecord);
+    }
+
   }
 
   static class ValueRetention {
     String forOmittedProperties = "false";
     List<String> forSpecificProperties = new ArrayList<>();
+
     ValueRetention(JsonObject json) {
       if (json != null) {
         JsonObject valueRetention = json.getJsonObject(VALUE_RETENTION_KEY);
@@ -108,6 +120,27 @@ public class ProcessingInstructions {
         }
       }
     }
+  }
+
+  public static class RecordRetention {
+
+    String field = "~";
+    String pattern = "~";
+    RecordRetention(JsonObject json) {
+      if (json != null) {
+        JsonObject recordRetention = json.getJsonObject(RECORD_RETENTION_KEY);
+        if (recordRetention != null) {
+          field = recordRetention.getString(RECORD_RETENTION_CRITERION_FIELD,"~");
+          pattern = recordRetention.getString(RECORD_RETENTION_CRITERION_PATTERN, "~");
+        }
+      }
+    }
+
+    boolean retain (InventoryRecord inventoryRecord) {
+      return inventoryRecord.asJson().getString(field) != null
+          && inventoryRecord.asJson().getString(field).matches(pattern);
+    }
+
   }
 
   static class InstanceInstructions extends EntityInstructions  {

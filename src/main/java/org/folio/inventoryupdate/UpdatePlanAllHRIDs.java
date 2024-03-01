@@ -226,8 +226,11 @@ public class UpdatePlanAllHRIDs extends UpdatePlan {
                         HoldingsRecord incomingHoldingsRecord = incomingInstance.getHoldingsRecordByHRID(
                                 existingHoldingsRecord.getHRID());
                         // HoldingsRecord gone, mark for deletion and check for existing items to delete with it
+                        // unless instructed to keep certain holdings records even if missing from input
                         if (incomingHoldingsRecord == null) {
+                          if (!rules.forHoldingsRecord().retainRecord(existingHoldingsRecord)) {
                             existingHoldingsRecord.setTransition(DELETE);
+                          }
                         } else {
                             // There is an existing holdings record with the same HRID on the same Instance
                             incomingHoldingsRecord.setTransition(UPDATE)
@@ -236,8 +239,13 @@ public class UpdatePlanAllHRIDs extends UpdatePlan {
                         for (Item existingItem : existingHoldingsRecord.getItems()) {
                             Item incomingItem = pair.getIncomingRecordSet().getItemByHRID(existingItem.getHRID());
                             if (incomingItem == null) {
-                                // An existing Item is gone from the Instance, delete
-                                existingItem.setTransition(DELETE);
+                                // An existing Item is gone from the Instance, delete it from storage
+                                // unless instructed to keep certain items even if missing from input
+                                // unless-unless the holdings record too is being deleted
+                                if (!rules.forItem().retainRecord(existingItem)
+                                   || existingHoldingsRecord.isDeleting()) {
+                                  existingItem.setTransition(DELETE);
+                                }
                             } else {
                                 // Existing Item still exists in incoming record (possibly under a
                                 // different holdings record)

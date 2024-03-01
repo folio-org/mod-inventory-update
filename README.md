@@ -60,7 +60,7 @@ The default behavior can be changed per request using structures in [`processing
 
 MIU can be instructed to leave certain properties in place when updating Instances, holdings records, and Items.
 
-For example, to retain all existing Item properties that are not included in the request body to MIU, use the `retainExistingValues` [schema](ramls/instructions/retention.json).
+For example, to retain all existing Item properties that are not included in the request body to MIU, use the `retainExistingValues` [schema](ramls/instructions/properties-retention.json).
 
 
 ```

@@ -7,27 +7,18 @@
       "description": "Instructions for processing Inventory Items",
       "type": "object",
       "properties": {
-        "retainItem": {
-          "description": "Property value matching as conditions for blocking deletion of an item",
+        "retainRecord": {
+          "description": "Block deletion of item missing in input, if given item property is matched by regex",
           "type": "array",
           "items": {
             "type": "object",
-            "properties": {
-              "field": {
-                "description": "Name of field containing value to evaluate",
-                "type": "string"
-              },
-              "pattern": {
-                "description": "Pattern to match field's value by. Block deletion of the item if there is a match.",
-                "type": "string"
-              }
-            }
+            "$ref": "record-retention.json"
           }
         },
         "retainExistingValues": {
           "description": "Instructions for value retention on updates.",
           "type": "object",
-          "$ref": "retention.json"
+          "$ref": "properties-retention.json"
         },
         "status": {
           "description": "Instructions for retaining or overwriting status when updating an item",
@@ -91,7 +82,7 @@
         "retainExistingValues": {
           "description": "Instructions for value retention on updates.",
           "type": "object",
-          "$ref": "retention.json"
+          "$ref": "properties-retention.json"
         }
       }
     },
@@ -102,7 +93,7 @@
         "retainExistingValues": {
           "description": "Instructions for value retention on updates.",
           "type": "object",
-          "$ref": "retention.json"
+          "$ref": "properties-retention.json"
         }
       }
     }

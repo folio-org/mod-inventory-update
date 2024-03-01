@@ -142,6 +142,16 @@ public class InputProcessingInstructions {
     return this;
   }
 
+  public InputProcessingInstructions setItemRecordRetentionCriterion(String fieldName, String pattern) {
+    if (!getItemInstructions().containsKey(ProcessingInstructions.RECORD_RETENTION_KEY)) {
+      getItemInstructions().put(ProcessingInstructions.RECORD_RETENTION_KEY, new JsonObject());
+    }
+    getItemInstructions().getJsonObject(ProcessingInstructions.RECORD_RETENTION_KEY)
+        .put(ProcessingInstructions.RECORD_RETENTION_CRITERION_FIELD, fieldName)
+        .put(ProcessingInstructions.RECORD_RETENTION_CRITERION_PATTERN, pattern);
+    return this;
+  }
+
   public JsonObject getJson() {
     return processingInstructions;
   }

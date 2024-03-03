@@ -9,19 +9,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 /**
- * Wraps JSON structure like this:
- * <pre>
- * "processing": {
- *   "item": {
- *     "status": {
- *       "policy": "retain" or "overwrite",
- *       "ifStatusWas": [
- *         {"name": "Available"}, {"name": "Checked out"}, ... etc
- *       ]
- *     }
- *   }
- * }
- * </pre>
+ * Wraps JSON structures as specified by ../ramls/instructions/processing.json
  */
 public class ProcessingInstructions {
   JsonObject processing;
@@ -29,8 +17,8 @@ public class ProcessingInstructions {
   public static final String HOLDINGS_INSTRUCTIONS_KEY = "holdingsRecord";
   public static final String ITEM_INSTRUCTIONS_KEY = "item";
   public static final String RECORD_RETENTION_KEY = "retainRecord";
-  public static final String RECORD_RETENTION_CRITERION_FIELD = "field";
-  public static final String RECORD_RETENTION_CRITERION_PATTERN = "pattern";
+  public static final String RECORD_RETENTION_CRITERION_FIELD = "ifField";
+  public static final String RECORD_RETENTION_CRITERION_PATTERN = "matchesPattern";
   public static final String VALUE_RETENTION_KEY = "retainExistingValues";
   public static final String OMITTED_PROPERTIES_RETENTION_KEY = "forOmittedProperties";
   public static final String SPECIFIC_PROPERTIES_RETENTION_KEY = "forTheseProperties";

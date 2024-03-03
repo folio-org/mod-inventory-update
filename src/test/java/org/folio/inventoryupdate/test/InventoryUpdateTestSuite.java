@@ -1632,7 +1632,7 @@ public class InventoryUpdateTestSuite {
                         .setBarcode("updated")
                         .setYearCaption("updated").getJson()))))
         .put(PROCESSING, new InputProcessingInstructions()
-            .setItemRecordRetentionCriterion("hrid", "\\d+").getJson()));
+            .setItemRecordRetentionCriterion("hrid", "\\d+").getJson())); // all digits
 
     int count1234withMatch = getRecordsFromStorage(ITEM_STORAGE_PATH, "hrid==\"1234\"").getJsonArray("items").size();
     int countITEM002 = getRecordsFromStorage(ITEM_STORAGE_PATH, "hrid==\"ITEM-002\"").getJsonArray("items").size();
@@ -1667,7 +1667,7 @@ public class InventoryUpdateTestSuite {
                         .setBarcode("updated")
                         .setYearCaption("updated").getJson()))))
         .put(PROCESSING, new InputProcessingInstructions()
-            .setItemRecordRetentionCriterion("hrid", "\\D+").getJson()));
+            .setItemRecordRetentionCriterion("hrid", "\\D+").getJson())); // all non-digits
 
     int count1234withNonMatch = getRecordsFromStorage(ITEM_STORAGE_PATH, "hrid==\"1234\"").getJsonArray("items").size();
     testContext.assertEquals(count1234withNonMatch, 0, "Item '1234' should be gone when criteria didn't match");

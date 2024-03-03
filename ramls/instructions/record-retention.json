@@ -1,17 +1,17 @@
 {
-  "description": "Configures prevention of deletion of existing record when missing in input, using pattern matching.",
+  "description": "Prevent deletion of existing record (even though missing in input) using pattern matching.",
   "properties": {
-    "field": {
+    "ifField": {
       "description": "Name of field to match",
       "type": "string"
     },
-    "pattern": {
-      "description": "Block deletion of a record if 'field' is matched by 'pattern'.",
+    "matchesPattern": {
+      "description": "Regex pattern to match field by",
       "type": "string"
     }
   },
   "additionalProperties": false,
   "required": [
-    "field", "pattern"
+    "ifField", "matchesPattern"
   ]
 }

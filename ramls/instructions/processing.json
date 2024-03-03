@@ -8,7 +8,7 @@
       "type": "object",
       "properties": {
         "retainRecord": {
-          "description": "Block deletion of item missing in input, if given item property is matched by regex",
+          "description": "Prevent deletion of item (even though it is missing in input) if given item property is matched by regex",
           "type": "array",
           "items": {
             "type": "object",

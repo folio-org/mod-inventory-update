@@ -16,7 +16,7 @@ public class ProcessingInstructions {
   public static final String INSTANCE_INSTRUCTIONS_KEY = "instance";
   public static final String HOLDINGS_INSTRUCTIONS_KEY = "holdingsRecord";
   public static final String ITEM_INSTRUCTIONS_KEY = "item";
-  public static final String RECORD_RETENTION_KEY = "retainRecord";
+  public static final String RECORD_RETENTION_KEY = "retainOmittedRecord";
   public static final String RECORD_RETENTION_CRITERION_FIELD = "ifField";
   public static final String RECORD_RETENTION_CRITERION_PATTERN = "matchesPattern";
   public static final String VALUE_RETENTION_KEY = "retainExistingValues";

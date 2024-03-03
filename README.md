@@ -124,7 +124,7 @@ For example, to retain items that have HRIDs starting with non-digit characters:
 ```
 processing": {
    "item": {
-     "retainRecord": {
+     "retainOmittedRecord": {
        "ifField": "hrid",
        "matchesPattern": "\\D+.*"
      }

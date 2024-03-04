@@ -60,7 +60,7 @@ The default behavior can be changed per request using structures in [`processing
 
 MIU can be instructed to leave certain properties in place when updating Instances, holdings records, and Items.
 
-For example, to retain all existing Item properties that are not included in the request body to MIU, use the `retainExistingValues` [schema](ramls/instructions/retention.json).
+For example, to retain all existing Item properties that are not included in the request body to MIU, use the `retainExistingValues` [schema](ramls/instructions/properties-retention.json).
 
 
 ```
@@ -111,6 +111,27 @@ processing": {
 ```
 
 The default behavior is to overwrite all statuses.
+
+##### Instruct MIU to avoid deleting items even though they are missing from the input
+When MIU receives an Instance update, it will look for existing items on the holdings record that are not present in the update and then delete them.
+
+With this instruction, deletion can be prevented based on a regular expression matched against a specified property. This could be used to preserve
+items created from other sources, provided that a regular expression can be written that will identify such items without at the same time matching
+items of the current data feed.
+
+For example, to retain items that have HRIDs starting with non-digit characters:
+
+```
+processing": {
+   "item": {
+     "retainOmittedRecord": {
+       "ifField": "hrid",
+       "matchesPattern": "\\D+.*"
+     }
+   }
+}
+```
+
 
 #### Provisional Instance created when related Instance doesn't exist yet
 

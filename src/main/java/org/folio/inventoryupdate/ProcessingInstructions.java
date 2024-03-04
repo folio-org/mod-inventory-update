@@ -84,7 +84,7 @@ public class ProcessingInstructions {
       return valueRetention.forSpecificProperties;
     }
 
-    public boolean retainRecord(InventoryRecord inventoryRecord) {
+    public boolean retainOmittedRecord(InventoryRecord inventoryRecord) {
       return recordRetention.retain(inventoryRecord);
     }
 

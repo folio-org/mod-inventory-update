@@ -1648,15 +1648,32 @@ public class InventoryUpdateTestSuite {
                 .setSource("updated")
                 .setEdition("updated").getJson())
         .put("holdingsRecords", new JsonArray()
-            .add(new InputHoldingsRecord().setHrid("HOL-001").setPermanentLocationId(LOCATION_ID_1).setCallNumber("updated-1")
+            .add(new InputHoldingsRecord().setHrid("HOL-002").setPermanentLocationId(LOCATION_ID_1).setCallNumber("updated-2")
                 .setAcquisitionFormat("updated")
                 .setShelvingTitle("updated").getJson()
                 .put("items", new JsonArray()
-                    .add(new InputItem().setHrid("ITM-001")
+                    .add(new InputItem().setHrid("ITM-003")
                         .setStatus(STATUS_UNKNOWN)
                         .setMaterialTypeId(MATERIAL_TYPE_TEXT)
                         .setBarcode("updated")
-                        .setYearCaption("updated").getJson())))
+                        .setYearCaption("updated").getJson()))))
+        .put(PROCESSING, new InputProcessingInstructions()
+            .setItemRecordRetentionCriterion("hrid", "\\d+").getJson())); // all digits
+
+    int secondCount1234withMatch = getRecordsFromStorage(ITEM_STORAGE_PATH, "hrid==\"1234\"").getJsonArray("items").size();
+    int countHoldingsHOL001 = getRecordsFromStorage(HOLDINGS_STORAGE_PATH, "hrid==\"HOL-001\"").getJsonArray("holdingsRecords").size();
+    testContext.assertEquals(secondCount1234withMatch, 1, "Item '1234' should still exist with matching criteria, even though holdings record was up for deletion");
+    testContext.assertEquals(countHoldingsHOL001, 1, "Omitted holdings record 'HOL-001' should still exist due to delete protected item '1234'");
+
+    upsertByHrid(new JsonObject()
+        .put("instance",
+            new InputInstance()
+                .setTitle("Initial InputInstance")
+                .setInstanceTypeId("12345")
+                .setHrid(instanceHrid)
+                .setSource("updated")
+                .setEdition("updated").getJson())
+        .put("holdingsRecords", new JsonArray()
             .add(new InputHoldingsRecord().setHrid("HOL-002").setPermanentLocationId(LOCATION_ID_1).setCallNumber("updated-2")
                 .setAcquisitionFormat("updated")
                 .setShelvingTitle("updated").getJson()
@@ -1671,6 +1688,9 @@ public class InventoryUpdateTestSuite {
 
     int count1234withNonMatch = getRecordsFromStorage(ITEM_STORAGE_PATH, "hrid==\"1234\"").getJsonArray("items").size();
     testContext.assertEquals(count1234withNonMatch, 0, "Item '1234' should be gone when criteria didn't match");
+    int secondCountHoldingsHOL001 = getRecordsFromStorage(HOLDINGS_STORAGE_PATH, "hrid==\"HOL-001\"").getJsonArray("holdingsRecords").size();
+    testContext.assertEquals(secondCountHoldingsHOL001, 0, "Holdings HOL-001 should be gone when omitted, sole item not protected by match");
+
 
   }
 

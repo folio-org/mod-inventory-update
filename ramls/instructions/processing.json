@@ -7,10 +7,18 @@
       "description": "Instructions for processing Inventory Items",
       "type": "object",
       "properties": {
+        "retainOmittedRecord": {
+          "description": "Prevent deletion of item (even though it is omitted from input) if given item property is matched by regex",
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "record-retention.json"
+          }
+        },
         "retainExistingValues": {
           "description": "Instructions for value retention on updates.",
           "type": "object",
-          "$ref": "retention.json"
+          "$ref": "properties-retention.json"
         },
         "status": {
           "description": "Instructions for retaining or overwriting status when updating an item",
@@ -74,7 +82,7 @@
         "retainExistingValues": {
           "description": "Instructions for value retention on updates.",
           "type": "object",
-          "$ref": "retention.json"
+          "$ref": "properties-retention.json"
         }
       }
     },
@@ -85,7 +93,7 @@
         "retainExistingValues": {
           "description": "Instructions for value retention on updates.",
           "type": "object",
-          "$ref": "retention.json"
+          "$ref": "properties-retention.json"
         }
       }
     }

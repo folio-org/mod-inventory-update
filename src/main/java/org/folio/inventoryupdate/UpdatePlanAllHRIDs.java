@@ -17,10 +17,8 @@ import io.vertx.core.Future;
 import io.vertx.core.Promise;
 
 import static org.folio.inventoryupdate.ErrorReport.UNPROCESSABLE_ENTITY;
+import static org.folio.inventoryupdate.entities.InventoryRecord.Transaction.*;
 import static org.folio.inventoryupdate.entities.InventoryRecordSet.*;
-import static org.folio.inventoryupdate.entities.InventoryRecord.Transaction.CREATE;
-import static org.folio.inventoryupdate.entities.InventoryRecord.Transaction.DELETE;
-import static org.folio.inventoryupdate.entities.InventoryRecord.Transaction.UPDATE;
 
 public class UpdatePlanAllHRIDs extends UpdatePlan {
 
@@ -226,8 +224,13 @@ public class UpdatePlanAllHRIDs extends UpdatePlan {
                         HoldingsRecord incomingHoldingsRecord = incomingInstance.getHoldingsRecordByHRID(
                                 existingHoldingsRecord.getHRID());
                         // HoldingsRecord gone, mark for deletion and check for existing items to delete with it
+                        // unless instructed to keep certain holdings records even if missing from input
                         if (incomingHoldingsRecord == null) {
+                          if (!rules.forHoldingsRecord().retainOmittedRecord(existingHoldingsRecord)) {
+                            // Delete omitted holdings record
+                            // (unless it's subsequently found that omitted items should be retained, see below)
                             existingHoldingsRecord.setTransition(DELETE);
+                          }
                         } else {
                             // There is an existing holdings record with the same HRID on the same Instance
                             incomingHoldingsRecord.setTransition(UPDATE)
@@ -236,8 +239,14 @@ public class UpdatePlanAllHRIDs extends UpdatePlan {
                         for (Item existingItem : existingHoldingsRecord.getItems()) {
                             Item incomingItem = pair.getIncomingRecordSet().getItemByHRID(existingItem.getHRID());
                             if (incomingItem == null) {
-                                // An existing Item is gone from the Instance, delete
-                                existingItem.setTransition(DELETE);
+                                // An existing Item is gone from the Instance, delete it from storage
+                                // perhaps unless instructed to keep certain items even if missing from input
+                                if (rules.forItem().retainOmittedRecord(existingItem)) {
+                                  existingItem.setTransition(NONE);
+                                  existingHoldingsRecord.setTransition(NONE);
+                                } else {
+                                  existingItem.setTransition(DELETE);
+                                }
                             } else {
                                 // Existing Item still exists in incoming record (possibly under a
                                 // different holdings record)
@@ -304,7 +313,7 @@ public class UpdatePlanAllHRIDs extends UpdatePlan {
                 if (pair.getIncomingRecordSet().isThisRelationOmitted(existingRelation)) {
                     existingRelation.setTransition(Transaction.DELETE);
                 } else {
-                    existingRelation.setTransition(Transaction.NONE);
+                    existingRelation.setTransition(NONE);
                 }
             }
         }

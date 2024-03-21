@@ -1,3 +1,13 @@
+## 3.3.0 2024-03-21
+
+* [MODINVUP-61](https://issues.folio.org/browse/MODINVUP-61) Configurable retention of 'external' holdings/items by pattern matching
+* [MODINVUP-90](https://issues.folio.org/browse/MODINVUP-90) New 'virtual' holdings properties from storage, remove them before PUT
+* Maintenance:
+* [MODINVUP-95](https://issues.folio.org/browse/MODINVUP-95) POM: Dependency upgrade
+* [MODINVUP-91](https://issues.folio.org/browse/MODINVUP-91) POM: Reorder some dependencies
+* [MODINVUP-88](https://issues.folio.org/browse/MODINVUP-88) Schema: Documentation-only changes
+
+
 ## 3.2.1 2023-10-13
 
 * Upgrade vertx-stack-depchain to 4.4.5 (MODINVUP-78)

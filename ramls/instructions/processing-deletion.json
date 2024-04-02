@@ -1,0 +1,49 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "description": "An object holding supporting pieces of data and/or processing instructions for Instance delete processing",
+  "type": "object",
+  "properties": {
+    "item": {
+      "description": "Instructions for processing Inventory Items during Instance deletion",
+      "type": "object",
+      "properties": {
+        "blockDeletion": {
+          "description": "Prevent deletion of an item, and thus the Instance, if given item property is matched by regex",
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "record-retention.json"
+          }
+        }
+      }
+    },
+    "holdingsRecord": {
+      "description": "Instructions for processing Inventory holdings records during Instance deletion",
+      "type": "object",
+      "properties": {
+        "blockDeletion": {
+          "description": "Prevent deletion of a holdings record, and thus the Instance, if given holdings record property is matched by regex",
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "record-retention.json"
+          }
+        }
+      }
+    },
+    "instance": {
+      "description": "Instructions for processing an Inventory Instance on Instance delete request",
+      "type": "object",
+      "properties": {
+        "blockDeletion": {
+          "description": "Prevent deletion of an Instance, if given Instance property is matched by regex",
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "record-retention.json"
+          }
+        }
+      }
+    }
+  }
+}

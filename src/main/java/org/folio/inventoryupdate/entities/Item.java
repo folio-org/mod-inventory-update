@@ -1,7 +1,7 @@
 package org.folio.inventoryupdate.entities;
 
 import io.vertx.core.json.JsonObject;
-import org.folio.inventoryupdate.ProcessingInstructions;
+import org.folio.inventoryupdate.ProcessingInstructionsUpsert;
 
 public class Item extends InventoryRecord {
 
@@ -43,9 +43,9 @@ public class Item extends InventoryRecord {
   }
 
   @Override
-  public void applyOverlays(InventoryRecord existingRecord, ProcessingInstructions.EntityInstructions instr) {
+  public void applyOverlays(InventoryRecord existingRecord, ProcessingInstructionsUpsert.EntityInstructions instr) {
     Item existingItem = (Item) existingRecord;
-    ProcessingInstructions.ItemInstructions itemInstr = (ProcessingInstructions.ItemInstructions) instr;
+    ProcessingInstructionsUpsert.ItemInstructions itemInstr = (ProcessingInstructionsUpsert.ItemInstructions) instr;
     if (itemInstr.retainThisStatus(((Item) existingRecord).getStatusName())) {
       setStatus(existingItem.getStatusName());
     }

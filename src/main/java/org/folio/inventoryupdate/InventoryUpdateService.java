@@ -114,7 +114,7 @@ public class InventoryUpdateService {
                     }
                     compositeOutcome.setMetrics(accumulatedStats);
                     compositeOutcome.setErrors(accumulatedErrorReport);
-                    compositeOutcome.setResponseStatusCode(accumulatedErrorReport.size()==0? OK : MULTI_STATUS);
+                    compositeOutcome.setResponseStatusCode(accumulatedErrorReport.isEmpty() ? OK : MULTI_STATUS);
                     compositeOutcome.respond(routingContext);
                   });
         }
@@ -139,6 +139,8 @@ public class InventoryUpdateService {
     }
 
     InventoryUpdateOutcome incomingValidJson =  getIncomingJsonBody(routingCtx);
+    JsonObject processing = incomingValidJson.getJson().getJsonObject( "processing" );
+    ProcessingInstructionsDeletion deleteInstructions =  new ProcessingInstructionsDeletion(processing);
 
     if (incomingValidJson.failed()) {
       incomingValidJson.getErrorResponse().respond(routingCtx);
@@ -147,7 +149,7 @@ public class InventoryUpdateService {
 
     InventoryQuery queryByInstanceHrid = new QueryByHrid(incomingValidJson.getJson().getString("hrid"));
     UpdatePlan updatePlan = UpdatePlanAllHRIDs.getDeletionPlan(queryByInstanceHrid);
-    runDeletionPlan(updatePlan, routingCtx);
+    runDeletionPlan(updatePlan, deleteInstructions, routingCtx);
   }
 
   public void handleSharedInventoryRecordSetDeleteByIdentifiers(RoutingContext routingContext) {
@@ -163,16 +165,18 @@ public class InventoryUpdateService {
       incomingValidJson.getErrorResponse().respond(routingContext);
       return;
     }
+    JsonObject processing = incomingValidJson.getJson().getJsonObject( "processing" );
+    ProcessingInstructionsDeletion deleteInstructions =  new ProcessingInstructionsDeletion(processing);
 
     RecordIdentifiers deletionIdentifiers = RecordIdentifiers.identifiersFromDeleteRequestJson(incomingValidJson.getJson());
     UpdatePlan updatePlan = UpdatePlanSharedInventory.getDeletionPlan(deletionIdentifiers);
-    runDeletionPlan(updatePlan, routingContext);
+    runDeletionPlan(updatePlan, deleteInstructions, routingContext);
   }
 
-  private void runDeletionPlan(UpdatePlan updatePlan, RoutingContext routingCtx) {
+  private void runDeletionPlan(UpdatePlan updatePlan, ProcessingInstructionsDeletion deleteInstructions, RoutingContext routingCtx) {
 
     OkapiClient okapiClient = getOkapiClient(routingCtx);
-    updatePlan.planInventoryDelete(okapiClient).onComplete(planDone -> {
+    updatePlan.planInventoryDelete(okapiClient, deleteInstructions).onComplete(planDone -> {
       if (planDone.succeeded()) {
           updatePlan.doInventoryDelete(okapiClient).onComplete(deletionsDone -> {
           JsonObject response = new JsonObject();

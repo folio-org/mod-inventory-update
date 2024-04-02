@@ -243,7 +243,7 @@ public abstract class UpdatePlan {
         this.isDeletion = true;
     }
 
-    public abstract Future<Void> planInventoryDelete(OkapiClient client);
+    public abstract Future<Void> planInventoryDelete(OkapiClient client, ProcessingInstructionsDeletion deleteInstructions);
 
     protected Future<InventoryRecordSet> lookupExistingRecordSet (OkapiClient okapiClient, InventoryQuery instanceQuery) {
         Promise<InventoryRecordSet> promise = Promise.promise();
@@ -502,7 +502,7 @@ public abstract class UpdatePlan {
                 }
                 CompositeFuture.join(deleteHoldingsRecords).onComplete( allHoldingsDone -> {
                     if (allHoldingsDone.succeeded()) {
-                        if (isInstanceDeleting()) {
+                        if (isInstanceDeleting() && !getExistingInstance().skipped()) {
                             InventoryStorage.deleteInventoryRecord(okapiClient, getExistingRecordSet().getInstance()).onComplete( handler -> {
                                 if (handler.succeeded()) {
                                     promise.complete();
@@ -613,10 +613,12 @@ public abstract class UpdatePlan {
 
         if (gotUpdatingRecordSet()) {
             metrics.entity(Entity.INSTANCE).transaction(getUpdatingInstance().getTransaction()).outcomes.increment(getUpdatingInstance().getOutcome());
-            List<InventoryRecord> holdingsRecordsAndItemsInUpdatingSet = Stream.of(
+            /*List<InventoryRecord> holdingsRecordsAndItemsInUpdatingSet = Stream.of(
                   updatingSet.getHoldingsRecords(),
                   updatingSet.getItems())
                   .flatMap(Collection::stream).collect(Collectors.toList());
+
+             */
         }
 
         if (foundExistingRecordSet()) {

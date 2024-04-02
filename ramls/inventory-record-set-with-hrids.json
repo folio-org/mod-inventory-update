@@ -204,7 +204,7 @@
     "processing": {
       "description": "Processing instructions, for example for value retention on updates.",
       "type": "object",
-      "$ref": "instructions/processing.json"
+      "$ref": "instructions/processing-upsert.json"
     }
   },
   "required": [

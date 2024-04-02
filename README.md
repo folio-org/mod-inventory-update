@@ -53,7 +53,7 @@ will be created and/or deleted (updating relationships is obsolete).
 
 The default behavior of MIU is to simply replace the entire record on updates, for example override the entire holdingsRecord, with the input JSON it receives from the client, except for the ID (UUID) and version.
 
-The default behavior can be changed per request using structures in [`processing`](ramls/instructions/processing.json).
+The default behavior can be changed per request using structures in [`processing`](ramls/instructions/processing-upsert.json).
 
 
 ##### Prevent MIU from override existing values

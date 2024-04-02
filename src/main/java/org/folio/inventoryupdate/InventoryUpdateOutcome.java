@@ -103,5 +103,5 @@ public class InventoryUpdateOutcome {
     } else {
       getErrorResponse().respond(routingContext);
     }
-}
+  }
 }

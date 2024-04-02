@@ -22,7 +22,6 @@ import static org.folio.inventoryupdate.entities.InventoryRecordSet.*;
 
 public class UpdatePlanAllHRIDs extends UpdatePlan {
 
-
     /**
      * Constructs deletion plane
      * @param existingInstanceQuery The query by which to find the instance to delete
@@ -212,7 +211,7 @@ public class UpdatePlanAllHRIDs extends UpdatePlan {
         if (pair.hasIncomingRecordSet()) {
             InventoryRecordSet incomingSet = pair.getIncomingRecordSet();
             Instance incomingInstance = incomingSet.getInstance();
-            ProcessingInstructions rules = new ProcessingInstructions(
+            ProcessingInstructionsUpsert rules = new ProcessingInstructionsUpsert(
                 pair.getIncomingRecordSet().getProcessingInfoAsJson());
             if (pair.hasExistingRecordSet()) {
                 // Updates, deletes
@@ -320,18 +319,32 @@ public class UpdatePlanAllHRIDs extends UpdatePlan {
     }
 
     @Override
-    public Future<Void> planInventoryDelete(OkapiClient okapiClient) {
+    public Future<Void> planInventoryDelete(OkapiClient okapiClient, ProcessingInstructionsDeletion deleteInstructions) {
         Promise<Void> promisedPlan = Promise.promise();
         lookupExistingRecordSet(okapiClient, instanceQuery).onComplete(lookup -> {
             if (lookup.succeeded()) {
                 this.existingSet = lookup.result();
-                // Plan instance update
+                // Plan instance deletion
                 if (foundExistingRecordSet()) {
                     getExistingInstance().setTransition(Transaction.DELETE);
+                    if (deleteInstructions.forInstance().retainRecord(getExistingInstance())) {
+                      getExistingInstance().skip();
+                      getExistingInstance().skipDependants();
+                    }
                     for (HoldingsRecord holdings : getExistingInstance().getHoldingsRecords()) {
                         holdings.setTransition(Transaction.DELETE);
+                        if (deleteInstructions.forHoldingsRecord().retainRecord(holdings)) {
+                          holdings.skip();
+                          holdings.skipDependants();
+                          getExistingInstance().skip();
+                        }
                         for (Item item : holdings.getItems()) {
-                            item.setTransition(Transaction.DELETE);
+                          item.setTransition(Transaction.DELETE);
+                          if (deleteInstructions.forItem().retainRecord(item)) {
+                              item.skip();
+                              holdings.skip();
+                              getExistingInstance().skip();
+                          }
                         }
                     }
                     getExistingRecordSet().prepareAllInstanceRelationsForDeletion();

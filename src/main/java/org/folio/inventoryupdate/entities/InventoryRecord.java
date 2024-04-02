@@ -8,7 +8,7 @@ import io.vertx.core.json.DecodeException;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import org.folio.inventoryupdate.ErrorReport;
-import org.folio.inventoryupdate.ProcessingInstructions;
+import org.folio.inventoryupdate.ProcessingInstructionsUpsert;
 
 import static org.folio.inventoryupdate.ErrorReport.UNPROCESSABLE_ENTITY;
 
@@ -28,7 +28,7 @@ public abstract class InventoryRecord {
         UPDATE,
         DELETE,
         GET,
-        NONE
+        NONE,
     }
 
     public enum Outcome {
@@ -133,7 +133,7 @@ public abstract class InventoryRecord {
      * Any properties in `propertiesToRetain` are retained even if they are present in the incoming record.
      * @param existingRecord The record to use as base to merge this record onto.
      */
-    public void applyOverlays(InventoryRecord existingRecord, ProcessingInstructions.EntityInstructions instr) {
+    public void applyOverlays(InventoryRecord existingRecord, ProcessingInstructionsUpsert.EntityInstructions instr) {
 
       setUUID(existingRecord.getUUID());
       setVersion(existingRecord.getVersion());

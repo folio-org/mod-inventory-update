@@ -9,9 +9,9 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 /**
- * Wraps JSON structures as specified by ../ramls/instructions/processing.json
+ * Wraps JSON structures as specified by ../ramls/instructions/processing-upsert.json
  */
-public class ProcessingInstructions {
+public class ProcessingInstructionsUpsert {
   JsonObject processing;
   public static final String INSTANCE_INSTRUCTIONS_KEY = "instance";
   public static final String HOLDINGS_INSTRUCTIONS_KEY = "holdingsRecord";
@@ -33,7 +33,7 @@ public class ProcessingInstructions {
   private final HoldingsRecordInstructions holdingsRecordInstructions;
   private final ItemInstructions itemInstructions;
 
-  public ProcessingInstructions (JsonObject processing) {
+  public ProcessingInstructionsUpsert(JsonObject processing) {
     this.processing = processing;
     instanceInstructions = new InstanceInstructions(processing);
     holdingsRecordInstructions = new HoldingsRecordInstructions(processing);

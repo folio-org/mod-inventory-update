@@ -15,7 +15,6 @@ import static org.folio.inventoryupdate.ErrorReport.UNPROCESSABLE_ENTITY;
 
 /**
  * Base class for Inventory entities (Instances, HoldingsRecords, Items)
- *
  * Contains flags for the transaction (to be) performed for a record of the given entity
  * and the eventual outcome of that transaction and methods for parsing errors in case the
  * outcome is FAILED.
@@ -278,10 +277,6 @@ public abstract class InventoryRecord {
 
     public JsonObject getErrorAsJson() {
         return error.asJson();
-    }
-
-    public ErrorReport getErrorReport () {
-        return error;
     }
 
     public abstract void skipDependants ();

@@ -250,7 +250,7 @@ public class InventoryUpdateTestSuite {
     JsonObject instancesBeforePutJson = getRecordsFromStorage(FakeInventoryStorage.INSTANCE_STORAGE_PATH, null);
     testContext.assertEquals(instancesBeforePutJson.getInteger("totalRecords"), 1,
             "Number of instance records for before PUT expected: 1" );
-    Response response = batchUpsertByMatchKey(207, batch.getJson());
+    batchUpsertByMatchKey(207, batch.getJson());
     JsonObject instancesAfterPutJson = getRecordsFromStorage(FakeInventoryStorage.INSTANCE_STORAGE_PATH, null);
     testContext.assertEquals(instancesAfterPutJson.getInteger("totalRecords"), 50,
             "Number of instance records after PUT expected: 100" );
@@ -273,7 +273,7 @@ public class InventoryUpdateTestSuite {
     JsonObject instancesBeforePutJson = getRecordsFromStorage(FakeInventoryStorage.INSTANCE_STORAGE_PATH, null);
     testContext.assertEquals(instancesBeforePutJson.getInteger("totalRecords"), 1,
             "Number of instance records for before PUT expected: 1" );
-    Response response = batchUpsertByHrid(207,batch.getJson());
+    batchUpsertByHrid(207,batch.getJson());
     JsonObject instancesAfterPutJson = getRecordsFromStorage(FakeInventoryStorage.INSTANCE_STORAGE_PATH, null);
     testContext.assertEquals(instancesAfterPutJson.getInteger("totalRecords"), 100,
             "Number of instance records after PUT expected: 100" );
@@ -296,7 +296,7 @@ public class InventoryUpdateTestSuite {
     JsonObject instancesBeforePutJson = getRecordsFromStorage(FakeInventoryStorage.INSTANCE_STORAGE_PATH, null);
     testContext.assertEquals(instancesBeforePutJson.getInteger("totalRecords"), 1,
             "Number of instance records for before PUT expected: 1" );
-    Response response = batchUpsertByHrid(207,batch.getJson());
+    batchUpsertByHrid(207,batch.getJson());
     JsonObject instancesAfterPutJson = getRecordsFromStorage(FakeInventoryStorage.INSTANCE_STORAGE_PATH, null);
     testContext.assertEquals(instancesAfterPutJson.getInteger("totalRecords"), 100,
             "Number of instance records after PUT expected: 100" );

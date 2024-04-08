@@ -608,12 +608,6 @@ public abstract class UpdatePlan {
 
         if (gotUpdatingRecordSet()) {
             metrics.entity(Entity.INSTANCE).transaction(getUpdatingInstance().getTransaction()).outcomes.increment(getUpdatingInstance().getOutcome());
-            /*List<InventoryRecord> holdingsRecordsAndItemsInUpdatingSet = Stream.of(
-                  updatingSet.getHoldingsRecords(),
-                  updatingSet.getItems())
-                  .flatMap(Collection::stream).collect(Collectors.toList());
-
-             */
         }
 
         if (foundExistingRecordSet()) {

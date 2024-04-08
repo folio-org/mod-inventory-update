@@ -324,30 +324,8 @@ public class UpdatePlanAllHRIDs extends UpdatePlan {
         lookupExistingRecordSet(okapiClient, instanceQuery).onComplete(lookup -> {
             if (lookup.succeeded()) {
                 this.existingSet = lookup.result();
-                // Plan instance deletion
                 if (foundExistingRecordSet()) {
-                    getExistingInstance().setTransition(Transaction.DELETE);
-                    if (deleteInstructions.forInstance().retainRecord(getExistingInstance())) {
-                      getExistingInstance().skip();
-                      getExistingInstance().skipDependants();
-                    }
-                    for (HoldingsRecord holdings : getExistingInstance().getHoldingsRecords()) {
-                        holdings.setTransition(Transaction.DELETE);
-                        if (deleteInstructions.forHoldingsRecord().retainRecord(holdings)) {
-                          holdings.skip();
-                          holdings.skipDependants();
-                          getExistingInstance().skip();
-                        }
-                        for (Item item : holdings.getItems()) {
-                          item.setTransition(Transaction.DELETE);
-                          if (deleteInstructions.forItem().retainRecord(item)) {
-                              item.skip();
-                              holdings.skip();
-                              getExistingInstance().skip();
-                          }
-                        }
-                    }
-                    getExistingRecordSet().prepareAllInstanceRelationsForDeletion();
+                    planInventoryRecordsDeletes(deleteInstructions);
                     promisedPlan.complete();
                 } else {
                     promisedPlan.fail("Instance to delete not found");
@@ -357,6 +335,31 @@ public class UpdatePlanAllHRIDs extends UpdatePlan {
             }
         });
         return promisedPlan.future();
+    }
+
+    private void planInventoryRecordsDeletes (ProcessingInstructionsDeletion deleteInstructions) {
+      getExistingInstance().setTransition(Transaction.DELETE);
+      if (deleteInstructions.forInstance().retainRecord(getExistingInstance())) {
+        getExistingInstance().skip();
+        getExistingInstance().skipDependants();
+      }
+      for (HoldingsRecord holdings : getExistingInstance().getHoldingsRecords()) {
+        holdings.setTransition(Transaction.DELETE);
+        if (deleteInstructions.forHoldingsRecord().retainRecord(holdings)) {
+          holdings.skip();
+          holdings.skipDependants();
+          getExistingInstance().skip();
+        }
+        for (Item item : holdings.getItems()) {
+          item.setTransition(Transaction.DELETE);
+          if (deleteInstructions.forItem().retainRecord(item)) {
+            item.skip();
+            holdings.skip();
+            getExistingInstance().skip();
+          }
+        }
+      }
+      getExistingRecordSet().prepareAllInstanceRelationsForDeletion();
     }
 
     /* END OF PLANNING METHODS */
@@ -378,9 +381,9 @@ public class UpdatePlanAllHRIDs extends UpdatePlan {
 
     public Future<Void> doInventoryUpdates(OkapiClient okapiClient) {
         Promise<Void> promise = Promise.promise();
-        doCreateRecordsWithDependants(okapiClient).onComplete(prerequisitesCreated -> {
-          doUpdateInstancesAndHoldings(okapiClient).onComplete(instancesAndHoldingsUpdated -> {
-            doUpdateItems(okapiClient).onComplete(itemsUpdated ->{
+        doCreateRecordsWithDependants(okapiClient).onComplete(prerequisitesCreated ->
+          doUpdateInstancesAndHoldings(okapiClient).onComplete(instancesAndHoldingsUpdated ->
+            doUpdateItems(okapiClient).onComplete(itemsUpdated -> {
               if (prerequisitesCreated.succeeded()) {
                 doCreateInstanceRelations(okapiClient).onComplete(relationsCreated -> {
                   if (instancesAndHoldingsUpdated.succeeded() && itemsUpdated.succeeded()) {
@@ -414,9 +417,7 @@ public class UpdatePlanAllHRIDs extends UpdatePlan {
               } else {
                 promise.fail(prerequisitesCreated.cause().getMessage());
               }
-            });
-          });
-        });
+            })));
         return promise.future();
     }
 

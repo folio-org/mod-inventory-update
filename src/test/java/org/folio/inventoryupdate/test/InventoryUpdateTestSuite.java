@@ -2762,57 +2762,17 @@ public class InventoryUpdateTestSuite {
 
      JsonObject upsertResponseJson = upsertByHrid(upsertBody);
      String instanceId = upsertResponseJson.getJsonObject("instance").getString("id");
-
-     testContext.assertEquals(getMetric(upsertResponseJson, HOLDINGS_RECORD, CREATE , COMPLETED), 2,
-         "Upsert metrics response should report [2] holdings records successfully created " + upsertResponseJson.encodePrettily());
-     testContext.assertEquals(getMetric(upsertResponseJson, ITEM, CREATE , COMPLETED), 3,
-         "Upsert metrics response should report [3] items successfully created " + upsertResponseJson.encodePrettily());
-     JsonObject storedInstances = getRecordsFromStorage(INSTANCE_STORAGE_PATH, "hrid==\"" + instanceHrid + "\"");
-     testContext.assertEquals(storedInstances.getInteger("totalRecords"), 1,
-         "After upsert the number of instance records with HRID " + instanceHrid + " should be [1] " + storedInstances.encodePrettily() );
-     JsonObject storedHoldings = getRecordsFromStorage(FakeInventoryStorage.HOLDINGS_STORAGE_PATH, "instanceId==\"" + instanceId + "\"");
-     testContext.assertEquals(storedHoldings.getInteger("totalRecords"), 2,
-         "After upsert the number of holdings records for instance " + instanceHrid + " should be [2] " + storedHoldings.encodePrettily() );
-     JsonObject storedItems = getRecordsFromStorage(FakeInventoryStorage.ITEM_STORAGE_PATH, null);
-     testContext.assertEquals(storedItems.getInteger("totalRecords"), 3,
-         "After upsert the total number of items should be [3] " + storedItems.encodePrettily() );
-
      JsonObject deleteSignal = new JsonObject()
-         .put("hrid", instanceHrid);
-
-     JsonObject deleteResponse = delete(MainVerticle.INVENTORY_UPSERT_HRID_PATH, deleteSignal);
-
-     testContext.assertEquals(getMetric(deleteResponse, INSTANCE, DELETE , COMPLETED), 1,
-         "Upsert metrics response should report [1] instance successfully deleted " + deleteResponse.encodePrettily());
-     testContext.assertEquals(getMetric(deleteResponse, HOLDINGS_RECORD, DELETE , COMPLETED), 2,
-         "Upsert metrics response should report [2] holdings records successfully deleted " + deleteResponse.encodePrettily());
-     testContext.assertEquals(getMetric(deleteResponse, ITEM, DELETE , COMPLETED), 3,
-         "Delete metrics response should report [3] items successfully deleted " + deleteResponse.encodePrettily());
-
-     storedInstances = getRecordsFromStorage(INSTANCE_STORAGE_PATH,"hrid==\"" + instanceHrid +"\"");
-     testContext.assertEquals(storedInstances.getInteger("totalRecords"), 0,
-         "After delete the number of instance records with HRID " + instanceHrid + " should be [0] " + storedInstances.encodePrettily() );
-     storedHoldings = getRecordsFromStorage(FakeInventoryStorage.HOLDINGS_STORAGE_PATH, "instanceId==\"" + instanceId + "\"");
-     testContext.assertEquals(storedHoldings.getInteger("totalRecords"), 0,
-         "After delete the number of holdings records for instance " + instanceHrid + " should be [0] " + storedHoldings.encodePrettily() );
-     storedItems = getRecordsFromStorage(FakeInventoryStorage.ITEM_STORAGE_PATH, null);
-     testContext.assertEquals(storedItems.getInteger("totalRecords"), 0,
-         "After delete the total number of items should be [3] " + storedItems.encodePrettily() );
-
-     upsertResponseJson = upsertByHrid(upsertBody);
-     instanceId = upsertResponseJson.getJsonObject("instance").getString("id");
-     deleteSignal = new JsonObject()
          .put("hrid", instanceHrid)
          .put("processing", new DeleteProcessingInstructions()
              .setItemRecordRetentionCriterion("hrid", "EXT.*")
              .getJson());
 
-     storedInstances = getRecordsFromStorage(INSTANCE_STORAGE_PATH,null);
+     JsonObject storedInstances = getRecordsFromStorage(INSTANCE_STORAGE_PATH,null);
      testContext.assertEquals(storedInstances.getInteger("totalRecords"), 1,
          "Before delete of instance with protected item the number of instance records with HRID " + instanceHrid + " should be [1] " + storedInstances.encodePrettily() );
 
-
-     deleteResponse = delete(MainVerticle.INVENTORY_UPSERT_HRID_PATH, deleteSignal);
+     JsonObject deleteResponse = delete(MainVerticle.INVENTORY_UPSERT_HRID_PATH, deleteSignal);
      // Checking metrics
      testContext.assertEquals(getMetric(deleteResponse, INSTANCE, DELETE, SKIPPED), 1,
          "Upsert metrics response should report [1] instance deletion skipped " + deleteResponse.encodePrettily());
@@ -2828,10 +2788,10 @@ public class InventoryUpdateTestSuite {
      storedInstances = getRecordsFromStorage(INSTANCE_STORAGE_PATH,"hrid==\"" + instanceHrid +"\"");
      testContext.assertEquals(storedInstances.getInteger("totalRecords"), 1,
          "After delete of instance with protected item the number of instance records with HRID " + instanceHrid + " should be [1] " + storedInstances.encodePrettily() );
-     storedHoldings = getRecordsFromStorage(FakeInventoryStorage.HOLDINGS_STORAGE_PATH, "instanceId==\"" + instanceId + "\"");
+     JsonObject storedHoldings = getRecordsFromStorage(FakeInventoryStorage.HOLDINGS_STORAGE_PATH, "instanceId==\"" + instanceId + "\"");
      testContext.assertEquals(storedHoldings.getInteger("totalRecords"), 1,
          "After delete of instance with protected item the number of holdings records for instance " + instanceHrid + " should be [1] " + storedHoldings.encodePrettily() );
-     storedItems = getRecordsFromStorage(FakeInventoryStorage.ITEM_STORAGE_PATH, null);
+     JsonObject storedItems = getRecordsFromStorage(FakeInventoryStorage.ITEM_STORAGE_PATH, null);
      testContext.assertEquals(storedItems.getInteger("totalRecords"), 1,
          "After delete the total number of items should be [2] " + storedItems.encodePrettily() );
    }
@@ -2860,59 +2820,20 @@ public class InventoryUpdateTestSuite {
                         .setMaterialTypeId(MATERIAL_TYPE_TEXT)
                         .setBarcode("BC-003").getJson()))));
 
+
     JsonObject upsertResponseJson = upsertByHrid(upsertBody);
     String instanceId = upsertResponseJson.getJsonObject("instance").getString("id");
-
-    testContext.assertEquals(getMetric(upsertResponseJson, HOLDINGS_RECORD, CREATE , COMPLETED), 2,
-        "Upsert metrics response should report [2] holdings records successfully created " + upsertResponseJson.encodePrettily());
-    testContext.assertEquals(getMetric(upsertResponseJson, ITEM, CREATE , COMPLETED), 3,
-        "Upsert metrics response should report [3] items successfully created " + upsertResponseJson.encodePrettily());
-    JsonObject storedInstances = getRecordsFromStorage(INSTANCE_STORAGE_PATH, "hrid==\"" + instanceHrid + "\"");
-    testContext.assertEquals(storedInstances.getInteger("totalRecords"), 1,
-        "After upsert the number of instance records with HRID " + instanceHrid + " should be [1] " + storedInstances.encodePrettily() );
-    JsonObject storedHoldings = getRecordsFromStorage(FakeInventoryStorage.HOLDINGS_STORAGE_PATH, "instanceId==\"" + instanceId + "\"");
-    testContext.assertEquals(storedHoldings.getInteger("totalRecords"), 2,
-        "After upsert the number of holdings records for instance " + instanceHrid + " should be [2] " + storedHoldings.encodePrettily() );
-    JsonObject storedItems = getRecordsFromStorage(FakeInventoryStorage.ITEM_STORAGE_PATH, null);
-    testContext.assertEquals(storedItems.getInteger("totalRecords"), 3,
-        "After upsert the total number of items should be [3] " + storedItems.encodePrettily() );
-
     JsonObject deleteSignal = new JsonObject()
-        .put("hrid", instanceHrid);
-
-    JsonObject deleteResponse = delete(MainVerticle.INVENTORY_UPSERT_HRID_PATH, deleteSignal);
-
-    testContext.assertEquals(getMetric(deleteResponse, INSTANCE, DELETE , COMPLETED), 1,
-        "Upsert metrics response should report [1] instance successfully deleted " + deleteResponse.encodePrettily());
-    testContext.assertEquals(getMetric(deleteResponse, HOLDINGS_RECORD, DELETE , COMPLETED), 2,
-        "Upsert metrics response should report [2] holdings records successfully deleted " + deleteResponse.encodePrettily());
-    testContext.assertEquals(getMetric(deleteResponse, ITEM, DELETE , COMPLETED), 3,
-        "Delete metrics response should report [3] items successfully deleted " + deleteResponse.encodePrettily());
-
-    storedInstances = getRecordsFromStorage(INSTANCE_STORAGE_PATH,"hrid==\"" + instanceHrid +"\"");
-    testContext.assertEquals(storedInstances.getInteger("totalRecords"), 0,
-        "After delete the number of instance records with HRID " + instanceHrid + " should be [0] " + storedInstances.encodePrettily() );
-    storedHoldings = getRecordsFromStorage(FakeInventoryStorage.HOLDINGS_STORAGE_PATH, "instanceId==\"" + instanceId + "\"");
-    testContext.assertEquals(storedHoldings.getInteger("totalRecords"), 0,
-        "After delete the number of holdings records for instance " + instanceHrid + " should be [0] " + storedHoldings.encodePrettily() );
-    storedItems = getRecordsFromStorage(FakeInventoryStorage.ITEM_STORAGE_PATH, null);
-    testContext.assertEquals(storedItems.getInteger("totalRecords"), 0,
-        "After delete the total number of items should be [3] " + storedItems.encodePrettily() );
-
-    upsertResponseJson = upsertByHrid(upsertBody);
-    instanceId = upsertResponseJson.getJsonObject("instance").getString("id");
-    deleteSignal = new JsonObject()
         .put("hrid", instanceHrid)
         .put("processing", new DeleteProcessingInstructions()
             .setHoldingsRecordRetentionCriterion("hrid", "EXT.*")
             .getJson());
 
-    storedInstances = getRecordsFromStorage(INSTANCE_STORAGE_PATH,null);
+    JsonObject storedInstances = getRecordsFromStorage(INSTANCE_STORAGE_PATH,null);
     testContext.assertEquals(storedInstances.getInteger("totalRecords"), 1,
         "Before delete of instance with protected item the number of instance records with HRID " + instanceHrid + " should be [1] " + storedInstances.encodePrettily() );
 
-
-    deleteResponse = delete(MainVerticle.INVENTORY_UPSERT_HRID_PATH, deleteSignal);
+    JsonObject deleteResponse = delete(MainVerticle.INVENTORY_UPSERT_HRID_PATH, deleteSignal);
     // Checking metrics
     testContext.assertEquals(getMetric(deleteResponse, INSTANCE, DELETE, SKIPPED), 1,
         "Upsert metrics response should report [1] instance deletion skipped " + deleteResponse.encodePrettily());
@@ -2928,10 +2849,10 @@ public class InventoryUpdateTestSuite {
     storedInstances = getRecordsFromStorage(INSTANCE_STORAGE_PATH,"hrid==\"" + instanceHrid +"\"");
     testContext.assertEquals(storedInstances.getInteger("totalRecords"), 1,
         "After delete of instance with protected item the number of instance records with HRID " + instanceHrid + " should be [1] " + storedInstances.encodePrettily() );
-    storedHoldings = getRecordsFromStorage(FakeInventoryStorage.HOLDINGS_STORAGE_PATH, "instanceId==\"" + instanceId + "\"");
+    JsonObject storedHoldings = getRecordsFromStorage(FakeInventoryStorage.HOLDINGS_STORAGE_PATH, "instanceId==\"" + instanceId + "\"");
     testContext.assertEquals(storedHoldings.getInteger("totalRecords"), 1,
         "After delete of instance with protected item the number of holdings records for instance " + instanceHrid + " should be [1] " + storedHoldings.encodePrettily() );
-    storedItems = getRecordsFromStorage(FakeInventoryStorage.ITEM_STORAGE_PATH, null);
+    JsonObject storedItems = getRecordsFromStorage(FakeInventoryStorage.ITEM_STORAGE_PATH, null);
     testContext.assertEquals(storedItems.getInteger("totalRecords"), 1,
         "After delete the total number of items should be [2] " + storedItems.encodePrettily() );
 

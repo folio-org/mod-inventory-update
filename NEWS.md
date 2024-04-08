@@ -1,3 +1,7 @@
+## 3.3.1 2024-04-08
+
+## [MODINVUP-93](https://issues.folio.org/browse/MODINVUP-93) Configurable retention of 'external' holdings/items on delete request
+
 ## 3.3.0 2024-03-21
 
 * [MODINVUP-61](https://issues.folio.org/browse/MODINVUP-61) Configurable retention of 'external' holdings/items by pattern matching

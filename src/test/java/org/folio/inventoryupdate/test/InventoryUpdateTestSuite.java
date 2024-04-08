@@ -3,10 +3,11 @@ package org.folio.inventoryupdate.test;
 import io.vertx.core.json.JsonArray;
 import org.folio.inventoryupdate.MainVerticle;
 import org.folio.inventoryupdate.MatchKey;
-import org.folio.inventoryupdate.ProcessingInstructions;
+import org.folio.inventoryupdate.ProcessingInstructionsUpsert;
 import org.folio.inventoryupdate.UpdatePlanSharedInventory;
 import org.folio.inventoryupdate.test.fakestorage.FakeInventoryStorage;
 import org.folio.inventoryupdate.test.fakestorage.InputProcessingInstructions;
+import org.folio.inventoryupdate.test.fakestorage.DeleteProcessingInstructions;
 import org.folio.inventoryupdate.test.fakestorage.RecordStorage;
 import org.folio.inventoryupdate.test.fakestorage.entitites.*;
 import org.junit.After;
@@ -249,7 +250,7 @@ public class InventoryUpdateTestSuite {
     JsonObject instancesBeforePutJson = getRecordsFromStorage(FakeInventoryStorage.INSTANCE_STORAGE_PATH, null);
     testContext.assertEquals(instancesBeforePutJson.getInteger("totalRecords"), 1,
             "Number of instance records for before PUT expected: 1" );
-    Response response = batchUpsertByMatchKey(207, batch.getJson());
+    batchUpsertByMatchKey(207, batch.getJson());
     JsonObject instancesAfterPutJson = getRecordsFromStorage(FakeInventoryStorage.INSTANCE_STORAGE_PATH, null);
     testContext.assertEquals(instancesAfterPutJson.getInteger("totalRecords"), 50,
             "Number of instance records after PUT expected: 100" );
@@ -272,7 +273,7 @@ public class InventoryUpdateTestSuite {
     JsonObject instancesBeforePutJson = getRecordsFromStorage(FakeInventoryStorage.INSTANCE_STORAGE_PATH, null);
     testContext.assertEquals(instancesBeforePutJson.getInteger("totalRecords"), 1,
             "Number of instance records for before PUT expected: 1" );
-    Response response = batchUpsertByHrid(207,batch.getJson());
+    batchUpsertByHrid(207,batch.getJson());
     JsonObject instancesAfterPutJson = getRecordsFromStorage(FakeInventoryStorage.INSTANCE_STORAGE_PATH, null);
     testContext.assertEquals(instancesAfterPutJson.getInteger("totalRecords"), 100,
             "Number of instance records after PUT expected: 100" );
@@ -295,7 +296,7 @@ public class InventoryUpdateTestSuite {
     JsonObject instancesBeforePutJson = getRecordsFromStorage(FakeInventoryStorage.INSTANCE_STORAGE_PATH, null);
     testContext.assertEquals(instancesBeforePutJson.getInteger("totalRecords"), 1,
             "Number of instance records for before PUT expected: 1" );
-    Response response = batchUpsertByHrid(207,batch.getJson());
+    batchUpsertByHrid(207,batch.getJson());
     JsonObject instancesAfterPutJson = getRecordsFromStorage(FakeInventoryStorage.INSTANCE_STORAGE_PATH, null);
     testContext.assertEquals(instancesAfterPutJson.getInteger("totalRecords"), 100,
             "Number of instance records after PUT expected: 100" );
@@ -1744,7 +1745,7 @@ public class InventoryUpdateTestSuite {
                                             .setMaterialTypeId(MATERIAL_TYPE_TEXT)
                                             .setBarcode("updated").getJson()))))
             .put(PROCESSING, new InputProcessingInstructions()
-                    .setItemStatusPolicy(ProcessingInstructions.ITEM_STATUS_POLICY_OVERWRITE)
+                    .setItemStatusPolicy(ProcessingInstructionsUpsert.ITEM_STATUS_POLICY_OVERWRITE)
                     .setListOfStatuses("On order").getJson()));
 
     testContext.assertEquals(getMetric(upsertResponseJson, HOLDINGS_RECORD, UPDATE , COMPLETED), 2,
@@ -1813,7 +1814,7 @@ public class InventoryUpdateTestSuite {
                                             .setMaterialTypeId(MATERIAL_TYPE_TEXT)
                                             .setBarcode("updated").setStatus("Available").getJson()))))
             .put(PROCESSING, new InputProcessingInstructions()
-                    .setItemStatusPolicy(ProcessingInstructions.ITEM_STATUS_POLICY_OVERWRITE)
+                    .setItemStatusPolicy(ProcessingInstructionsUpsert.ITEM_STATUS_POLICY_OVERWRITE)
                     .setListOfStatuses("On order", "Unknown").getJson()));
 
     testContext.assertEquals(getMetric(upsertResponseJson, HOLDINGS_RECORD, UPDATE , COMPLETED), 2,
@@ -1888,7 +1889,7 @@ public class InventoryUpdateTestSuite {
                                             .setMaterialTypeId(MATERIAL_TYPE_TEXT)
                                             .setBarcode("updated").getJson()))))
             .put(PROCESSING, new InputProcessingInstructions()
-                    .setItemStatusPolicy(ProcessingInstructions.ITEM_STATUS_POLICY_RETAIN).getJson()));
+                    .setItemStatusPolicy(ProcessingInstructionsUpsert.ITEM_STATUS_POLICY_RETAIN).getJson()));
 
     testContext.assertEquals(getMetric(upsertResponseJson, HOLDINGS_RECORD, UPDATE , COMPLETED), 2,
             "Upsert metrics response should report [2] holdings records successfully updated " + upsertResponseJson.encodePrettily());
@@ -1957,7 +1958,7 @@ public class InventoryUpdateTestSuite {
                                             .setMaterialTypeId(MATERIAL_TYPE_TEXT)
                                             .setBarcode("updated").getJson()))))
             .put(PROCESSING, new InputProcessingInstructions()
-                    .setItemStatusPolicy(ProcessingInstructions.ITEM_STATUS_POLICY_OVERWRITE).getJson()));
+                    .setItemStatusPolicy(ProcessingInstructionsUpsert.ITEM_STATUS_POLICY_OVERWRITE).getJson()));
 
     testContext.assertEquals(getMetric(upsertResponseJson, HOLDINGS_RECORD, UPDATE , COMPLETED), 2,
             "Upsert metrics response should report [2] holdings records successfully updated " + upsertResponseJson.encodePrettily());
@@ -2689,7 +2690,7 @@ public class InventoryUpdateTestSuite {
                                              .setStatus(STATUS_UNKNOWN)
                                              .setMaterialTypeId(MATERIAL_TYPE_TEXT)
                                              .setBarcode("BC-003").getJson()))))
-            .put("instanceRelations", new JsonObject()
+             .put("instanceRelations", new JsonObject()
                      .put("succeedingTitles", new JsonArray()
                              .add(new InputInstanceTitleSuccession().setInstanceIdentifierHrid("001").getJson()))));
 
@@ -2712,7 +2713,8 @@ public class InventoryUpdateTestSuite {
      testContext.assertEquals(storedRelations.getInteger("totalRecords"), 1,
              "After upsert the total number of relations should be [1] " + storedRelations.encodePrettily() );
 
-     JsonObject deleteSignal = new JsonObject().put("hrid",instanceHrid);
+     JsonObject deleteSignal = new JsonObject()
+         .put("hrid",instanceHrid);
 
      JsonObject deleteResponse = delete(MainVerticle.INVENTORY_UPSERT_HRID_PATH,deleteSignal);
      testContext.assertEquals(getMetric(deleteResponse, HOLDINGS_RECORD, DELETE , COMPLETED), 2,
@@ -2735,6 +2737,129 @@ public class InventoryUpdateTestSuite {
    }
 
    @Test
+   public void deleteByHridWillNotDeleteProtectedItems (TestContext testContext) {
+     String instanceHrid = "IN-001";
+     JsonObject upsertBody =  new JsonObject()
+         .put("instance",
+             new InputInstance().setTitle("Initial InputInstance").setInstanceTypeId("12345").setHrid(instanceHrid).setSource("test").getJson())
+         .put("holdingsRecords", new JsonArray()
+             .add(new InputHoldingsRecord().setHrid("HOL-001").setPermanentLocationId(LOCATION_ID_1).setCallNumber("test-cn-1").getJson()
+                 .put("items", new JsonArray()
+                     .add(new InputItem().setHrid("ITM-001")
+                         .setStatus(STATUS_UNKNOWN)
+                         .setMaterialTypeId(MATERIAL_TYPE_TEXT)
+                         .setBarcode("BC-001").getJson())
+                     .add(new InputItem().setHrid("EXT-002")
+                         .setStatus(STATUS_UNKNOWN)
+                         .setMaterialTypeId(MATERIAL_TYPE_TEXT)
+                         .setBarcode("BC-002").getJson())))
+             .add(new InputHoldingsRecord().setHrid("HOL-002").setPermanentLocationId(LOCATION_ID_1).setCallNumber("test-cn-2").getJson()
+                 .put("items", new JsonArray()
+                     .add(new InputItem().setHrid("ITM-003")
+                         .setStatus(STATUS_UNKNOWN)
+                         .setMaterialTypeId(MATERIAL_TYPE_TEXT)
+                         .setBarcode("BC-003").getJson()))));
+
+     JsonObject upsertResponseJson = upsertByHrid(upsertBody);
+     String instanceId = upsertResponseJson.getJsonObject("instance").getString("id");
+     JsonObject deleteSignal = new JsonObject()
+         .put("hrid", instanceHrid)
+         .put("processing", new DeleteProcessingInstructions()
+             .setItemRecordRetentionCriterion("hrid", "EXT.*")
+             .getJson());
+
+     JsonObject storedInstances = getRecordsFromStorage(INSTANCE_STORAGE_PATH,null);
+     testContext.assertEquals(storedInstances.getInteger("totalRecords"), 1,
+         "Before delete of instance with protected item the number of instance records with HRID " + instanceHrid + " should be [1] " + storedInstances.encodePrettily() );
+
+     JsonObject deleteResponse = delete(MainVerticle.INVENTORY_UPSERT_HRID_PATH, deleteSignal);
+     // Checking metrics
+     testContext.assertEquals(getMetric(deleteResponse, INSTANCE, DELETE, SKIPPED), 1,
+         "Upsert metrics response should report [1] instance deletion skipped " + deleteResponse.encodePrettily());
+     testContext.assertEquals(getMetric(deleteResponse, HOLDINGS_RECORD, DELETE , COMPLETED), 1,
+         "Upsert metrics response should report [1] holdings record successfully deleted " + deleteResponse.encodePrettily());
+     testContext.assertEquals(getMetric(deleteResponse, HOLDINGS_RECORD, DELETE , SKIPPED), 1,
+         "Upsert metrics response should report [1] holdings records deletion skipped " + deleteResponse.encodePrettily());
+     testContext.assertEquals(getMetric(deleteResponse, ITEM, DELETE , COMPLETED), 2,
+         "Delete metrics response should report [2] items successfully deleted " + deleteResponse.encodePrettily());
+     testContext.assertEquals(getMetric(deleteResponse, ITEM, DELETE , SKIPPED), 1,
+         "Delete metrics response should report [1] item deletion skipped " + deleteResponse.encodePrettily());
+
+     storedInstances = getRecordsFromStorage(INSTANCE_STORAGE_PATH,"hrid==\"" + instanceHrid +"\"");
+     testContext.assertEquals(storedInstances.getInteger("totalRecords"), 1,
+         "After delete of instance with protected item the number of instance records with HRID " + instanceHrid + " should be [1] " + storedInstances.encodePrettily() );
+     JsonObject storedHoldings = getRecordsFromStorage(FakeInventoryStorage.HOLDINGS_STORAGE_PATH, "instanceId==\"" + instanceId + "\"");
+     testContext.assertEquals(storedHoldings.getInteger("totalRecords"), 1,
+         "After delete of instance with protected item the number of holdings records for instance " + instanceHrid + " should be [1] " + storedHoldings.encodePrettily() );
+     JsonObject storedItems = getRecordsFromStorage(FakeInventoryStorage.ITEM_STORAGE_PATH, null);
+     testContext.assertEquals(storedItems.getInteger("totalRecords"), 1,
+         "After delete the total number of items should be [2] " + storedItems.encodePrettily() );
+   }
+
+  @Test
+  public void deleteByHridWillNotDeleteProtectedHoldingsRecords (TestContext testContext) {
+    String instanceHrid = "IN-001";
+    JsonObject upsertBody =  new JsonObject()
+        .put("instance",
+            new InputInstance().setTitle("Initial InputInstance").setInstanceTypeId("12345").setHrid(instanceHrid).setSource("test").getJson())
+        .put("holdingsRecords", new JsonArray()
+            .add(new InputHoldingsRecord().setHrid("HOL-001").setPermanentLocationId(LOCATION_ID_1).setCallNumber("test-cn-1").getJson()
+                .put("items", new JsonArray()
+                    .add(new InputItem().setHrid("ITM-001")
+                        .setStatus(STATUS_UNKNOWN)
+                        .setMaterialTypeId(MATERIAL_TYPE_TEXT)
+                        .setBarcode("BC-001").getJson())
+                    .add(new InputItem().setHrid("EXT-002")
+                        .setStatus(STATUS_UNKNOWN)
+                        .setMaterialTypeId(MATERIAL_TYPE_TEXT)
+                        .setBarcode("BC-002").getJson())))
+            .add(new InputHoldingsRecord().setHrid("EXT-002").setPermanentLocationId(LOCATION_ID_1).setCallNumber("test-cn-2").getJson()
+                .put("items", new JsonArray()
+                    .add(new InputItem().setHrid("ITM-003")
+                        .setStatus(STATUS_UNKNOWN)
+                        .setMaterialTypeId(MATERIAL_TYPE_TEXT)
+                        .setBarcode("BC-003").getJson()))));
+
+
+    JsonObject upsertResponseJson = upsertByHrid(upsertBody);
+    String instanceId = upsertResponseJson.getJsonObject("instance").getString("id");
+    JsonObject deleteSignal = new JsonObject()
+        .put("hrid", instanceHrid)
+        .put("processing", new DeleteProcessingInstructions()
+            .setHoldingsRecordRetentionCriterion("hrid", "EXT.*")
+            .getJson());
+
+    JsonObject storedInstances = getRecordsFromStorage(INSTANCE_STORAGE_PATH,null);
+    testContext.assertEquals(storedInstances.getInteger("totalRecords"), 1,
+        "Before delete of instance with protected item the number of instance records with HRID " + instanceHrid + " should be [1] " + storedInstances.encodePrettily() );
+
+    JsonObject deleteResponse = delete(MainVerticle.INVENTORY_UPSERT_HRID_PATH, deleteSignal);
+    // Checking metrics
+    testContext.assertEquals(getMetric(deleteResponse, INSTANCE, DELETE, SKIPPED), 1,
+        "Upsert metrics response should report [1] instance deletion skipped " + deleteResponse.encodePrettily());
+    testContext.assertEquals(getMetric(deleteResponse, HOLDINGS_RECORD, DELETE , COMPLETED), 1,
+        "Upsert metrics response should report [1] holdings record successfully deleted " + deleteResponse.encodePrettily());
+    testContext.assertEquals(getMetric(deleteResponse, HOLDINGS_RECORD, DELETE , SKIPPED), 1,
+        "Upsert metrics response should report [1] holdings records deletion skipped " + deleteResponse.encodePrettily());
+    testContext.assertEquals(getMetric(deleteResponse, ITEM, DELETE , COMPLETED), 2,
+        "Delete metrics response should report [2] items successfully deleted " + deleteResponse.encodePrettily());
+    testContext.assertEquals(getMetric(deleteResponse, ITEM, DELETE , SKIPPED), 1,
+        "Delete metrics response should report [1] item deletion skipped " + deleteResponse.encodePrettily());
+
+    storedInstances = getRecordsFromStorage(INSTANCE_STORAGE_PATH,"hrid==\"" + instanceHrid +"\"");
+    testContext.assertEquals(storedInstances.getInteger("totalRecords"), 1,
+        "After delete of instance with protected item the number of instance records with HRID " + instanceHrid + " should be [1] " + storedInstances.encodePrettily() );
+    JsonObject storedHoldings = getRecordsFromStorage(FakeInventoryStorage.HOLDINGS_STORAGE_PATH, "instanceId==\"" + instanceId + "\"");
+    testContext.assertEquals(storedHoldings.getInteger("totalRecords"), 1,
+        "After delete of instance with protected item the number of holdings records for instance " + instanceHrid + " should be [1] " + storedHoldings.encodePrettily() );
+    JsonObject storedItems = getRecordsFromStorage(FakeInventoryStorage.ITEM_STORAGE_PATH, null);
+    testContext.assertEquals(storedItems.getInteger("totalRecords"), 1,
+        "After delete the total number of items should be [2] " + storedItems.encodePrettily() );
+
+  }
+
+
+  @Test
    public void deleteSignalByHridForNonExistingInstanceWillReturn404 (TestContext testContext) {
      JsonObject deleteSignal = new JsonObject().put("hrid","DOES_NOT_EXIST");
      delete(404, MainVerticle.INVENTORY_UPSERT_HRID_PATH,deleteSignal);

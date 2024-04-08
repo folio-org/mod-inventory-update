@@ -29,25 +29,20 @@ import static org.folio.inventoryupdate.InventoryUpdateOutcome.OK;
 
 /**
  * Base class for implementing update plans
- *
  * Method 'planInventoryUpdates' is meant to create an in-memory representation of the records
  * to update with all mandatory fields and required identifiers (UUIDs) set. Once the planning
  * is done, the 'incomingSet' should contain records flagged as CREATING or UPDATING and
  * 'existingSet' should contain records flagged as DELETING, if any.
- *
  * The planning phase is not meant to stop on failure (unless some unexpected exception occurs for
  * which there is no planned recovery, of course). Rather it's supposed to register possible
  * record level errors but run to completion.
- *
  * Method 'updateInventory' is meant to run through the 'incomingSet' and 'existingSet' and perform
  * the actual updates in Inventory storage as per the CREATING, UPDATING, and DELETING flags set
  * in the planning phase and in the appropriate order to observe integrity constraints.
- *
  * The execution phase may fail certain operations, skip dependant operations of those that failed,
  * and pick up the error messages along the way. If it thus completes with partial success, it should
  * have updated whatever it could and should return an error code - typically 422 -- and display
  * the error condition in the response.
- *
  * Or, put another way, even if the request results in a HTTP error response code, some Inventory
  * records may have been successfully updated during the processing of the request.
  *
@@ -243,7 +238,7 @@ public abstract class UpdatePlan {
         this.isDeletion = true;
     }
 
-    public abstract Future<Void> planInventoryDelete(OkapiClient client);
+    public abstract Future<Void> planInventoryDelete(OkapiClient client, ProcessingInstructionsDeletion deleteInstructions);
 
     protected Future<InventoryRecordSet> lookupExistingRecordSet (OkapiClient okapiClient, InventoryQuery instanceQuery) {
         Promise<InventoryRecordSet> promise = Promise.promise();
@@ -502,7 +497,7 @@ public abstract class UpdatePlan {
                 }
                 CompositeFuture.join(deleteHoldingsRecords).onComplete( allHoldingsDone -> {
                     if (allHoldingsDone.succeeded()) {
-                        if (isInstanceDeleting()) {
+                        if (isInstanceDeleting() && !getExistingInstance().skipped()) {
                             InventoryStorage.deleteInventoryRecord(okapiClient, getExistingRecordSet().getInstance()).onComplete( handler -> {
                                 if (handler.succeeded()) {
                                     promise.complete();
@@ -613,10 +608,6 @@ public abstract class UpdatePlan {
 
         if (gotUpdatingRecordSet()) {
             metrics.entity(Entity.INSTANCE).transaction(getUpdatingInstance().getTransaction()).outcomes.increment(getUpdatingInstance().getOutcome());
-            List<InventoryRecord> holdingsRecordsAndItemsInUpdatingSet = Stream.of(
-                  updatingSet.getHoldingsRecords(),
-                  updatingSet.getItems())
-                  .flatMap(Collection::stream).collect(Collectors.toList());
         }
 
         if (foundExistingRecordSet()) {

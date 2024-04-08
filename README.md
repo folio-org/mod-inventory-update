@@ -51,17 +51,18 @@ will be created and/or deleted (updating relationships is obsolete).
 
 #### Control record overlay on updates.
 
-The default behavior of MIU is to simply replace the entire record on updates, for example override the entire holdingsRecord, with the input JSON it receives from the client, except for the ID (UUID) and version.
+The default behavior of MIU is to simply replace the entire record on updates, for example override the entire
+holdingsRecord, with the input JSON it receives from the client, except for the ID (UUID) and version.
 
-The default behavior can be changed per request using structures in [`processing`](ramls/instructions/processing.json).
-
+The default behavior can be changed per request using structures
+in [`processing`](ramls/instructions/processing-upsert.json).
 
 ##### Prevent MIU from override existing values
 
 MIU can be instructed to leave certain properties in place when updating Instances, holdings records, and Items.
 
-For example, to retain all existing Item properties that are not included in the request body to MIU, use the `retainExistingValues` [schema](ramls/instructions/properties-retention.json).
-
+For example, to retain all existing Item properties that are not included in the request body to MIU, use
+the `retainExistingValues` [schema](ramls/instructions/properties-retention.json).
 
 ```
 "processing": {
@@ -73,9 +74,11 @@ For example, to retain all existing Item properties that are not included in the
 }
 ```
 
-This is a way to have MIU only update the set of properties it should be concerned with and let other properties be the responsibility of other processes if required.
+This is a way to have MIU only update the set of properties it should be concerned with and let other properties be the
+responsibility of other processes if required.
 
-If MIU sets certain properties on insert but should not touch them in subsequent updates -- even though they are provided in the request body to MIU -- those properties can be explicitly turned off in updates:
+If MIU sets certain properties on insert but should not touch them in subsequent updates -- even though they are
+provided in the request body to MIU -- those properties can be explicitly turned off in updates:
 
 ```
 "processing": {
@@ -89,11 +92,16 @@ If MIU sets certain properties on insert but should not touch them in subsequent
 
 The two settings can be combined to not touch neither omitted properties nor the explicitly listed properties.
 
-If `forOmittedProperties` is used it requires the client to distinguish between sending an empty property vs not sending the property at all. Say an Instance had `contributors` before, but now they were removed in the source catalog. If this is communicated to MIU by an empty `contributors` property, then it's fine, it will become empty in Inventory Storage too, but if the property is simply removed from the request body altogether, then the existing value of `contributors` will be retained in storage if `forOmittedProperties` is set to true.
+If `forOmittedProperties` is used it requires the client to distinguish between sending an empty property vs not sending
+the property at all. Say an Instance had `contributors` before, but now they were removed in the source catalog. If this
+is communicated to MIU by an empty `contributors` property, then it's fine, it will become empty in Inventory Storage
+too, but if the property is simply removed from the request body altogether, then the existing value of `contributors`
+will be retained in storage if `forOmittedProperties` is set to true.
 
 ##### Instruct MIU to leave the item status unmodified under certain circumstance.
 
-In case the Item status is being managed outside the MIU update process, likely by FOLIO Circulation, MIU can be instructed to only touch the status under certain circumstances.
+In case the Item status is being managed outside the MIU update process, likely by FOLIO Circulation, MIU can be
+instructed to only touch the status under certain circumstances.
 
 For example, to only overwrite a status of "On order" and retain any other statuses, do:
 
@@ -113,11 +121,14 @@ processing": {
 The default behavior is to overwrite all statuses.
 
 ##### Instruct MIU to avoid deleting items even though they are missing from the input
-When MIU receives an Instance update, it will look for existing items on the holdings record that are not present in the update and then delete them.
 
-With this instruction, deletion can be prevented based on a regular expression matched against a specified property. This could be used to preserve
-items created from other sources, provided that a regular expression can be written that will identify such items without at the same time matching
-items of the current data feed.
+When MIU receives an Instance update, it will look for existing items on the holdings record that are not present in the
+update and then delete them.
+
+With this instruction, deletion can be prevented based on a regular expression matched against a specified property.
+This could be used to preserve items created from other sources, provided that a regular expression can be written that
+will identify such items
+without at the same time matching items of the current data feed.
 
 For example, to retain items that have HRIDs starting with non-digit characters:
 
@@ -131,7 +142,6 @@ processing": {
    }
 }
 ```
-
 
 #### Provisional Instance created when related Instance doesn't exist yet
 
@@ -172,6 +182,37 @@ means that any existing relationships will be left untouched by the update reque
 
 The API supports DELETE requests, which would delete the Instance with all of its associated holdings records and items
 and any relations it might have to other Instances.
+
+##### Protecting certain items or holdings records from deletion in DELETE requests
+
+Delete requests can be extended with a processing instruction that blocks deletion of holdings and/or items based on
+pattern matching in select properties.
+
+This can be used to avoid deletion of items that are created outside the MIU pipeline (for example through the
+Inventory UI) provided that there is a pattern that can be applied to a property value of those records to identify
+which items to protect.
+
+For example, to protect items that have HRIDs starting with non-digit characters, following delete body for deletion of
+the Instance with HRID "123456" could be used:
+
+```
+{
+    "hrid":  "1234567",
+    "processing": {
+       "item": {
+         "blockDeletion": {
+           "ifField": "hrid",
+           "matchesPattern": "\\D+.*"
+         }
+       }
+    }
+}
+```
+
+When a delete request is sent for an Instance that has protected Items, the deletion of the Instance, as well as the
+holdings record for the Item, will be blocked as well. Other holdings records or Items that do not match the block
+criteria will be deleted.
+
 
 ### `/shared-inventory-upsert-matchkey`
 
@@ -470,21 +511,7 @@ The `_version` fields for optimistic locking can be seen in the output above. Th
 to the upsert API. As the service receives the record set JSON in a PUT request, it will pull new versions of the
 entities from storage and get the latest version numbers from that anyway.
 
-## Interfaces implemented by MIU
-
-| Interface                                  | Interface version | Breaking changes         | Implementing modules                         | Implementation module versions |
-|--------------------------------------------|-------------------|--------------------------|----------------------------------------------|--------------------------------|
-| `/instance-storage-match`                  | 2.1               |                          | mod-inventory-match                          | 2.4.3                          |
-|                                            | 3.0               | Changes to the match-key | mod-inventory-match                          | 3.0.0                          |
-|                                            | 3.1               |                          | mod-inventory-match<br/>mod-inventory-update | 3.1.0 <br/>1.0.0 - 1.3.4       |
-|                                            | Removed           |                          | mod-inventory-update                         | (removed with 2.0.0)           |
-| `/inventory-upsert-hrid`                   | 1.0               |                          | mod-inventory-update                         | 1.1.1 - 1.3.4                  |
-|                                            | 1.1               |                          | mod-inventory-update                         | 2.0.0 - 2.2.0                  |
-| `/shared-inventory-upsert-matchkey`        | 1.0               |                          | mod-inventory-update                         | 1.0.0                          |
-|                                            | 1.1               |                          | mod-inventory-update                         | 1.1.1 - 1.3.4                  |
-|                                            | 1.2               |                          | mod-inventory-update                         | 2.0.0 - 2.2.0                  |
-| `/inventory-batch-upsert-hrid`             | 1.0               |                          | mod-inventory-update                         | 2.2.0                          |
-| `/shared-inventory-batch-upsert-matchkey`  | 1.0               |                          | mod-inventory-update                         | 2.2.0                          |
+       | 2.2.0                          |
 
 ## Planned developments
 

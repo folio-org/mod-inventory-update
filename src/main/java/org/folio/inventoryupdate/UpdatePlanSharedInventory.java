@@ -218,7 +218,7 @@ public class UpdatePlanSharedInventory extends UpdatePlan {
     }
 
     @Override
-    public Future<Void> planInventoryDelete(OkapiClient okapiClient) {
+    public Future<Void> planInventoryDelete(OkapiClient okapiClient, ProcessingInstructionsDeletion deleteInstructions) {
         Promise<Void> promise = Promise.promise();
         lookupExistingRecordSet(okapiClient, instanceQuery).onComplete( lookup -> {
             if (lookup.succeeded()) {

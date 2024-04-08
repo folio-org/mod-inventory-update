@@ -1,5 +1,5 @@
 {
-  "description": "Prevent deletion of existing record when omitted from input, using pattern matching.",
+  "description": "Prevent deletion of existing record, using pattern matching in select field.",
   "properties": {
     "ifField": {
       "description": "Name of field to match",

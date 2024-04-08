@@ -6,6 +6,11 @@
     "hrid": {
       "type": "string",
       "description": "The legacy ID for the bibliographic record, as stored in the HRID of the Instance to be deleted."
+    },
+    "processing": {
+      "description": "Processing instructions, for example delete protection for records.",
+      "type": "object",
+      "$ref": "instructions/processing-upsert.json"
     }
   },
   "required": [

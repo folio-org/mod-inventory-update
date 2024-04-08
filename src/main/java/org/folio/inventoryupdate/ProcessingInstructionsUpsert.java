@@ -6,12 +6,11 @@ import org.folio.inventoryupdate.entities.InventoryRecord;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Collectors;
 
 /**
- * Wraps JSON structures as specified by ../ramls/instructions/processing.json
+ * Wraps JSON structures as specified by ../ramls/instructions/processing-upsert.json
  */
-public class ProcessingInstructions {
+public class ProcessingInstructionsUpsert {
   JsonObject processing;
   public static final String INSTANCE_INSTRUCTIONS_KEY = "instance";
   public static final String HOLDINGS_INSTRUCTIONS_KEY = "holdingsRecord";
@@ -33,7 +32,7 @@ public class ProcessingInstructions {
   private final HoldingsRecordInstructions holdingsRecordInstructions;
   private final ItemInstructions itemInstructions;
 
-  public ProcessingInstructions (JsonObject processing) {
+  public ProcessingInstructionsUpsert(JsonObject processing) {
     this.processing = processing;
     instanceInstructions = new InstanceInstructions(processing);
     holdingsRecordInstructions = new HoldingsRecordInstructions(processing);
@@ -103,7 +102,7 @@ public class ProcessingInstructions {
           }
           if (valueRetention.containsKey(SPECIFIC_PROPERTIES_RETENTION_KEY)) {
             forSpecificProperties = valueRetention.getJsonArray(SPECIFIC_PROPERTIES_RETENTION_KEY)
-                .stream().map(Object::toString).collect(Collectors.toList());
+                .stream().map(Object::toString).toList();
           }
         }
       }
@@ -169,7 +168,7 @@ public class ProcessingInstructions {
       if (hasInstructions() && entityInstructionsJson.containsKey(ITEM_STATUS_INSTRUCTION_KEY)) {
         return entityInstructionsJson.getJsonObject(ITEM_STATUS_INSTRUCTION_KEY);
       } else {
-        return null;
+        return new JsonObject();
       }
     }
 
@@ -182,23 +181,16 @@ public class ProcessingInstructions {
     }
 
     private boolean hasListOfItemStatuses() {
-      if (getItemStatusInstructions() != null) {
-        return getItemStatusInstructions().containsKey(ITEM_STATUS_POLICY_APPLIES_TO_KEY);
-      } else {
-        return false;
-      }
+      return getItemStatusInstructions().containsKey(ITEM_STATUS_POLICY_APPLIES_TO_KEY);
     }
 
     private String getItemStatusUpdatePolicy() {
-      if (getItemStatusInstructions() != null) {
-        return getItemStatusInstructions().getString(ITEM_STATUS_POLICY_KEY);
-      }
-      return null;
+      return getItemStatusInstructions().getString(ITEM_STATUS_POLICY_KEY);
     }
 
     private List<String> getListOfStatuses () {
       List<String> statuses = new ArrayList<>();
-      if (getItemStatusInstructions() != null) {
+      if (!getItemStatusInstructions().isEmpty()) {
         JsonArray itemStatuses = getItemStatusInstructions()
             .getJsonArray(ITEM_STATUS_POLICY_APPLIES_TO_KEY);
         for (Object o : itemStatuses) {

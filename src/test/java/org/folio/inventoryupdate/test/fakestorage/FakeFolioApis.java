@@ -9,8 +9,8 @@ import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.handler.BodyHandler;
 
-public class FakeInventoryStorage {
-    public final static int PORT_INVENTORY_STORAGE = 9030;
+public class FakeFolioApis {
+    public final static int PORT_OKAPI = 9030;
     public final static String INSTANCE_STORAGE_PATH = "/instance-storage/instances";
     public final static String INSTANCE_SET_PATH = "/inventory-view/instance-set";
     public static final String INSTANCE_RELATIONSHIP_STORAGE_PATH = "/instance-storage/instance-relationships";
@@ -22,6 +22,8 @@ public class FakeInventoryStorage {
     public static final String INSTANCE_STORAGE_BATCH_PATH = "/instance-storage/batch/synchronous";
     public static final String HOLDINGS_STORAGE_BATCH_PATH = "/holdings-storage/batch/synchronous";
     public static final String ITEM_STORAGE_BATCH_PATH = "/item-storage/batch/synchronous";
+
+    public static final String ORDER_LINES_STORAGE_PATH = "/orders-storage/po-lines";
 
     public static final String RESULT_SET_INSTANCES = "instances";
     public static final String RESULT_SET_HOLDINGS_RECORDS = "holdingsRecords";
@@ -35,7 +37,9 @@ public class FakeInventoryStorage {
     public InstanceRelationshipStorage instanceRelationshipStorage = new InstanceRelationshipStorage();
     public PrecedingSucceedingStorage precedingSucceedingStorage = new PrecedingSucceedingStorage();
 
-    public FakeInventoryStorage(Vertx vertx, TestContext testContext) {
+    public OrdersStorage ordersStorage = new OrdersStorage();
+
+    public FakeFolioApis(Vertx vertx, TestContext testContext) {
         locationStorage.attachToFakeStorage(this);
         instanceStorage.attachToFakeStorage(this);
         instanceSetview.attachToFakeStorage(this);
@@ -43,6 +47,7 @@ public class FakeInventoryStorage {
         itemStorage.attachToFakeStorage(this);
         instanceRelationshipStorage.attachToFakeStorage(this);
         precedingSucceedingStorage.attachToFakeStorage(this);
+        ordersStorage.attachToFakeStorage(this);
 
         Router router = Router.router(vertx);
         router.get(LOCATION_STORAGE_PATH).handler(locationStorage::getRecords);
@@ -58,6 +63,8 @@ public class FakeInventoryStorage {
         router.get(INSTANCE_RELATIONSHIP_STORAGE_PATH + "/:id").handler(instanceRelationshipStorage::getRecordById);
         router.get(PRECEDING_SUCCEEDING_TITLE_STORAGE_PATH).handler(precedingSucceedingStorage::getRecords);
         router.get(PRECEDING_SUCCEEDING_TITLE_STORAGE_PATH + "/:id").handler(precedingSucceedingStorage::getRecordById);
+        router.get(ORDER_LINES_STORAGE_PATH).handler(ordersStorage::getRecords);
+        router.get(ORDER_LINES_STORAGE_PATH + "/:id").handler(ordersStorage::getRecordById);
         router.post("/*").handler(BodyHandler.create());
         router.post(LOCATION_STORAGE_PATH).handler(locationStorage::createRecord);
         router.post(INSTANCE_STORAGE_PATH).handler(instanceStorage::createRecord);
@@ -68,6 +75,7 @@ public class FakeInventoryStorage {
         router.post(INSTANCE_RELATIONSHIP_STORAGE_PATH).handler(instanceRelationshipStorage::createRecord);
         router.post(PRECEDING_SUCCEEDING_TITLE_STORAGE_PATH).handler(precedingSucceedingStorage::createRecord);
         router.post(INSTANCE_STORAGE_BATCH_PATH).handler(instanceStorage::upsertRecords);
+        router.post(ORDER_LINES_STORAGE_PATH).handler(ordersStorage::createRecord);
         router.put("/*").handler(BodyHandler.create());
         router.put(LOCATION_STORAGE_PATH + "/:id").handler(locationStorage::updateRecord);
         router.put(INSTANCE_STORAGE_PATH + "/:id").handler(instanceStorage::updateRecord);
@@ -84,9 +92,9 @@ public class FakeInventoryStorage {
         HttpServerOptions so = new HttpServerOptions().setHandle100ContinueAutomatically(true);
         vertx.createHttpServer(so)
                 .requestHandler(router)
-                .listen(PORT_INVENTORY_STORAGE)
+                .listen(PORT_OKAPI)
                 .onComplete(testContext.asyncAssertSuccess());
-        RestAssured.port = FakeInventoryStorage.PORT_INVENTORY_STORAGE;
+        RestAssured.port = FakeFolioApis.PORT_OKAPI;
     }
 
     public static JsonObject getRecordsByQuery(String storagePath, String query) {

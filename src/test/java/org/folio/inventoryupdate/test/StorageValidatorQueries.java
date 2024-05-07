@@ -3,12 +3,12 @@ package org.folio.inventoryupdate.test;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.unit.TestContext;
-import org.folio.inventoryupdate.test.fakestorage.FakeInventoryStorage;
+import org.folio.inventoryupdate.test.fakestorage.FakeFolioApis;
 import org.folio.inventoryupdate.test.fakestorage.RecordStorage;
 import org.folio.inventoryupdate.test.fakestorage.entitites.InputInstance;
 
-import static org.folio.inventoryupdate.test.fakestorage.FakeInventoryStorage.INSTANCE_STORAGE_PATH;
-import static org.folio.inventoryupdate.test.fakestorage.FakeInventoryStorage.RESULT_SET_INSTANCES;
+import static org.folio.inventoryupdate.test.fakestorage.FakeFolioApis.INSTANCE_STORAGE_PATH;
+import static org.folio.inventoryupdate.test.fakestorage.FakeFolioApis.RESULT_SET_INSTANCES;
 
 public class StorageValidatorQueries
 {
@@ -20,15 +20,15 @@ public class StorageValidatorQueries
     }
 
     protected void validateMatchKeyQuery (TestContext testContext) {
-        FakeInventoryStorage.post(
+        FakeFolioApis.post(
                 INSTANCE_STORAGE_PATH,
                 new InputInstance().setTitle("New Input Instance").setInstanceTypeId("1111").setMatchKeyAsString("new_input_instance").setSource("test").getJson());
 
-        FakeInventoryStorage.post(
+        FakeFolioApis.post(
                 INSTANCE_STORAGE_PATH,
                 new InputInstance().setTitle("Another Input Instance").setInstanceTypeId("2222").setMatchKeyAsString("another_input_instance").setSource("test").getJson());
 
-        JsonObject responseOnQueryWithMatch = FakeInventoryStorage.getRecordsByQuery(INSTANCE_STORAGE_PATH,
+        JsonObject responseOnQueryWithMatch = FakeFolioApis.getRecordsByQuery(INSTANCE_STORAGE_PATH,
                 "query="+RecordStorage.encode("matchKey==\"another_input_instance\""));
 
         testContext.assertEquals(
@@ -36,7 +36,7 @@ public class StorageValidatorQueries
         JsonObject foundRecord = responseOnQueryWithMatch.getJsonArray(RESULT_SET_INSTANCES).getJsonObject(0);
         testContext.assertEquals(foundRecord.getString( "title" ), "Another Input Instance");
 
-        JsonObject responseOnQueryWithOutMatch = FakeInventoryStorage.getRecordsByQuery(INSTANCE_STORAGE_PATH,
+        JsonObject responseOnQueryWithOutMatch = FakeFolioApis.getRecordsByQuery(INSTANCE_STORAGE_PATH,
                 "query="+RecordStorage.encode("matchKey==\"a_third_input_instance\""));
         testContext.assertEquals(
                 responseOnQueryWithOutMatch.getInteger("totalRecords"), 0,"Number of " + RESULT_SET_INSTANCES + " expected: 0" );
@@ -44,7 +44,7 @@ public class StorageValidatorQueries
 
     protected void validateOrQuery (TestContext testContext) {
 
-        JsonObject responseOnOrQuery = FakeInventoryStorage.getRecordsByQuery(INSTANCE_STORAGE_PATH,
+        JsonObject responseOnOrQuery = FakeFolioApis.getRecordsByQuery(INSTANCE_STORAGE_PATH,
                 "query="+RecordStorage.encode("matchKey==\"another_input_instance\" or instanceTypeId==\"1111\""));
 
         testContext.assertEquals(
@@ -52,14 +52,14 @@ public class StorageValidatorQueries
     }
 
     protected void validateIdentifierQuery (TestContext testContext) {
-        FakeInventoryStorage.post(
+        FakeFolioApis.post(
                 INSTANCE_STORAGE_PATH,
                 new InputInstance().setTitle("Shared Input Instance with identifier")
                         .setInstanceTypeId("12345")
                         .setSource("test")
                         .setIdentifiers(new JsonArray().add(new JsonObject().put("identifierTypeId","4321").put("value","888888"))).getJson());
 
-        JsonObject responseOnIdentifierQuery = FakeInventoryStorage.getRecordsByQuery( INSTANCE_STORAGE_PATH,
+        JsonObject responseOnIdentifierQuery = FakeFolioApis.getRecordsByQuery( INSTANCE_STORAGE_PATH,
                 "query="+RecordStorage.encode("(identifiers =/@value/@identifierTypeId=\"4321\" \"888888\")"));
 
         testContext.assertEquals(
@@ -67,13 +67,13 @@ public class StorageValidatorQueries
     }
 
     protected void validateEqualityAndNotEqualityQuery (TestContext testContext) {
-        JsonObject responseOnNotQuery1 = FakeInventoryStorage.getRecordsByQuery(INSTANCE_STORAGE_PATH,
+        JsonObject responseOnNotQuery1 = FakeFolioApis.getRecordsByQuery(INSTANCE_STORAGE_PATH,
                 "query="+RecordStorage.encode("(identifiers =/@value/@identifierTypeId=\"4321\" \"888888\" not instanceTypeId==\"12345\")"));
 
         testContext.assertEquals(
                 responseOnNotQuery1.getInteger("totalRecords"), 0,"Number of " + RESULT_SET_INSTANCES + " expected: 0" );
 
-        JsonObject responseOnNotQuery2 = FakeInventoryStorage.getRecordsByQuery(INSTANCE_STORAGE_PATH,
+        JsonObject responseOnNotQuery2 = FakeFolioApis.getRecordsByQuery(INSTANCE_STORAGE_PATH,
                 "query="+RecordStorage.encode("(identifiers =/@value/@identifierTypeId=\"4321\" \"888888\" not instanceTypeId==\"rexx\")"));
 
         testContext.assertEquals(

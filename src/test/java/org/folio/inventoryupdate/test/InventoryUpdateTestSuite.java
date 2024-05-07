@@ -5,7 +5,7 @@ import org.folio.inventoryupdate.MainVerticle;
 import org.folio.inventoryupdate.MatchKey;
 import org.folio.inventoryupdate.ProcessingInstructionsUpsert;
 import org.folio.inventoryupdate.UpdatePlanSharedInventory;
-import org.folio.inventoryupdate.test.fakestorage.FakeInventoryStorage;
+import org.folio.inventoryupdate.test.fakestorage.FakeFolioApis;
 import org.folio.inventoryupdate.test.fakestorage.InputProcessingInstructions;
 import org.folio.inventoryupdate.test.fakestorage.DeleteProcessingInstructions;
 import org.folio.inventoryupdate.test.fakestorage.RecordStorage;
@@ -29,7 +29,7 @@ import io.vertx.ext.unit.junit.VertxUnitRunner;
 
 import java.util.Arrays;
 
-import static org.folio.inventoryupdate.test.fakestorage.FakeInventoryStorage.*;
+import static org.folio.inventoryupdate.test.fakestorage.FakeFolioApis.*;
 
 
 @RunWith(VertxUnitRunner.class)
@@ -38,9 +38,9 @@ public class InventoryUpdateTestSuite {
   Vertx vertx;
   private static final int PORT_INVENTORY_UPDATE = 9031;
   private static final Header OKAPI_URL_HEADER = new Header("X-Okapi-Url", "http://localhost:"
-          + FakeInventoryStorage.PORT_INVENTORY_STORAGE);
+          + FakeFolioApis.PORT_OKAPI);
 
-  private FakeInventoryStorage fakeInventoryStorage;
+  private FakeFolioApis fakeFolioApis;
   public static final String LOCATION_ID_1 = "LOC1";
   public static final String INSTITUTION_ID_1 = "INST1";
   public static final String LOCATION_ID_2 = "LOC2";
@@ -89,15 +89,15 @@ public class InventoryUpdateTestSuite {
     System.setProperty("port", String.valueOf(PORT_INVENTORY_UPDATE));
     vertx.deployVerticle(MainVerticle.class.getName(), new DeploymentOptions())
     .onComplete(testContext.asyncAssertSuccess(x -> {
-      fakeInventoryStorage = new FakeInventoryStorage(vertx, testContext);
+      fakeFolioApis = new FakeFolioApis(vertx, testContext);
       createReferenceRecords();
     }));
   }
 
   public void createReferenceRecords () {
-    fakeInventoryStorage.locationStorage.insert(
+    fakeFolioApis.locationStorage.insert(
             new InputLocation().setId(LOCATION_ID_1).setInstitutionId(INSTITUTION_ID_1));
-    fakeInventoryStorage.locationStorage.insert(
+    fakeFolioApis.locationStorage.insert(
             new InputLocation().setId(LOCATION_ID_2).setInstitutionId(INSTITUTION_ID_2));
 
   }
@@ -108,16 +108,16 @@ public class InventoryUpdateTestSuite {
             .setHrid("1")
             .setSource("test")
             .generateMatchKey();
-    fakeInventoryStorage.instanceStorage.insert(instance);
+    fakeFolioApis.instanceStorage.insert(instance);
   }
 
   public void createInitialInstanceWithHrid1() {
     InputInstance instance = new InputInstance().setInstanceTypeId("123").setTitle("Initial InputInstance").setHrid("1").setSource("test");
-    fakeInventoryStorage.instanceStorage.insert(instance);
+    fakeFolioApis.instanceStorage.insert(instance);
   }
 
   @Test
-  public void testFakeInventoryStorage(TestContext testContext) {
+  public void testFakeFolioApis(TestContext testContext) {
     createInitialInstanceWithMatchKey();
     new StorageValidatorLocations().validateStorage(testContext);
     new StorageValidatorInstances().validateStorage(testContext);
@@ -126,6 +126,7 @@ public class InventoryUpdateTestSuite {
     new StorageValidatorPrecedingSucceeding().validateStorage(testContext);
     new StorageValidatorInstanceRelationships().validateStorage(testContext);
     new StorageValidatorQueries().validateQueries(testContext);
+    new StorageValidatorPoLines().validateStorage(testContext);
   }
 
   @Test
@@ -151,13 +152,13 @@ public class InventoryUpdateTestSuite {
     instance.setMatchKeyAsString(matchKey.getKey());
     InventoryRecordSet recordSet = new InventoryRecordSet(instance);
 
-    JsonObject instancesBeforePutJson = getRecordsFromStorage(FakeInventoryStorage.INSTANCE_STORAGE_PATH, "matchKey==\"" + matchKey.getKey() + "\"");
+    JsonObject instancesBeforePutJson = getRecordsFromStorage(FakeFolioApis.INSTANCE_STORAGE_PATH, "matchKey==\"" + matchKey.getKey() + "\"");
     testContext.assertEquals(instancesBeforePutJson.getInteger("totalRecords"), 0,
             "Number of instance records for query by matchKey 'new_title___(etc)' before PUT expected: 0" );
 
     upsertByMatchKey(recordSet.getJson());
 
-    JsonObject instancesAfterPutJson = getRecordsFromStorage(FakeInventoryStorage.INSTANCE_STORAGE_PATH, "matchKey==\"" + matchKey.getKey() + "\"");
+    JsonObject instancesAfterPutJson = getRecordsFromStorage(FakeFolioApis.INSTANCE_STORAGE_PATH, "matchKey==\"" + matchKey.getKey() + "\"");
     testContext.assertEquals(instancesAfterPutJson.getInteger("totalRecords"), 1,
             "Number of instance records for query by matchKey 'new_title' after PUT expected: 1" );
 
@@ -174,13 +175,13 @@ public class InventoryUpdateTestSuite {
     instance.setMatchKeyAsString(matchKey.getKey());
     BatchOfInventoryRecordSets batch = new BatchOfInventoryRecordSets().addRecordSet(new InventoryRecordSet(instance));
 
-    JsonObject instancesBeforePutJson = getRecordsFromStorage(FakeInventoryStorage.INSTANCE_STORAGE_PATH, "matchKey==\"" + matchKey.getKey() + "\"");
+    JsonObject instancesBeforePutJson = getRecordsFromStorage(FakeFolioApis.INSTANCE_STORAGE_PATH, "matchKey==\"" + matchKey.getKey() + "\"");
     testContext.assertEquals(instancesBeforePutJson.getInteger("totalRecords"), 0,
             "Number of instance records for query by matchKey 'new_title___(etc)' before PUT expected: 0" );
 
     batchUpsertByMatchKey(batch.getJson());
 
-    JsonObject instancesAfterPutJson = getRecordsFromStorage(FakeInventoryStorage.INSTANCE_STORAGE_PATH, "matchKey==\"" + matchKey.getKey() + "\"");
+    JsonObject instancesAfterPutJson = getRecordsFromStorage(FakeFolioApis.INSTANCE_STORAGE_PATH, "matchKey==\"" + matchKey.getKey() + "\"");
     testContext.assertEquals(instancesAfterPutJson.getInteger("totalRecords"), 1,
             "Number of instance records for query by matchKey 'new_title' after PUT expected: 1" );
 
@@ -200,11 +201,11 @@ public class InventoryUpdateTestSuite {
       instance.setMatchKeyAsString(matchKey.getKey());
       batch.addRecordSet(new InventoryRecordSet(instance));
     }
-    JsonObject instancesBeforePutJson = getRecordsFromStorage(FakeInventoryStorage.INSTANCE_STORAGE_PATH, null);
+    JsonObject instancesBeforePutJson = getRecordsFromStorage(FakeFolioApis.INSTANCE_STORAGE_PATH, null);
     testContext.assertEquals(instancesBeforePutJson.getInteger("totalRecords"), 1,
             "Number of instance records for before PUT expected: 1" );
     batchUpsertByMatchKey(batch.getJson());
-    JsonObject instancesAfterPutJson = getRecordsFromStorage(FakeInventoryStorage.INSTANCE_STORAGE_PATH, null);
+    JsonObject instancesAfterPutJson = getRecordsFromStorage(FakeFolioApis.INSTANCE_STORAGE_PATH, null);
     testContext.assertEquals(instancesAfterPutJson.getInteger("totalRecords"), 201,
             "Number of instance records after PUT expected: 201" );
 
@@ -222,11 +223,11 @@ public class InventoryUpdateTestSuite {
               .setInstanceTypeId("12345")
               .generateMatchKey()));
     }
-    JsonObject instancesBeforePutJson = getRecordsFromStorage(FakeInventoryStorage.INSTANCE_STORAGE_PATH, null);
+    JsonObject instancesBeforePutJson = getRecordsFromStorage(FakeFolioApis.INSTANCE_STORAGE_PATH, null);
     testContext.assertEquals(instancesBeforePutJson.getInteger("totalRecords"), 1,
             "Number of instance records before PUT expected: 1" );
     batchUpsertByHrid(batch.getJson());
-    JsonObject instancesAfterPutJson = getRecordsFromStorage(FakeInventoryStorage.INSTANCE_STORAGE_PATH, null);
+    JsonObject instancesAfterPutJson = getRecordsFromStorage(FakeFolioApis.INSTANCE_STORAGE_PATH, null);
     testContext.assertEquals(instancesAfterPutJson.getInteger("totalRecords"), 201,
             "Number of instance records after PUT expected: 201" );
   }
@@ -247,11 +248,11 @@ public class InventoryUpdateTestSuite {
               .put("instance", instance.getJson())
               .put("processing", new JsonObject().put("batchIndex",i)));
     }
-    JsonObject instancesBeforePutJson = getRecordsFromStorage(FakeInventoryStorage.INSTANCE_STORAGE_PATH, null);
+    JsonObject instancesBeforePutJson = getRecordsFromStorage(FakeFolioApis.INSTANCE_STORAGE_PATH, null);
     testContext.assertEquals(instancesBeforePutJson.getInteger("totalRecords"), 1,
             "Number of instance records for before PUT expected: 1" );
     batchUpsertByMatchKey(207, batch.getJson());
-    JsonObject instancesAfterPutJson = getRecordsFromStorage(FakeInventoryStorage.INSTANCE_STORAGE_PATH, null);
+    JsonObject instancesAfterPutJson = getRecordsFromStorage(FakeFolioApis.INSTANCE_STORAGE_PATH, null);
     testContext.assertEquals(instancesAfterPutJson.getInteger("totalRecords"), 50,
             "Number of instance records after PUT expected: 100" );
   }
@@ -270,11 +271,11 @@ public class InventoryUpdateTestSuite {
       }
       batch.addRecordSet(new InventoryRecordSet(instance));
     }
-    JsonObject instancesBeforePutJson = getRecordsFromStorage(FakeInventoryStorage.INSTANCE_STORAGE_PATH, null);
+    JsonObject instancesBeforePutJson = getRecordsFromStorage(FakeFolioApis.INSTANCE_STORAGE_PATH, null);
     testContext.assertEquals(instancesBeforePutJson.getInteger("totalRecords"), 1,
             "Number of instance records for before PUT expected: 1" );
     batchUpsertByHrid(207,batch.getJson());
-    JsonObject instancesAfterPutJson = getRecordsFromStorage(FakeInventoryStorage.INSTANCE_STORAGE_PATH, null);
+    JsonObject instancesAfterPutJson = getRecordsFromStorage(FakeFolioApis.INSTANCE_STORAGE_PATH, null);
     testContext.assertEquals(instancesAfterPutJson.getInteger("totalRecords"), 100,
             "Number of instance records after PUT expected: 100" );
   }
@@ -293,11 +294,11 @@ public class InventoryUpdateTestSuite {
       }
       batch.addRecordSet(new InventoryRecordSet(instance));
     }
-    JsonObject instancesBeforePutJson = getRecordsFromStorage(FakeInventoryStorage.INSTANCE_STORAGE_PATH, null);
+    JsonObject instancesBeforePutJson = getRecordsFromStorage(FakeFolioApis.INSTANCE_STORAGE_PATH, null);
     testContext.assertEquals(instancesBeforePutJson.getInteger("totalRecords"), 1,
             "Number of instance records for before PUT expected: 1" );
     batchUpsertByHrid(207,batch.getJson());
-    JsonObject instancesAfterPutJson = getRecordsFromStorage(FakeInventoryStorage.INSTANCE_STORAGE_PATH, null);
+    JsonObject instancesAfterPutJson = getRecordsFromStorage(FakeFolioApis.INSTANCE_STORAGE_PATH, null);
     testContext.assertEquals(instancesAfterPutJson.getInteger("totalRecords"), 100,
             "Number of instance records after PUT expected: 100" );
   }
@@ -321,7 +322,7 @@ public class InventoryUpdateTestSuite {
             .setInstanceTypeId("12345");
     batch.addRecordSet(new InventoryRecordSet(instance));
 
-    JsonObject instancesBeforePutJson = getRecordsFromStorage(FakeInventoryStorage.INSTANCE_STORAGE_PATH, null);
+    JsonObject instancesBeforePutJson = getRecordsFromStorage(FakeFolioApis.INSTANCE_STORAGE_PATH, null);
     testContext.assertEquals(instancesBeforePutJson.getInteger("totalRecords"), 1,
             "Number of instance records for before PUT expected: 1" );
     Response response = batchUpsertByHrid(200,batch.getJson());
@@ -331,7 +332,7 @@ public class InventoryUpdateTestSuite {
             "Number of instance records created after PUT of batch of 29 expected: 29");
     testContext.assertEquals(metrics.getJsonObject("INSTANCE").getJsonObject("UPDATE").getInteger("COMPLETED"), 1,
             "Number of instance records updated after PUT of batch of 39 expected: 1");
-    JsonObject instancesAfterPutJson = getRecordsFromStorage(FakeInventoryStorage.INSTANCE_STORAGE_PATH, null);
+    JsonObject instancesAfterPutJson = getRecordsFromStorage(FakeFolioApis.INSTANCE_STORAGE_PATH, null);
     testContext.assertEquals(instancesAfterPutJson.getInteger("totalRecords"), 30,
             "Number of instance records after PUT expected: 30" );
   }
@@ -355,7 +356,7 @@ public class InventoryUpdateTestSuite {
             .generateMatchKey();
     batch.addRecordSet(new InventoryRecordSet(instance));
 
-    JsonObject instancesBeforePutJson = getRecordsFromStorage(FakeInventoryStorage.INSTANCE_STORAGE_PATH, null);
+    JsonObject instancesBeforePutJson = getRecordsFromStorage(FakeFolioApis.INSTANCE_STORAGE_PATH, null);
     testContext.assertEquals(instancesBeforePutJson.getInteger("totalRecords"), 1,
             "Number of instance records for before PUT expected: 1" );
     Response response = batchUpsertByMatchKey(200,batch.getJson());
@@ -365,7 +366,7 @@ public class InventoryUpdateTestSuite {
             "Number of instance records created after PUT of batch of 29 expected: 29");
     testContext.assertEquals(metrics.getJsonObject("INSTANCE").getJsonObject("UPDATE").getInteger("COMPLETED"), 1,
             "Number of instance records updated after PUT of batch of 29 expected: 1");
-    JsonObject instancesAfterPutJson = getRecordsFromStorage(FakeInventoryStorage.INSTANCE_STORAGE_PATH, null);
+    JsonObject instancesAfterPutJson = getRecordsFromStorage(FakeFolioApis.INSTANCE_STORAGE_PATH, null);
     testContext.assertEquals(instancesAfterPutJson.getInteger("totalRecords"), 30,
             "Number of instance records after PUT expected: 30" );
   }
@@ -389,7 +390,7 @@ public class InventoryUpdateTestSuite {
             .generateMatchKey();
     batch.addRecordSet(new InventoryRecordSet(instance).getJson().put(PROCESSING,new JsonObject().put("localIdentifier","id" + 20)));
 
-    JsonObject instancesBeforePutJson = getRecordsFromStorage(FakeInventoryStorage.INSTANCE_STORAGE_PATH, null);
+    JsonObject instancesBeforePutJson = getRecordsFromStorage(FakeFolioApis.INSTANCE_STORAGE_PATH, null);
     testContext.assertEquals(instancesBeforePutJson.getInteger("totalRecords"), 1,
             "Number of instance records for before PUT expected: 1" );
     Response response = batchUpsertByMatchKey(200,batch.getJson());
@@ -400,7 +401,7 @@ public class InventoryUpdateTestSuite {
             "Number of instance records created after PUT of batch of 29 expected: 29");
     testContext.assertEquals(metrics.getJsonObject("INSTANCE").getJsonObject("UPDATE").getInteger("COMPLETED"), 1,
             "Number of instance records updated after PUT of batch of 100 expected: 1");
-    JsonObject instancesAfterPutJson = getRecordsFromStorage(FakeInventoryStorage.INSTANCE_STORAGE_PATH, null);
+    JsonObject instancesAfterPutJson = getRecordsFromStorage(FakeFolioApis.INSTANCE_STORAGE_PATH, null);
     testContext.assertEquals(instancesAfterPutJson.getInteger("totalRecords"), 30,
             "Number of instance records after PUT expected: 30" );
   }
@@ -646,13 +647,13 @@ public class InventoryUpdateTestSuite {
     InventoryRecordSet recordSet = new InventoryRecordSet(instance);
 
     MatchKey matchKey = new MatchKey( instance.getJson() );
-    JsonObject instancesBeforePutJson = getRecordsFromStorage(FakeInventoryStorage.INSTANCE_STORAGE_PATH, "matchKey==\"" + matchKey.getKey() + "\"");
+    JsonObject instancesBeforePutJson = getRecordsFromStorage(FakeFolioApis.INSTANCE_STORAGE_PATH, "matchKey==\"" + matchKey.getKey() + "\"");
     testContext.assertEquals(instancesBeforePutJson.getInteger("totalRecords"), 0,
             "Number of instance records for query by matchKey 'new_title___(etc)' before PUT expected: 0" );
 
     upsertByMatchKey(recordSet.getJson());
 
-    JsonObject instancesAfterPutJson = getRecordsFromStorage(FakeInventoryStorage.INSTANCE_STORAGE_PATH, "matchKey==\"" + matchKey.getKey() + "\"");
+    JsonObject instancesAfterPutJson = getRecordsFromStorage(FakeFolioApis.INSTANCE_STORAGE_PATH, "matchKey==\"" + matchKey.getKey() + "\"");
     testContext.assertEquals(instancesAfterPutJson.getInteger("totalRecords"), 1,
             "Number of instance records for query by matchKey " + matchKey.getKey() + " after PUT expected: 1" );
 
@@ -665,7 +666,7 @@ public class InventoryUpdateTestSuite {
     MatchKey matchKey = new MatchKey(instance.getJson());
     InventoryRecordSet inventoryRecordSet = new InventoryRecordSet(instance);
 
-    JsonObject instancesBeforePutJson = getRecordsFromStorage(FakeInventoryStorage.INSTANCE_STORAGE_PATH,"matchKey==\"" + matchKey.getKey() + "\"");
+    JsonObject instancesBeforePutJson = getRecordsFromStorage(FakeFolioApis.INSTANCE_STORAGE_PATH,"matchKey==\"" + matchKey.getKey() + "\"");
     testContext.assertEquals(instancesBeforePutJson.getInteger("totalRecords"), 1,
             "Number of instance records for query by matchKey 'initial instance' before PUT expected: 1" );
     String instanceTypeIdBefore = instancesBeforePutJson.getJsonArray("instances")
@@ -675,7 +676,7 @@ public class InventoryUpdateTestSuite {
 
     upsertByMatchKey(inventoryRecordSet.getJson());
 
-    JsonObject instancesAfterPutJson = getRecordsFromStorage(FakeInventoryStorage.INSTANCE_STORAGE_PATH,"matchKey==\"" + matchKey.getKey() + "\"");
+    JsonObject instancesAfterPutJson = getRecordsFromStorage(FakeFolioApis.INSTANCE_STORAGE_PATH,"matchKey==\"" + matchKey.getKey() + "\"");
     testContext.assertEquals(instancesAfterPutJson.getInteger("totalRecords"), 1,
             "Number of instance records for query by matchKey 'initial instance' after PUT expected: 1" );
     String instanceTypeIdAfter = instancesAfterPutJson.getJsonArray("instances")
@@ -714,10 +715,10 @@ public class InventoryUpdateTestSuite {
             "Upsert metrics response should report [2] holdings records successfully created " + upsertResponseJson.encodePrettily());
     testContext.assertEquals(getMetric(upsertResponseJson, ITEM, CREATE , COMPLETED), 3,
             "Upsert metrics response should report [3] items successfully created " + upsertResponseJson.encodePrettily());
-    JsonObject storedHoldings = getRecordsFromStorage(FakeInventoryStorage.HOLDINGS_STORAGE_PATH, "instanceId==\"" + instanceId + "\"");
+    JsonObject storedHoldings = getRecordsFromStorage(FakeFolioApis.HOLDINGS_STORAGE_PATH, "instanceId==\"" + instanceId + "\"");
     testContext.assertEquals(storedHoldings.getInteger("totalRecords"), 2,
             "After upsert the number of holdings records for instance " + instanceId + " should be [2] " + storedHoldings.encodePrettily() );
-    JsonObject storedItems = getRecordsFromStorage(FakeInventoryStorage.ITEM_STORAGE_PATH, null);
+    JsonObject storedItems = getRecordsFromStorage(FakeFolioApis.ITEM_STORAGE_PATH, null);
     testContext.assertEquals(storedItems.getInteger("totalRecords"), 3,
             "After upsert the total number of items should be [3] " + storedHoldings.encodePrettily() );
 
@@ -807,7 +808,7 @@ public class InventoryUpdateTestSuite {
     testContext.assertEquals(getMetric(upsertResponseJson, ITEM, CREATE , COMPLETED), 3,
             "Upsert metrics response should report [3] items successfully created " + upsertResponseJson.encodePrettily());
 
-    getRecordsFromStorage(FakeInventoryStorage.ITEM_STORAGE_PATH,null).getJsonArray("items").stream().forEach(item -> {
+    getRecordsFromStorage(FakeFolioApis.ITEM_STORAGE_PATH,null).getJsonArray("items").stream().forEach(item -> {
       testContext.assertEquals(((JsonObject)item).getString("barcode"), "updated",
               "The barcode of all items should be updated to 'updated' after upsert of existing record set with holdings and items");
     });
@@ -856,14 +857,14 @@ public class InventoryUpdateTestSuite {
     testContext.assertEquals(getMetric(upsertResponseJson1, ITEM, CREATE , COMPLETED), 3,
             "Upsert metrics response should report [3] items successfully created " + upsertResponseJson1.encodePrettily());
 
-    JsonObject storedHoldings = getRecordsFromStorage(FakeInventoryStorage.HOLDINGS_STORAGE_PATH, "instanceId==\"" + instanceId + "\"");
+    JsonObject storedHoldings = getRecordsFromStorage(FakeFolioApis.HOLDINGS_STORAGE_PATH, "instanceId==\"" + instanceId + "\"");
     testContext.assertEquals(storedHoldings.getInteger("totalRecords"), 2,
             "After upsert the number of holdings records for instance " + instanceId + " should be [2] " + storedHoldings.encodePrettily() );
-    JsonObject storedItems = getRecordsFromStorage(FakeInventoryStorage.ITEM_STORAGE_PATH, null);
+    JsonObject storedItems = getRecordsFromStorage(FakeFolioApis.ITEM_STORAGE_PATH, null);
     testContext.assertEquals(storedItems.getInteger("totalRecords"), 3,
             "After upsert the total number of items should be [3] " + storedItems.encodePrettily() );
 
-    JsonObject instanceFromStorage = getRecordFromStorageById(FakeInventoryStorage.INSTANCE_STORAGE_PATH, instanceId);
+    JsonObject instanceFromStorage = getRecordFromStorageById(FakeFolioApis.INSTANCE_STORAGE_PATH, instanceId);
     testContext.assertEquals(instanceFromStorage.getJsonArray("identifiers").size(),1,
             "After first upsert of Shared InputInstance there should be [1] identifier on the instance " + instanceFromStorage.encodePrettily());
 
@@ -896,14 +897,14 @@ public class InventoryUpdateTestSuite {
     testContext.assertEquals(getMetric(upsertResponseJson2, ITEM, CREATE , COMPLETED), 3,
             "Metrics after second upsert should report additional [3] items successfully created " + upsertResponseJson2.encodePrettily());
 
-    storedHoldings = getRecordsFromStorage(FakeInventoryStorage.HOLDINGS_STORAGE_PATH, "instanceId==\"" + instanceId + "\"");
+    storedHoldings = getRecordsFromStorage(FakeFolioApis.HOLDINGS_STORAGE_PATH, "instanceId==\"" + instanceId + "\"");
     testContext.assertEquals(storedHoldings.getInteger("totalRecords"), 4,
             "After second upsert there should be [4] holdings records for instance " + instanceId + ": " + storedHoldings.encodePrettily() );
-    storedItems = getRecordsFromStorage(FakeInventoryStorage.ITEM_STORAGE_PATH, null);
+    storedItems = getRecordsFromStorage(FakeFolioApis.ITEM_STORAGE_PATH, null);
     testContext.assertEquals(storedItems.getInteger("totalRecords"), 6,
             "After second upsert there should be [6] items " + storedItems.encodePrettily() );
 
-    instanceFromStorage = getRecordFromStorageById(FakeInventoryStorage.INSTANCE_STORAGE_PATH, instanceId);
+    instanceFromStorage = getRecordFromStorageById(FakeFolioApis.INSTANCE_STORAGE_PATH, instanceId);
     testContext.assertEquals(instanceFromStorage.getJsonArray("identifiers").size(),2,
             "After second upsert of Shared InputInstance there should be [2] identifiers on the instance " + instanceFromStorage.encodePrettily());
 
@@ -918,14 +919,14 @@ public class InventoryUpdateTestSuite {
     testContext.assertEquals(getMetric(deleteResponse, ITEM, DELETE , COMPLETED), 3,
             "Delete metrics response should report [3] items successfully deleted " + deleteResponse.encodePrettily());
 
-    storedHoldings = getRecordsFromStorage(FakeInventoryStorage.HOLDINGS_STORAGE_PATH, "instanceId==\"" + instanceId + "\"");
+    storedHoldings = getRecordsFromStorage(FakeFolioApis.HOLDINGS_STORAGE_PATH, "instanceId==\"" + instanceId + "\"");
     testContext.assertEquals(storedHoldings.getInteger("totalRecords"), 2,
             "After delete the number of holdings records left for instance " + instanceId + " should be [2] " + storedHoldings.encodePrettily() );
-    storedItems = getRecordsFromStorage(FakeInventoryStorage.ITEM_STORAGE_PATH, null);
+    storedItems = getRecordsFromStorage(FakeFolioApis.ITEM_STORAGE_PATH, null);
     testContext.assertEquals(storedItems.getInteger("totalRecords"), 3,
             "After delete the total number of items left should be [3] " + storedItems.encodePrettily() );
 
-    instanceFromStorage = getRecordFromStorageById(FakeInventoryStorage.INSTANCE_STORAGE_PATH, instanceId);
+    instanceFromStorage = getRecordFromStorageById(FakeFolioApis.INSTANCE_STORAGE_PATH, instanceId);
     testContext.assertEquals(instanceFromStorage.getJsonArray("identifiers").size(), 1,
             "After delete request to Shared InputInstance there should be [1] identifier left on the instance " + instanceFromStorage.encodePrettily());
 
@@ -969,14 +970,14 @@ public class InventoryUpdateTestSuite {
     testContext.assertEquals(getMetric(upsertResponseJson1, ITEM, CREATE , COMPLETED), 3,
             "Upsert metrics response should report [3] items successfully created " + upsertResponseJson1.encodePrettily());
 
-    JsonObject storedHoldings = getRecordsFromStorage(FakeInventoryStorage.HOLDINGS_STORAGE_PATH, "instanceId==\"" + instanceId + "\"");
+    JsonObject storedHoldings = getRecordsFromStorage(FakeFolioApis.HOLDINGS_STORAGE_PATH, "instanceId==\"" + instanceId + "\"");
     testContext.assertEquals(storedHoldings.getInteger("totalRecords"), 2,
             "After upsert the number of holdings records for instance " + instanceId + " should be [2] " + storedHoldings.encodePrettily() );
-    JsonObject storedItems = getRecordsFromStorage(FakeInventoryStorage.ITEM_STORAGE_PATH, null);
+    JsonObject storedItems = getRecordsFromStorage(FakeFolioApis.ITEM_STORAGE_PATH, null);
     testContext.assertEquals(storedItems.getInteger("totalRecords"), 3,
             "After upsert the total number of items should be [3] " + storedItems.encodePrettily() );
 
-    JsonObject instanceFromStorage = getRecordFromStorageById(FakeInventoryStorage.INSTANCE_STORAGE_PATH, instanceId);
+    JsonObject instanceFromStorage = getRecordFromStorageById(FakeFolioApis.INSTANCE_STORAGE_PATH, instanceId);
     testContext.assertEquals(instanceFromStorage.getJsonArray("identifiers").size(),1,
             "After first upsert of Shared InputInstance there should be [1] identifier on the instance " + instanceFromStorage.encodePrettily());
 
@@ -1009,14 +1010,14 @@ public class InventoryUpdateTestSuite {
     testContext.assertEquals(getMetric(upsertResponseJson2, ITEM, CREATE , COMPLETED), 3,
             "Metrics after second upsert should report additional [3] items successfully created " + upsertResponseJson2.encodePrettily());
 
-    storedHoldings = getRecordsFromStorage(FakeInventoryStorage.HOLDINGS_STORAGE_PATH, "instanceId==\"" + instanceId + "\"");
+    storedHoldings = getRecordsFromStorage(FakeFolioApis.HOLDINGS_STORAGE_PATH, "instanceId==\"" + instanceId + "\"");
     testContext.assertEquals(storedHoldings.getInteger("totalRecords"), 4,
             "After second upsert there should be [4] holdings records for instance " + instanceId + ": " + storedHoldings.encodePrettily() );
-    storedItems = getRecordsFromStorage(FakeInventoryStorage.ITEM_STORAGE_PATH, null);
+    storedItems = getRecordsFromStorage(FakeFolioApis.ITEM_STORAGE_PATH, null);
     testContext.assertEquals(storedItems.getInteger("totalRecords"), 6,
             "After second upsert there should be [6] items " + storedItems.encodePrettily() );
 
-    instanceFromStorage = getRecordFromStorageById(FakeInventoryStorage.INSTANCE_STORAGE_PATH, instanceId);
+    instanceFromStorage = getRecordFromStorageById(FakeFolioApis.INSTANCE_STORAGE_PATH, instanceId);
     testContext.assertEquals(instanceFromStorage.getJsonArray("identifiers").size(),2,
             "After second upsert of Shared InputInstance there should be [2] identifiers on the instance " + instanceFromStorage.encodePrettily());
 
@@ -1030,14 +1031,14 @@ public class InventoryUpdateTestSuite {
     testContext.assertEquals(getMetric(deleteResponse, ITEM, DELETE , COMPLETED), 3,
             "Delete metrics response should report [3] items successfully deleted " + deleteResponse.encodePrettily());
 
-    storedHoldings = getRecordsFromStorage(FakeInventoryStorage.HOLDINGS_STORAGE_PATH, "instanceId==\"" + instanceId + "\"");
+    storedHoldings = getRecordsFromStorage(FakeFolioApis.HOLDINGS_STORAGE_PATH, "instanceId==\"" + instanceId + "\"");
     testContext.assertEquals(storedHoldings.getInteger("totalRecords"), 2,
             "After delete the number of holdings records left for instance " + instanceId + " should be [2] " + storedHoldings.encodePrettily() );
-    storedItems = getRecordsFromStorage(FakeInventoryStorage.ITEM_STORAGE_PATH, null);
+    storedItems = getRecordsFromStorage(FakeFolioApis.ITEM_STORAGE_PATH, null);
     testContext.assertEquals(storedItems.getInteger("totalRecords"), 3,
             "After delete the total number of items left should be [3] " + storedItems.encodePrettily() );
 
-    instanceFromStorage = getRecordFromStorageById(FakeInventoryStorage.INSTANCE_STORAGE_PATH, instanceId);
+    instanceFromStorage = getRecordFromStorageById(FakeFolioApis.INSTANCE_STORAGE_PATH, instanceId);
     testContext.assertEquals(instanceFromStorage.getJsonArray("identifiers").size(), 1,
             "After delete request to Shared InputInstance there should be [1] identifier left on the instance " + instanceFromStorage.encodePrettily());
   }
@@ -1086,14 +1087,14 @@ public class InventoryUpdateTestSuite {
     testContext.assertEquals(getMetric(upsertResponseJson1, ITEM, CREATE , COMPLETED), 3,
             "Upsert metrics response should report [3] items successfully created " + upsertResponseJson1.encodePrettily());
 
-    JsonObject storedHoldings = getRecordsFromStorage(FakeInventoryStorage.HOLDINGS_STORAGE_PATH, "instanceId==\"" + instanceId + "\"");
+    JsonObject storedHoldings = getRecordsFromStorage(FakeFolioApis.HOLDINGS_STORAGE_PATH, "instanceId==\"" + instanceId + "\"");
     testContext.assertEquals(storedHoldings.getInteger("totalRecords"), 2,
             "After upsert the number of holdings records for instance " + instanceId + " should be [2] " + storedHoldings.encodePrettily() );
-    JsonObject storedItems = getRecordsFromStorage(FakeInventoryStorage.ITEM_STORAGE_PATH, null);
+    JsonObject storedItems = getRecordsFromStorage(FakeFolioApis.ITEM_STORAGE_PATH, null);
     testContext.assertEquals(storedItems.getInteger("totalRecords"), 3,
             "After upsert the total number of items should be [3] " + storedItems.encodePrettily() );
 
-    JsonObject instanceFromStorage = getRecordFromStorageById(FakeInventoryStorage.INSTANCE_STORAGE_PATH, instanceId);
+    JsonObject instanceFromStorage = getRecordFromStorageById(FakeFolioApis.INSTANCE_STORAGE_PATH, instanceId);
     testContext.assertEquals(instanceFromStorage.getJsonArray("identifiers").size(),1,
             "After first upsert of 'Shared InputInstance' there should be [1] identifier on the instance " + instanceFromStorage.encodePrettily());
 
@@ -1130,14 +1131,14 @@ public class InventoryUpdateTestSuite {
     testContext.assertEquals(getMetric(upsertResponseJson2, ITEM, CREATE , COMPLETED), 3,
             "Metrics after second upsert should report additional [3] items successfully created " + upsertResponseJson2.encodePrettily());
 
-    storedHoldings = getRecordsFromStorage(FakeInventoryStorage.HOLDINGS_STORAGE_PATH, "instanceId==\"" + instanceId + "\"");
+    storedHoldings = getRecordsFromStorage(FakeFolioApis.HOLDINGS_STORAGE_PATH, "instanceId==\"" + instanceId + "\"");
     testContext.assertEquals(storedHoldings.getInteger("totalRecords"), 4,
             "After second upsert there should be [4] holdings records for instance " + instanceId + ": " + storedHoldings.encodePrettily() );
-    storedItems = getRecordsFromStorage(FakeInventoryStorage.ITEM_STORAGE_PATH, null);
+    storedItems = getRecordsFromStorage(FakeFolioApis.ITEM_STORAGE_PATH, null);
     testContext.assertEquals(storedItems.getInteger("totalRecords"), 6,
             "After second upsert there should be [6] items " + storedItems.encodePrettily() );
 
-    instanceFromStorage = getRecordFromStorageById(FakeInventoryStorage.INSTANCE_STORAGE_PATH, instanceId);
+    instanceFromStorage = getRecordFromStorageById(FakeFolioApis.INSTANCE_STORAGE_PATH, instanceId);
     testContext.assertEquals(instanceFromStorage.getJsonArray("identifiers").size(),2,
             "After second upsert of 'Shared InputInstance' there should be [2] identifiers on the instance " + instanceFromStorage.encodePrettily());
 
@@ -1176,22 +1177,22 @@ public class InventoryUpdateTestSuite {
     testContext.assertEquals(getMetric(upsertResponseJsonForChangedMatchKey, ITEM, CREATE , COMPLETED), 3,
             "Upsert metrics response should report [3] items successfully created " + upsertResponseJsonForChangedMatchKey.encodePrettily());
 
-    JsonObject storedHoldingsSameRecordNewInstance = getRecordsFromStorage(FakeInventoryStorage.HOLDINGS_STORAGE_PATH, "instanceId==\"" + instanceIdSameRecordNewMatchKey + "\"");
+    JsonObject storedHoldingsSameRecordNewInstance = getRecordsFromStorage(FakeFolioApis.HOLDINGS_STORAGE_PATH, "instanceId==\"" + instanceIdSameRecordNewMatchKey + "\"");
     testContext.assertEquals(storedHoldingsSameRecordNewInstance.getInteger("totalRecords"), 2,
             "After third upsert, with 'Shared Input Instance', the number of holdings records for the new Instance " + instanceIdSameRecordNewMatchKey + " should be [2] " + storedHoldingsSameRecordNewInstance.encodePrettily() );
-    JsonObject allStoredItems = getRecordsFromStorage(FakeInventoryStorage.ITEM_STORAGE_PATH, null);
+    JsonObject allStoredItems = getRecordsFromStorage(FakeFolioApis.ITEM_STORAGE_PATH, null);
     testContext.assertEquals(allStoredItems.getInteger("totalRecords"), 6,
             "After third upsert, with 'Shared Input Instance', the total number of items should be [6] " + allStoredItems.encodePrettily() );
 
-    JsonObject newInstanceFromStorage = getRecordFromStorageById(FakeInventoryStorage.INSTANCE_STORAGE_PATH, instanceIdSameRecordNewMatchKey);
+    JsonObject newInstanceFromStorage = getRecordFromStorageById(FakeFolioApis.INSTANCE_STORAGE_PATH, instanceIdSameRecordNewMatchKey);
     testContext.assertEquals(newInstanceFromStorage.getJsonArray("identifiers").size(),1,
             "After third upsert, with 'Shared Input Instance', there should be [1] identifier on a new instance " + newInstanceFromStorage.encodePrettily());
 
-    JsonObject oldInstanceFromStorage = getRecordFromStorageById( FakeInventoryStorage.INSTANCE_STORAGE_PATH, instanceId );
+    JsonObject oldInstanceFromStorage = getRecordFromStorageById( FakeFolioApis.INSTANCE_STORAGE_PATH, instanceId );
     testContext.assertEquals(oldInstanceFromStorage.getJsonArray("identifiers").size(),1,
             "After third upsert, with 'Shared Input Instance', there should be [1] identifier left on the previous instance " + oldInstanceFromStorage.encodePrettily());
 
-    JsonObject previousInstanceStoredHoldings = getRecordsFromStorage(FakeInventoryStorage.HOLDINGS_STORAGE_PATH, "instanceId==\"" + instanceId + "\"");
+    JsonObject previousInstanceStoredHoldings = getRecordsFromStorage(FakeFolioApis.HOLDINGS_STORAGE_PATH, "instanceId==\"" + instanceId + "\"");
     testContext.assertEquals(previousInstanceStoredHoldings.getInteger("totalRecords"), 2,
             "After third upsert, with 'Shared Input Instance',  there should be [2] holdings records left for the Instance with the previous match key " + instanceId + ": " + previousInstanceStoredHoldings.encodePrettily() );
 
@@ -1217,13 +1218,13 @@ public class InventoryUpdateTestSuite {
     InputInstance instance = new InputInstance().setTitle("New title").setInstanceTypeId("12345").setHrid("2").setSource("test");
     InventoryRecordSet inventoryRecordSet = new InventoryRecordSet(instance);
 
-    JsonObject instancesBeforePutJson = getRecordsFromStorage(FakeInventoryStorage.INSTANCE_STORAGE_PATH, "hrid==\"" + instance.getHrid() + "\"");
+    JsonObject instancesBeforePutJson = getRecordsFromStorage(FakeFolioApis.INSTANCE_STORAGE_PATH, "hrid==\"" + instance.getHrid() + "\"");
     testContext.assertEquals(instancesBeforePutJson.getInteger("totalRecords"), 0,
             "Before upserting with new Instance, the number of Instances with that HRID should be [0]" );
 
     upsertByHrid(inventoryRecordSet.getJson());
 
-    JsonObject instancesAfterPutJson = getRecordsFromStorage(FakeInventoryStorage.INSTANCE_STORAGE_PATH,"hrid==\"" + instance.getHrid() + "\"");
+    JsonObject instancesAfterPutJson = getRecordsFromStorage(FakeFolioApis.INSTANCE_STORAGE_PATH,"hrid==\"" + instance.getHrid() + "\"");
     testContext.assertEquals(instancesAfterPutJson.getInteger("totalRecords"), 1,
             "After upserting with new Instance, the number of Instances with that HRID should be [1]" );
   }
@@ -1240,7 +1241,7 @@ public class InventoryUpdateTestSuite {
     inventoryRecordSet.put("instance", new InputInstance()
             .setTitle("Initial InputInstance").setInstanceTypeId("12345").setHrid(instanceHrid).setSource("test").getJson());
 
-    JsonObject instancesBeforePutJson = getRecordsFromStorage(FakeInventoryStorage.INSTANCE_STORAGE_PATH, "hrid==\"" + instanceHrid + "\"");
+    JsonObject instancesBeforePutJson = getRecordsFromStorage(FakeFolioApis.INSTANCE_STORAGE_PATH, "hrid==\"" + instanceHrid + "\"");
     testContext.assertEquals(instancesBeforePutJson.getInteger("totalRecords"), 1,
             "Before upsert of existing Instance, the number of Instances with that HRID should be [1]" );
     String instanceTypeIdBefore = instancesBeforePutJson
@@ -1250,7 +1251,7 @@ public class InventoryUpdateTestSuite {
 
     upsertByHrid(inventoryRecordSet);
 
-    JsonObject instancesAfterUpsertJson = getRecordsFromStorage(FakeInventoryStorage.INSTANCE_STORAGE_PATH, "hrid==\"" + instanceHrid + "\"");
+    JsonObject instancesAfterUpsertJson = getRecordsFromStorage(FakeFolioApis.INSTANCE_STORAGE_PATH, "hrid==\"" + instanceHrid + "\"");
     testContext.assertEquals(instancesAfterUpsertJson.getInteger("totalRecords"), 1,
             "After upsert of existing Instance, number of Instances with that HRID should still be [1]" + instancesAfterUpsertJson.encodePrettily() );
     JsonObject instanceResponse = instancesAfterUpsertJson.getJsonArray("instances").getJsonObject(0);
@@ -1293,10 +1294,10 @@ public class InventoryUpdateTestSuite {
             "Upsert metrics response should report [2] holdings records successfully created " + upsertResponseJson.encodePrettily());
     testContext.assertEquals(getMetric(upsertResponseJson, ITEM, CREATE , COMPLETED), 3,
             "Upsert metrics response should report [3] items successfully created " + upsertResponseJson.encodePrettily());
-    JsonObject storedHoldings = getRecordsFromStorage(FakeInventoryStorage.HOLDINGS_STORAGE_PATH, "instanceId==\"" + instanceId + "\"");
+    JsonObject storedHoldings = getRecordsFromStorage(FakeFolioApis.HOLDINGS_STORAGE_PATH, "instanceId==\"" + instanceId + "\"");
     testContext.assertEquals(storedHoldings.getInteger("totalRecords"), 2,
             "After upsert the number of holdings records for instance " + instanceId + " should be [2] " + storedHoldings.encodePrettily() );
-    JsonObject storedItems = getRecordsFromStorage(FakeInventoryStorage.ITEM_STORAGE_PATH, null);
+    JsonObject storedItems = getRecordsFromStorage(FakeFolioApis.ITEM_STORAGE_PATH, null);
     testContext.assertEquals(storedItems.getInteger("totalRecords"), 3,
             "After upsert the total number of items should be [3] " + storedHoldings.encodePrettily() );
 
@@ -1374,7 +1375,7 @@ public class InventoryUpdateTestSuite {
     testContext.assertEquals(getMetric(upsertResponseJson, ITEM, UPDATE , COMPLETED), 3,
             "Upsert metrics response should report [3] items successfully updated " + upsertResponseJson.encodePrettily());
 
-    getRecordsFromStorage(FakeInventoryStorage.ITEM_STORAGE_PATH,null).getJsonArray("items").stream().forEach(item -> {
+    getRecordsFromStorage(FakeFolioApis.ITEM_STORAGE_PATH,null).getJsonArray("items").stream().forEach(item -> {
       testContext.assertEquals(((JsonObject)item).getString("barcode"), "updated",
               "The barcode of all items should be updated to 'updated' after upsert of existing record set with holdings and items");
     });
@@ -1452,14 +1453,14 @@ public class InventoryUpdateTestSuite {
           "The editions should be retained as 'retainMe' after upsert of existing record set");
     });
 
-    getRecordsFromStorage(FakeInventoryStorage.ITEM_STORAGE_PATH,null).getJsonArray("items").stream().forEach(item -> {
+    getRecordsFromStorage(FakeFolioApis.ITEM_STORAGE_PATH,null).getJsonArray("items").stream().forEach(item -> {
       testContext.assertEquals(((JsonObject)item).getString("barcode"), "updated",
           "The barcode of all items should be updated to 'updated' after upsert of existing record set with holdings and items");
       testContext.assertEquals(((JsonObject)item).getJsonArray("yearCaption").getString(0), "retainMe",
           "The yearCaption of all items should be retained as 'retainMe' after upsert of existing record set with holdings and items");
     });
 
-    getRecordsFromStorage(FakeInventoryStorage.HOLDINGS_STORAGE_PATH,null).getJsonArray("holdingsRecords").stream().forEach(holdingsRecord -> {
+    getRecordsFromStorage(FakeFolioApis.HOLDINGS_STORAGE_PATH,null).getJsonArray("holdingsRecords").stream().forEach(holdingsRecord -> {
       testContext.assertEquals(((JsonObject)holdingsRecord).getString("acquisitionFormat"), "updated",
           "The acquisitionFormat of all holdings records should be updated to 'updated' after upsert of existing record set with holdings and items");
       testContext.assertEquals(((JsonObject)holdingsRecord).getString("shelvingTitle"), "retainMe",
@@ -1551,14 +1552,14 @@ public class InventoryUpdateTestSuite {
           "The Instance.edition should be retained as 'retainMe' after upsert of existing record set");
     });
 
-    getRecordsFromStorage(FakeInventoryStorage.ITEM_STORAGE_PATH,null).getJsonArray("items").stream().forEach(item -> {
+    getRecordsFromStorage(FakeFolioApis.ITEM_STORAGE_PATH,null).getJsonArray("items").stream().forEach(item -> {
       testContext.assertEquals(((JsonObject)item).getString("barcode"), "updated",
           "The barcode of all items should be updated to 'updated' after upsert of existing record set with holdings and items");
       testContext.assertEquals(((JsonObject)item).getJsonArray("yearCaption").getString(0), "retainMe",
           "The yearCaption of all items should be retained as 'retainMe' after upsert of existing record set with holdings and items");
     });
 
-    getRecordsFromStorage(FakeInventoryStorage.HOLDINGS_STORAGE_PATH,null).getJsonArray("holdingsRecords").stream().forEach(holdingsRecord -> {
+    getRecordsFromStorage(FakeFolioApis.HOLDINGS_STORAGE_PATH,null).getJsonArray("holdingsRecords").stream().forEach(holdingsRecord -> {
       testContext.assertEquals(((JsonObject)holdingsRecord).getString("acquisitionFormat"), "updated",
           "The acquisitionFormat of all holdings records should be updated to 'updated' after upsert of existing record set with holdings and items");
       testContext.assertEquals(((JsonObject)holdingsRecord).getString("shelvingTitle"), "retainMe",
@@ -1598,7 +1599,7 @@ public class InventoryUpdateTestSuite {
 
     JsonObject holdingsRecords = getRecordsFromStorage(HOLDINGS_STORAGE_PATH, "hrid==\"HOL-001\"");
     String holdingsRecordId = holdingsRecords.getJsonArray("holdingsRecords").getJsonObject(0).getString("id");
-    fakeInventoryStorage.itemStorage.insert(new InputItem()
+    fakeFolioApis.itemStorage.insert(new InputItem()
         .setHoldingsRecordId(holdingsRecordId)
         .setStatus(STATUS_UNKNOWN)
         .setMaterialTypeId(MATERIAL_TYPE_TEXT)
@@ -1753,12 +1754,12 @@ public class InventoryUpdateTestSuite {
     testContext.assertEquals(getMetric(upsertResponseJson, ITEM, UPDATE , COMPLETED), 3,
             "Upsert metrics response should report [3] items successfully updated " + upsertResponseJson.encodePrettily());
 
-    JsonArray item001 = getRecordsFromStorage(FakeInventoryStorage.ITEM_STORAGE_PATH, "hrid==\"ITM-001\"").getJsonArray("items");
+    JsonArray item001 = getRecordsFromStorage(FakeFolioApis.ITEM_STORAGE_PATH, "hrid==\"ITM-001\"").getJsonArray("items");
     testContext.assertEquals(item001.getJsonObject(0).getJsonObject("status").getString("name"),
             "Available",
             "Status for item ITM-001 should have been updated from 'On order' to 'Available");
 
-    JsonArray item002 = getRecordsFromStorage(FakeInventoryStorage.ITEM_STORAGE_PATH, "hrid==\"ITM-002\"").getJsonArray("items");
+    JsonArray item002 = getRecordsFromStorage(FakeFolioApis.ITEM_STORAGE_PATH, "hrid==\"ITM-002\"").getJsonArray("items");
     testContext.assertEquals(item002.getJsonObject(0).getJsonObject("status").getString("name"),
             "Unknown",
             "Status for item ITM-002 should have been retained as 'Unknown'");
@@ -1822,17 +1823,17 @@ public class InventoryUpdateTestSuite {
     testContext.assertEquals(getMetric(upsertResponseJson, ITEM, UPDATE , COMPLETED), 3,
             "Upsert metrics response should report [3] items successfully updated " + upsertResponseJson.encodePrettily());
 
-    JsonArray item001 = getRecordsFromStorage(FakeInventoryStorage.ITEM_STORAGE_PATH, "hrid==\"ITM-001\"").getJsonArray("items");
+    JsonArray item001 = getRecordsFromStorage(FakeFolioApis.ITEM_STORAGE_PATH, "hrid==\"ITM-001\"").getJsonArray("items");
     testContext.assertEquals(item001.getJsonObject(0).getJsonObject("status").getString("name"),
             "Available",
             "Status for item ITM-001 should have been updated to 'Available' from 'On order'");
 
-    JsonArray item002 = getRecordsFromStorage(FakeInventoryStorage.ITEM_STORAGE_PATH, "hrid==\"ITM-002\"").getJsonArray("items");
+    JsonArray item002 = getRecordsFromStorage(FakeFolioApis.ITEM_STORAGE_PATH, "hrid==\"ITM-002\"").getJsonArray("items");
     testContext.assertEquals(item002.getJsonObject(0).getJsonObject("status").getString("name"),
             "Available",
             "Status for item ITM-002 should have been updated to 'Available' from 'Unknown'");
 
-    JsonArray item003 = getRecordsFromStorage(FakeInventoryStorage.ITEM_STORAGE_PATH, "hrid==\"ITM-003\"").getJsonArray("items");
+    JsonArray item003 = getRecordsFromStorage(FakeFolioApis.ITEM_STORAGE_PATH, "hrid==\"ITM-003\"").getJsonArray("items");
     testContext.assertEquals(item003.getJsonObject(0).getJsonObject("status").getString("name"),
             "Checked out",
             "Status for item ITM-003 should have been retained as 'Checked out'");
@@ -1896,12 +1897,12 @@ public class InventoryUpdateTestSuite {
     testContext.assertEquals(getMetric(upsertResponseJson, ITEM, UPDATE , COMPLETED), 3,
             "Upsert metrics response should report [3] items successfully updated " + upsertResponseJson.encodePrettily());
 
-    JsonArray item001 = getRecordsFromStorage(FakeInventoryStorage.ITEM_STORAGE_PATH, "hrid==\"ITM-001\"").getJsonArray("items");
+    JsonArray item001 = getRecordsFromStorage(FakeFolioApis.ITEM_STORAGE_PATH, "hrid==\"ITM-001\"").getJsonArray("items");
     testContext.assertEquals(item001.getJsonObject(0).getJsonObject("status").getString("name"),
             "On order",
             "Status for item ITM-001 should have been retained as 'On order'");
 
-    JsonArray item002 = getRecordsFromStorage(FakeInventoryStorage.ITEM_STORAGE_PATH, "hrid==\"ITM-002\"").getJsonArray("items");
+    JsonArray item002 = getRecordsFromStorage(FakeFolioApis.ITEM_STORAGE_PATH, "hrid==\"ITM-002\"").getJsonArray("items");
     testContext.assertEquals(item002.getJsonObject(0).getJsonObject("status").getString("name"),
             "Unknown",
             "Status for item ITM-002 should have been retained as 'Unknown'");
@@ -1965,12 +1966,12 @@ public class InventoryUpdateTestSuite {
     testContext.assertEquals(getMetric(upsertResponseJson, ITEM, UPDATE , COMPLETED), 3,
             "Upsert metrics response should report [3] items successfully updated " + upsertResponseJson.encodePrettily());
 
-    JsonArray item001 = getRecordsFromStorage(FakeInventoryStorage.ITEM_STORAGE_PATH, "hrid==\"ITM-001\"").getJsonArray("items");
+    JsonArray item001 = getRecordsFromStorage(FakeFolioApis.ITEM_STORAGE_PATH, "hrid==\"ITM-001\"").getJsonArray("items");
     testContext.assertEquals(item001.getJsonObject(0).getJsonObject("status").getString("name"),
             "Available",
             "Status for item ITM-001 should have been overwritten to 'Avaliable' from 'On order'");
 
-    JsonArray item002 = getRecordsFromStorage(FakeInventoryStorage.ITEM_STORAGE_PATH, "hrid==\"ITM-002\"").getJsonArray("items");
+    JsonArray item002 = getRecordsFromStorage(FakeFolioApis.ITEM_STORAGE_PATH, "hrid==\"ITM-002\"").getJsonArray("items");
     testContext.assertEquals(item002.getJsonObject(0).getJsonObject("status").getString("name"),
             "Available",
             "Status for item ITM-002 should have been overwritten to 'Available' from 'Unknown'");
@@ -2022,10 +2023,10 @@ public class InventoryUpdateTestSuite {
             "After upsert with one holdings record removed from set, metrics should report [1] holdings record successfully deleted " + upsertResponseJson.encodePrettily());
     testContext.assertEquals(getMetric(upsertResponseJson, ITEM, DELETE , COMPLETED), 2,
             "After upsert with one holdings record removed from set, metrics should report [2] items successfully deleted " + upsertResponseJson.encodePrettily());
-    JsonObject holdingsAfterUpsertJson = getRecordsFromStorage(FakeInventoryStorage.HOLDINGS_STORAGE_PATH, "instanceId==\"" + instanceId + "\"");
+    JsonObject holdingsAfterUpsertJson = getRecordsFromStorage(FakeFolioApis.HOLDINGS_STORAGE_PATH, "instanceId==\"" + instanceId + "\"");
     testContext.assertEquals(holdingsAfterUpsertJson.getInteger("totalRecords"), 1,
             "After upsert with one holdings record removed from set, number of holdings records left for the Instance should be [1] " + holdingsAfterUpsertJson.encodePrettily());
-    JsonObject itemsAfterUpsertJson = getRecordsFromStorage(FakeInventoryStorage.ITEM_STORAGE_PATH, null);
+    JsonObject itemsAfterUpsertJson = getRecordsFromStorage(FakeFolioApis.ITEM_STORAGE_PATH, null);
     testContext.assertEquals(itemsAfterUpsertJson.getInteger("totalRecords"), 1,
             "After upsert with one holdings record removed from set, the total number of item records should be [1] " + itemsAfterUpsertJson.encodePrettily() );
   }
@@ -2057,7 +2058,7 @@ public class InventoryUpdateTestSuite {
 
     JsonObject upsertResponseJson = upsertByHrid(inventoryRecordSet);
     String instanceId = upsertResponseJson.getJsonObject("instance").getString("id");
-    JsonObject itemsAfterUpsert0Json = getRecordsFromStorage(FakeInventoryStorage.ITEM_STORAGE_PATH, null);
+    JsonObject itemsAfterUpsert0Json = getRecordsFromStorage(FakeFolioApis.ITEM_STORAGE_PATH, null);
 
     // Upsert should not delete holdings/items when there's no holdings array in the request document
     upsertByHrid(
@@ -2065,8 +2066,8 @@ public class InventoryUpdateTestSuite {
                     .put("instance",
                             new InputInstance().setTitle("Updated InputInstance").setInstanceTypeId("12345").setHrid(instanceHrid).setSource("test").getJson()));
 
-    JsonObject holdingsAfterUpsert1Json = getRecordsFromStorage(FakeInventoryStorage.HOLDINGS_STORAGE_PATH, "instanceId==\"" + instanceId + "\"");
-    getRecordsFromStorage(FakeInventoryStorage.ITEM_STORAGE_PATH, null);
+    JsonObject holdingsAfterUpsert1Json = getRecordsFromStorage(FakeFolioApis.HOLDINGS_STORAGE_PATH, "instanceId==\"" + instanceId + "\"");
+    getRecordsFromStorage(FakeFolioApis.ITEM_STORAGE_PATH, null);
 
     // Upsert should delete any attached holdings/items when there's an empty holdings array in the request
     upsertByHrid(
@@ -2075,8 +2076,8 @@ public class InventoryUpdateTestSuite {
                             new InputInstance().setTitle("2nd Updated InputInstance").setInstanceTypeId("12345").setHrid(instanceHrid).setSource("test").getJson())
                     .put("holdingsRecords", new JsonArray()));
 
-    JsonObject holdingsAfterUpsert2Json = getRecordsFromStorage(FakeInventoryStorage.HOLDINGS_STORAGE_PATH, "instanceId==\"" + instanceId + "\"");
-    getRecordsFromStorage(FakeInventoryStorage.ITEM_STORAGE_PATH, null);
+    JsonObject holdingsAfterUpsert2Json = getRecordsFromStorage(FakeFolioApis.HOLDINGS_STORAGE_PATH, "instanceId==\"" + instanceId + "\"");
+    getRecordsFromStorage(FakeFolioApis.ITEM_STORAGE_PATH, null);
 
     testContext.assertEquals(itemsAfterUpsert0Json.getInteger("totalRecords"), 3, "After creating base inventory record set there should be [3] items in it " + itemsAfterUpsert0Json.encodePrettily());
     testContext.assertEquals(holdingsAfterUpsert1Json.getInteger("totalRecords"), 2,
@@ -2107,7 +2108,7 @@ public class InventoryUpdateTestSuite {
 
     testContext.assertEquals(getMetric(childResponseJson, INSTANCE_RELATIONSHIP, CREATE , COMPLETED), 1,
             "After upsert of new Instance with parent relation, metrics should report [1] instance relationship successfully created " + childResponseJson.encodePrettily());
-    JsonObject relationshipsAfterUpsertJson = getRecordsFromStorage(FakeInventoryStorage.INSTANCE_RELATIONSHIP_STORAGE_PATH, null);
+    JsonObject relationshipsAfterUpsertJson = getRecordsFromStorage(FakeFolioApis.INSTANCE_RELATIONSHIP_STORAGE_PATH, null);
     testContext.assertEquals(relationshipsAfterUpsertJson.getInteger("totalRecords"), 1,
             "After upsert of new Instance with parent relation, the total number of relationship records should be [1] " + relationshipsAfterUpsertJson.encodePrettily() );
 
@@ -2121,7 +2122,7 @@ public class InventoryUpdateTestSuite {
     testContext.assertEquals(getMetric(grandParentResponseJson, INSTANCE_RELATIONSHIP, CREATE , COMPLETED), 1,
             "After upsert of new Instance with child relation, metrics should report [1] instance relationship successfully created " + grandParentResponseJson.encodePrettily());
 
-    JsonObject relationshipsAfterGrandParent = getRecordsFromStorage(FakeInventoryStorage.INSTANCE_RELATIONSHIP_STORAGE_PATH, null);
+    JsonObject relationshipsAfterGrandParent = getRecordsFromStorage(FakeFolioApis.INSTANCE_RELATIONSHIP_STORAGE_PATH, null);
 
     testContext.assertEquals(relationshipsAfterGrandParent.getInteger("totalRecords"), 2,
             "After upsert of Instance with parent and Instance with child relation, the total number of relationship records should be [2] " + relationshipsAfterGrandParent.encodePrettily() );
@@ -2147,7 +2148,7 @@ public class InventoryUpdateTestSuite {
 
     testContext.assertEquals(getMetric(childResponseJson, INSTANCE_RELATIONSHIP, CREATE , COMPLETED), 1,
             "After upsert of new Instance with parent relation, metrics should report [1] instance relationship successfully created " + childResponseJson.encodePrettily());
-    JsonObject relationshipsAfterUpsertJson = getRecordsFromStorage(FakeInventoryStorage.INSTANCE_RELATIONSHIP_STORAGE_PATH, null);
+    JsonObject relationshipsAfterUpsertJson = getRecordsFromStorage(FakeFolioApis.INSTANCE_RELATIONSHIP_STORAGE_PATH, null);
     testContext.assertEquals(relationshipsAfterUpsertJson.getInteger("totalRecords"), 1,
             "After upsert of new Instance with parent relation, the total number of relationship records should be [1] " + relationshipsAfterUpsertJson.encodePrettily() );
 
@@ -2161,7 +2162,7 @@ public class InventoryUpdateTestSuite {
     testContext.assertEquals(getMetric(grandParentResponseJson, INSTANCE_RELATIONSHIP, CREATE , COMPLETED), 1,
             "After upsert of new Instance with child relation, metrics should report [1] instance relationship successfully created " + grandParentResponseJson.encodePrettily());
 
-    JsonObject relationshipsAfterGrandParent = getRecordsFromStorage(FakeInventoryStorage.INSTANCE_RELATIONSHIP_STORAGE_PATH, null);
+    JsonObject relationshipsAfterGrandParent = getRecordsFromStorage(FakeFolioApis.INSTANCE_RELATIONSHIP_STORAGE_PATH, null);
 
     testContext.assertEquals(relationshipsAfterGrandParent.getInteger("totalRecords"), 2,
             "After upsert of Instance with parent and Instance with child relation, the total number of relationship records should be [2] " + relationshipsAfterGrandParent.encodePrettily() );
@@ -2381,7 +2382,7 @@ public class InventoryUpdateTestSuite {
     testContext.assertEquals(getMetric(upsertResponseJson3, INSTANCE_TITLE_SUCCESSION, CREATE, COMPLETED), 1,
             "After upsert of succeeding title, metrics should report [1] instance title successions successfully created " + upsertResponseJson3.encodePrettily());
 
-    JsonObject titleSuccessions = getRecordsFromStorage(FakeInventoryStorage.PRECEDING_SUCCEEDING_TITLE_STORAGE_PATH,null);
+    JsonObject titleSuccessions = getRecordsFromStorage(FakeFolioApis.PRECEDING_SUCCEEDING_TITLE_STORAGE_PATH,null);
     testContext.assertEquals(titleSuccessions.getInteger("totalRecords"), 2,
             "After two upserts with title successions, the total number of title successions should be [2] " + titleSuccessions.encodePrettily() );
   }
@@ -2425,7 +2426,7 @@ public class InventoryUpdateTestSuite {
     testContext.assertEquals(getMetric(upsertResponseJson2, INSTANCE_TITLE_SUCCESSION, DELETE, COMPLETED), 1,
             "After upsert with empty succeedingTitles list, metrics should report [1] instance title successions successfully deleted " + upsertResponseJson2.encodePrettily());
 
-    JsonObject titleSuccessions = getRecordsFromStorage(FakeInventoryStorage.PRECEDING_SUCCEEDING_TITLE_STORAGE_PATH,null);
+    JsonObject titleSuccessions = getRecordsFromStorage(FakeFolioApis.PRECEDING_SUCCEEDING_TITLE_STORAGE_PATH,null);
     testContext.assertEquals(titleSuccessions.getInteger("totalRecords"), 0,
             "After two upserts -- with and without title successions -- the number of title successions should be [0] " + titleSuccessions.encodePrettily() );
   }
@@ -2469,7 +2470,7 @@ public class InventoryUpdateTestSuite {
     testContext.assertEquals(getMetric(upsertResponseJson2, INSTANCE_TITLE_SUCCESSION, DELETE, COMPLETED), 1,
             "After upsert with empty precedingTitles list, metrics should report [1] instance title successions successfully deleted " + upsertResponseJson2.encodePrettily());
 
-    JsonObject titleSuccessions = getRecordsFromStorage(FakeInventoryStorage.PRECEDING_SUCCEEDING_TITLE_STORAGE_PATH,null);
+    JsonObject titleSuccessions = getRecordsFromStorage(FakeFolioApis.PRECEDING_SUCCEEDING_TITLE_STORAGE_PATH,null);
     testContext.assertEquals(titleSuccessions.getInteger("totalRecords"), 0,
             "After two upserts -- with and without title successions -- the number of title successions should be [0] " + titleSuccessions.encodePrettily() );
   }
@@ -2495,7 +2496,7 @@ public class InventoryUpdateTestSuite {
             "Upsert metrics response should report [1] instance relationship successfully created " + childResponseJson.encodePrettily());
     testContext.assertEquals(getMetric(childResponseJson, INSTANCE_RELATIONSHIP, PROVISIONAL_INSTANCE, COMPLETED), 1,
             "Upsert metrics response should report [1] provisional instance successfully created " + childResponseJson.encodePrettily());
-    JsonObject instancesAfterUpsertJson = getRecordsFromStorage(FakeInventoryStorage.INSTANCE_STORAGE_PATH, null);
+    JsonObject instancesAfterUpsertJson = getRecordsFromStorage(FakeFolioApis.INSTANCE_STORAGE_PATH, null);
     testContext.assertEquals(instancesAfterUpsertJson.getInteger("totalRecords"), 2,
             "After upsert with provisional instance the total number of instances should be [2] " + instancesAfterUpsertJson.encodePrettily() );
   }
@@ -2703,13 +2704,13 @@ public class InventoryUpdateTestSuite {
      testContext.assertEquals(getMetric(upsertResponseJson, INSTANCE_TITLE_SUCCESSION, CREATE, COMPLETED), 1,
              "Upsert metrics response should report [1] succeeding title relations successfully created " + upsertResponseJson.encodePrettily());
 
-     JsonObject storedHoldings = getRecordsFromStorage(FakeInventoryStorage.HOLDINGS_STORAGE_PATH, "instanceId==\"" + instanceId + "\"");
+     JsonObject storedHoldings = getRecordsFromStorage(FakeFolioApis.HOLDINGS_STORAGE_PATH, "instanceId==\"" + instanceId + "\"");
      testContext.assertEquals(storedHoldings.getInteger("totalRecords"), 2,
              "After upsert the number of holdings records for instance " + instanceId + " should be [2] " + storedHoldings.encodePrettily() );
-     JsonObject storedItems = getRecordsFromStorage(FakeInventoryStorage.ITEM_STORAGE_PATH, null);
+     JsonObject storedItems = getRecordsFromStorage(FakeFolioApis.ITEM_STORAGE_PATH, null);
      testContext.assertEquals(storedItems.getInteger("totalRecords"), 3,
              "After upsert the total number of items should be [3] " + storedItems.encodePrettily() );
-     JsonObject storedRelations = getRecordsFromStorage(FakeInventoryStorage.PRECEDING_SUCCEEDING_TITLE_STORAGE_PATH, null);
+     JsonObject storedRelations = getRecordsFromStorage(FakeFolioApis.PRECEDING_SUCCEEDING_TITLE_STORAGE_PATH, null);
      testContext.assertEquals(storedRelations.getInteger("totalRecords"), 1,
              "After upsert the total number of relations should be [1] " + storedRelations.encodePrettily() );
 
@@ -2724,13 +2725,13 @@ public class InventoryUpdateTestSuite {
      testContext.assertEquals(getMetric(deleteResponse, INSTANCE_TITLE_SUCCESSION, DELETE , COMPLETED), 1,
              "Delete metrics response should report [1] relation successfully deleted " + deleteResponse.encodePrettily());
 
-     storedHoldings = getRecordsFromStorage(FakeInventoryStorage.HOLDINGS_STORAGE_PATH, "instanceId==\"" + instanceId + "\"");
+     storedHoldings = getRecordsFromStorage(FakeFolioApis.HOLDINGS_STORAGE_PATH, "instanceId==\"" + instanceId + "\"");
      testContext.assertEquals(storedHoldings.getInteger("totalRecords"), 0,
              "After delete the number of holdings records for instance " + instanceId + " should be [0] " + storedHoldings.encodePrettily() );
-     storedItems = getRecordsFromStorage(FakeInventoryStorage.ITEM_STORAGE_PATH, null);
+     storedItems = getRecordsFromStorage(FakeFolioApis.ITEM_STORAGE_PATH, null);
      testContext.assertEquals(storedItems.getInteger("totalRecords"), 0,
              "After delete the total number of items should be [3] " + storedItems.encodePrettily() );
-     storedRelations = getRecordsFromStorage(FakeInventoryStorage.PRECEDING_SUCCEEDING_TITLE_STORAGE_PATH, null);
+     storedRelations = getRecordsFromStorage(FakeFolioApis.PRECEDING_SUCCEEDING_TITLE_STORAGE_PATH, null);
      testContext.assertEquals(storedRelations.getInteger("totalRecords"), 0,
              "After delete the total number of relations should be [0] " + storedRelations.encodePrettily() );
 
@@ -2788,10 +2789,10 @@ public class InventoryUpdateTestSuite {
      storedInstances = getRecordsFromStorage(INSTANCE_STORAGE_PATH,"hrid==\"" + instanceHrid +"\"");
      testContext.assertEquals(storedInstances.getInteger("totalRecords"), 1,
          "After delete of instance with protected item the number of instance records with HRID " + instanceHrid + " should be [1] " + storedInstances.encodePrettily() );
-     JsonObject storedHoldings = getRecordsFromStorage(FakeInventoryStorage.HOLDINGS_STORAGE_PATH, "instanceId==\"" + instanceId + "\"");
+     JsonObject storedHoldings = getRecordsFromStorage(FakeFolioApis.HOLDINGS_STORAGE_PATH, "instanceId==\"" + instanceId + "\"");
      testContext.assertEquals(storedHoldings.getInteger("totalRecords"), 1,
          "After delete of instance with protected item the number of holdings records for instance " + instanceHrid + " should be [1] " + storedHoldings.encodePrettily() );
-     JsonObject storedItems = getRecordsFromStorage(FakeInventoryStorage.ITEM_STORAGE_PATH, null);
+     JsonObject storedItems = getRecordsFromStorage(FakeFolioApis.ITEM_STORAGE_PATH, null);
      testContext.assertEquals(storedItems.getInteger("totalRecords"), 1,
          "After delete the total number of items should be [2] " + storedItems.encodePrettily() );
    }
@@ -2849,15 +2850,62 @@ public class InventoryUpdateTestSuite {
     storedInstances = getRecordsFromStorage(INSTANCE_STORAGE_PATH,"hrid==\"" + instanceHrid +"\"");
     testContext.assertEquals(storedInstances.getInteger("totalRecords"), 1,
         "After delete of instance with protected item the number of instance records with HRID " + instanceHrid + " should be [1] " + storedInstances.encodePrettily() );
-    JsonObject storedHoldings = getRecordsFromStorage(FakeInventoryStorage.HOLDINGS_STORAGE_PATH, "instanceId==\"" + instanceId + "\"");
+    JsonObject storedHoldings = getRecordsFromStorage(FakeFolioApis.HOLDINGS_STORAGE_PATH, "instanceId==\"" + instanceId + "\"");
     testContext.assertEquals(storedHoldings.getInteger("totalRecords"), 1,
         "After delete of instance with protected item the number of holdings records for instance " + instanceHrid + " should be [1] " + storedHoldings.encodePrettily() );
-    JsonObject storedItems = getRecordsFromStorage(FakeInventoryStorage.ITEM_STORAGE_PATH, null);
+    JsonObject storedItems = getRecordsFromStorage(FakeFolioApis.ITEM_STORAGE_PATH, null);
     testContext.assertEquals(storedItems.getInteger("totalRecords"), 1,
         "After delete the total number of items should be [2] " + storedItems.encodePrettily() );
 
   }
 
+  @Test
+  public void deleteByHridWillNotDeleteInstanceReferencedByOrder (TestContext testContext) {
+    String instanceHrid = "IN-001";
+    JsonObject upsertBody =  new JsonObject()
+        .put("instance",
+            new InputInstance().setTitle("Initial InputInstance").setInstanceTypeId("12345").setHrid(instanceHrid).setSource("test").getJson())
+        .put("holdingsRecords", new JsonArray()
+            .add(new InputHoldingsRecord().setHrid("HOL-001").setPermanentLocationId(LOCATION_ID_1).setCallNumber("test-cn-1").getJson()
+                .put("items", new JsonArray()
+                    .add(new InputItem().setHrid("ITM-001")
+                        .setStatus(STATUS_UNKNOWN)
+                        .setMaterialTypeId(MATERIAL_TYPE_TEXT)
+                        .setBarcode("BC-001").getJson())
+                    .add(new InputItem().setHrid("ITM-002")
+                        .setStatus(STATUS_UNKNOWN)
+                        .setMaterialTypeId(MATERIAL_TYPE_TEXT)
+                        .setBarcode("BC-002").getJson())))
+            .add(new InputHoldingsRecord().setHrid("HOL-002").setPermanentLocationId(LOCATION_ID_1).setCallNumber("test-cn-2").getJson()
+                .put("items", new JsonArray()
+                    .add(new InputItem().setHrid("ITM-003")
+                        .setStatus(STATUS_UNKNOWN)
+                        .setMaterialTypeId(MATERIAL_TYPE_TEXT)
+                        .setBarcode("BC-003").getJson()))));
+    JsonObject upsertResponseJson = upsertByHrid(upsertBody);
+    String instanceId = upsertResponseJson.getJsonObject("instance").getString("id");
+
+    JsonObject poLine = new JsonObject("{" +
+        "\"purchaseOrderId\": \"3b198b70-cf8e-4075-9e93-ebf2c76e60c2\", " +
+        "\"instanceId\": \"" + instanceId +  "\", " +
+        "\"orderFormat\": \"Other\", " +
+        "\"source\": \"User\", " +
+        "\"titleOrPackage\": \"Initital InputInstance\" }");
+
+    getRecordsFromStorage(INSTANCE_STORAGE_PATH,"id=="+instanceId);
+    JsonObject deleteSignal = new JsonObject().put("hrid", "IN-001");
+    post(ORDER_LINES_STORAGE_PATH, poLine);
+    JsonObject deleteResponse = delete(MainVerticle.INVENTORY_UPSERT_HRID_PATH, deleteSignal);
+    getRecordsFromStorage(INSTANCE_STORAGE_PATH, "id=="+instanceId);
+
+    testContext.assertEquals(getMetric(deleteResponse, INSTANCE, DELETE, SKIPPED), 1,
+        "Upsert metrics response should report [1] instance deletion skipped " + deleteResponse.encodePrettily());
+    testContext.assertEquals(getMetric(deleteResponse, HOLDINGS_RECORD, DELETE , SKIPPED), 2,
+        "Upsert metrics response should report [1] holdings records deletion skipped " + deleteResponse.encodePrettily());
+    testContext.assertEquals(getMetric(deleteResponse, ITEM, DELETE , SKIPPED), 3,
+        "Delete metrics response should report [1] item deletion skipped " + deleteResponse.encodePrettily());
+
+  }
 
   @Test
    public void deleteSignalByHridForNonExistingInstanceWillReturn404 (TestContext testContext) {
@@ -2890,7 +2938,7 @@ public class InventoryUpdateTestSuite {
                                             .setBarcode("BC-003").getJson())))));
 
      String instanceId1 = firstResponse.getJsonObject("instance").getString("id");
-     JsonObject storedHoldings = getRecordsFromStorage(FakeInventoryStorage.HOLDINGS_STORAGE_PATH, "instanceId==\"" + instanceId1 + "\"");
+     JsonObject storedHoldings = getRecordsFromStorage(FakeFolioApis.HOLDINGS_STORAGE_PATH, "instanceId==\"" + instanceId1 + "\"");
      testContext.assertEquals(storedHoldings.getInteger("totalRecords"), 2,
             "After upsert the number of holdings records for instance " + instanceId1 + " should be [2] " + storedHoldings.encodePrettily() );
 
@@ -2916,11 +2964,11 @@ public class InventoryUpdateTestSuite {
                                             .setMaterialTypeId(MATERIAL_TYPE_TEXT)
                                             .setBarcode("BC-003").getJson())))));
 
-     storedHoldings = getRecordsFromStorage(FakeInventoryStorage.HOLDINGS_STORAGE_PATH, "instanceId==\"" + instanceId1 + "\"");
+     storedHoldings = getRecordsFromStorage(FakeFolioApis.HOLDINGS_STORAGE_PATH, "instanceId==\"" + instanceId1 + "\"");
      testContext.assertEquals(storedHoldings.getInteger("totalRecords"), 0,
             "After move of holdings the number of holdings records for instance " + instanceId1 + " should be [0] " + storedHoldings.encodePrettily() );
 
-     storedHoldings = getRecordsFromStorage(FakeInventoryStorage.HOLDINGS_STORAGE_PATH, "hrid==\"HOL-001\" or hrid==\"HOL-002\"");
+     storedHoldings = getRecordsFromStorage(FakeFolioApis.HOLDINGS_STORAGE_PATH, "hrid==\"HOL-001\" or hrid==\"HOL-002\"");
      testContext.assertEquals(storedHoldings.getInteger("totalRecords"), 2,
             "After move of holdings they should still exist, count should be [2] " + storedHoldings.encodePrettily() );
 
@@ -2940,7 +2988,7 @@ public class InventoryUpdateTestSuite {
      testContext.assertEquals(getMetric(thirdResponse, ITEM, UPDATE , COMPLETED), 1,
             "Third update should report [1] item successfully updated (moved)   " + thirdResponse.encodePrettily());
 
-     JsonObject storedItems = getRecordsFromStorage(FakeInventoryStorage.ITEM_STORAGE_PATH, null);
+     JsonObject storedItems = getRecordsFromStorage(FakeFolioApis.ITEM_STORAGE_PATH, null);
      testContext.assertEquals(storedItems.getInteger("totalRecords"), 3,
             "After two moves of holdings/items there should still be [3] items total in storage " + storedItems.encodePrettily() );
 
@@ -2959,9 +3007,9 @@ public class InventoryUpdateTestSuite {
                                              .setMaterialTypeId(MATERIAL_TYPE_TEXT)
                                              .setBarcode("BC-002").getJson())))));
 
-     JsonObject storedHoldings002 = getRecordsFromStorage(FakeInventoryStorage.HOLDINGS_STORAGE_PATH, "hrid==\"HOL-002\"");
+     JsonObject storedHoldings002 = getRecordsFromStorage(FakeFolioApis.HOLDINGS_STORAGE_PATH, "hrid==\"HOL-002\"");
      JsonObject holdings002 = storedHoldings002.getJsonArray(RESULT_SET_HOLDINGS_RECORDS).getJsonObject(0);
-     JsonObject storedItemsHol002 = getRecordsFromStorage(FakeInventoryStorage.ITEM_STORAGE_PATH, "holdingsRecordId==\""+holdings002.getString("id")+"\"");
+     JsonObject storedItemsHol002 = getRecordsFromStorage(FakeFolioApis.ITEM_STORAGE_PATH, "holdingsRecordId==\""+holdings002.getString("id")+"\"");
      testContext.assertEquals(storedItemsHol002.getInteger("totalRecords"), 2,
              "After moves of items from one holding to the other there should be [2] items on HOL-002 in storage " + storedItemsHol002.encodePrettily() );
 
@@ -3286,7 +3334,7 @@ public class InventoryUpdateTestSuite {
 
   @Test
   public void testForcedItemCreateFailure (TestContext testContext) {
-    fakeInventoryStorage.itemStorage.failOnCreate = true;
+    fakeFolioApis.itemStorage.failOnCreate = true;
     Response response = upsertByHrid(207,new JsonObject()
             .put("instance",
                     new InputInstance().setTitle("Initial InputInstance").setInstanceTypeId("12345").setHrid("001").setSource("test").getJson())
@@ -3316,7 +3364,7 @@ public class InventoryUpdateTestSuite {
 
   @Test
   public void testForcedHoldingsCreateFailure (TestContext testContext) {
-    fakeInventoryStorage.holdingsStorage.failOnCreate = true;
+    fakeFolioApis.holdingsStorage.failOnCreate = true;
     Response response = upsertByHrid(207,new JsonObject()
             .put("instance",
                     new InputInstance().setTitle("Initial InputInstance").setInstanceTypeId("12345").setHrid("001").setSource("test").getJson())
@@ -3350,7 +3398,7 @@ public class InventoryUpdateTestSuite {
 
   @Test
   public void testForcedItemUpdateFailure (TestContext testContext) {
-    fakeInventoryStorage.itemStorage.failOnUpdate = true;
+    fakeFolioApis.itemStorage.failOnUpdate = true;
     JsonObject inventoryRecordSet = new JsonObject()
             .put("instance",
                     new InputInstance().setTitle("Initial InputInstance").setInstanceTypeId("12345").setHrid("001").setSource("test").getJson())
@@ -3382,7 +3430,7 @@ public class InventoryUpdateTestSuite {
 
   @Test
   public void testForcedHoldingsUpdateFailure (TestContext testContext) {
-    fakeInventoryStorage.holdingsStorage.failOnUpdate = true;
+    fakeFolioApis.holdingsStorage.failOnUpdate = true;
     JsonObject inventoryRecordSet = new JsonObject()
             .put("instance",
                     new InputInstance().setTitle("Initial InputInstance").setInstanceTypeId("12345").setHrid("001").setSource("test").getJson())
@@ -3415,7 +3463,7 @@ public class InventoryUpdateTestSuite {
 
   @Test
   public void testForcedItemDeleteFailure (TestContext testContext) {
-    fakeInventoryStorage.itemStorage.failOnDelete = true;
+    fakeFolioApis.itemStorage.failOnDelete = true;
     upsertByHrid (new JsonObject()
             .put("instance",
                     new InputInstance().setTitle("Initial InputInstance").setInstanceTypeId("12345").setHrid("001").setSource("test").getJson())
@@ -3463,7 +3511,7 @@ public class InventoryUpdateTestSuite {
 
   @Test
   public void testForcedHoldingsDeleteFailure (TestContext testContext) {
-    fakeInventoryStorage.holdingsStorage.failOnDelete = true;
+    fakeFolioApis.holdingsStorage.failOnDelete = true;
     upsertByHrid (new JsonObject()
             .put("instance",
                     new InputInstance().setTitle("Initial InputInstance").setInstanceTypeId("12345").setHrid("001").setSource("test").getJson())
@@ -3508,7 +3556,7 @@ public class InventoryUpdateTestSuite {
 
   @Test
   public void testForcedItemGetRecordsFailure (TestContext testContext) {
-    fakeInventoryStorage.itemStorage.failOnGetRecords = true;
+    fakeFolioApis.itemStorage.failOnGetRecords = true;
     JsonObject inventoryRecordSet = new JsonObject()
             .put("instance",
                     new InputInstance().setTitle("Initial InputInstance").setInstanceTypeId("12345").setHrid("001").setSource("test").getJson())
@@ -3535,7 +3583,7 @@ public class InventoryUpdateTestSuite {
 
   @Test
   public void testForcedHoldingsGetRecordsFailure (TestContext testContext) {
-    fakeInventoryStorage.holdingsStorage.failOnGetRecords = true;
+    fakeFolioApis.holdingsStorage.failOnGetRecords = true;
     JsonObject inventoryRecordSet = new JsonObject()
             .put("instance",
                     new InputInstance().setTitle("Initial InputInstance").setInstanceTypeId("12345").setHrid("001").setSource("test").getJson())
@@ -3562,7 +3610,7 @@ public class InventoryUpdateTestSuite {
 
   @Test
   public void testForcedInstanceGetRecordsFailure (TestContext testContext) {
-    fakeInventoryStorage.instanceStorage.failOnGetRecords = true;
+    fakeFolioApis.instanceStorage.failOnGetRecords = true;
     JsonObject inventoryRecordSet = new JsonObject()
             .put("instance",
                     new InputInstance().setTitle("Initial InputInstance").setInstanceTypeId("12345").setHrid("001").setSource("test").getJson())
@@ -3589,8 +3637,8 @@ public class InventoryUpdateTestSuite {
 
   @Test
   public void testForcedInstanceRelationshipsGetRecordsFailure (TestContext testContext) {
-    fakeInventoryStorage.instanceRelationshipStorage.failOnGetRecords = true;
-    fakeInventoryStorage.precedingSucceedingStorage.failOnGetRecords = true;
+    fakeFolioApis.instanceRelationshipStorage.failOnGetRecords = true;
+    fakeFolioApis.precedingSucceedingStorage.failOnGetRecords = true;
     JsonObject inventoryRecordSet = new JsonObject()
             .put("instance",
                     new InputInstance().setTitle("Test forcedInstanceRelationshipGetRecordsFailure").setInstanceTypeId("12345").setHrid("001").setSource("test").getJson())
@@ -3623,7 +3671,7 @@ public class InventoryUpdateTestSuite {
 
   @Test
   public void testForcedLocationsGetRecordsFailure (TestContext testContext) {
-    fakeInventoryStorage.locationStorage.failOnGetRecords = true;
+    fakeFolioApis.locationStorage.failOnGetRecords = true;
     JsonObject inventoryRecordSet = new JsonObject()
             .put("instance",
                     new InputInstance().setTitle("Test forcedLocationsGetRecordsFailure").setInstanceTypeId("12345").setHrid("001").setSource("test").getJson())
@@ -3659,7 +3707,7 @@ public class InventoryUpdateTestSuite {
             .body("{}")
             .header("Content-type","application/json")
             .header(OKAPI_URL_HEADER)
-            .delete(FakeInventoryStorage.LOCATION_STORAGE_PATH)
+            .delete(FakeFolioApis.LOCATION_STORAGE_PATH)
             .then()
             .log().ifValidationFails()
             .statusCode(200).extract().response();
@@ -3763,7 +3811,7 @@ public class InventoryUpdateTestSuite {
                                             .setMaterialTypeId(MATERIAL_TYPE_TEXT)
                                             .setBarcode("BC-003").getJson())))));
 
-    fakeInventoryStorage.locationStorage.failOnGetRecords = true;
+    fakeFolioApis.locationStorage.failOnGetRecords = true;
 
     JsonObject deleteSignal = new JsonObject()
             .put("institutionId", INSTITUTION_ID_1)
@@ -3805,7 +3853,7 @@ public class InventoryUpdateTestSuite {
                                             .setMaterialTypeId(MATERIAL_TYPE_TEXT)
                                             .setBarcode("BC-003").getJson())))));
 
-    fakeInventoryStorage.holdingsStorage.failOnDelete = true;
+    fakeFolioApis.holdingsStorage.failOnDelete = true;
 
     JsonObject deleteSignal = new JsonObject()
             .put("institutionId", INSTITUTION_ID_1)
@@ -3912,7 +3960,7 @@ public class InventoryUpdateTestSuite {
   }
 
   private JsonObject getRecordsFromStorage(String apiPath, String query) {
-    RestAssured.port = FakeInventoryStorage.PORT_INVENTORY_STORAGE;
+    RestAssured.port = FakeFolioApis.PORT_OKAPI;
     Response response =
             RestAssured.given()
                     .get(apiPath + (query == null ? "" : "?query=" + RecordStorage.encode(query)))
@@ -3923,7 +3971,7 @@ public class InventoryUpdateTestSuite {
   }
 
   private JsonObject getRecordFromStorageById(String apiPath, String id) {
-    RestAssured.port = FakeInventoryStorage.PORT_INVENTORY_STORAGE;
+    RestAssured.port = FakeFolioApis.PORT_OKAPI;
     Response response =
             RestAssured.given()
                     .get(apiPath + "/"+id)

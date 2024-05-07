@@ -59,6 +59,8 @@ public abstract class InventoryRecord {
 
     protected static final Logger logger = LoggerFactory.getLogger("inventory-update");
 
+    private boolean remoteReferenceFound = false;
+
     public InventoryRecord setTransition (Transaction transaction) {
         this.transaction = transaction;
         return this;
@@ -80,21 +82,29 @@ public abstract class InventoryRecord {
         return (transaction == Transaction.UPDATE);
     }
 
+    public boolean isRemoteReferenceFound() {
+      return remoteReferenceFound;
+    }
+
+    public void setRemoteReferenceFound(boolean remoteReferenceFound) {
+      this.remoteReferenceFound = remoteReferenceFound;
+    }
+
     public String generateUUID () {
-        UUID uuid = UUID.randomUUID();
-        jsonRecord.put("id", uuid.toString());
-        return uuid.toString();
+          UUID uuid = UUID.randomUUID();
+          jsonRecord.put("id", uuid.toString());
+          return uuid.toString();
+      }
+
+    public void generateUUIDIfNotProvided() {
+      if (!hasUUID()) {
+        generateUUID();
+      }
     }
 
-  public void generateUUIDIfNotProvided() {
-    if (!hasUUID()) {
-      generateUUID();
-    }
-  }
-
-  public void setUUID (String uuid) {
-        jsonRecord.put("id", uuid);
-    }
+    public void setUUID (String uuid) {
+          jsonRecord.put("id", uuid);
+      }
 
     public String getUUID() {
         return jsonRecord.getString("id");

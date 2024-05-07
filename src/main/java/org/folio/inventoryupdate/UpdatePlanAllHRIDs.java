@@ -10,6 +10,7 @@ import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.RoutingContext;
 import org.folio.inventoryupdate.entities.*;
 import org.folio.inventoryupdate.entities.InventoryRecord.Transaction;
+import org.folio.inventoryupdate.foreignconstraints.OrdersStorage;
 import org.folio.okapi.common.OkapiClient;
 
 import io.vertx.core.CompositeFuture;
@@ -325,9 +326,13 @@ public class UpdatePlanAllHRIDs extends UpdatePlan {
             if (lookup.succeeded()) {
                 this.existingSet = lookup.result();
                 if (foundExistingRecordSet()) {
-                    planInventoryRecordsDeletes(deleteInstructions);
-                    promisedPlan.complete();
-                } else {
+                  hasRemoteReferences(okapiClient, getExistingInstance().getUUID())
+                      .onComplete(referenced -> {
+                        getExistingInstance().setRemoteReferenceFound(referenced.result());
+                        planInventoryRecordsDeletes(deleteInstructions);
+                        promisedPlan.complete();
+                      });
+               } else {
                     promisedPlan.fail("Instance to delete not found");
                 }
             } else {
@@ -339,7 +344,8 @@ public class UpdatePlanAllHRIDs extends UpdatePlan {
 
     private void planInventoryRecordsDeletes (ProcessingInstructionsDeletion deleteInstructions) {
       getExistingInstance().setTransition(Transaction.DELETE);
-      if (deleteInstructions.forInstance().retainRecord(getExistingInstance())) {
+      if (deleteInstructions.forInstance().retainRecord(getExistingInstance()) ||
+          getExistingInstance().isRemoteReferenceFound()) {
         getExistingInstance().skip();
         getExistingInstance().skipDependants();
       }
@@ -360,6 +366,10 @@ public class UpdatePlanAllHRIDs extends UpdatePlan {
         }
       }
       getExistingRecordSet().prepareAllInstanceRelationsForDeletion();
+    }
+    public static Future<Boolean> hasRemoteReferences (OkapiClient okapiClient, String instanceId) {
+      return OrdersStorage.lookupPurchaseOrderLines(okapiClient, instanceId)
+          .map(result -> !result.isEmpty());
     }
 
     /* END OF PLANNING METHODS */

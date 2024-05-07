@@ -173,7 +173,7 @@ public class InventoryStorage {
     return okapiClient.get(queryUri(INSTANCE_STORAGE_PATH, inventoryQuery))
         .map(json -> {
           JsonArray matchingInstances = new JsonObject(json).getJsonArray(INSTANCES);
-          if (matchingInstances.size() == 0) {
+          if (matchingInstances.isEmpty()) {
             return null;
           }
           return matchingInstances.getJsonObject(0);
@@ -273,39 +273,8 @@ public class InventoryStorage {
     });
     return promise.future();
   }
-  public static Future<JsonArray> lookupParentChildRelationships(OkapiClient okapiClient, QueryByListOfIds inventoryQuery) {
-    Promise<JsonArray> promise = Promise.promise();
-    okapiClient.get(INSTANCE_RELATIONSHIP_STORAGE_PATH +"?limit=10000&query=" + inventoryQuery.getURLEncodedQueryString(), res -> {
-      if (res.succeeded()) {
-        JsonObject relationshipsResult = new JsonObject(res.result());
-        JsonArray parentChildRelations = relationshipsResult.getJsonArray(INSTANCE_RELATIONSHIPS);
-        logger.debug("Successfully looked up existing instance relationships, found  " + parentChildRelations.size());
-        promise.complete(parentChildRelations);
-      } else {
-        logger.info("Could not look up existing instance relationships");
-        failure(res.cause(), Entity.INSTANCE_RELATIONSHIP, Transaction.GET, okapiClient.getStatusCode(), promise,
-                INSTANCE_RELATIONSHIP_STORAGE_PATH +"?limit=10000&query=" + inventoryQuery.getURLEncodedQueryString());
-      }
-    });
-    return promise.future();
-  }
 
-  public static Future<JsonArray> lookupTitleSuccessions (OkapiClient okapiClient, QueryByListOfIds inventoryQuery) {
-    Promise<JsonArray> promise = Promise.promise();
-    okapiClient.get(PRECEDING_SUCCEEDING_TITLE_STORAGE_PATH +"?limit=10000&query=" + inventoryQuery.getURLEncodedQueryString(), res -> {
-      if (res.succeeded()) {
-        JsonObject relationshipsResult = new JsonObject(res.result());
-        JsonArray titleSuccessions = relationshipsResult.getJsonArray(PRECEDING_SUCCEEDING_TITLES);
-        logger.debug("Successfully looked up existing title succession relationships, found  " + titleSuccessions.size());
-        promise.complete(titleSuccessions);
-      } else {
-        failure(res.cause(), Entity.INSTANCE_TITLE_SUCCESSION, Transaction.GET, okapiClient.getStatusCode(), promise,
-                PRECEDING_SUCCEEDING_TITLE_STORAGE_PATH +"?limit=10000&query=" + inventoryQuery.getURLEncodedQueryString());
-      }
-    });
-    return promise.future();
 
-  }
 
   public static Future<JsonObject> lookupSingleInventoryRecordSet(OkapiClient okapiClient, InventoryQuery uniqueQuery) {
     return okapiClient.get(INSTANCE_SET_PATH
@@ -415,19 +384,19 @@ public class InventoryStorage {
   }
 
 
-  private static String queryUri(String path, InventoryQuery inventoryQuery) {
+  public static String queryUri(String path, InventoryQuery inventoryQuery) {
     return path + "?query=" + inventoryQuery.getURLEncodedQueryString();
   }
 
-  private static <T> void failure(Throwable cause, Entity entityType, Transaction transaction, int httpStatusCode, Promise<T> promise) {
+  public static <T> void failure(Throwable cause, Entity entityType, Transaction transaction, int httpStatusCode, Promise<T> promise) {
     failure(cause, entityType, transaction, httpStatusCode, promise, null);
   }
 
-  private static <T> void failure(Throwable cause, Entity entityType, Transaction transaction, int httpStatusCode, Promise<T> promise, String contextNote) {
+  public static <T> void failure(Throwable cause, Entity entityType, Transaction transaction, int httpStatusCode, Promise<T> promise, String contextNote) {
     promise.handle(failureFuture(cause, entityType, transaction, httpStatusCode, contextNote));
   }
 
-  private static <T> Future<T> failureFuture(Throwable cause, Entity entityType, Transaction transaction,
+  public static <T> Future<T> failureFuture(Throwable cause, Entity entityType, Transaction transaction,
       int httpStatusCode, String contextNote) {
     return Future.failedFuture(
             new ErrorReport(ErrorReport.ErrorCategory.STORAGE,

@@ -2570,8 +2570,6 @@ public class InventoryUpdateTestSuite {
 
   }
 
-
-
   @Test
   public void upsertByHridWillGraciouslyFailToCreateRelationWithoutProvisionalInstance (TestContext testContext) {
     String childHrid = "002";
@@ -3262,6 +3260,122 @@ public class InventoryUpdateTestSuite {
     testContext.assertEquals(getMetric(upsertResponseJson, HOLDINGS_RECORD, CREATE , FAILED), 2,
             "Upsert metrics response should report [2] holdings records create failure for wrong location ID on one of them (whole batch fails) " + upsertResponseJson.encodePrettily());
   }
+
+  @Test
+  public void upsertWithRecurringInstanceHridWillSwitchToRecordByRecord (TestContext testContext) {
+    BatchOfInventoryRecordSets batch = new BatchOfInventoryRecordSets();
+    String hrid="001";
+    batch.addRecordSet(new JsonObject()
+        .put("instance",
+            new InputInstance().setHrid(hrid)
+                .setTitle("InputInstance v1").setInstanceTypeId("12345").setSource("test").getJson()));
+    batch.addRecordSet(new JsonObject()
+        .put("instance",
+            new InputInstance().setHrid("001")
+                .setTitle("InputInstance v2").setInstanceTypeId("12345").setSource("test").getJson()));
+
+    Response upsertResponse = batchUpsertByHrid(200, batch.getJson());
+    JsonObject responseJson = new JsonObject(upsertResponse.getBody().asString());
+    testContext.assertEquals(getMetric(responseJson, INSTANCE, CREATE , COMPLETED), 1,
+        "Upsert metrics response should report [1] instance create completed " + responseJson.encodePrettily());
+    testContext.assertEquals(getMetric(responseJson, INSTANCE, UPDATE , COMPLETED), 1,
+        "Upsert metrics response should report [1] instance update completed " + responseJson.encodePrettily());
+  }
+
+  @Test
+  public void upsertWithRecurringHoldingsHridWillSwitchToRecordByRecord (TestContext testContext) {
+    BatchOfInventoryRecordSets batch = new BatchOfInventoryRecordSets();
+    String hrid="001";
+    batch.addRecordSet(new JsonObject()
+        .put("instance",
+            new InputInstance().setHrid("001")
+                .setTitle("InputInstance v1").setInstanceTypeId("12345").setSource("test").getJson())
+        .put("holdingsRecords", new JsonArray()
+            .add(new InputHoldingsRecord()
+                .setHrid("H001")
+                .setPermanentLocationId(LOCATION_ID_1)
+                .getJson()
+                .put("items", new JsonArray()
+                    .add(new InputItem()
+                        .setStatus(STATUS_UNKNOWN)
+                        .setMaterialTypeId(MATERIAL_TYPE_TEXT)
+                        .setHrid("I001")
+                        .getJson())))));
+    batch.addRecordSet(new JsonObject()
+        .put("instance",
+            new InputInstance().setHrid("002")
+                .setTitle("InputInstance v2").setInstanceTypeId("12345").setSource("test").getJson())
+        .put("holdingsRecords", new JsonArray()
+            .add(new InputHoldingsRecord()
+                .setHrid("H001")
+                .setPermanentLocationId(LOCATION_ID_1)
+                .getJson()
+                .put("items", new JsonArray()
+                    .add(new InputItem()
+                        .setStatus(STATUS_UNKNOWN)
+                        .setMaterialTypeId(MATERIAL_TYPE_TEXT)
+                        .setHrid("I002")
+                        .getJson())))));
+
+    Response upsertResponse = batchUpsertByHrid(200, batch.getJson());
+    JsonObject responseJson = new JsonObject(upsertResponse.getBody().asString());
+    testContext.assertEquals(getMetric(responseJson, INSTANCE, CREATE , COMPLETED), 2,
+        "Upsert metrics response should report [2] instance creates completed " + responseJson.encodePrettily());
+    testContext.assertEquals(getMetric(responseJson, HOLDINGS_RECORD, CREATE , COMPLETED), 1,
+        "Upsert metrics response should report [1] holdingsRecord create completed " + responseJson.encodePrettily());
+    testContext.assertEquals(getMetric(responseJson, HOLDINGS_RECORD, UPDATE , COMPLETED), 1,
+        "Upsert metrics response should report [1] holdingsRecord update completed " + responseJson.encodePrettily());
+
+  }
+
+  @Test
+  public void upsertWithRecurringItemHridWillSwitchToRecordByRecord (TestContext testContext) {
+    BatchOfInventoryRecordSets batch = new BatchOfInventoryRecordSets();
+    String hrid="001";
+    batch.addRecordSet(new JsonObject()
+        .put("instance",
+            new InputInstance().setHrid("001")
+                .setTitle("InputInstance v1").setInstanceTypeId("12345").setSource("test").getJson())
+        .put("holdingsRecords", new JsonArray()
+            .add(new InputHoldingsRecord()
+                .setHrid("H001")
+                .setPermanentLocationId(LOCATION_ID_1)
+                .getJson()
+                .put("items", new JsonArray()
+                    .add(new InputItem()
+                        .setStatus(STATUS_UNKNOWN)
+                        .setMaterialTypeId(MATERIAL_TYPE_TEXT)
+                        .setHrid("I001")
+                        .getJson())))));
+    batch.addRecordSet(new JsonObject()
+        .put("instance",
+            new InputInstance().setHrid("002")
+                .setTitle("InputInstance v2").setInstanceTypeId("12345").setSource("test").getJson())
+        .put("holdingsRecords", new JsonArray()
+            .add(new InputHoldingsRecord()
+                .setHrid("H002")
+                .setPermanentLocationId(LOCATION_ID_1)
+                .getJson()
+                .put("items", new JsonArray()
+                    .add(new InputItem()
+                        .setStatus(STATUS_UNKNOWN)
+                        .setMaterialTypeId(MATERIAL_TYPE_TEXT)
+                        .setHrid("I001")
+                        .getJson())))));
+
+    Response upsertResponse = batchUpsertByHrid(200, batch.getJson());
+    JsonObject responseJson = new JsonObject(upsertResponse.getBody().asString());
+    testContext.assertEquals(getMetric(responseJson, INSTANCE, CREATE , COMPLETED), 2,
+        "Upsert metrics response should report [2] instance creates completed " + responseJson.encodePrettily());
+    testContext.assertEquals(getMetric(responseJson, HOLDINGS_RECORD, CREATE , COMPLETED), 2,
+        "Upsert metrics response should report [2] holdingsRecord creates completed " + responseJson.encodePrettily());
+    testContext.assertEquals(getMetric(responseJson, ITEM, CREATE , COMPLETED), 1,
+        "Upsert metrics response should report [1] item update completed " + responseJson.encodePrettily());
+    testContext.assertEquals(getMetric(responseJson, ITEM, UPDATE , COMPLETED), 1,
+        "Upsert metrics response should report [1] item update completed " + responseJson.encodePrettily());
+
+  }
+
 
   @Test
   public void upsertByHridWillReturnErrorResponseOnMissingInstanceInRequestBody (TestContext testContext) {

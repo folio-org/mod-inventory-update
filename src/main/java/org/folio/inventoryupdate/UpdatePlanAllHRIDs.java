@@ -225,10 +225,9 @@ public class UpdatePlanAllHRIDs extends UpdatePlan {
                         // HoldingsRecord gone, mark for deletion and check for existing items to delete with it
                         // unless instructed to keep certain holdings records even if missing from input
                         if (incomingHoldingsRecord == null) {
-                          if (!rules.forHoldingsRecord().retainOmittedRecord(existingHoldingsRecord)) {
-                            // Delete omitted holdings record
-                            // (unless it's subsequently found that omitted items should be retained, see below)
-                            existingHoldingsRecord.setTransition(DELETE);
+                          existingHoldingsRecord.setTransition(DELETE);
+                          if (rules.forHoldingsRecord().retainOmittedRecord(existingHoldingsRecord)) {
+                            existingHoldingsRecord.skip();
                           }
                         } else {
                             // There is an existing holdings record with the same HRID on the same Instance
@@ -240,11 +239,12 @@ public class UpdatePlanAllHRIDs extends UpdatePlan {
                             if (incomingItem == null) {
                                 // An existing Item is gone from the Instance, delete it from storage
                                 // perhaps unless instructed to keep certain items even if missing from input
+                                existingItem.setTransition(DELETE);
                                 if (rules.forItem().retainOmittedRecord(existingItem)) {
-                                  existingItem.setTransition(NONE);
-                                  existingHoldingsRecord.setTransition(NONE);
-                                } else {
-                                  existingItem.setTransition(DELETE);
+                                  existingItem.skip();
+                                  if (existingHoldingsRecord.isDeleting()) {
+                                    existingHoldingsRecord.skip();
+                                  }
                                 }
                             } else {
                                 // Existing Item still exists in incoming record (possibly under a

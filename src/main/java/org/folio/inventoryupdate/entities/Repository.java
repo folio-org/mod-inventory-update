@@ -35,7 +35,7 @@ public abstract class Repository {
   // List of incoming record sets paired with existing record sets
   protected final List<PairedRecordSets> pairsOfRecordSets = new ArrayList<>();
 
-  public Repository setIncomingRecordSets (JsonArray incomingInventoryRecordSets) {
+  public void setIncomingRecordSets (JsonArray incomingInventoryRecordSets) {
     for (Object inventoryRecordSet : incomingInventoryRecordSets) {
       PairedRecordSets pair = new PairedRecordSets();
       InventoryRecordSet recordSet =
@@ -43,7 +43,6 @@ public abstract class Repository {
       pair.setIncomingRecordSet(recordSet);
       pairsOfRecordSets.add(pair);
     }
-    return this;
   }
 
   public abstract Future<Void> buildRepositoryFromStorage(RoutingContext routingContext);
@@ -242,7 +241,7 @@ public abstract class Repository {
     for (PairedRecordSets pair : pairsOfRecordSets) {
       if (pair.hasExistingRecordSet()) {
         for (HoldingsRecord holdingsRecord : pair.getExistingRecordSet().getHoldingsRecords()) {
-          if (holdingsRecord.isDeleting()) {
+          if (holdingsRecord.isDeleting() && !holdingsRecord.skipped()) {
             list.add(holdingsRecord);
           }
         }
@@ -285,7 +284,7 @@ public abstract class Repository {
     for (PairedRecordSets pair : pairsOfRecordSets) {
       if (pair.hasExistingRecordSet()) {
         for (Item item : pair.getExistingRecordSet().getItems()) {
-          if (item.isDeleting()) {
+          if (item.isDeleting() && !item.skipped()) {
             list.add(item);
           }
         }

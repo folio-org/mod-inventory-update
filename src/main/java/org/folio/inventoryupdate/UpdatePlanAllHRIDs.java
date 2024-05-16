@@ -228,6 +228,7 @@ public class UpdatePlanAllHRIDs extends UpdatePlan {
                         if (incomingHoldingsRecord == null) {
                           existingHoldingsRecord.setTransition(DELETE);
                           if (rules.forHoldingsRecord().retainOmittedRecord(existingHoldingsRecord)) {
+                            existingHoldingsRecord.registerConstraint(InventoryRecord.DeletionConstraint.IS_DELETE_PROTECTED_PER_INSTRUCTIONS);
                             existingHoldingsRecord.skip();
                           }
                         } else {
@@ -239,13 +240,20 @@ public class UpdatePlanAllHRIDs extends UpdatePlan {
                             Item incomingItem = pair.getIncomingRecordSet().getItemByHRID(existingItem.getHRID());
                             if (incomingItem == null) {
                                 // An existing Item is gone from the Instance, delete it from storage
-                                // perhaps unless instructed to keep certain items even if missing from input
                                 existingItem.setTransition(DELETE);
+                                // unless item matches an instruction to keep omitted items
                                 if (rules.forItem().retainOmittedRecord(existingItem)) {
+                                  existingItem.registerConstraint(InventoryRecord.DeletionConstraint.IS_DELETE_PROTECTED_PER_INSTRUCTIONS);
                                   existingItem.skip();
-                                  if (existingHoldingsRecord.isDeleting()) {
-                                    existingHoldingsRecord.skip();
-                                  }
+                                  existingHoldingsRecord.registerConstraint(InventoryRecord.DeletionConstraint.REFERENCED_BY_DELETE_PROTECTED_ITEM);
+                                  existingHoldingsRecord.skip();
+                                }
+                                // and unless item appears to be still circulating
+                                if (existingItem.isCirculating()) {
+                                  existingItem.registerConstraint(InventoryRecord.DeletionConstraint.ITEM_REFERENCED_BY_CIRCULATION);
+                                  existingItem.skip();
+                                  existingHoldingsRecord.registerConstraint(InventoryRecord.DeletionConstraint.ITEM_REFERENCED_BY_CIRCULATION);
+                                  existingHoldingsRecord.skip();
                                 }
                             } else {
                                 // Existing Item still exists in incoming record (possibly under a
@@ -326,9 +334,8 @@ public class UpdatePlanAllHRIDs extends UpdatePlan {
             if (lookup.succeeded()) {
                 this.existingSet = lookup.result();
                 if (foundExistingRecordSet()) {
-                  hasRemoteReferences(okapiClient, getExistingInstance().getUUID())
-                      .onComplete(referenced -> {
-                        getExistingInstance().setRemoteReferenceFound(referenced.result());
+                  setDeleteConstraintIfReferencedByAcquisitions(okapiClient, getExistingInstance())
+                      .onComplete(result-> {
                         planInventoryRecordsDeletes(deleteInstructions);
                         promisedPlan.complete();
                       });
@@ -344,32 +351,46 @@ public class UpdatePlanAllHRIDs extends UpdatePlan {
 
     private void planInventoryRecordsDeletes (ProcessingInstructionsDeletion deleteInstructions) {
       getExistingInstance().setTransition(Transaction.DELETE);
-      if (deleteInstructions.forInstance().retainRecord(getExistingInstance()) ||
-          getExistingInstance().isRemoteReferenceFound()) {
+      deleteInstructions.forInstance().setDeleteProtectionIfAny(getExistingInstance());
+      if (getExistingInstance().hasDeleteConstraints()) {
         getExistingInstance().skip();
-        getExistingInstance().skipDependants();
       }
       for (HoldingsRecord holdings : getExistingInstance().getHoldingsRecords()) {
         holdings.setTransition(Transaction.DELETE);
-        if (deleteInstructions.forHoldingsRecord().retainRecord(holdings)) {
+        deleteInstructions.forHoldingsRecord().setDeleteProtectionIfAny(holdings);
+        if (holdings.hasDeleteConstraints()) {
           holdings.skip();
-          holdings.skipDependants();
+          getExistingInstance().registerConstraint(InventoryRecord.DeletionConstraint.REFERENCED_BY_DELETE_PROTECTED_HOLDINGS_RECORD);
           getExistingInstance().skip();
         }
         for (Item item : holdings.getItems()) {
           item.setTransition(Transaction.DELETE);
-          if (deleteInstructions.forItem().retainRecord(item)) {
+          deleteInstructions.forItem().setDeleteProtectionIfAny(item);
+          if (item.hasDeleteConstraints() || item.isCirculating()) {
             item.skip();
             holdings.skip();
             getExistingInstance().skip();
+            if (item.hasDeleteConstraints()) {
+              holdings.registerConstraint(InventoryRecord.DeletionConstraint.REFERENCED_BY_DELETE_PROTECTED_ITEM);
+              getExistingInstance().registerConstraint(InventoryRecord.DeletionConstraint.REFERENCED_BY_DELETE_PROTECTED_ITEM);
+            }
+            if (item.isCirculating()) {
+              item.registerConstraint(InventoryRecord.DeletionConstraint.ITEM_REFERENCED_BY_CIRCULATION);
+              holdings.registerConstraint(InventoryRecord.DeletionConstraint.ITEM_REFERENCED_BY_CIRCULATION);
+              getExistingInstance().registerConstraint(InventoryRecord.DeletionConstraint.ITEM_REFERENCED_BY_CIRCULATION);
+            }
           }
         }
       }
-      getExistingRecordSet().prepareAllInstanceRelationsForDeletion();
+      getExistingRecordSet().prepareInstanceRelationsForDeleteOrSkip();
     }
-    public static Future<Boolean> hasRemoteReferences (OkapiClient okapiClient, String instanceId) {
-      return OrdersStorage.lookupPurchaseOrderLines(okapiClient, instanceId)
-          .map(result -> !result.isEmpty());
+    public static Future<Void> setDeleteConstraintIfReferencedByAcquisitions(OkapiClient okapiClient, Instance existingInstance) {
+      return OrdersStorage.lookupPurchaseOrderLines(okapiClient, existingInstance.getUUID())
+          .onComplete(poLinesLookup -> {
+            if (!poLinesLookup.result().isEmpty()) {
+              existingInstance.registerConstraint(InventoryRecord.DeletionConstraint.REFERENCED_BY_PURCHASE_ORDER_LINE);
+            }
+          }).mapEmpty();
     }
 
     /* END OF PLANNING METHODS */

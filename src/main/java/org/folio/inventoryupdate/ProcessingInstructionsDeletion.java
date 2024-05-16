@@ -53,12 +53,8 @@ public class ProcessingInstructionsDeletion {
       }
     }
 
-    public boolean hasInstructions() {
-      return processing != null && processing.containsKey(key);
-    }
-
-    public boolean retainRecord(InventoryRecord inventoryRecord) {
-      return recordRetention.retain(inventoryRecord);
+    public void setDeleteProtectionIfAny(InventoryRecord inventoryRecord) {
+      recordRetention.setDeleteProtection(inventoryRecord);
     }
   }
 
@@ -77,9 +73,11 @@ public class ProcessingInstructionsDeletion {
       }
     }
 
-    boolean retain (InventoryRecord inventoryRecord) {
-      return inventoryRecord.asJson().getString(field) != null
-          && inventoryRecord.asJson().getString(field).matches(pattern);
+    void setDeleteProtection(InventoryRecord inventoryRecord) {
+      if (inventoryRecord.asJson().getString(field) != null
+          && inventoryRecord.asJson().getString(field).matches(pattern)) {
+         inventoryRecord.registerConstraint(InventoryRecord.DeletionConstraint.IS_DELETE_PROTECTED_PER_INSTRUCTIONS);
+      }
     }
   }
 

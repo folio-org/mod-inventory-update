@@ -3,9 +3,22 @@ package org.folio.inventoryupdate.entities;
 import io.vertx.core.json.JsonObject;
 import org.folio.inventoryupdate.ProcessingInstructionsUpsert;
 
+import java.util.Arrays;
+import java.util.List;
+
 public class Item extends InventoryRecord {
 
   public static final String HOLDINGS_RECORD_ID = "holdingsRecordId";
+  private static final List<String> statusesIndicatingCirculatingItem =
+      Arrays.asList("Awaiting delivery",
+        "Awaiting pickup",
+        "Checked out",
+        "Aged to lost",
+        "Claimed returned",
+        "Declared lost",
+        "Paged",
+        "In transit");
+
 
   public Item(JsonObject item, JsonObject originJson) {
     this.jsonRecord = item;
@@ -51,4 +64,9 @@ public class Item extends InventoryRecord {
     }
     super.applyOverlays(existingItem,instr);
   }
-}
+
+  public boolean isCirculating() {
+    return statusesIndicatingCirculatingItem.contains(getStatusName());
+  }
+
+ }

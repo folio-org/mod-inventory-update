@@ -256,10 +256,12 @@ public class InventoryRecordSet extends JsonRepresentation {
         }
     }
 
-
-    public void prepareAllInstanceRelationsForDeletion() {
+    public void prepareInstanceRelationsForDeleteOrSkip() {
         for (InstanceToInstanceRelation relation : getInstanceToInstanceRelations()) {
             relation.setTransition(InventoryRecord.Transaction.DELETE);
+            if (getInstance().isDeleting() && getInstance().skipped()) {
+              relation.skip();
+            }
         }
     }
 

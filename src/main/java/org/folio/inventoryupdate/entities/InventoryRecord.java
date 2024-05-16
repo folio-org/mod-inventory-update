@@ -1,5 +1,7 @@
 package org.folio.inventoryupdate.entities;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 
 import io.vertx.core.impl.logging.Logger;
@@ -46,6 +48,14 @@ public abstract class InventoryRecord {
         INSTANCE_TITLE_SUCCESSION
     }
 
+    public enum DeletionConstraint {
+        REFERENCED_BY_PURCHASE_ORDER_LINE,
+        ITEM_REFERENCED_BY_CIRCULATION,
+        REFERENCED_BY_DELETE_PROTECTED_HOLDINGS_RECORD,
+        REFERENCED_BY_DELETE_PROTECTED_ITEM,
+        IS_DELETE_PROTECTED_PER_INSTRUCTIONS
+    }
+
     protected JsonObject jsonRecord;
     protected JsonObject originJson;
     public static final String VERSION = "_version";
@@ -59,7 +69,7 @@ public abstract class InventoryRecord {
 
     protected static final Logger logger = LoggerFactory.getLogger("inventory-update");
 
-    private boolean remoteReferenceFound = false;
+    private final List<DeletionConstraint> deletionConstraints = new ArrayList<>();
 
     public InventoryRecord setTransition (Transaction transaction) {
         this.transaction = transaction;
@@ -82,12 +92,12 @@ public abstract class InventoryRecord {
         return (transaction == Transaction.UPDATE);
     }
 
-    public boolean isRemoteReferenceFound() {
-      return remoteReferenceFound;
+    public boolean hasDeleteConstraints() {
+      return !deletionConstraints.isEmpty();
     }
 
-    public void setRemoteReferenceFound(boolean remoteReferenceFound) {
-      this.remoteReferenceFound = remoteReferenceFound;
+    public void registerConstraint(DeletionConstraint sourceOfConstraint) {
+      deletionConstraints.add(sourceOfConstraint);
     }
 
     public String generateUUID () {

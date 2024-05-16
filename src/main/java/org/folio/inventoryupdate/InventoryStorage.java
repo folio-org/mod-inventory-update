@@ -58,10 +58,7 @@ public class InventoryStorage {
   public static final String TOTAL_RECORDS = "totalRecords";
   public static final String HOLDINGS_RECORDS = "holdingsRecords";
   public static final String ITEMS = "items";
-  public static final String INSTANCE_RELATIONSHIPS = "instanceRelationships";
-  public static final String PRECEDING_SUCCEEDING_TITLES = "precedingSucceedingTitles";
   public static final String LOCATIONS = "locations";
-  public static final String LF = System.lineSeparator();
 
   public static Future<JsonObject> postInventoryRecord (OkapiClient okapiClient, InventoryRecord record) {
     Promise<JsonObject> promise = Promise.promise();
@@ -284,7 +281,7 @@ public class InventoryStorage {
         + "&limit=1&query=" + uniqueQuery.getURLEncodedQueryString())
         .map(result -> {
           var sets = new JsonObject(result).getJsonArray("instanceSets");
-          if (sets.size() == 0) {
+          if (sets.isEmpty()) {
             return null;
           }
           var input = sets.getJsonObject(0);
@@ -307,7 +304,7 @@ public class InventoryStorage {
   }
 
   private static void mergeItemsIntoHoldings(JsonArray holdingsArray, JsonArray items) {
-    if (holdingsArray.size() == 0 || items.size() == 0) {
+    if (holdingsArray.isEmpty() || items.isEmpty()) {
       return;
     }
     Map<String, JsonObject> holdings = new HashMap<>();

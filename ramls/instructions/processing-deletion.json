@@ -13,7 +13,7 @@
           "$ref": "record-retention.json"
         },
         "statisticalCoding": {
-          "description": "Configures the statistical code to set on the item for given events",
+          "description": "Configures the statistical codes to set on the item for given events",
           "type": "array",
           "$ref": "statistical-coding.json"
         }

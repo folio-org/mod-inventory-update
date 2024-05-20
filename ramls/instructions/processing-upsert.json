@@ -71,6 +71,7 @@
           ]
         },
         "statisticalCoding": {
+          "description": "Configures the statistical codes to set on the item for given events",
           "type": "array",
           "$ref": "statistical-coding.json"
         }
@@ -86,6 +87,7 @@
           "$ref": "properties-retention.json"
         },
         "statisticalCoding": {
+          "description": "Configures the statistical codes to set on the holdings record for given events",
           "type": "array",
           "$ref": "statistical-coding.json"
         }
@@ -101,6 +103,7 @@
           "$ref": "properties-retention.json"
         },
         "statisticalCoding": {
+          "description": "Configures the statistical codes to set on the instance for given events",
           "type": "array",
           "$ref": "statistical-coding.json"
         }

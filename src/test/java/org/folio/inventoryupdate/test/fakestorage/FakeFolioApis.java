@@ -115,7 +115,8 @@ public class FakeFolioApis {
     }
 
     public static JsonObject getRecordById(String storagePath, String id, int expectedResponseCode) {
-        Response response = RestAssured.given()
+      RestAssured.port = FakeFolioApis.PORT_OKAPI;
+      Response response = RestAssured.given()
                 .get(storagePath + "/" + id)
                 .then()
                 .log().ifValidationFails()
@@ -128,7 +129,8 @@ public class FakeFolioApis {
     }
 
     public static JsonObject post(String storagePath, JsonObject recordToPOST, int expectedResponseCode) {
-        Response response = RestAssured.given()
+      RestAssured.port = FakeFolioApis.PORT_OKAPI;
+      Response response = RestAssured.given()
                 .body(recordToPOST.toString())
                 .post(storagePath)
                 .then()

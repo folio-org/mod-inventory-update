@@ -1,7 +1,7 @@
 package org.folio.inventoryupdate.entities;
 
 import io.vertx.core.json.JsonObject;
-import org.folio.inventoryupdate.ProcessingInstructionsUpsert;
+import org.folio.inventoryupdate.instructions.ProcessingInstructionsUpsert;
 
 import java.util.Arrays;
 import java.util.List;
@@ -63,6 +63,17 @@ public class Item extends InventoryRecord {
       setStatus(existingItem.getStatusName());
     }
     super.applyOverlays(existingItem,instr);
+  }
+
+  @Override
+  public void prepareCheckedDeletion() {
+    setTransition(Transaction.DELETE);
+    if (recordRetention.isDeleteProtectedByPatternMatch(this)) {
+      handleDeleteProtection(DeletionConstraint.ITEM_PATTERN_MATCH);
+    }
+    if (isCirculating()) {
+      handleDeleteProtection(DeletionConstraint.ITEM_STATUS);
+    }
   }
 
   public boolean isCirculating() {

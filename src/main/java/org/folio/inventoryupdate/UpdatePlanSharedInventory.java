@@ -19,6 +19,7 @@ import org.folio.inventoryupdate.entities.Item;
 import org.folio.inventoryupdate.entities.InventoryRecord.Transaction;
 import org.folio.inventoryupdate.entities.Repository;
 import org.folio.inventoryupdate.entities.RepositoryByMatchKey;
+import org.folio.inventoryupdate.instructions.ProcessingInstructionsDeletion;
 import org.folio.okapi.common.OkapiClient;
 
 import io.vertx.core.Future;

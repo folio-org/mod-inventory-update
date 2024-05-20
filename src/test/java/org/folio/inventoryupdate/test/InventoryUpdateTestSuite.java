@@ -3,7 +3,7 @@ package org.folio.inventoryupdate.test;
 import io.vertx.core.json.JsonArray;
 import org.folio.inventoryupdate.MainVerticle;
 import org.folio.inventoryupdate.MatchKey;
-import org.folio.inventoryupdate.ProcessingInstructionsUpsert;
+import org.folio.inventoryupdate.instructions.ProcessingInstructionsUpsert;
 import org.folio.inventoryupdate.UpdatePlanSharedInventory;
 import org.folio.inventoryupdate.test.fakestorage.FakeFolioApis;
 import org.folio.inventoryupdate.test.fakestorage.InputProcessingInstructions;
@@ -66,7 +66,9 @@ public class InventoryUpdateTestSuite {
   public static final String INSTANCE_RELATIONSHIP = org.folio.inventoryupdate.entities.InventoryRecord.Entity.INSTANCE_RELATIONSHIP.name();
   public static final String PROVISIONAL_INSTANCE = "PROVISIONAL_INSTANCE";
   public static final String PROCESSING = "processing";
+  public static final String STATISTICAL_CODING = "statisticalCoding";
   public static final String CLIENTS_RECORD_IDENTIFIER = "clientsRecordIdentifier";
+
 
   private final Logger logger = io.vertx.core.impl.logging.LoggerFactory.getLogger("InventoryUpdateTestSuite");
   @Rule
@@ -1569,7 +1571,7 @@ public class InventoryUpdateTestSuite {
   }
 
   @Test
-  public void upsertByHridWillRetainExistingItemRecordPerInstructions (TestContext testContext) {
+  public void upsertByHridWillRetainExistingItemRecordByMatchingPattern(TestContext testContext) {
     String instanceHrid = "1";
     JsonObject init = upsertByHrid(new JsonObject()
         .put("instance",
@@ -2097,7 +2099,9 @@ public class InventoryUpdateTestSuite {
                         .setBarcode("BC-003").getJson()))));
 
     JsonObject upsertResponseJson = upsertByHrid(inventoryRecordSet);
+    System.out.println("Upsert response: " + upsertResponseJson.encodePrettily());
     String instanceId = upsertResponseJson.getJsonObject("instance").getString("id");
+    System.out.println("Got instance " + instanceId);
 
     // Leave out one holdings record
     inventoryRecordSet = new JsonObject()
@@ -2861,7 +2865,7 @@ public class InventoryUpdateTestSuite {
      JsonObject deleteSignal = new JsonObject()
          .put("hrid", instanceHrid)
          .put("processing", new DeleteProcessingInstructions()
-             .setItemRecordRetentionCriterion("hrid", "EXT.*")
+             .setItemBlockDeletionCriterion("hrid", "EXT.*")
              .getJson());
 
      JsonObject storedInstances = getRecordsFromStorage(INSTANCE_STORAGE_PATH,null);
@@ -2921,8 +2925,8 @@ public class InventoryUpdateTestSuite {
     String instanceId = upsertResponseJson.getJsonObject("instance").getString("id");
     JsonObject deleteSignal = new JsonObject()
         .put("hrid", instanceHrid)
-        .put("processing", new DeleteProcessingInstructions()
-            .setHoldingsRecordRetentionCriterion("hrid", "EXT.*")
+        .put("processing", new  DeleteProcessingInstructions()
+            .setHoldingsBlockDeletionCriterion("hrid", "EXT.*")
             .getJson());
 
     JsonObject storedInstances = getRecordsFromStorage(INSTANCE_STORAGE_PATH,null);
@@ -2986,12 +2990,9 @@ public class InventoryUpdateTestSuite {
         "\"orderFormat\": \"Other\", " +
         "\"source\": \"User\", " +
         "\"titleOrPackage\": \"Initital InputInstance\" }");
-
-    getRecordsFromStorage(INSTANCE_STORAGE_PATH,"id=="+instanceId);
-    JsonObject deleteSignal = new JsonObject().put("hrid", "IN-001");
     post(ORDER_LINES_STORAGE_PATH, poLine);
+    JsonObject deleteSignal = new JsonObject().put("hrid", "IN-001");
     JsonObject deleteResponse = delete(MainVerticle.INVENTORY_UPSERT_HRID_PATH, deleteSignal);
-    getRecordsFromStorage(INSTANCE_STORAGE_PATH, "id=="+instanceId);
 
     testContext.assertEquals(getMetric(deleteResponse, INSTANCE, DELETE, SKIPPED), 1,
         "Upsert metrics response should report [1] instance deletion skipped " + deleteResponse.encodePrettily());
@@ -2999,6 +3000,8 @@ public class InventoryUpdateTestSuite {
         "Upsert metrics response should report [2] holdings records deletions completed " + deleteResponse.encodePrettily());
     testContext.assertEquals(getMetric(deleteResponse, ITEM, DELETE , COMPLETED), 3,
         "Delete metrics response should report [3] item deletions completed " + deleteResponse.encodePrettily());
+    System.out.println(getRecordsFromStorage(INSTANCE_STORAGE_PATH,"id=="+instanceId).encodePrettily());
+
   }
 
   @Test
@@ -3025,12 +3028,10 @@ public class InventoryUpdateTestSuite {
                         .setMaterialTypeId(MATERIAL_TYPE_TEXT)
                         .setBarcode("BC-003").getJson()))));
     JsonObject upsertResponseJson = upsertByHrid(upsertBody);
-    String instanceId = upsertResponseJson.getJsonObject("instance").getString("id");
+    upsertResponseJson.getJsonObject("instance").getString("id");
 
-    getRecordsFromStorage(INSTANCE_STORAGE_PATH,"id=="+instanceId);
     JsonObject deleteSignal = new JsonObject().put("hrid", "IN-001");
     JsonObject deleteResponse = delete(MainVerticle.INVENTORY_UPSERT_HRID_PATH, deleteSignal);
-    getRecordsFromStorage(INSTANCE_STORAGE_PATH, "id=="+instanceId);
 
     testContext.assertEquals(getMetric(deleteResponse, INSTANCE, DELETE, SKIPPED), 1,
         "Upsert metrics response should report [1] instance deletion skipped " + deleteResponse.encodePrettily());
@@ -3042,8 +3043,199 @@ public class InventoryUpdateTestSuite {
         "Delete metrics response should report [3] item deletions completed " + deleteResponse.encodePrettily());
     testContext.assertEquals(getMetric(deleteResponse, ITEM, DELETE , SKIPPED), 1,
         "Delete metrics response should report [3] item deletions completed " + deleteResponse.encodePrettily());
-
   }
+
+  @Test
+  public void deleteByHridSetsStatCodeOnItemNotInstanceForItemStatus (TestContext testContext) {
+      String instanceHrid = "IN-001";
+      upsertByHrid(new JsonObject()
+          .put("instance",
+              new InputInstance().setTitle("Initial InputInstance").setInstanceTypeId("12345").setHrid(instanceHrid).setSource("test").getJson())
+          .put("holdingsRecords", new JsonArray()
+              .add(new InputHoldingsRecord().setHrid("HOL-001").setPermanentLocationId(LOCATION_ID_1).setCallNumber("test-cn-1").getJson()
+                  .put("items", new JsonArray()
+                      .add(new InputItem().setHrid("ITM-001")
+                          .setStatus(STATUS_CHECKED_OUT)
+                          .setMaterialTypeId(MATERIAL_TYPE_TEXT)
+                          .setBarcode("BC-001").getJson())
+                      .add(new InputItem().setHrid("ITM-002")
+                          .setStatus(STATUS_UNKNOWN)
+                          .setMaterialTypeId(MATERIAL_TYPE_TEXT)
+                          .setBarcode("BC-002").getJson())))
+              .add(new InputHoldingsRecord().setHrid("HOL-002").setPermanentLocationId(LOCATION_ID_1).setCallNumber("test-cn-2").getJson()
+                  .put("items", new JsonArray()
+                      .add(new InputItem().setHrid("ITM-003")
+                          .setStatus(STATUS_UNKNOWN)
+                          .setMaterialTypeId(MATERIAL_TYPE_TEXT)
+                          .setBarcode("BC-003").getJson())))));
+
+      delete(MainVerticle.INVENTORY_UPSERT_HRID_PATH,
+          new JsonObject().put("hrid", "IN-001")
+          .put(PROCESSING,
+              new JsonObject().put("item",
+                  new JsonObject().put("statisticalCoding",
+                      new JsonArray().add(new JsonObject()
+                          .put("if","deleteSkipped").put("becauseOf","ITEM_STATUS").put("setCode","123"))))));
+
+      JsonObject items = getRecordsFromStorage(ITEM_STORAGE_PATH,null);
+      testContext.assertTrue(items.getJsonArray("items").getJsonObject(0)
+          .getJsonArray("statisticalCodeIds").contains("123"), "Instance has a statistical code '123' for delete skipped due to item status");
+      JsonObject instances = getRecordsFromStorage(INSTANCE_STORAGE_PATH,null);
+      testContext.assertTrue(!instances.getJsonArray("instances").getJsonObject(0)
+          .containsKey("statisticalCodeIds"), "Instance has no statistical codes for delete skipped due to item status");
+  }
+
+  @Test
+  public void deleteByHridSetsStatCodeOnInstanceForItemPatternMatch (TestContext testContext) {
+    String instanceHrid = "IN-001";
+    upsertByHrid(new JsonObject()
+        .put("instance",
+            new InputInstance().setTitle("Initial InputInstance").setInstanceTypeId("12345").setHrid(instanceHrid).setSource("test").getJson())
+        .put("holdingsRecords", new JsonArray()
+            .add(new InputHoldingsRecord().setHrid("HOL-001").setPermanentLocationId(LOCATION_ID_1).setCallNumber("test-cn-1").getJson()
+                .put("items", new JsonArray()
+                    .add(new InputItem().setHrid("ITM-001")
+                        .setStatus(STATUS_CHECKED_OUT)
+                        .setMaterialTypeId(MATERIAL_TYPE_TEXT)
+                        .setBarcode("BC-001").getJson())
+                    .add(new InputItem().setHrid("ITM-002")
+                        .setStatus(STATUS_UNKNOWN)
+                        .setMaterialTypeId(MATERIAL_TYPE_TEXT)
+                        .setBarcode("BC-002").getJson())))
+            .add(new InputHoldingsRecord().setHrid("HOL-002").setPermanentLocationId(LOCATION_ID_1).setCallNumber("test-cn-2").getJson()
+                .put("items", new JsonArray()
+                    .add(new InputItem().setHrid("ITM-003")
+                        .setStatus(STATUS_UNKNOWN)
+                        .setMaterialTypeId(MATERIAL_TYPE_TEXT)
+                        .setBarcode("BC-003").getJson())))));
+
+    JsonObject deleteSignal =
+        new JsonObject()
+            .put("hrid", "IN-001")
+            .put(PROCESSING,
+                new JsonObject()
+                    .put("instance",
+                        new JsonObject().put(STATISTICAL_CODING,
+                            new JsonArray()
+                                .add(new JsonObject().put("if","deleteSkipped").put("becauseOf","ITEM_STATUS").put("setCode","456"))
+                                .add(new JsonObject().put("if","deleteSkipped").put("becauseOf","ITEM_PATTERN_MATCH").put("setCode","789"))))
+                    .put("item",
+                        new JsonObject().put("blockDeletion",
+                            new JsonObject().put("ifField","hrid").put("matchesPattern", "ITM.*"))));
+
+    delete(MainVerticle.INVENTORY_UPSERT_HRID_PATH, deleteSignal);
+    JsonObject items = getRecordsFromStorage(ITEM_STORAGE_PATH,null);
+    testContext.assertTrue(!items.getJsonArray("items").getJsonObject(0).containsKey("statisticalCodeIds"), "Item has no statistical codes");
+    JsonObject instances = getRecordsFromStorage(INSTANCE_STORAGE_PATH,null);
+    testContext.assertTrue(instances.getJsonArray("instances").getJsonObject(0)
+        .getJsonArray("statisticalCodeIds").contains("456"), "Instance has a statistical code '456' for delete skipped due to item status");
+    testContext.assertTrue(instances.getJsonArray("instances").getJsonObject(0)
+        .getJsonArray("statisticalCodeIds").contains("789"), "Instance has a statistical code '789' for delete skipped due to item pattern match");
+  }
+
+  @Test
+  public void deleteByHridSetsStatCodeOnInstanceForOrdersReference (TestContext testContext) {
+    String instanceHrid = "IN-001";
+    JsonObject upsertResponseJson = upsertByHrid(new JsonObject()
+        .put("instance",
+            new InputInstance().setTitle("Initial InputInstance").setInstanceTypeId("12345").setHrid(instanceHrid).setSource("test").getJson())
+        .put("holdingsRecords", new JsonArray()
+            .add(new InputHoldingsRecord().setHrid("HOL-001").setPermanentLocationId(LOCATION_ID_1).setCallNumber("test-cn-1").getJson()
+                .put("items", new JsonArray()
+                    .add(new InputItem().setHrid("ITM-001")
+                        .setStatus(STATUS_CHECKED_OUT)
+                        .setMaterialTypeId(MATERIAL_TYPE_TEXT)
+                        .setBarcode("BC-001").getJson())
+                    .add(new InputItem().setHrid("ITM-002")
+                        .setStatus(STATUS_UNKNOWN)
+                        .setMaterialTypeId(MATERIAL_TYPE_TEXT)
+                        .setBarcode("BC-002").getJson())))
+            .add(new InputHoldingsRecord().setHrid("HOL-002").setPermanentLocationId(LOCATION_ID_1).setCallNumber("test-cn-2").getJson()
+                .put("items", new JsonArray()
+                    .add(new InputItem().setHrid("ITM-003")
+                        .setStatus(STATUS_UNKNOWN)
+                        .setMaterialTypeId(MATERIAL_TYPE_TEXT)
+                        .setBarcode("BC-003").getJson())))));
+
+    String instanceId = upsertResponseJson.getJsonObject("instance").getString("id");
+
+    JsonObject poLine = new JsonObject("{" +
+        "\"purchaseOrderId\": \"3b198b70-cf8e-4075-9e93-ebf2c76e60c2\", " +
+        "\"instanceId\": \"" + instanceId +  "\", " +
+        "\"orderFormat\": \"Other\", " +
+        "\"source\": \"User\", " +
+        "\"titleOrPackage\": \"Initital InputInstance\" }");
+    post(ORDER_LINES_STORAGE_PATH, poLine);
+
+    JsonObject deleteSignal =
+        new JsonObject()
+            .put("hrid", "IN-001")
+            .put(PROCESSING,
+                new JsonObject()
+                    .put("instance",
+                        new JsonObject().put(STATISTICAL_CODING,
+                            new JsonArray()
+                                .add(new JsonObject().put("if","deleteSkipped").put("becauseOf","PO_LINE_REFERENCE").put("setCode","123"))))
+                    .put("item",
+                        new JsonObject().put("blockDeletion",
+                            new JsonObject().put("ifField","hrid").put("matchesPattern", "ITM.*"))));
+
+    delete(MainVerticle.INVENTORY_UPSERT_HRID_PATH, deleteSignal);
+    JsonObject items = getRecordsFromStorage(ITEM_STORAGE_PATH,null);
+    testContext.assertTrue(!items.getJsonArray("items").getJsonObject(0).containsKey("statisticalCodeIds"), "Item has no statistical codes");
+    JsonObject instances = getRecordsFromStorage(INSTANCE_STORAGE_PATH,null);
+    testContext.assertTrue(instances.getJsonArray("instances").getJsonObject(0)
+        .getJsonArray("statisticalCodeIds").contains("123"), "Instance has a statistical code '123' for delete skipped due to PO line reference");
+    testContext.assertEquals(instances.getJsonArray("instances").getJsonObject(0)
+        .getJsonArray("statisticalCodeIds").size(), 1, "Instance has just one statistical code");
+  }
+
+  @Test
+  public void deleteByHridSetsStatCodeOnInstanceItemForItemStatus (TestContext testContext) {
+    String instanceHrid = "IN-001";
+    upsertByHrid(new JsonObject()
+        .put("instance",
+            new InputInstance().setTitle("Initial InputInstance").setInstanceTypeId("12345").setHrid(instanceHrid).setSource("test").getJson())
+        .put("holdingsRecords", new JsonArray()
+            .add(new InputHoldingsRecord().setHrid("HOL-001").setPermanentLocationId(LOCATION_ID_1).setCallNumber("test-cn-1").getJson()
+                .put("items", new JsonArray()
+                    .add(new InputItem().setHrid("ITM-001")
+                        .setStatus(STATUS_CHECKED_OUT)
+                        .setMaterialTypeId(MATERIAL_TYPE_TEXT)
+                        .setBarcode("BC-001").getJson())
+                    .add(new InputItem().setHrid("ITM-002")
+                        .setStatus(STATUS_UNKNOWN)
+                        .setMaterialTypeId(MATERIAL_TYPE_TEXT)
+                        .setBarcode("BC-002").getJson())))
+            .add(new InputHoldingsRecord().setHrid("HOL-002").setPermanentLocationId(LOCATION_ID_1).setCallNumber("test-cn-2").getJson()
+                .put("items", new JsonArray()
+                    .add(new InputItem().setHrid("ITM-003")
+                        .setStatus(STATUS_UNKNOWN)
+                        .setMaterialTypeId(MATERIAL_TYPE_TEXT)
+                        .setBarcode("BC-003").getJson())))));
+
+    delete(MainVerticle.INVENTORY_UPSERT_HRID_PATH,
+        new JsonObject()
+            .put("hrid", "IN-001")
+            .put(PROCESSING,
+                new JsonObject()
+                    .put("item",
+                        new JsonObject().put(STATISTICAL_CODING,
+                            new JsonArray().add(new JsonObject()
+                                .put("if","deleteSkipped").put("becauseOf","ITEM_STATUS").put("setCode","123"))))
+                    .put("instance",
+                        new JsonObject().put(STATISTICAL_CODING,
+                            new JsonArray().add(new JsonObject()
+                                .put("if","deleteSkipped").put("becauseOf","ITEM_STATUS").put("setCode","456"))))));
+
+    JsonObject items = getRecordsFromStorage(ITEM_STORAGE_PATH,null);
+    testContext.assertTrue(items.getJsonArray("items").getJsonObject(0)
+        .getJsonArray("statisticalCodeIds").contains("123"), "Instance has a statistical code '123' for delete skipped due to item status");
+    JsonObject instances = getRecordsFromStorage(INSTANCE_STORAGE_PATH,null);
+    testContext.assertTrue(instances.getJsonArray("instances").getJsonObject(0)
+        .getJsonArray("statisticalCodeIds").contains("456"), "Instance has a statistical code '456' for delete skipped due to item status");
+  }
+
 
 
   @Test

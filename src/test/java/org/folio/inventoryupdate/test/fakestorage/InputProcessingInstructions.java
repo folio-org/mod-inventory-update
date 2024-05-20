@@ -2,7 +2,7 @@ package org.folio.inventoryupdate.test.fakestorage;
 
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
-import org.folio.inventoryupdate.ProcessingInstructionsUpsert;
+import org.folio.inventoryupdate.instructions.ProcessingInstructionsUpsert;
 
 public class InputProcessingInstructions {
   JsonObject processingInstructions = new JsonObject();

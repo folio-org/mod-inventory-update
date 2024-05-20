@@ -10,7 +10,9 @@ import io.vertx.core.json.DecodeException;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import org.folio.inventoryupdate.ErrorReport;
-import org.folio.inventoryupdate.ProcessingInstructionsUpsert;
+import org.folio.inventoryupdate.instructions.ProcessingInstructionsUpsert;
+import org.folio.inventoryupdate.instructions.RecordRetention;
+import org.folio.inventoryupdate.instructions.StatisticalCoding;
 
 import static org.folio.inventoryupdate.ErrorReport.UNPROCESSABLE_ENTITY;
 
@@ -49,11 +51,10 @@ public abstract class InventoryRecord {
     }
 
     public enum DeletionConstraint {
-        REFERENCED_BY_PURCHASE_ORDER_LINE,
-        ITEM_REFERENCED_BY_CIRCULATION,
-        REFERENCED_BY_DELETE_PROTECTED_HOLDINGS_RECORD,
-        REFERENCED_BY_DELETE_PROTECTED_ITEM,
-        IS_DELETE_PROTECTED_PER_INSTRUCTIONS
+      PO_LINE_REFERENCE,
+      ITEM_STATUS,
+      HOLDINGS_RECORD_PATTERN_MATCH,
+      ITEM_PATTERN_MATCH
     }
 
     protected JsonObject jsonRecord;
@@ -67,9 +68,16 @@ public abstract class InventoryRecord {
     private static final String ERRORS = "errors";
     private static final String PARAMETERS = "parameters";
 
+    private static final String STATISTICAL_CODE_IDS = "statisticalCodeIds";
+
     protected static final Logger logger = LoggerFactory.getLogger("inventory-update");
 
     private final List<DeletionConstraint> deletionConstraints = new ArrayList<>();
+
+    StatisticalCoding statisticalCoding;
+    RecordRetention recordRetention;
+
+    Boolean updateSilently = false;
 
     public InventoryRecord setTransition (Transaction transaction) {
         this.transaction = transaction;
@@ -92,12 +100,19 @@ public abstract class InventoryRecord {
         return (transaction == Transaction.UPDATE);
     }
 
-    public boolean hasDeleteConstraints() {
-      return !deletionConstraints.isEmpty();
+    public void setDeleteInstructions(RecordRetention recordRetention, StatisticalCoding statisticalCoding) {
+      this.statisticalCoding = statisticalCoding;
+      this.recordRetention = recordRetention;
     }
 
-    public void registerConstraint(DeletionConstraint sourceOfConstraint) {
+    public void handleDeleteProtection(DeletionConstraint sourceOfConstraint) {
       deletionConstraints.add(sourceOfConstraint);
+      setStatisticalCode(sourceOfConstraint);
+      skip();
+    }
+
+    public List<DeletionConstraint> getDeleteConstraints() {
+      return deletionConstraints;
     }
 
     public String generateUUID () {
@@ -137,7 +152,28 @@ public abstract class InventoryRecord {
         return this;
     }
 
-    public void removeGetPropertiesDisallowedInPut(JsonObject jsonRecord) {
+    public InventoryRecord setStatisticalCode (String code) {
+      if (!jsonRecord.containsKey(STATISTICAL_CODE_IDS)) {
+        jsonRecord.put(STATISTICAL_CODE_IDS,new JsonArray());
+      }
+      if (!jsonRecord.getJsonArray(STATISTICAL_CODE_IDS).contains(code)) {
+        jsonRecord.getJsonArray(STATISTICAL_CODE_IDS).add(code);
+      }
+      return this;
+    }
+
+    public void setStatisticalCode(DeletionConstraint constraint) {
+      if (statisticalCoding != null) {
+        String statCode = statisticalCoding.getStatisticalCodeId(constraint);
+        if (!statCode.isEmpty()) {
+          setStatisticalCode(statCode);
+          updateSilently = true;
+        }
+      }
+    }
+
+
+  public void removeGetPropertiesDisallowedInPut(JsonObject jsonRecord) {
     }
 
     public void removeProperty(String propertyName) {
@@ -224,6 +260,8 @@ public abstract class InventoryRecord {
     public boolean skipped() {
         return this.outcome == Outcome.SKIPPED;
     }
+
+    public abstract void prepareCheckedDeletion ();
 
     public void logError (String error, int statusCode, ErrorReport.ErrorCategory category, JsonObject originJson) {
         Object message = maybeJson(error);

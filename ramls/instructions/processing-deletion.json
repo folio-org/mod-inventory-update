@@ -9,11 +9,12 @@
       "properties": {
         "blockDeletion": {
           "description": "Prevent deletion of an item, and thus the Instance, if given item property is matched by regex",
+          "type": "object",
+          "$ref": "record-retention.json"
+        },
+        "statisticalCoding": {
           "type": "array",
-          "items": {
-            "type": "object",
-            "$ref": "record-retention.json"
-          }
+          "$ref": "statistical-coding.json"
         }
       }
     },
@@ -23,11 +24,12 @@
       "properties": {
         "blockDeletion": {
           "description": "Prevent deletion of a holdings record, and thus the Instance, if given holdings record property is matched by regex",
+          "type": "object",
+          "$ref": "record-retention.json"
+        },
+        "statisticalCoding": {
           "type": "array",
-          "items": {
-            "type": "object",
-            "$ref": "record-retention.json"
-          }
+          "$ref": "statistical-coding.json"
         }
       }
     },
@@ -37,11 +39,12 @@
       "properties": {
         "blockDeletion": {
           "description": "Prevent deletion of an Instance, if given Instance property is matched by regex",
+          "type": "object",
+          "$ref": "record-retention.json"
+        },
+        "statisticalCoding": {
           "type": "array",
-          "items": {
-            "type": "object",
-            "$ref": "record-retention.json"
-          }
+          "$ref": "statistical-coding.json"
         }
       }
     }

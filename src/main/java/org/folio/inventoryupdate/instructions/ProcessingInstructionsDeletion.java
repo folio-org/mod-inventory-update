@@ -1,16 +1,13 @@
-package org.folio.inventoryupdate;
+package org.folio.inventoryupdate.instructions;
 
 import io.vertx.core.json.JsonObject;
-import org.folio.inventoryupdate.entities.InventoryRecord;
 
-public class ProcessingInstructionsDeletion {
+public class ProcessingInstructionsDeletion  {
   JsonObject processing;
   public static final String INSTANCE_INSTRUCTIONS_KEY = "instance";
   public static final String HOLDINGS_INSTRUCTIONS_KEY = "holdingsRecord";
   public static final String ITEM_INSTRUCTIONS_KEY = "item";
-  public static final String BLOCK_DELETION_KEY = "blockDeletion";
-  public static final String RECORD_RETENTION_CRITERION_FIELD = "ifField";
-  public static final String RECORD_RETENTION_CRITERION_PATTERN = "matchesPattern";
+
 
   private final InstanceInstructions instanceInstructions;
   private final ItemInstructions itemInstructions;
@@ -23,63 +20,41 @@ public class ProcessingInstructionsDeletion {
     itemInstructions = new ItemInstructions(processing);
   }
 
-
-  ProcessingInstructionsDeletion.InstanceInstructions forInstance() {
+  public ProcessingInstructionsDeletion.InstanceInstructions forInstance() {
     return instanceInstructions;
   }
 
-  ProcessingInstructionsDeletion.HoldingsRecordInstructions forHoldingsRecord() {
+  public ProcessingInstructionsDeletion.HoldingsRecordInstructions forHoldingsRecord() {
     return holdingsRecordInstructions;
   }
 
-  ProcessingInstructionsDeletion.ItemInstructions forItem() {
+  public ProcessingInstructionsDeletion.ItemInstructions forItem() {
     return itemInstructions;
   }
 
   public static class EntityInstructions {
     String key;
-    ProcessingInstructionsDeletion.RecordRetention recordRetention;
-    JsonObject processing;
+    public RecordRetention recordRetention;
+    public JsonObject processing;
     JsonObject entityInstructionsJson;
+
+    public StatisticalCoding statisticalCoding;
 
     public EntityInstructions(JsonObject processing, String entityInstructionsKey) {
       this.processing = processing;
       this.key = entityInstructionsKey;
       if (processing != null) {
         this.entityInstructionsJson = processing.getJsonObject(entityInstructionsKey);
-        recordRetention = new ProcessingInstructionsDeletion.RecordRetention(entityInstructionsJson);
+        recordRetention = new RecordRetention(entityInstructionsJson);
       } else {
-        recordRetention = new ProcessingInstructionsDeletion.RecordRetention(null);
+        recordRetention = new RecordRetention(null);
       }
+      statisticalCoding = new StatisticalCoding(this.entityInstructionsJson);
     }
 
-    public void setDeleteProtectionIfAny(InventoryRecord inventoryRecord) {
-      recordRetention.setDeleteProtection(inventoryRecord);
-    }
   }
 
 
-  public static class RecordRetention {
-
-    String field = "~";
-    String pattern = "~";
-    RecordRetention(JsonObject json) {
-      if (json != null) {
-        JsonObject recordRetention = json.getJsonObject(BLOCK_DELETION_KEY);
-        if (recordRetention != null) {
-          field = recordRetention.getString(RECORD_RETENTION_CRITERION_FIELD,"~");
-          pattern = recordRetention.getString(RECORD_RETENTION_CRITERION_PATTERN, "~");
-        }
-      }
-    }
-
-    void setDeleteProtection(InventoryRecord inventoryRecord) {
-      if (inventoryRecord.asJson().getString(field) != null
-          && inventoryRecord.asJson().getString(field).matches(pattern)) {
-         inventoryRecord.registerConstraint(InventoryRecord.DeletionConstraint.IS_DELETE_PROTECTED_PER_INSTRUCTIONS);
-      }
-    }
-  }
 
   public static class InstanceInstructions extends ProcessingInstructionsDeletion.EntityInstructions {
     InstanceInstructions(JsonObject processing) {

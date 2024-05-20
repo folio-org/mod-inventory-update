@@ -146,6 +146,20 @@ public class InventoryStorage {
     return promise.future();
   }
 
+  public static Future<JsonObject> putInventoryRecordOutcomeLess (OkapiClient okapiClient, InventoryRecord record) {
+    Promise<JsonObject> promise = Promise.promise();
+    logger.debug("Putting " + record.entityType() + ": " + record.asJson().encodePrettily());
+    okapiClient.request(HttpMethod.PUT, getApi(record.entityType())+"/"+record.getUUID(), record.asJsonString(), putResult -> {
+      if (putResult.succeeded()) {
+        promise.complete(record.asJson());
+      } else {
+        record.logError(okapiClient.getResponsebody(), okapiClient.getStatusCode(), ErrorReport.ErrorCategory.STORAGE, record.getOriginJson());
+        promise.fail(record.getErrorAsJson().encodePrettily());
+      }
+    });
+    return promise.future();
+  }
+
   public static Future<JsonObject> deleteInventoryRecord (OkapiClient okapiClient, InventoryRecord record) {
     Promise<JsonObject> promise = Promise.promise();
     okapiClient.delete(getApi(record.entityType())+"/"+record.getUUID(), deleteResult -> {

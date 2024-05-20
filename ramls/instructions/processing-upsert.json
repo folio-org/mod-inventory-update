@@ -9,11 +9,8 @@
       "properties": {
         "retainOmittedRecord": {
           "description": "Prevent deletion of item (even though it is omitted from input) if given item property is matched by regex",
-          "type": "array",
-          "items": {
-            "type": "object",
-            "$ref": "record-retention.json"
-          }
+          "type": "object",
+          "$ref": "record-retention.json"
         },
         "retainExistingValues": {
           "description": "Instructions for value retention on updates.",
@@ -72,6 +69,10 @@
           "required": [
             "policy"
           ]
+        },
+        "statisticalCoding": {
+          "type": "array",
+          "$ref": "statistical-coding.json"
         }
       }
     },
@@ -83,6 +84,10 @@
           "description": "Instructions for value retention on updates.",
           "type": "object",
           "$ref": "properties-retention.json"
+        },
+        "statisticalCoding": {
+          "type": "array",
+          "$ref": "statistical-coding.json"
         }
       }
     },
@@ -94,6 +99,10 @@
           "description": "Instructions for value retention on updates.",
           "type": "object",
           "$ref": "properties-retention.json"
+        },
+        "statisticalCoding": {
+          "type": "array",
+          "$ref": "statistical-coding.json"
         }
       }
     }

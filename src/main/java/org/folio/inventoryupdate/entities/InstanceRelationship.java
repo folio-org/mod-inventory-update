@@ -1,6 +1,7 @@
 package org.folio.inventoryupdate.entities;
 
 import io.vertx.core.json.JsonObject;
+
 public class InstanceRelationship extends InstanceToInstanceRelation {
 
     private String instanceId;
@@ -64,18 +65,19 @@ public class InstanceRelationship extends InstanceToInstanceRelation {
         return jsonRecord.getString(SUPER_INSTANCE_ID);
     }
 
-    public String getInstanceRelationshipTypeId () {
-        return jsonRecord.getString(INSTANCE_RELATIONSHIP_TYPE_ID);
-    }
 
-    public void skipDependants() {
+  @Override
+  public void prepareCheckedDeletion() {
+      throw new UnsupportedOperationException("Checked deletion not implemented for instance relationships");
+  }
+
+  public void skipDependants() {
         // relationships have no dependants in the database
     }
 
     @Override
     public boolean equals (Object o) {
-        if (o instanceof InstanceRelationship) {
-            InstanceRelationship other = (InstanceRelationship) o;
+        if (o instanceof InstanceRelationship other) {
             return other.toString().equals(this.toString());
         } else {
             return false;

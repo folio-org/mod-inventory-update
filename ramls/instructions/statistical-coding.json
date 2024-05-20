@@ -1,5 +1,6 @@
 {
   "type": "array",
+  "description": "Configures the statistical code to set for the given events",
   "items": {
     "type": "object",
     "properties": {

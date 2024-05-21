@@ -6,6 +6,7 @@ import java.util.List;
 import io.vertx.core.json.JsonObject;
 import org.folio.inventoryupdate.MatchKey;
 
+
 public class Instance extends InventoryRecord {
 
     public static final String MATCH_KEY = "matchKey";
@@ -36,7 +37,11 @@ public class Instance extends InventoryRecord {
         setHoldingsRecordsInstanceId(uuid);
     }
 
-    @Override
+
+  @Override
+  public void prepareCheckedDeletion() {}
+
+  @Override
     public String generateUUID () {
         String uuid = super.generateUUID();
         setHoldingsRecordsInstanceId(uuid);

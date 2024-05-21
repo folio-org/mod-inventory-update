@@ -29,7 +29,7 @@ public class HoldingsRecord extends InventoryRecord {
         setItemsHoldingsRecordId(uuid);
     }
 
-    @Override
+  @Override
     public String generateUUID () {
         String uuid = super.generateUUID();
         setItemsHoldingsRecordId(uuid);
@@ -91,6 +91,14 @@ public class HoldingsRecord extends InventoryRecord {
         jsonRecord.remove("bareHoldingsItems");
         jsonRecord.remove("holdingsInstance");
     }
+
+  @Override
+  public void prepareCheckedDeletion() {
+    setTransition(Transaction.DELETE);
+    if (recordRetention.isDeleteProtectedByPatternMatch(this)) {
+      handleDeleteProtection(DeletionConstraint.HOLDINGS_RECORD_PATTERN_MATCH);
+    }
+  }
 
 
 }

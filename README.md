@@ -143,6 +143,23 @@ processing": {
 }
 ```
 
+##### Retain omitted items if the status indicates that they are still circulating
+
+Usually items that are omitted from the holdings record in the upsert will be removed from storage by MIU. The
+exceptions are if they are delete protected as described in the previous section, or if they have a status that
+indicates they might still be circulating.
+
+MIU will avoid deleting items with following item statuses
+
+* Awaiting delivery
+* Awaiting pickup
+* Checked out
+* Aged to lost
+* Claimed returned
+* Declared lost
+* Paged
+* In transit
+
 #### Provisional Instance created when related Instance doesn't exist yet
 
 If an upsert request comes in with a relation to an Instance that doesn't already exist in storage, a provisional
@@ -213,6 +230,160 @@ When a delete request is sent for an Instance that has protected Items, the dele
 holdings record for the Item, will be blocked as well. Other holdings records or Items that do not match the block
 criteria will be deleted.
 
+Deletion will likewise be blocked when one or more items under the instance have one of the statuses also listed in
+"Retain omitted items if the status indicates that they are still circulating":
+
+* Awaiting delivery
+* Awaiting pickup
+* Checked out
+* Aged to lost
+* Claimed returned
+* Declared lost
+* Paged
+* In transit
+
+#### Statistical coding of delete protection events
+
+When records are prevented from being deleted, the delete or the upsert request can be configured to set specified
+statistical codes on the record, which was up for deletion, and then update the existing record with those. This will not
+count as a record update, and if the update fails -- for example due to use of invalid UUIDs -- it will write an error
+to the module log but will not fail the overall request. If non-existing statistical codes are specified the storage
+module will silently avoid setting them.
+
+Here are some examples of statistical coding of skipped deletes, first in a delete requests
+
+Set all available codes on all record types. This means not just setting the code on the item that was not delete but also marking it on the instance that consequently could also not be deleted:
+```
+{
+  "hrid": "in001",
+  "processing": {
+    "item": {
+      "blockDeletion": {
+        "ifField": "hrid",
+        "matchesPattern": "it.*"
+      },
+      "statisticalCoding": [
+        {"if": "deleteSkipped", "becauseOf":  "ITEM_STATUS", "setCode": "1ce0a775-286f-45ae-8446-e26ba0687b61"},
+        {"if": "deleteSkipped", "becauseOf":  "ITEM_PATTERN_MATCH", "setCode": "42b735fa-eb6f-4c53-b5d5-2d98500868c5"}
+      ]
+    },
+    "holdingsRecord": {
+      "blockDeletion": {
+        "ifField": "hrid",
+        "matchesPattern": "ho.*"
+      },
+      "statisticalCoding": [
+        {"if": "deleteSkipped", "becauseOf":  "HOLDINGS_RECORD_PATTERN_MATCH", "setCode": "d11fd9d8-b234-4159-b7b1-61b531bb1405"},
+        {"if": "deleteSkipped", "becauseOf":  "ITEM_STATUS", "setCode": "1ce0a775-286f-45ae-8446-e26ba0687b61"},
+        {"if": "deleteSkipped", "becauseOf":  "ITEM_PATTERN_MATCH", "setCode": "42b735fa-eb6f-4c53-b5d5-2d98500868c5"}
+      ]
+    },
+    "instance": {
+      "statisticalCoding": [
+        {"if": "deleteSkipped", "becauseOf":  "PO_LINE_REFERENCE", "setCode": "98993c92-c5c9-414b-b12c-a82836b0dbf6"},
+        {"if": "deleteSkipped", "becauseOf":  "HOLDINGS_RECORD_PATTERN_MATCH", "setCode": "d11fd9d8-b234-4159-b7b1-61b531bb1405"},
+        {"if": "deleteSkipped", "becauseOf":  "ITEM_STATUS", "setCode": "1ce0a775-286f-45ae-8446-e26ba0687b61"},
+        {"if": "deleteSkipped", "becauseOf":  "ITEM_PATTERN_MATCH", "setCode": "42b735fa-eb6f-4c53-b5d5-2d98500868c5"}
+      ]
+    }
+  }
+}
+```
+
+Lift all codes up on the instance level, even if the primarily protected record was a holdings record or an item:
+
+```{
+  "hrid": "in001",
+  "processing": {
+    "item": {
+      "blockDeletion": {
+        "ifField": "hrid",
+        "matchesPattern": "it.*"
+      }
+    },
+    "holdingsRecord": {
+      "blockDeletion": {
+        "ifField": "hrid",
+        "matchesPattern": "ho.*"
+      }
+    },
+    "instance": {
+      "statisticalCoding": [
+        {"if":  "deleteSkipped", "becauseOf":  "PO_LINE_REFERENCE", "setCode": "98993c92-c5c9-414b-b12c-a82836b0dbf6"},
+        {"if":  "deleteSkipped", "becauseOf":  "HOLDINGS_RECORD_PATTERN_MATCH", "setCode": "d11fd9d8-b234-4159-b7b1-61b531bb1405"},
+        {"if":  "deleteSkipped", "becauseOf":  "ITEM_STATUS", "setCode": "1ce0a775-286f-45ae-8446-e26ba0687b61"},
+        {"if":  "deleteSkipped", "becauseOf":  "ITEM_PATTERN_MATCH", "setCode": "42b735fa-eb6f-4c53-b5d5-2d98500868c5"}
+      ]
+    }
+  }
+}
+```
+
+Only set the code on the record that was directly protected from deletion (not on the indirectly delete protected records) :
+
+```
+{
+  "hrid": "in001",
+  "processing": {
+    "item": {
+      "blockDeletion": {
+        "ifField": "hrid",
+        "matchesPattern": "it.*"
+      },
+      "statisticalCoding": [
+        {"if": "deleteSkipped", "becauseOf": "ITEM_STATUS", "setCode": "1ce0a775-286f-45ae-8446-e26ba0687b61"},
+        {"if": "deleteSkipped", "becauseOf": "ITEM_PATTERN_MATCH", "setCode": "42b735fa-eb6f-4c53-b5d5-2d98500868c5"}
+      ]
+    },
+    "holdingsRecord": {
+      "blockDeletion": {
+        "ifField": "hrid",
+        "matchesPattern": "ho.*"
+      },
+      "statisticalCoding": [
+        {"if": "deleteSkipped", "becauseOf": "HOLDINGS_RECORD_PATTERN_MATCH", "setCode": "d11fd9d8-b234-4159-b7b1-61b531bb1405"}
+      ]
+    },
+    "instance": {
+      "statisticalCoding": [
+        {"if": "deleteSkipped", "becauseOf": "PO_LINE_REFERENCE", "setCode": "98993c92-c5c9-414b-b12c-a82836b0dbf6"}
+      ]
+    }
+  }
+}
+```
+
+Statistical codes can be set on holdings and items in upserts (deleting the instance is not an option in the upsert,
+and preventing delete due to PO_LINE_REFERENCE does not apply).
+
+For example:
+```
+"processing": {
+  "item": {
+    "retainOmittedRecord": {
+      "ifField": "hrid",
+      "matchesPattern": "it.*"
+    },
+    "statisticalCoding": [
+      { "if": "deleteSkipped", "becauseOf": "ITEM_STATUS", "setCode": "2b750461-5368-4a4e-9484-4e1eea2bc384" },
+      { "if": "deleteSkipped", "becauseOf": "ITEM_PATTERN_MATCH", "setCode": "6f143d4c-75fe-4987-ae3e-3d7c2a4ccca2" },
+    ]
+  },
+  "holdingsRecord": {
+    "retainOmittedRecord": {
+      "ifField": "hrid",
+      "matchesPattern": "ho.*"
+    }
+    "statisticalCoding": [
+      { "if": "deleteSkipped", "becauseOf": "ITEM_STATUS", "setCode": "b2452cc2-7024-41fa-a5c7-b1736280d781" },
+      { "if": "deleteSkipped", "becauseOf": "ITEM_PATTERN_MATCH", "setCode": "a8e70d5e-2861-4a89-93cc-88679c74e592" },
+      { "if": "deleteSkipped", "becauseOf": "HOLDINGS_RECORD_PATTERN_MATCH", "setCode": "e24f4a4e-8d8f-4ca2-ab05-dd497a8379e3" }
+    ]
+  },
+  "instance": {
+  }
+}
+```
 
 ### `/shared-inventory-upsert-matchkey`
 

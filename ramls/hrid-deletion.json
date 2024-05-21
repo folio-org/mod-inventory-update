@@ -10,7 +10,7 @@
     "processing": {
       "description": "Processing instructions, for example delete protection for records.",
       "type": "object",
-      "$ref": "instructions/processing-upsert.json"
+      "$ref": "instructions/processing-deletion.json"
     }
   },
   "required": [

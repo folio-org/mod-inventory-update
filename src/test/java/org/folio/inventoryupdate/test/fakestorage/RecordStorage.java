@@ -22,6 +22,7 @@ public abstract class RecordStorage {
     public static final String INSTANCE_RELATIONSHIPS = "instanceRelationships";
     public static final String PRECEDING_SUCCEEDING_TITLES = "precedingSucceedingTitles";
     public static final String LOCATIONS = "locations";
+    public static final String PO_LINES = "poLines";
 
     public final String STORAGE_NAME = getClass().getSimpleName();
     public boolean failOnDelete = false;
@@ -34,12 +35,12 @@ public abstract class RecordStorage {
     List<String> mandatoryProperties = new ArrayList<>();
     List<String> uniqueProperties = new ArrayList<>();
 
-    protected FakeInventoryStorage fakeStorage;
+    protected FakeFolioApis fakeStorage;
 
     protected final Map<String, InventoryRecord> records = new HashMap<>();
     protected final Logger logger = LoggerFactory.getLogger("fake-inventory-storage");
 
-    public void attachToFakeStorage(FakeInventoryStorage fakeStorage) {
+    public void attachToFakeStorage(FakeFolioApis fakeStorage) {
         this.fakeStorage = fakeStorage;
         declareDependencies();
         declareMandatoryProperties();
@@ -214,7 +215,7 @@ public abstract class RecordStorage {
 
     protected abstract void declareMandatoryProperties ();
 
-    protected void declareUniqueProperties () {};
+    protected void declareUniqueProperties () {}
     // API REQUEST HANDLERS
 
     /**

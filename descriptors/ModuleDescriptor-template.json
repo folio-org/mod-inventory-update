@@ -249,6 +249,12 @@
       "version": "3.0"
     }
   ],
+  "optional": [
+    {
+      "id": "orders-storage.po-lines",
+      "version": "12.0"
+    }
+  ],
   "permissionSets": [
     {
       "permissionName": "inventory-upsert-hrid.item.put",

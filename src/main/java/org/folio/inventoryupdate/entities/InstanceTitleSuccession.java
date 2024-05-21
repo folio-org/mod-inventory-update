@@ -4,7 +4,6 @@ import io.vertx.core.impl.logging.Logger;
 import io.vertx.core.impl.logging.LoggerFactory;
 import io.vertx.core.json.JsonObject;
 
-
 public class InstanceTitleSuccession extends InstanceToInstanceRelation {
 
     public static final String ID = "id";
@@ -52,15 +51,19 @@ public class InstanceTitleSuccession extends InstanceToInstanceRelation {
         return instanceRelationClass.equals(InstanceRelationsClass.TO_SUCCEEDING);
     }
 
-    @Override
+  @Override
+  public void prepareCheckedDeletion() {
+    throw new UnsupportedOperationException("Checked deletion not implemented for instance relationships");
+  }
+
+  @Override
     public void skipDependants() {
         // relations have no dependants
     }
 
     @Override
     public boolean equals (Object o) {
-        if (o instanceof InstanceTitleSuccession) {
-            InstanceTitleSuccession other = (InstanceTitleSuccession) o;
+        if (o instanceof InstanceTitleSuccession other) {
             return other.toString().equals(this.toString());
         } else {
             return false;
@@ -73,10 +76,9 @@ public class InstanceTitleSuccession extends InstanceToInstanceRelation {
     }
 
     public String toString () {
-        StringBuilder str = new StringBuilder();
-        str.append("// Preceding: ").append(jsonRecord.getString(PRECEDING_INSTANCE_ID))
-                .append(" Succeeding: ").append(jsonRecord.getString(SUCCEEDING_INSTANCE_ID));
-        return str.toString();
+        String str = "// Preceding: " + jsonRecord.getString(PRECEDING_INSTANCE_ID) +
+                " Succeeding: " + jsonRecord.getString(SUCCEEDING_INSTANCE_ID);
+        return str;
     }
 
 }

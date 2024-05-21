@@ -12,6 +12,8 @@ import org.folio.inventoryupdate.entities.InventoryRecord.Transaction;
 
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
+import org.folio.inventoryupdate.instructions.ProcessingInstructionsDeletion;
+import org.folio.inventoryupdate.instructions.ProcessingInstructionsUpsert;
 
 import static org.folio.inventoryupdate.ErrorReport.BAD_REQUEST;
 import static org.folio.inventoryupdate.entities.RecordIdentifiers.OAI_IDENTIFIER;
@@ -194,6 +196,30 @@ public class InventoryRecordSet extends JsonRepresentation {
         }
         return records;
     }
+
+    public List<HoldingsRecord> getHoldingsRecordsForSilentUpdate () {
+      List<HoldingsRecord> records = new ArrayList<>();
+      for (HoldingsRecord record : getHoldingsRecords()) {
+        if (record.updateSilently) {
+          records.add(record);
+        }
+      }
+      return records;
+    }
+
+    public List<Item> getItemsForSilentUpdate () {
+      List<Item> records = new ArrayList<>();
+      for (Item record : getItems()) {
+        if (record.updateSilently) {
+          records.add(record);
+        }
+      }
+      return records;
+    }
+
+
+
+
     public List<HoldingsRecord> getHoldingsRecordsByTransactionType (Transaction transition) {
         List<HoldingsRecord> records = new ArrayList<>();
         for (HoldingsRecord record : getHoldingsRecords()) {
@@ -256,10 +282,12 @@ public class InventoryRecordSet extends JsonRepresentation {
         }
     }
 
-
-    public void prepareAllInstanceRelationsForDeletion() {
+    public void prepareInstanceRelationsForDeleteOrSkip() {
         for (InstanceToInstanceRelation relation : getInstanceToInstanceRelations()) {
             relation.setTransition(InventoryRecord.Transaction.DELETE);
+            if (getInstance().isDeleting() && getInstance().skipped()) {
+              relation.skip();
+            }
         }
     }
 
@@ -409,7 +437,30 @@ public class InventoryRecordSet extends JsonRepresentation {
         }
     }
 
-    public String getLocalIdentifierTypeId () {
+  public void setDeleteInstructions(ProcessingInstructionsDeletion deleteInstructions) {
+    getInstance().setDeleteInstructions(deleteInstructions.forInstance().recordRetention, deleteInstructions.forInstance().statisticalCoding);
+    for (HoldingsRecord rec : getHoldingsRecords()) {
+      rec.setDeleteInstructions(deleteInstructions.forHoldingsRecord().recordRetention, deleteInstructions.forHoldingsRecord().statisticalCoding);
+    }
+    for (Item rec : getItems()) {
+      rec.setDeleteInstructions(deleteInstructions.forItem().recordRetention, deleteInstructions.forItem().statisticalCoding);
+    }
+  }
+
+  public void setDeleteInstructions(ProcessingInstructionsUpsert instructions) {
+      getInstance().setDeleteInstructions(instructions.forInstance().recordRetention, instructions.forInstance().statisticalCoding);
+    for (HoldingsRecord rec : getHoldingsRecords()) {
+      rec.setDeleteInstructions(instructions.forHoldingsRecord().recordRetention, instructions.forHoldingsRecord().statisticalCoding);
+    }
+    for (Item rec : getItems()) {
+      rec.setDeleteInstructions(instructions.forItem().recordRetention, instructions.forItem().statisticalCoding);
+    }
+
+
+  }
+
+
+  public String getLocalIdentifierTypeId () {
         return (processing != null ? processing.getString(IDENTIFIER_TYPE_ID) : null);
     }
 

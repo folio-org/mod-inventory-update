@@ -1,4 +1,4 @@
-package org.folio.inventoryupdate;
+package org.folio.inventoryupdate.instructions;
 
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
@@ -39,24 +39,30 @@ public class ProcessingInstructionsUpsert {
     itemInstructions = new ItemInstructions(processing);
   }
 
-  InstanceInstructions forInstance() {
+  public boolean provided () {
+    return processing != null;
+  }
+
+  public InstanceInstructions forInstance() {
     return instanceInstructions;
   }
 
-  HoldingsRecordInstructions forHoldingsRecord() {
+  public HoldingsRecordInstructions forHoldingsRecord() {
     return holdingsRecordInstructions;
   }
 
-  ItemInstructions forItem() {
+  public ItemInstructions forItem() {
     return itemInstructions;
   }
 
   public static class EntityInstructions {
     String key;
     ValueRetention valueRetention;
-    RecordRetention recordRetention;
+    public RecordRetention recordRetention;
     JsonObject processing;
     JsonObject entityInstructionsJson;
+    public StatisticalCoding statisticalCoding;
+
 
     EntityInstructions(JsonObject processing, String entityInstructionsKey) {
       this.processing = processing;
@@ -65,9 +71,11 @@ public class ProcessingInstructionsUpsert {
         this.entityInstructionsJson = processing.getJsonObject(entityInstructionsKey);
         valueRetention = new ValueRetention(entityInstructionsJson);
         recordRetention = new RecordRetention(entityInstructionsJson);
+        statisticalCoding = new StatisticalCoding(this.entityInstructionsJson);
       } else {
         valueRetention = new ValueRetention(null);
         recordRetention = new RecordRetention(null);
+        statisticalCoding = new StatisticalCoding(null);
       }
     }
 
@@ -84,7 +92,7 @@ public class ProcessingInstructionsUpsert {
     }
 
     public boolean retainOmittedRecord(InventoryRecord inventoryRecord) {
-      return recordRetention.retain(inventoryRecord);
+      return recordRetention.isDeleteProtectedByPatternMatch(inventoryRecord);
     }
 
   }
@@ -109,34 +117,13 @@ public class ProcessingInstructionsUpsert {
     }
   }
 
-  public static class RecordRetention {
-
-    String field = "~";
-    String pattern = "~";
-    RecordRetention(JsonObject json) {
-      if (json != null) {
-        JsonObject recordRetention = json.getJsonObject(RECORD_RETENTION_KEY);
-        if (recordRetention != null) {
-          field = recordRetention.getString(RECORD_RETENTION_CRITERION_FIELD,"~");
-          pattern = recordRetention.getString(RECORD_RETENTION_CRITERION_PATTERN, "~");
-        }
-      }
-    }
-
-    boolean retain (InventoryRecord inventoryRecord) {
-      return inventoryRecord.asJson().getString(field) != null
-          && inventoryRecord.asJson().getString(field).matches(pattern);
-    }
-
-  }
-
-  static class InstanceInstructions extends EntityInstructions  {
+  public static class InstanceInstructions extends EntityInstructions  {
     InstanceInstructions(JsonObject processing) {
       super(processing, INSTANCE_INSTRUCTIONS_KEY);
     }
   }
 
-  static class HoldingsRecordInstructions extends EntityInstructions {
+  public static class HoldingsRecordInstructions extends EntityInstructions {
     HoldingsRecordInstructions(JsonObject processing) {
       super(processing, HOLDINGS_INSTRUCTIONS_KEY);
     }
@@ -199,7 +186,6 @@ public class ProcessingInstructionsUpsert {
       }
       return statuses;
     }
-
   }
 
 }

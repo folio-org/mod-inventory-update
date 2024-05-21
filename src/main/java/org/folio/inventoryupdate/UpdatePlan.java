@@ -14,6 +14,7 @@ import io.vertx.ext.web.RoutingContext;
 import org.folio.inventoryupdate.entities.*;
 import org.folio.inventoryupdate.entities.InventoryRecord.Entity;
 import org.folio.inventoryupdate.entities.InventoryRecord.Transaction;
+import org.folio.inventoryupdate.instructions.ProcessingInstructionsDeletion;
 import org.folio.okapi.common.OkapiClient;
 
 import io.vertx.core.CompositeFuture;
@@ -43,7 +44,7 @@ import static org.folio.inventoryupdate.InventoryUpdateOutcome.OK;
  * and pick up the error messages along the way. If it thus completes with partial success, it should
  * have updated whatever it could and should return an error code - typically 422 -- and display
  * the error condition in the response.
- * Or, put another way, even if the request results in a HTTP error response code, some Inventory
+ * Or, put another way, even if the request results in an HTTP error response code, some Inventory
  * records may have been successfully updated during the processing of the request.
  *
  */
@@ -273,7 +274,6 @@ public abstract class UpdatePlan {
 
     public abstract RequestValidation validateIncomingRecordSet (JsonObject inventoryRecordSet);
 
-
     /**
      * Set transaction type and ID for the instance
      */
@@ -312,11 +312,22 @@ public abstract class UpdatePlan {
         return foundExistingRecordSet() ? existingSet.getItemsByTransactionType(Transaction.DELETE) : new ArrayList<>();
     }
 
+    public List<Item> itemsToSilentlyUpdate () {
+      return foundExistingRecordSet() ? existingSet.getItemsForSilentUpdate() : new ArrayList<>();
+    }
+
+
+
     public List<HoldingsRecord> holdingsToDelete () {
         return foundExistingRecordSet() ? existingSet.getHoldingsRecordsByTransactionType(Transaction.DELETE) : new ArrayList<>();
     }
 
-    public List<InstanceToInstanceRelation> instanceRelationsToDelete() {
+    public List<HoldingsRecord> holdingsRecordsToSilentlyUpdate () {
+      return foundExistingRecordSet() ? existingSet.getHoldingsRecordsForSilentUpdate() : new ArrayList<>();
+    }
+
+
+  public List<InstanceToInstanceRelation> instanceRelationsToDelete() {
         return foundExistingRecordSet() ? existingSet.getInstanceRelationsByTransactionType(Transaction.DELETE) : new ArrayList<>();
     }
 
@@ -430,11 +441,17 @@ public abstract class UpdatePlan {
         for (Item item : repository.getItemsToDelete()) {
             deleteRelationsDeleteItems.add(InventoryStorage.deleteInventoryRecord(okapiClient, item));
         }
+        for (Item item : repository.getDeletingItemsToSilentlyUpdate()) {
+            deleteRelationsDeleteItems.add(InventoryStorage.putInventoryRecordOutcomeLess(okapiClient,item));
+        }
         CompositeFuture.join(deleteRelationsDeleteItems).onComplete ( relationshipsAndItemsDeleted -> {
             if (relationshipsAndItemsDeleted.succeeded()) {
                 List<Future> deleteHoldingsRecords = new ArrayList<>();
                 for (HoldingsRecord holdingsRecord : repository.getHoldingsToDelete()) {
                     deleteHoldingsRecords.add(InventoryStorage.deleteInventoryRecord(okapiClient, holdingsRecord));
+                }
+                for (HoldingsRecord holdingsRecord : repository.getDeletingHoldingsToSilentlyUpdate()) {
+                   deleteHoldingsRecords.add(InventoryStorage.putInventoryRecordOutcomeLess(okapiClient, holdingsRecord));
                 }
                 CompositeFuture.join(deleteHoldingsRecords).onComplete( holdingsDeleted -> {
                     if (holdingsDeleted.succeeded()) {
@@ -488,6 +505,9 @@ public abstract class UpdatePlan {
         for (Item item : itemsToDelete()) {
             deleteRelationsDeleteItems.add(InventoryStorage.deleteInventoryRecord(okapiClient, item));
         }
+        for (Item item : itemsToSilentlyUpdate()) {
+            deleteRelationsDeleteItems.add(InventoryStorage.putInventoryRecordOutcomeLess(okapiClient, item));
+        }
 
         CompositeFuture.join(deleteRelationsDeleteItems).onComplete ( allRelationshipsDoneAllItemsDone -> {
             if (allRelationshipsDoneAllItemsDone.succeeded()) {
@@ -495,16 +515,30 @@ public abstract class UpdatePlan {
                 for (HoldingsRecord holdingsRecord : holdingsToDelete()) {
                     deleteHoldingsRecords.add(InventoryStorage.deleteInventoryRecord(okapiClient, holdingsRecord));
                 }
+                for (HoldingsRecord holdingsRecord : holdingsRecordsToSilentlyUpdate()) {
+                  deleteHoldingsRecords.add(InventoryStorage.putInventoryRecordOutcomeLess(okapiClient, holdingsRecord));
+                }
                 CompositeFuture.join(deleteHoldingsRecords).onComplete( allHoldingsDone -> {
                     if (allHoldingsDone.succeeded()) {
-                        if (isInstanceDeleting() && !getExistingInstance().skipped()) {
+                        if (isInstanceDeleting()) {
+                          if (getExistingInstance().skipped()) {
+                            InventoryStorage.putInventoryRecordOutcomeLess(okapiClient, getExistingInstance()).onComplete(
+                                handler -> {
+                                  if (handler.succeeded()) {
+                                    promise.complete();
+                                  } else {
+                                    promise.fail(handler.cause().getMessage());
+                                  }
+                                }
+                            );
+                          } else {
                             InventoryStorage.deleteInventoryRecord(okapiClient, getExistingRecordSet().getInstance()).onComplete( handler -> {
                                 if (handler.succeeded()) {
                                     promise.complete();
                                 } else {
                                     promise.fail(handler.cause().getMessage());
                                 }
-                            });
+                            });}
                         } else {
                             promise.complete();
                         }

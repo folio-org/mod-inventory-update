@@ -1,7 +1,7 @@
 package org.folio.inventoryupdate.test.fakestorage;
 
 import io.vertx.core.json.JsonObject;
-import org.folio.inventoryupdate.ProcessingInstructionsDeletion;
+import org.folio.inventoryupdate.instructions.ProcessingInstructionsDeletion;
 
 
 public class DeleteProcessingInstructions {
@@ -42,7 +42,7 @@ public class DeleteProcessingInstructions {
     return processingInstructions;
   }
 
-  public DeleteProcessingInstructions setItemRecordRetentionCriterion(String fieldName, String pattern) {
+  public DeleteProcessingInstructions setItemBlockDeletionCriterion(String fieldName, String pattern) {
     if (!getItemInstructions().containsKey(BLOCK_DELETION_KEY)) {
       getItemInstructions().put(BLOCK_DELETION_KEY, new JsonObject());
     }
@@ -52,7 +52,7 @@ public class DeleteProcessingInstructions {
     return this;
   }
 
-  public DeleteProcessingInstructions setHoldingsRecordRetentionCriterion(String fieldName, String pattern) {
+  public DeleteProcessingInstructions setHoldingsBlockDeletionCriterion(String fieldName, String pattern) {
     if (!getHoldingsInstructions().containsKey(BLOCK_DELETION_KEY)) {
       getHoldingsInstructions().put(BLOCK_DELETION_KEY, new JsonObject());
     }

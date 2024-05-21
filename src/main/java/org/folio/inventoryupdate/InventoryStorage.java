@@ -58,10 +58,7 @@ public class InventoryStorage {
   public static final String TOTAL_RECORDS = "totalRecords";
   public static final String HOLDINGS_RECORDS = "holdingsRecords";
   public static final String ITEMS = "items";
-  public static final String INSTANCE_RELATIONSHIPS = "instanceRelationships";
-  public static final String PRECEDING_SUCCEEDING_TITLES = "precedingSucceedingTitles";
   public static final String LOCATIONS = "locations";
-  public static final String LF = System.lineSeparator();
 
   public static Future<JsonObject> postInventoryRecord (OkapiClient okapiClient, InventoryRecord record) {
     Promise<JsonObject> promise = Promise.promise();
@@ -149,6 +146,24 @@ public class InventoryStorage {
     return promise.future();
   }
 
+  /**
+   * Loops back to storage with a record update, beneath the ordinary update logic.
+   * Currently used for setting statistical codes when a delete request is skipped for the record.
+   * Will not count as an update, and will not throw an error if the PUT fails (it can for example fail for attempting
+   * to set non-compliant UUIDs for statistical codes).
+   */
+  public static Future<JsonObject> putInventoryRecordOutcomeLess (OkapiClient okapiClient, InventoryRecord record) {
+    Promise<JsonObject> promise = Promise.promise();
+    logger.debug("Putting " + record.entityType() + ": " + record.asJson().encodePrettily());
+    okapiClient.request(HttpMethod.PUT, getApi(record.entityType())+"/"+record.getUUID(), record.asJsonString(), putResult -> {
+      if (putResult.failed()) {
+        record.logError(okapiClient.getResponsebody(), okapiClient.getStatusCode(), ErrorReport.ErrorCategory.STORAGE, record.getOriginJson());
+      }
+      promise.complete(record.asJson());
+    });
+    return promise.future();
+  }
+
   public static Future<JsonObject> deleteInventoryRecord (OkapiClient okapiClient, InventoryRecord record) {
     Promise<JsonObject> promise = Promise.promise();
     okapiClient.delete(getApi(record.entityType())+"/"+record.getUUID(), deleteResult -> {
@@ -173,7 +188,7 @@ public class InventoryStorage {
     return okapiClient.get(queryUri(INSTANCE_STORAGE_PATH, inventoryQuery))
         .map(json -> {
           JsonArray matchingInstances = new JsonObject(json).getJsonArray(INSTANCES);
-          if (matchingInstances.size() == 0) {
+          if (matchingInstances.isEmpty()) {
             return null;
           }
           return matchingInstances.getJsonObject(0);
@@ -273,39 +288,8 @@ public class InventoryStorage {
     });
     return promise.future();
   }
-  public static Future<JsonArray> lookupParentChildRelationships(OkapiClient okapiClient, QueryByListOfIds inventoryQuery) {
-    Promise<JsonArray> promise = Promise.promise();
-    okapiClient.get(INSTANCE_RELATIONSHIP_STORAGE_PATH +"?limit=10000&query=" + inventoryQuery.getURLEncodedQueryString(), res -> {
-      if (res.succeeded()) {
-        JsonObject relationshipsResult = new JsonObject(res.result());
-        JsonArray parentChildRelations = relationshipsResult.getJsonArray(INSTANCE_RELATIONSHIPS);
-        logger.debug("Successfully looked up existing instance relationships, found  " + parentChildRelations.size());
-        promise.complete(parentChildRelations);
-      } else {
-        logger.info("Could not look up existing instance relationships");
-        failure(res.cause(), Entity.INSTANCE_RELATIONSHIP, Transaction.GET, okapiClient.getStatusCode(), promise,
-                INSTANCE_RELATIONSHIP_STORAGE_PATH +"?limit=10000&query=" + inventoryQuery.getURLEncodedQueryString());
-      }
-    });
-    return promise.future();
-  }
 
-  public static Future<JsonArray> lookupTitleSuccessions (OkapiClient okapiClient, QueryByListOfIds inventoryQuery) {
-    Promise<JsonArray> promise = Promise.promise();
-    okapiClient.get(PRECEDING_SUCCEEDING_TITLE_STORAGE_PATH +"?limit=10000&query=" + inventoryQuery.getURLEncodedQueryString(), res -> {
-      if (res.succeeded()) {
-        JsonObject relationshipsResult = new JsonObject(res.result());
-        JsonArray titleSuccessions = relationshipsResult.getJsonArray(PRECEDING_SUCCEEDING_TITLES);
-        logger.debug("Successfully looked up existing title succession relationships, found  " + titleSuccessions.size());
-        promise.complete(titleSuccessions);
-      } else {
-        failure(res.cause(), Entity.INSTANCE_TITLE_SUCCESSION, Transaction.GET, okapiClient.getStatusCode(), promise,
-                PRECEDING_SUCCEEDING_TITLE_STORAGE_PATH +"?limit=10000&query=" + inventoryQuery.getURLEncodedQueryString());
-      }
-    });
-    return promise.future();
 
-  }
 
   public static Future<JsonObject> lookupSingleInventoryRecordSet(OkapiClient okapiClient, InventoryQuery uniqueQuery) {
     return okapiClient.get(INSTANCE_SET_PATH
@@ -315,7 +299,7 @@ public class InventoryStorage {
         + "&limit=1&query=" + uniqueQuery.getURLEncodedQueryString())
         .map(result -> {
           var sets = new JsonObject(result).getJsonArray("instanceSets");
-          if (sets.size() == 0) {
+          if (sets.isEmpty()) {
             return null;
           }
           var input = sets.getJsonObject(0);
@@ -338,7 +322,7 @@ public class InventoryStorage {
   }
 
   private static void mergeItemsIntoHoldings(JsonArray holdingsArray, JsonArray items) {
-    if (holdingsArray.size() == 0 || items.size() == 0) {
+    if (holdingsArray.isEmpty() || items.isEmpty()) {
       return;
     }
     Map<String, JsonObject> holdings = new HashMap<>();
@@ -415,19 +399,19 @@ public class InventoryStorage {
   }
 
 
-  private static String queryUri(String path, InventoryQuery inventoryQuery) {
+  public static String queryUri(String path, InventoryQuery inventoryQuery) {
     return path + "?query=" + inventoryQuery.getURLEncodedQueryString();
   }
 
-  private static <T> void failure(Throwable cause, Entity entityType, Transaction transaction, int httpStatusCode, Promise<T> promise) {
+  public static <T> void failure(Throwable cause, Entity entityType, Transaction transaction, int httpStatusCode, Promise<T> promise) {
     failure(cause, entityType, transaction, httpStatusCode, promise, null);
   }
 
-  private static <T> void failure(Throwable cause, Entity entityType, Transaction transaction, int httpStatusCode, Promise<T> promise, String contextNote) {
+  public static <T> void failure(Throwable cause, Entity entityType, Transaction transaction, int httpStatusCode, Promise<T> promise, String contextNote) {
     promise.handle(failureFuture(cause, entityType, transaction, httpStatusCode, contextNote));
   }
 
-  private static <T> Future<T> failureFuture(Throwable cause, Entity entityType, Transaction transaction,
+  public static <T> Future<T> failureFuture(Throwable cause, Entity entityType, Transaction transaction,
       int httpStatusCode, String contextNote) {
     return Future.failedFuture(
             new ErrorReport(ErrorReport.ErrorCategory.STORAGE,

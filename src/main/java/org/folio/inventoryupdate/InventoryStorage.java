@@ -146,16 +146,20 @@ public class InventoryStorage {
     return promise.future();
   }
 
+  /**
+   * Loops back to storage with a record update, beneath the ordinary update logic.
+   * Currently used for setting statistical codes when a delete request is skipped for the record.
+   * Will not count as an update, and will not throw an error if the PUT fails (it can for example fail for attempting
+   * to set non-compliant UUIDs for statistical codes).
+   */
   public static Future<JsonObject> putInventoryRecordOutcomeLess (OkapiClient okapiClient, InventoryRecord record) {
     Promise<JsonObject> promise = Promise.promise();
     logger.debug("Putting " + record.entityType() + ": " + record.asJson().encodePrettily());
     okapiClient.request(HttpMethod.PUT, getApi(record.entityType())+"/"+record.getUUID(), record.asJsonString(), putResult -> {
-      if (putResult.succeeded()) {
-        promise.complete(record.asJson());
-      } else {
+      if (putResult.failed()) {
         record.logError(okapiClient.getResponsebody(), okapiClient.getStatusCode(), ErrorReport.ErrorCategory.STORAGE, record.getOriginJson());
-        promise.fail(record.getErrorAsJson().encodePrettily());
       }
+      promise.complete(record.asJson());
     });
     return promise.future();
   }

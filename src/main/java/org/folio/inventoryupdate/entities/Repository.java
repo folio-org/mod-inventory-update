@@ -250,6 +250,20 @@ public abstract class Repository {
     return list;
   }
 
+  public List<HoldingsRecord> getDeletingHoldingsToSilentlyUpdate () {
+    List<HoldingsRecord> list = new ArrayList<>();
+    for (PairedRecordSets pair : pairsOfRecordSets) {
+      if (pair.hasExistingRecordSet()) {
+        for (HoldingsRecord holdingsRecord : pair.getExistingRecordSet().getHoldingsRecords()) {
+          if (holdingsRecord.isDeleting() && holdingsRecord.updateSilently) {
+            list.add(holdingsRecord);
+          }
+        }
+      }
+    }
+    return list;
+  }
+
 
   public List<Item> getItemsToUpdate () {
     List<Item> list = new ArrayList<>();
@@ -285,6 +299,20 @@ public abstract class Repository {
       if (pair.hasExistingRecordSet()) {
         for (Item item : pair.getExistingRecordSet().getItems()) {
           if (item.isDeleting() && !item.skipped()) {
+            list.add(item);
+          }
+        }
+      }
+    }
+    return list;
+  }
+
+  public List<Item> getDeletingItemsToSilentlyUpdate() {
+    List<Item> list = new ArrayList<>();
+    for (PairedRecordSets pair : pairsOfRecordSets) {
+      if (pair.hasExistingRecordSet()) {
+        for (Item item : pair.getExistingRecordSet().getItems()) {
+          if (item.isDeleting() && item.updateSilently) {
             list.add(item);
           }
         }

@@ -441,11 +441,17 @@ public abstract class UpdatePlan {
         for (Item item : repository.getItemsToDelete()) {
             deleteRelationsDeleteItems.add(InventoryStorage.deleteInventoryRecord(okapiClient, item));
         }
+        for (Item item : repository.getDeletingItemsToSilentlyUpdate()) {
+            deleteRelationsDeleteItems.add(InventoryStorage.putInventoryRecordOutcomeLess(okapiClient,item));
+        }
         CompositeFuture.join(deleteRelationsDeleteItems).onComplete ( relationshipsAndItemsDeleted -> {
             if (relationshipsAndItemsDeleted.succeeded()) {
                 List<Future> deleteHoldingsRecords = new ArrayList<>();
                 for (HoldingsRecord holdingsRecord : repository.getHoldingsToDelete()) {
                     deleteHoldingsRecords.add(InventoryStorage.deleteInventoryRecord(okapiClient, holdingsRecord));
+                }
+                for (HoldingsRecord holdingsRecord : repository.getDeletingHoldingsToSilentlyUpdate()) {
+                   deleteHoldingsRecords.add(InventoryStorage.putInventoryRecordOutcomeLess(okapiClient, holdingsRecord));
                 }
                 CompositeFuture.join(deleteHoldingsRecords).onComplete( holdingsDeleted -> {
                     if (holdingsDeleted.succeeded()) {

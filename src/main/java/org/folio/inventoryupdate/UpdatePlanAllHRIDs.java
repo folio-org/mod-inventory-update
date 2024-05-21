@@ -249,7 +249,6 @@ public class UpdatePlanAllHRIDs extends UpdatePlan {
                                 existingItem.setTransition(DELETE);
                                 // unless item matches an instruction to keep omitted items
                                 if (rules.forItem().retainOmittedRecord(existingItem)) {
-                                  logger.info("Retain omitted item");
                                   existingItem.handleDeleteProtection(InventoryRecord.DeletionConstraint.ITEM_PATTERN_MATCH);
                                   existingItem.skip();
                                   existingHoldingsRecord.handleDeleteProtection(InventoryRecord.DeletionConstraint.ITEM_PATTERN_MATCH);

@@ -1571,7 +1571,7 @@ public class InventoryUpdateTestSuite {
   }
 
   @Test
-  public void upsertByHridWillRetainExistingItemRecordByMatchingPattern(TestContext testContext) {
+  public void upsertByHridWillRetainExistingItemByPatternMatching(TestContext testContext) {
     String instanceHrid = "1";
     JsonObject init = upsertByHrid(new JsonObject()
         .put("instance",
@@ -1695,7 +1695,77 @@ public class InventoryUpdateTestSuite {
     testContext.assertEquals(count1234withNonMatch, 0, "Item '1234' should be gone when criteria didn't match");
     int secondCountHoldingsHOL001 = getRecordsFromStorage(HOLDINGS_STORAGE_PATH, "hrid==\"HOL-001\"").getJsonArray("holdingsRecords").size();
     testContext.assertEquals(secondCountHoldingsHOL001, 0, "Holdings HOL-001 should be gone when omitted, sole item not protected by match");
+  }
 
+  @Test
+  public void upsertByHridWillSetStatCodeForRetainedHoldingsItems(TestContext testContext) {
+    String instanceHrid = "1";
+    upsertByHrid(new JsonObject()
+        .put("instance",
+            new InputInstance()
+                .setTitle("Initial InputInstance")
+                .setInstanceTypeId("12345")
+                .setHrid(instanceHrid)
+                .setSource("test").getJson())
+        .put("holdingsRecords", new JsonArray()
+            .add(new InputHoldingsRecord().setHrid("5678").setPermanentLocationId(LOCATION_ID_1).setCallNumber("test-cn-1")
+                .setAcquisitionFormat("original").getJson()
+                .put("items", new JsonArray()
+                    .add(new InputItem().setHrid("ITM-001")
+                        .setStatus(STATUS_UNKNOWN)
+                        .setMaterialTypeId(MATERIAL_TYPE_TEXT)
+                        .setBarcode("BC-001").getJson())
+                    .add(new InputItem().setHrid("ITM-002")
+                        .setStatus(STATUS_UNKNOWN)
+                        .setMaterialTypeId(MATERIAL_TYPE_TEXT)
+                        .setBarcode("BC-002").getJson())
+                    .add(new InputItem().setHrid("1234")
+                        .setStatus(STATUS_UNKNOWN)
+                        .setMaterialTypeId(MATERIAL_TYPE_TEXT)
+                        .setBarcode("1234").getJson())
+                    .add(new InputItem().setHrid("ITM-004")
+                        .setStatus(STATUS_CHECKED_OUT)
+                        .setMaterialTypeId(MATERIAL_TYPE_TEXT)
+                        .setBarcode("BC-004").getJson())))
+            .add(new InputHoldingsRecord().setHrid("HOL-002").setPermanentLocationId(LOCATION_ID_1).setCallNumber("test-cn-2")
+                .setAcquisitionFormat("original").getJson()
+                .put("items", new JsonArray()
+                    .add(new InputItem()
+                        .setStatus(STATUS_UNKNOWN)
+                        .setMaterialTypeId(MATERIAL_TYPE_TEXT)
+                        .setHrid("ITM-003").setBarcode("BC-003").getJson())))));
+
+    JsonObject upsertBody = new JsonObject()
+        .put("instance",
+            new InputInstance()
+                .setTitle("Initial InputInstance")
+                .setInstanceTypeId("12345")
+                .setHrid(instanceHrid)
+                .setSource("updated")
+                .setEdition("updated").getJson())
+        .put("holdingsRecords", new JsonArray())
+        .put(PROCESSING, new InputProcessingInstructions()
+            .setItemRecordRetentionCriterion("hrid", "\\d+")
+            .setItemStatisticalCoding(new JsonArray()
+                .add(new JsonObject().put("if","deleteSkipped").put("becauseOf","ITEM_PATTERN_MATCH").put("setCode","123"))
+                .add(new JsonObject().put("if","deleteSkipped").put("becauseOf","ITEM_STATUS").put("setCode","789")))
+            .setHoldingsRecordRetentionCriterion("hrid", "\\d+" )
+            .setHoldingsRecordStatisticalCoding(new JsonArray()
+                .add(new JsonObject().put("if","deleteSkipped").put("becauseOf","ITEM_PATTERN_MATCH").put("setCode","456"))
+                .add(new JsonObject().put("if","deleteSkipped").put("becauseOf","ITEM_STATUS").put("setCode","789"))
+                .add(new JsonObject().put("if","deleteSkipped").put("becauseOf","HOLDINGS_RECORD_PATTERN_MATCH").put("setCode","1011"))).getJson());
+
+
+    upsertByHrid(upsertBody);
+
+    JsonObject item1234 = getRecordsFromStorage(ITEM_STORAGE_PATH, "hrid==1234").getJsonArray("items").getJsonObject(0);
+    JsonObject itemITM004 = getRecordsFromStorage(ITEM_STORAGE_PATH, "hrid==ITM-004").getJsonArray("items").getJsonObject(0);
+    JsonObject firstHoldingsRecord = getRecordsFromStorage(HOLDINGS_STORAGE_PATH, null).getJsonArray("holdingsRecords").getJsonObject(0);
+    testContext.assertTrue(item1234.getJsonArray("statisticalCodeIds").contains("123"),"Statistical code 123 is set on item for ITEM_PATTERN_MATCH");
+    testContext.assertTrue(itemITM004.getJsonArray("statisticalCodeIds").contains("789"),"Statistical code 789 is set on item for ITEM_STATUS");
+    testContext.assertTrue(firstHoldingsRecord.getJsonArray("statisticalCodeIds").contains("456"),"Statistical code 456 is set on holdings record for ITEM_PATTERN_MATCH");
+    testContext.assertTrue(firstHoldingsRecord.getJsonArray("statisticalCodeIds").contains("789"),"Statistical code 789 is set on holdings record for ITEM_STATUS");
+    testContext.assertTrue(firstHoldingsRecord.getJsonArray("statisticalCodeIds").contains("1011"),"Statistical code 1011 is set on holdings record for HOLDINGS_RECORD_PATTERN_MATCH");
 
   }
 

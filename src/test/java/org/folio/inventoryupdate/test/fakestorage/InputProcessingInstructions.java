@@ -152,6 +152,28 @@ public class InputProcessingInstructions {
     return this;
   }
 
+  public InputProcessingInstructions setItemStatisticalCoding(JsonArray codings) {
+    getItemInstructions().put("statisticalCoding", codings);
+    return this;
+  }
+
+  public InputProcessingInstructions setHoldingsRecordRetentionCriterion(String fieldName, String pattern) {
+    if (!getHoldingsRecordInstructions().containsKey(ProcessingInstructionsUpsert.RECORD_RETENTION_KEY)) {
+      getHoldingsRecordInstructions().put(ProcessingInstructionsUpsert.RECORD_RETENTION_KEY, new JsonObject());
+    }
+    getHoldingsRecordInstructions().getJsonObject(ProcessingInstructionsUpsert.RECORD_RETENTION_KEY)
+        .put(ProcessingInstructionsUpsert.RECORD_RETENTION_CRITERION_FIELD, fieldName)
+        .put(ProcessingInstructionsUpsert.RECORD_RETENTION_CRITERION_PATTERN, pattern);
+    return this;
+  }
+
+  public InputProcessingInstructions setHoldingsRecordStatisticalCoding(JsonArray codings) {
+    getHoldingsRecordInstructions().put("statisticalCoding", codings);
+    return this;
+
+  }
+
+
   public JsonObject getJson() {
     return processingInstructions;
   }

@@ -35,7 +35,7 @@ public class ProcessingInstructionsDeletion {
   public static class EntityInstructions {
     String key;
 
-    private RecordRetention recordRetention;
+    private final RecordRetention recordRetention;
 
     public RecordRetention getRecordRetention() {
       return recordRetention;
@@ -43,7 +43,7 @@ public class ProcessingInstructionsDeletion {
 
     private JsonObject entityInstructionsJson;
 
-    private StatisticalCoding statisticalCoding;
+    private final StatisticalCoding statisticalCoding;
 
     public StatisticalCoding getStatisticalCoding() {
       return statisticalCoding;

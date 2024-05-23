@@ -438,12 +438,12 @@ public class InventoryRecordSet extends JsonRepresentation {
     }
 
   public void setDeleteInstructions(ProcessingInstructionsDeletion deleteInstructions) {
-    getInstance().setDeleteInstructions(deleteInstructions.forInstance().recordRetention, deleteInstructions.forInstance().statisticalCoding);
+    getInstance().setDeleteInstructions(deleteInstructions.forInstance().getRecordRetention(), deleteInstructions.forInstance().getStatisticalCoding());
     for (HoldingsRecord rec : getHoldingsRecords()) {
-      rec.setDeleteInstructions(deleteInstructions.forHoldingsRecord().recordRetention, deleteInstructions.forHoldingsRecord().statisticalCoding);
+      rec.setDeleteInstructions(deleteInstructions.forHoldingsRecord().getRecordRetention(), deleteInstructions.forHoldingsRecord().getStatisticalCoding());
     }
     for (Item rec : getItems()) {
-      rec.setDeleteInstructions(deleteInstructions.forItem().recordRetention, deleteInstructions.forItem().statisticalCoding);
+      rec.setDeleteInstructions(deleteInstructions.forItem().getRecordRetention(), deleteInstructions.forItem().getStatisticalCoding());
     }
   }
 
@@ -455,8 +455,6 @@ public class InventoryRecordSet extends JsonRepresentation {
     for (Item rec : getItems()) {
       rec.setDeleteInstructions(instructions.forItem().recordRetention, instructions.forItem().statisticalCoding);
     }
-
-
   }
 
 

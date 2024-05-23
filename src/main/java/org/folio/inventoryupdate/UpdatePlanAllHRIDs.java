@@ -212,12 +212,7 @@ public class UpdatePlanAllHRIDs extends UpdatePlan {
                         // HoldingsRecord gone, mark for deletion and check for existing items to delete with it
                         // unless instructed to keep certain holdings records even if missing from input
                         if (incomingHoldingsRecord == null) {
-                          existingHoldingsRecord.setTransition(DELETE);
-                          if (rules.forHoldingsRecord().retainOmittedRecord(existingHoldingsRecord)) {
-                            logger.info("Retain omitted record");
-                            existingHoldingsRecord.handleDeleteProtection(InventoryRecord.DeletionConstraint.HOLDINGS_RECORD_PATTERN_MATCH);
-                            existingHoldingsRecord.skip();
-                          }
+                          planToDeleteOrRetainHoldingsRecord(existingHoldingsRecord, rules);
                         } else {
                             // There is an existing holdings record with the same HRID on the same Instance
                             incomingHoldingsRecord.setTransition(UPDATE)
@@ -227,21 +222,7 @@ public class UpdatePlanAllHRIDs extends UpdatePlan {
                             Item incomingItem = pair.getIncomingRecordSet().getItemByHRID(existingItem.getHRID());
                             if (incomingItem == null) {
                                 // An existing Item is gone from the Instance, delete it from storage
-                                existingItem.setTransition(DELETE);
-                                // unless item matches an instruction to keep omitted items
-                                if (rules.forItem().retainOmittedRecord(existingItem)) {
-                                  existingItem.handleDeleteProtection(InventoryRecord.DeletionConstraint.ITEM_PATTERN_MATCH);
-                                  existingItem.skip();
-                                  existingHoldingsRecord.handleDeleteProtection(InventoryRecord.DeletionConstraint.ITEM_PATTERN_MATCH);
-                                  existingHoldingsRecord.skip();
-                                }
-                                // and unless item appears to be still circulating
-                                if (existingItem.isCirculating()) {
-                                  existingItem.handleDeleteProtection(InventoryRecord.DeletionConstraint.ITEM_STATUS);
-                                  existingItem.skip();
-                                  existingHoldingsRecord.handleDeleteProtection(InventoryRecord.DeletionConstraint.ITEM_STATUS);
-                                  existingHoldingsRecord.skip();
-                                }
+                              planToDeleteOrRetainItem(existingItem, rules, existingHoldingsRecord);
                             } else {
                                 // Existing Item still exists in incoming record (possibly under a
                                 // different holdings record)
@@ -259,32 +240,67 @@ public class UpdatePlanAllHRIDs extends UpdatePlan {
             List<HoldingsRecord> holdingsRecords =
                     incomingSet.getHoldingsRecordsByTransactionType(Transaction.UNKNOWN);
             for (HoldingsRecord holdingsRecord : holdingsRecords) {
-                if (repository.existingHoldingsRecordsByHrid.containsKey(holdingsRecord.getHRID())) {
-                    // Import from different Instance
-                    HoldingsRecord existing = repository.existingHoldingsRecordsByHrid.get(holdingsRecord.getHRID());
-                    holdingsRecord.setTransition(UPDATE).applyOverlays(existing, rules.forHoldingsRecord());
-                } else {
-                    // The HRID does not exist in Inventory, create
-                    holdingsRecord.setTransition(CREATE).generateUUIDIfNotProvided();
-                }
+              planToCreateNewHoldingsRecordOrMoveExistingOver(holdingsRecord, rules);
             }
             // Find incoming items we didn't already resolve (update or delete) above
             List<Item> items = incomingSet.getItemsByTransactionType(Transaction.UNKNOWN);
             for (Item item : items) {
-                if (repository.existingItemsByHrid.containsKey(item.getHRID())) {
-                    // Import from different Instance
-                    Item existing = repository.existingItemsByHrid.get(item.getHRID());
-                    item.setTransition(UPDATE);
-                    item.applyOverlays(existing, rules.forItem());
-                } else {
-                    // The HRID does not exist in Inventory, create
-                    item.setTransition(CREATE).generateUUIDIfNotProvided();
-                }
+              planToCreateNewItemOnMoveExistingOver(item, rules);
             }
         }
     }
 
-    private void planInstanceRelations(PairedRecordSets pair) {
+  private void planToCreateNewItemOnMoveExistingOver(Item item, ProcessingInstructionsUpsert rules) {
+    if (repository.existingItemsByHrid.containsKey(item.getHRID())) {
+        // Import from different Instance
+        Item existing = repository.existingItemsByHrid.get(item.getHRID());
+        item.setTransition(UPDATE);
+        item.applyOverlays(existing, rules.forItem());
+    } else {
+        // The HRID does not exist in Inventory, create
+        item.setTransition(CREATE).generateUUIDIfNotProvided();
+    }
+  }
+
+  private void planToCreateNewHoldingsRecordOrMoveExistingOver(HoldingsRecord holdingsRecord, ProcessingInstructionsUpsert rules) {
+    if (repository.existingHoldingsRecordsByHrid.containsKey(holdingsRecord.getHRID())) {
+        // Import from different Instance
+        HoldingsRecord existing = repository.existingHoldingsRecordsByHrid.get(holdingsRecord.getHRID());
+        holdingsRecord.setTransition(UPDATE).applyOverlays(existing, rules.forHoldingsRecord());
+    } else {
+        // The HRID does not exist in Inventory, create
+        holdingsRecord.setTransition(CREATE).generateUUIDIfNotProvided();
+    }
+  }
+
+  private static void planToDeleteOrRetainHoldingsRecord(HoldingsRecord existingHoldingsRecord, ProcessingInstructionsUpsert rules) {
+    existingHoldingsRecord.setTransition(DELETE);
+    if (rules.forHoldingsRecord().retainOmittedRecord(existingHoldingsRecord)) {
+      logger.info("Retain omitted record");
+      existingHoldingsRecord.handleDeleteProtection(InventoryRecord.DeletionConstraint.HOLDINGS_RECORD_PATTERN_MATCH);
+      existingHoldingsRecord.skip();
+    }
+  }
+
+  private static void planToDeleteOrRetainItem(Item existingItem, ProcessingInstructionsUpsert rules, HoldingsRecord existingHoldingsRecord) {
+    existingItem.setTransition(DELETE);
+    // unless item matches an instruction to keep omitted items
+    if (rules.forItem().retainOmittedRecord(existingItem)) {
+      existingItem.handleDeleteProtection(InventoryRecord.DeletionConstraint.ITEM_PATTERN_MATCH);
+      existingItem.skip();
+      existingHoldingsRecord.handleDeleteProtection(InventoryRecord.DeletionConstraint.ITEM_PATTERN_MATCH);
+      existingHoldingsRecord.skip();
+    }
+    // and unless item appears to be still circulating
+    if (existingItem.isCirculating()) {
+      existingItem.handleDeleteProtection(InventoryRecord.DeletionConstraint.ITEM_STATUS);
+      existingItem.skip();
+      existingHoldingsRecord.handleDeleteProtection(InventoryRecord.DeletionConstraint.ITEM_STATUS);
+      existingHoldingsRecord.skip();
+    }
+  }
+
+  private void planInstanceRelations(PairedRecordSets pair) {
         // Plan creates and deletes
         if (pair.hasIncomingRecordSet()) {
             // Set UUIDs for from-instance and to-instance, create provisional instance if required and possible

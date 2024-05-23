@@ -90,23 +90,21 @@ public abstract class DeletePlan {
   public Future<Void> handleSingleSetDelete(OkapiClient okapiClient) {
     Promise<Void> promise = Promise.promise();
     Future.join(deleteRelationsAndItems(okapiClient)).onSuccess(
-        relationsItemsDone -> {
-          Future.join(deleteHoldingsRecords(okapiClient)).onSuccess(
-              holdingsDone -> {
-                if (isInstanceDeleting()) {
-                  if (getExistingInstance().skipped()) {
-                    InventoryStorage.putInventoryRecordOutcomeLess(okapiClient, getExistingInstance())
-                        .onSuccess(res -> promise.complete()).onFailure(promise::fail);
-                  } else {
-                    InventoryStorage.deleteInventoryRecord(okapiClient, getExistingRecordSet().getInstance())
-                        .onSuccess(res -> promise.complete()).onFailure(promise::fail);
-                  }
+        relationsItemsDone -> Future.join(deleteHoldingsRecords(okapiClient)).onSuccess(
+            holdingsDone -> {
+              if (isInstanceDeleting()) {
+                if (getExistingInstance().skipped()) {
+                  InventoryStorage.putInventoryRecordOutcomeLess(okapiClient, getExistingInstance())
+                      .onSuccess(res -> promise.complete()).onFailure(promise::fail);
                 } else {
-                  promise.complete();
+                  InventoryStorage.deleteInventoryRecord(okapiClient, getExistingRecordSet().getInstance())
+                      .onSuccess(res -> promise.complete()).onFailure(promise::fail);
                 }
+              } else {
+                promise.complete();
               }
-          ).onFailure(promise::fail);
-        }).onFailure(promise::fail);
+            }
+        ).onFailure(promise::fail)).onFailure(promise::fail);
     return promise.future();
   }
 

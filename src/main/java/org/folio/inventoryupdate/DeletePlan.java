@@ -1,6 +1,5 @@
 package org.folio.inventoryupdate;
 
-import io.vertx.core.CompositeFuture;
 import io.vertx.core.Future;
 import io.vertx.core.Promise;
 import io.vertx.core.impl.logging.Logger;
@@ -89,10 +88,9 @@ public abstract class DeletePlan {
    * Perform deletions of any relations to other instances and
    * deletions of items, holdings records, instance (if any and in that order)
    */
-  @SuppressWarnings("rawtypes")
   public Future<Void> handleSingleSetDelete(OkapiClient okapiClient) {
     Promise<Void> promise = Promise.promise();
-    List<Future> deleteRelationsDeleteItems = new ArrayList<>();
+    List<Future<JsonObject>> deleteRelationsDeleteItems = new ArrayList<>();
     for (InstanceToInstanceRelation relation : instanceRelationsToDelete()) {
       deleteRelationsDeleteItems.add(InventoryStorage.deleteInventoryRecord(okapiClient,relation));
     }
@@ -103,16 +101,16 @@ public abstract class DeletePlan {
       deleteRelationsDeleteItems.add(InventoryStorage.putInventoryRecordOutcomeLess(okapiClient, item));
     }
 
-    CompositeFuture.join(deleteRelationsDeleteItems).onComplete (allRelationshipsDoneAllItemsDone -> {
+    Future.join(deleteRelationsDeleteItems).onComplete (allRelationshipsDoneAllItemsDone -> {
       if (allRelationshipsDoneAllItemsDone.succeeded()) {
-        List<Future> deleteHoldingsRecords = new ArrayList<>();
+        List<Future<JsonObject>> deleteHoldingsRecords = new ArrayList<>();
         for (HoldingsRecord holdingsRecord : holdingsToDelete()) {
           deleteHoldingsRecords.add(InventoryStorage.deleteInventoryRecord(okapiClient, holdingsRecord));
         }
         for (HoldingsRecord holdingsRecord : holdingsRecordsToSilentlyUpdate()) {
           deleteHoldingsRecords.add(InventoryStorage.putInventoryRecordOutcomeLess(okapiClient, holdingsRecord));
         }
-        CompositeFuture.join(deleteHoldingsRecords).onComplete( allHoldingsDone -> {
+        Future.join(deleteHoldingsRecords).onComplete( allHoldingsDone -> {
           if (allHoldingsDone.succeeded()) {
             if (isInstanceDeleting()) {
               if (getExistingInstance().skipped()) {

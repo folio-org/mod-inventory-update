@@ -13,7 +13,6 @@ import org.folio.inventoryupdate.entities.InventoryRecord.Transaction;
 import org.folio.inventoryupdate.instructions.ProcessingInstructionsUpsert;
 import org.folio.okapi.common.OkapiClient;
 
-import io.vertx.core.CompositeFuture;
 import io.vertx.core.Future;
 import io.vertx.core.Promise;
 
@@ -371,22 +370,20 @@ public class UpdatePlanAllHRIDs extends UpdatePlan {
     public Future<Void> doCreateInstanceRelations(OkapiClient okapiClient){
         Promise<Void> promise = Promise.promise();
 
-        @SuppressWarnings("rawtypes")
-        List<Future> provisionalInstancesFutures = new ArrayList<>();
+        List<Future<JsonObject>> provisionalInstancesFutures = new ArrayList<>();
         for (Instance instance : ((RepositoryByHrids) repository).provisionalInstancesByHrid.values()) {
           provisionalInstancesFutures.add(
               InventoryStorage.postInventoryRecord(
                   okapiClient, instance));
 
         }
-        CompositeFuture.join(provisionalInstancesFutures).onComplete( allProvisionalInstancesCreated -> {
+        Future.join(provisionalInstancesFutures).onComplete(allProvisionalInstancesCreated -> {
             if (allProvisionalInstancesCreated.succeeded()) {
-                @SuppressWarnings("rawtypes")
-                List<Future> createFutures = new ArrayList<>();
+                List<Future<JsonObject>> createFutures = new ArrayList<>();
                 for (InstanceToInstanceRelation relation : repository.getInstanceRelationsToCreate()) {
                     createFutures.add(InventoryStorage.postInventoryRecord(okapiClient, relation));
                 }
-                CompositeFuture.join(createFutures).onComplete( allRelationsCreated -> {
+                Future.join(createFutures).onComplete( allRelationsCreated -> {
                     if (allRelationsCreated.succeeded()) {
                         promise.complete();
                     } else {

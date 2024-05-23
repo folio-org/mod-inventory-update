@@ -1,7 +1,5 @@
 package org.folio.inventoryupdate.test.fakestorage.entitites;
 
-import io.vertx.core.json.JsonObject;
-
 public class InputHoldingsRecord extends InventoryRecord {
 
     public static String HRID = "hrid";

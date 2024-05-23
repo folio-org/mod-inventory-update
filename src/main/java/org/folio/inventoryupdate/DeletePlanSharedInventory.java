@@ -1,6 +1,5 @@
 package org.folio.inventoryupdate;
 
-import io.vertx.core.CompositeFuture;
 import io.vertx.core.Future;
 import io.vertx.core.Promise;
 import io.vertx.core.json.JsonArray;
@@ -216,12 +215,11 @@ public class DeletePlanSharedInventory extends DeletePlan {
    */
   public Future<Void> handleSingleInstanceUpdate(OkapiClient okapiClient) {
     Promise<Void> promise = Promise.promise();
-    @SuppressWarnings("rawtypes")
-    List<Future> instanceAndHoldingsFutures = new ArrayList<>();
+    List<Future<JsonObject>> instanceAndHoldingsFutures = new ArrayList<>();
     if (isInstanceUpdating()) {
       instanceAndHoldingsFutures.add(InventoryStorage.putInventoryRecord(okapiClient, getUpdatingInstance()));
     }
-    CompositeFuture.join(instanceAndHoldingsFutures).onComplete (allDone -> {
+    Future.join(instanceAndHoldingsFutures).onComplete (allDone -> {
       if (allDone.succeeded()) {
         promise.complete();
       } else {

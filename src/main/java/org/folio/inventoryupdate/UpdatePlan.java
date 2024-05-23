@@ -16,7 +16,6 @@ import org.folio.inventoryupdate.entities.InventoryRecord.Entity;
 import org.folio.inventoryupdate.entities.InventoryRecord.Transaction;
 import org.folio.okapi.common.OkapiClient;
 
-import io.vertx.core.CompositeFuture;
 import io.vertx.core.Future;
 import io.vertx.core.Promise;
 import io.vertx.core.json.JsonArray;
@@ -287,10 +286,10 @@ public abstract class UpdatePlan {
 
     public Future<Void> doUpdateInstancesAndHoldings(OkapiClient okapiClient) {
         Promise<Void> promise = Promise.promise();
-        List<Future> updates = new ArrayList<>();
+        List<Future<Void>> updates = new ArrayList<>();
         updates.add(InventoryStorage.postInstances(okapiClient,repository.getInstancesToUpdate()));
         updates.add(InventoryStorage.postHoldingsRecords(okapiClient,repository.getHoldingsToUpdate()));
-        CompositeFuture.join(updates).onComplete(handler -> {
+        Future.join(updates).onComplete(handler -> {
             if (handler.succeeded()) {
                 promise.complete();
             } else {
@@ -330,7 +329,7 @@ public abstract class UpdatePlan {
 
   public Future<Void> doDeleteRelationsItemsHoldings(OkapiClient okapiClient) {
         Promise<Void> promise = Promise.promise();
-        List<Future> deleteRelationsDeleteItems = new ArrayList<>();
+        List<Future<JsonObject>> deleteRelationsDeleteItems = new ArrayList<>();
         for (InstanceToInstanceRelation relation : repository.getInstanceRelationsToDelete()) {
             deleteRelationsDeleteItems.add(InventoryStorage.deleteInventoryRecord(okapiClient,relation));
         }
@@ -340,16 +339,16 @@ public abstract class UpdatePlan {
         for (Item item : repository.getDeletingItemsToSilentlyUpdate()) {
             deleteRelationsDeleteItems.add(InventoryStorage.putInventoryRecordOutcomeLess(okapiClient,item));
         }
-        CompositeFuture.join(deleteRelationsDeleteItems).onComplete ( relationshipsAndItemsDeleted -> {
+        Future.join(deleteRelationsDeleteItems).onComplete ( relationshipsAndItemsDeleted -> {
             if (relationshipsAndItemsDeleted.succeeded()) {
-                List<Future> deleteHoldingsRecords = new ArrayList<>();
+                List<Future<JsonObject>> deleteHoldingsRecords = new ArrayList<>();
                 for (HoldingsRecord holdingsRecord : repository.getHoldingsToDelete()) {
                     deleteHoldingsRecords.add(InventoryStorage.deleteInventoryRecord(okapiClient, holdingsRecord));
                 }
                 for (HoldingsRecord holdingsRecord : repository.getDeletingHoldingsToSilentlyUpdate()) {
                    deleteHoldingsRecords.add(InventoryStorage.putInventoryRecordOutcomeLess(okapiClient, holdingsRecord));
                 }
-                CompositeFuture.join(deleteHoldingsRecords).onComplete( holdingsDeleted -> {
+                Future.join(deleteHoldingsRecords).onComplete( holdingsDeleted -> {
                     if (holdingsDeleted.succeeded()) {
                         promise.complete();
                     } else {

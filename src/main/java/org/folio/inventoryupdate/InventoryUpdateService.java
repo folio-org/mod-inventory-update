@@ -149,12 +149,11 @@ public class InventoryUpdateService {
     }
 
     InventoryQuery queryByInstanceHrid = new QueryByHrid(incomingValidJson.getJson().getString("hrid"));
-    UpdatePlan updatePlan = UpdatePlanAllHRIDs.getDeletionPlan(queryByInstanceHrid);
-    runDeletionPlan(updatePlan, deleteInstructions, routingCtx);
+    DeletePlan deletePlan = DeletePlanAllHRIDs.getDeletionPlan(queryByInstanceHrid);
+    runDeletionPlan(deletePlan, deleteInstructions, routingCtx);
   }
 
   public void handleSharedInventoryRecordSetDeleteByIdentifiers(RoutingContext routingContext) {
-    logger.debug("Handling delete request for shared index " + routingContext.getBodyAsString());
     InventoryUpdateOutcome isJsonContentType = contentTypeIsJson(routingContext);
     if (isJsonContentType.failed()) {
       isJsonContentType.getErrorResponse().respond(routingContext);
@@ -170,44 +169,44 @@ public class InventoryUpdateService {
     ProcessingInstructionsDeletion deleteInstructions =  new ProcessingInstructionsDeletion(processing);
 
     RecordIdentifiers deletionIdentifiers = RecordIdentifiers.identifiersFromDeleteRequestJson(incomingValidJson.getJson());
-    UpdatePlan updatePlan = UpdatePlanSharedInventory.getDeletionPlan(deletionIdentifiers);
-    runDeletionPlan(updatePlan, deleteInstructions, routingContext);
+    DeletePlan deletePlan = DeletePlanSharedInventory.getDeletionPlan(deletionIdentifiers);
+    runDeletionPlan(deletePlan, deleteInstructions, routingContext);
   }
 
-  private void runDeletionPlan(UpdatePlan updatePlan, ProcessingInstructionsDeletion deleteInstructions, RoutingContext routingCtx) {
+  private void runDeletionPlan(DeletePlan deletePlan, ProcessingInstructionsDeletion deleteInstructions, RoutingContext routingCtx) {
 
     OkapiClient okapiClient = getOkapiClient(routingCtx);
-    updatePlan.planInventoryDelete(okapiClient, deleteInstructions).onComplete(planDone -> {
+    deletePlan.planInventoryDelete(okapiClient, deleteInstructions).onComplete(planDone -> {
       if (planDone.succeeded()) {
-          updatePlan.doInventoryDelete(okapiClient).onComplete(deletionsDone -> {
+        deletePlan.doInventoryDelete(okapiClient).onComplete(deletionsDone -> {
           JsonObject response = new JsonObject();
-          response.put("metrics", updatePlan.getUpdateStats());
+          response.put("metrics", deletePlan.getUpdateStats());
           if (deletionsDone.succeeded()) {
             respondWithOK(routingCtx,response);
           } else {
-            response.put("errors", updatePlan.getErrors());
+            response.put("errors", deletePlan.getErrors());
             response.getJsonArray("errors")
-                    .add(new ErrorReport(
-                            ErrorCategory.STORAGE,
-                            INTERNAL_SERVER_ERROR,
-                            deletionsDone.cause().getMessage())
-                            .asJson());
+                .add(new ErrorReport(
+                    ErrorCategory.STORAGE,
+                    INTERNAL_SERVER_ERROR,
+                    deletionsDone.cause().getMessage())
+                    .asJson());
             respondWithMultiStatus(routingCtx,response);
           }
         });
       }  else {
-        if (updatePlan.isDeletion && !updatePlan.foundExistingRecordSet()) {
+        if (!deletePlan.foundExistingRecordSet()) {
           new ErrorReport(
-                  ErrorReport.ErrorCategory.STORAGE,
-                  NOT_FOUND,
-                  "Error processing delete request: "+ planDone.cause().getMessage())
-                  .respond(routingCtx);
+              ErrorReport.ErrorCategory.STORAGE,
+              NOT_FOUND,
+              "Error processing delete request: "+ planDone.cause().getMessage())
+              .respond(routingCtx);
         } else {
           new ErrorReport(
-                  ErrorReport.ErrorCategory.STORAGE,
-                  INTERNAL_SERVER_ERROR,
-                  planDone.cause().getMessage())
-                  .respond(routingCtx);
+              ErrorReport.ErrorCategory.STORAGE,
+              INTERNAL_SERVER_ERROR,
+              planDone.cause().getMessage())
+              .respond(routingCtx);
         }
       }
     });
@@ -240,7 +239,7 @@ public class InventoryUpdateService {
   private InventoryUpdateOutcome getIncomingJsonBody(RoutingContext routingCtx) {
     String bodyAsString;
     try {
-      bodyAsString = routingCtx.getBodyAsString("UTF-8");
+      bodyAsString = routingCtx.body().asString();
       if (bodyAsString == null) {
         return new InventoryUpdateOutcome(
                 new ErrorReport(

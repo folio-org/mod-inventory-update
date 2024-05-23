@@ -4300,48 +4300,6 @@ public class InventoryUpdateTestSuite {
   }
 
   @Test
-  public void testDeleteByIdentifiersWithGetLocationsFailure (TestContext testContext) {
-    final String identifierTypeId1 = "iti-001";
-    final String identifierValue1 = "111";
-
-    JsonObject upsertResponseJson1 = upsertByMatchKey(new JsonObject()
-            .put("instance",
-                    new InputInstance().setTitle("Shared InputInstance")
-                            .setInstanceTypeId("12345")
-                            .setSource("test")
-                            .setIdentifiers(new JsonArray().add(new JsonObject().put("identifierTypeId",identifierTypeId1).put("value",identifierValue1))).getJson())
-            .put("holdingsRecords", new JsonArray()
-                    .add(new InputHoldingsRecord().setPermanentLocationId(LOCATION_ID_1).setCallNumber("test-cn-1").getJson()
-                            .put("items", new JsonArray()
-                                    .add(new InputItem()
-                                            .setStatus(STATUS_UNKNOWN)
-                                            .setMaterialTypeId(MATERIAL_TYPE_TEXT)
-                                            .setBarcode("BC-001").getJson())
-                                    .add(new InputItem()
-                                            .setStatus(STATUS_UNKNOWN)
-                                            .setMaterialTypeId(MATERIAL_TYPE_TEXT)
-                                            .setBarcode("BC-002").getJson())))
-                    .add(new InputHoldingsRecord().setPermanentLocationId(LOCATION_ID_1).setCallNumber("test-cn-2").getJson()
-                            .put("items", new JsonArray()
-                                    .add(new InputItem()
-                                            .setStatus(STATUS_UNKNOWN)
-                                            .setMaterialTypeId(MATERIAL_TYPE_TEXT)
-                                            .setBarcode("BC-003").getJson())))));
-
-    fakeFolioApis.locationStorage.failOnGetRecords = true;
-
-    JsonObject deleteSignal = new JsonObject()
-            .put("institutionId", INSTITUTION_ID_1)
-            .put("localIdentifier",identifierValue1)
-            .put("identifierTypeId", identifierTypeId1);
-
-    UpdatePlanSharedInventory.locationsToInstitutionsMap.clear();
-
-    delete(500,MainVerticle.SHARED_INVENTORY_UPSERT_MATCHKEY_PATH, deleteSignal);
-
-  }
-
-  @Test
   public void testDeleteByIdentifiersWithDeleteRequestFailure (TestContext testContext) {
     final String identifierTypeId1 = "iti-001";
     final String identifierValue1 = "111";

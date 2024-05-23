@@ -10,8 +10,6 @@ import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.RoutingContext;
 import org.folio.inventoryupdate.entities.*;
 import org.folio.inventoryupdate.entities.InventoryRecord.Transaction;
-import org.folio.inventoryupdate.foreignconstraints.OrdersStorage;
-import org.folio.inventoryupdate.instructions.ProcessingInstructionsDeletion;
 import org.folio.inventoryupdate.instructions.ProcessingInstructionsUpsert;
 import org.folio.okapi.common.OkapiClient;
 
@@ -27,23 +25,13 @@ public class UpdatePlanAllHRIDs extends UpdatePlan {
 
     /**
      * Constructs deletion plane
-     * @param existingInstanceQuery The query by which to find the instance to delete
      */
-    private UpdatePlanAllHRIDs (InventoryQuery existingInstanceQuery) {
-        super(existingInstanceQuery);
-    }
-
     public UpdatePlanAllHRIDs () {
     }
 
     @Override
     public Repository getNewRepository() {
         return new RepositoryByHrids();
-    }
-
-
-    public static UpdatePlanAllHRIDs getDeletionPlan(InventoryQuery existingInstanceQuery) {
-        return  new UpdatePlanAllHRIDs( existingInstanceQuery);
     }
 
     @Override
@@ -333,72 +321,10 @@ public class UpdatePlanAllHRIDs extends UpdatePlan {
         }
     }
 
-    @Override
-    public Future<Void> planInventoryDelete(OkapiClient okapiClient, ProcessingInstructionsDeletion deleteInstructions) {
-        Promise<Void> promisedPlan = Promise.promise();
-        lookupExistingRecordSet(okapiClient, instanceQuery).onComplete(lookup -> {
-            if (lookup.succeeded()) {
-                this.existingSet = lookup.result();
-                if (foundExistingRecordSet()) {
-                  getExistingRecordSet().setDeleteInstructions(deleteInstructions);
-                  setDeleteConstraintIfReferencedByAcquisitions(okapiClient, getExistingInstance())
-                      .onComplete(result-> {
-                        planInventoryRecordsDeletes();
-                        promisedPlan.complete();
-                      });
-               } else {
-                    promisedPlan.fail("Instance to delete not found");
-                }
-            } else {
-                promisedPlan.fail(lookup.cause().getMessage());
-            }
-        });
-        return promisedPlan.future();
-    }
-
-    private void planInventoryRecordsDeletes () {
-      getExistingInstance().setTransition(DELETE);
-      for (HoldingsRecord holdings : getExistingInstance().getHoldingsRecords()) {
-        holdings.prepareCheckedDeletion();
-        for (InventoryRecord.DeletionConstraint holdingsConstraint : holdings.getDeleteConstraints()) {
-          getExistingInstance().handleDeleteProtection(holdingsConstraint);
-        }
-        for (Item item : holdings.getItems()) {
-          item.prepareCheckedDeletion();
-          for (InventoryRecord.DeletionConstraint itemConstraint : item.getDeleteConstraints()) {
-            holdings.handleDeleteProtection(itemConstraint);
-            getExistingInstance().handleDeleteProtection(itemConstraint);
-          }
-        }
-      }
-      getExistingRecordSet().prepareInstanceRelationsForDeleteOrSkip();
-    }
-
-    public static Future<Void> setDeleteConstraintIfReferencedByAcquisitions(OkapiClient okapiClient, Instance existingInstance) {
-      return OrdersStorage.lookupPurchaseOrderLines(okapiClient, existingInstance.getUUID())
-          .onComplete(poLinesLookup -> {
-            if (!poLinesLookup.result().isEmpty()) {
-              existingInstance.handleDeleteProtection(InventoryRecord.DeletionConstraint.PO_LINE_REFERENCE);
-            }
-          }).mapEmpty();
-    }
-
     /* END OF PLANNING METHODS */
 
 
     // EXECUTE CREATES, UPDATES, DELETES.
-    @Override
-    public Future<Void> doInventoryDelete(OkapiClient okapiClient) {
-        Promise<Void> promise = Promise.promise();
-        handleSingleSetDelete(okapiClient).onComplete(deletes -> {
-            if (deletes.succeeded()) {
-                promise.complete();
-            } else {
-                promise.fail(deletes.cause().getMessage());
-            }
-        });
-        return promise.future();
-    }
 
     public Future<Void> doInventoryUpdates(OkapiClient okapiClient) {
         Promise<Void> promise = Promise.promise();
@@ -480,7 +406,6 @@ public class UpdatePlanAllHRIDs extends UpdatePlan {
         });
         return promise.future();
     }
-
     // END OF STORAGE METHODS
 
 }

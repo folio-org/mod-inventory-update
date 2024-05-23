@@ -2,7 +2,7 @@ package org.folio.inventoryupdate.instructions;
 
 import io.vertx.core.json.JsonObject;
 
-public class ProcessingInstructionsDeletion  {
+public class ProcessingInstructionsDeletion {
   JsonObject processing;
   public static final String INSTANCE_INSTRUCTIONS_KEY = "instance";
   public static final String HOLDINGS_INSTRUCTIONS_KEY = "holdingsRecord";
@@ -34,14 +34,23 @@ public class ProcessingInstructionsDeletion  {
 
   public static class EntityInstructions {
     String key;
-    public RecordRetention recordRetention;
-    public JsonObject processing;
-    JsonObject entityInstructionsJson;
 
-    public StatisticalCoding statisticalCoding;
+    private final RecordRetention recordRetention;
+
+    public RecordRetention getRecordRetention() {
+      return recordRetention;
+    }
+
+    private JsonObject entityInstructionsJson;
+
+    private final StatisticalCoding statisticalCoding;
+
+    public StatisticalCoding getStatisticalCoding() {
+      return statisticalCoding;
+    }
+
 
     public EntityInstructions(JsonObject processing, String entityInstructionsKey) {
-      this.processing = processing;
       this.key = entityInstructionsKey;
       if (processing != null) {
         this.entityInstructionsJson = processing.getJsonObject(entityInstructionsKey);
@@ -53,7 +62,6 @@ public class ProcessingInstructionsDeletion  {
     }
 
   }
-
 
 
   public static class InstanceInstructions extends ProcessingInstructionsDeletion.EntityInstructions {
@@ -73,7 +81,6 @@ public class ProcessingInstructionsDeletion  {
       super(processing, ITEM_INSTRUCTIONS_KEY);
     }
   }
-
 
 
 }

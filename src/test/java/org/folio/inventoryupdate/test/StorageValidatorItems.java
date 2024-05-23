@@ -55,8 +55,8 @@ public class StorageValidatorItems {
         JsonObject existingRecord = responseJson.getJsonArray(RESULT_SET_ITEMS).getJsonObject(0);
         existingRecord.put("barcode", "bc-002");
         FakeFolioApis.put(ITEM_STORAGE_PATH, existingRecord);
-        JsonObject record = FakeFolioApis.getRecordById(ITEM_STORAGE_PATH, existingRecord.getString("id"));
-        testContext.assertEquals(record.getString("barcode"), "bc-002");
+        JsonObject item = FakeFolioApis.getRecordById(ITEM_STORAGE_PATH, existingRecord.getString("id"));
+        testContext.assertEquals(item.getString("barcode"), "bc-002");
     }
 
     protected void validateCanDeleteItemById (TestContext testContext) {

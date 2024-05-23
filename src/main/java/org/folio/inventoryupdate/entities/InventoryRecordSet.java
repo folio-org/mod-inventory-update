@@ -189,9 +189,9 @@ public class InventoryRecordSet extends JsonRepresentation {
 
     public List<Item> getItemsByTransactionType (Transaction transition) {
         List<Item> records = new ArrayList<>();
-        for (Item record : getItems()) {
-            if (record.getTransaction() == transition && ! record.skipped()) {
-                records.add(record);
+        for (Item item : getItems()) {
+            if (item.getTransaction() == transition && ! item.skipped()) {
+                records.add(item);
             }
         }
         return records;
@@ -199,9 +199,9 @@ public class InventoryRecordSet extends JsonRepresentation {
 
     public List<HoldingsRecord> getHoldingsRecordsForSilentUpdate () {
       List<HoldingsRecord> records = new ArrayList<>();
-      for (HoldingsRecord record : getHoldingsRecords()) {
-        if (record.updateSilently) {
-          records.add(record);
+      for (HoldingsRecord holdingsRecord : getHoldingsRecords()) {
+        if (holdingsRecord.updateSilently) {
+          records.add(holdingsRecord);
         }
       }
       return records;
@@ -209,9 +209,9 @@ public class InventoryRecordSet extends JsonRepresentation {
 
     public List<Item> getItemsForSilentUpdate () {
       List<Item> records = new ArrayList<>();
-      for (Item record : getItems()) {
-        if (record.updateSilently) {
-          records.add(record);
+      for (Item item : getItems()) {
+        if (item.updateSilently) {
+          records.add(item);
         }
       }
       return records;
@@ -222,9 +222,9 @@ public class InventoryRecordSet extends JsonRepresentation {
 
     public List<HoldingsRecord> getHoldingsRecordsByTransactionType (Transaction transition) {
         List<HoldingsRecord> records = new ArrayList<>();
-        for (HoldingsRecord record : getHoldingsRecords()) {
-            if (record.getTransaction() == transition && ! record.skipped()) {
-                records.add(record);
+        for (HoldingsRecord holdingsRecord : getHoldingsRecords()) {
+            if (holdingsRecord.getTransaction() == transition && ! holdingsRecord.skipped()) {
+                records.add(holdingsRecord);
             }
         }
         return records;
@@ -293,9 +293,9 @@ public class InventoryRecordSet extends JsonRepresentation {
 
     public List<InstanceToInstanceRelation> getInstanceRelationsByTransactionType (Transaction transition) {
         List<InstanceToInstanceRelation> records = new ArrayList<>();
-        for (InstanceToInstanceRelation record : getInstanceToInstanceRelations())  {
-            if (record.getTransaction() == transition && ! record.skipped()) {
-                records.add(record);
+        for (InstanceToInstanceRelation instanceToInstanceRelation : getInstanceToInstanceRelations())  {
+            if (instanceToInstanceRelation.getTransaction() == transition && ! instanceToInstanceRelation.skipped()) {
+                records.add(instanceToInstanceRelation);
             }
         }
         return records;
@@ -438,12 +438,12 @@ public class InventoryRecordSet extends JsonRepresentation {
     }
 
   public void setDeleteInstructions(ProcessingInstructionsDeletion deleteInstructions) {
-    getInstance().setDeleteInstructions(deleteInstructions.forInstance().recordRetention, deleteInstructions.forInstance().statisticalCoding);
+    getInstance().setDeleteInstructions(deleteInstructions.forInstance().getRecordRetention(), deleteInstructions.forInstance().getStatisticalCoding());
     for (HoldingsRecord rec : getHoldingsRecords()) {
-      rec.setDeleteInstructions(deleteInstructions.forHoldingsRecord().recordRetention, deleteInstructions.forHoldingsRecord().statisticalCoding);
+      rec.setDeleteInstructions(deleteInstructions.forHoldingsRecord().getRecordRetention(), deleteInstructions.forHoldingsRecord().getStatisticalCoding());
     }
     for (Item rec : getItems()) {
-      rec.setDeleteInstructions(deleteInstructions.forItem().recordRetention, deleteInstructions.forItem().statisticalCoding);
+      rec.setDeleteInstructions(deleteInstructions.forItem().getRecordRetention(), deleteInstructions.forItem().getStatisticalCoding());
     }
   }
 
@@ -455,8 +455,6 @@ public class InventoryRecordSet extends JsonRepresentation {
     for (Item rec : getItems()) {
       rec.setDeleteInstructions(instructions.forItem().recordRetention, instructions.forItem().statisticalCoding);
     }
-
-
   }
 
 
@@ -476,9 +474,9 @@ public class InventoryRecordSet extends JsonRepresentation {
     @Override
     public JsonArray getErrors () {
         JsonArray errors = new JsonArray();
-        for (InventoryRecord record : getAllInventoryRecords()) {
-            if (record.failed()) {
-                errors.add(record.getErrorAsJson());
+        for (InventoryRecord inventoryRecord : getAllInventoryRecords()) {
+            if (inventoryRecord.failed()) {
+                errors.add(inventoryRecord.getErrorAsJson());
             }
         }
         return errors;

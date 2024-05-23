@@ -47,8 +47,8 @@ public class StorageValidatorInstances  {
     JsonObject existingRecord = responseJson.getJsonArray(RESULT_SET_INSTANCES).getJsonObject(0);
     existingRecord.put("instanceTypeId", "456");
     FakeFolioApis.put(INSTANCE_STORAGE_PATH, existingRecord);
-    JsonObject record = FakeFolioApis.getRecordById(INSTANCE_STORAGE_PATH, existingRecord.getString("id"));
-    testContext.assertEquals(record.getString("instanceTypeId"), "456");
+    JsonObject inventoryRecord = FakeFolioApis.getRecordById(INSTANCE_STORAGE_PATH, existingRecord.getString("id"));
+    testContext.assertEquals(inventoryRecord.getString("instanceTypeId"), "456");
   }
 
   protected void validateGetByIdList(TestContext testContext) {

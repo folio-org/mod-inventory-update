@@ -1,22 +1,11 @@
 package org.folio.inventoryupdate.test.fakestorage.entitites;
 
-import io.vertx.core.json.JsonObject;
-
 public class InputHoldingsRecord extends InventoryRecord {
 
     public static String HRID = "hrid";
     public static String CALL_NUMBER = "callNumber";
     public static String INSTANCE_ID = "instanceId";
     public static String PERMANENT_LOCATION_ID = "permanentLocationId";
-
-
-    public InputHoldingsRecord(JsonObject record) {
-        super(record);
-    }
-
-    public InputHoldingsRecord() {
-        super();
-    }
 
     public InputHoldingsRecord setInstanceId (String instanceId) {
         recordJson.put(INSTANCE_ID,instanceId);

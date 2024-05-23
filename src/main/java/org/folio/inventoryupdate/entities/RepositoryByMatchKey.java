@@ -1,6 +1,5 @@
 package org.folio.inventoryupdate.entities;
 
-import io.vertx.core.CompositeFuture;
 import io.vertx.core.Future;
 import io.vertx.core.Promise;
 import io.vertx.core.json.JsonArray;
@@ -28,7 +27,7 @@ public class RepositoryByMatchKey extends Repository {
   @Override
   public Future<Void> buildRepositoryFromStorage (RoutingContext routingContext) {
     Promise<Void> promise = Promise.promise();
-    List<Future> existingRecordsByMatchKeyFutures = new ArrayList<>();
+    List<Future<Void>> existingRecordsByMatchKeyFutures = new ArrayList<>();
     for (List<String> idList : getSubListsOfFive(getIncomingMatchKeys())) {
       existingRecordsByMatchKeyFutures.add(requestInstancesByMatchKeys(routingContext, idList));
     }
@@ -39,19 +38,19 @@ public class RepositoryByMatchKey extends Repository {
               pair.getIncomingRecordSet().getInstance().getMatchKey());
       existingRecordsByMatchKeyFutures.add(requestInstanceWithOtherMatchKey(routingContext,query));
     }
-    CompositeFuture.join(existingRecordsByMatchKeyFutures).onComplete(recordsByMatchKeys -> {
+    Future.join(existingRecordsByMatchKeyFutures).onComplete(recordsByMatchKeys -> {
       if (recordsByMatchKeys.succeeded()) {
-        List<Future> holdingsRecordsFutures = new ArrayList<>();
+        List<Future<Void>> holdingsRecordsFutures = new ArrayList<>();
         for (List<String> idList : getSubListsOfFifty(getExistingInstanceIdsIncludingSecondaryInstances())) {
           holdingsRecordsFutures.add(requestHoldingsRecordsByInstanceIds(routingContext, idList));
         }
-        CompositeFuture.join(holdingsRecordsFutures).onComplete(holdingsRecordsByInstanceIds -> {
+        Future.join(holdingsRecordsFutures).onComplete(holdingsRecordsByInstanceIds -> {
           if (holdingsRecordsByInstanceIds.succeeded()) {
-            List<Future> itemsFutures = new ArrayList<>();
+            List<Future<Void>> itemsFutures = new ArrayList<>();
             for (List<String> idList : getSubListsOfFifty(getExistingHoldingsRecordIds())) {
               itemsFutures.add(requestItemsByHoldingsRecordIds(routingContext, idList));
             }
-            CompositeFuture.join(itemsFutures).onComplete(itemsByHoldingsRecordIds -> {
+            Future.join(itemsFutures).onComplete(itemsByHoldingsRecordIds -> {
               if (itemsByHoldingsRecordIds.succeeded()) {
                 setExistingRecordSets();
                 mapLocationsToInstitutionIds(routingContext).onComplete(locationMapUpdate -> {
@@ -75,11 +74,6 @@ public class RepositoryByMatchKey extends Repository {
       }
     });
     return promise.future();
-  }
-
-  @Override
-  protected List<String> getExistingInstanceIds () {
-    return new ArrayList<>(existingInstancesByUUID.keySet());
   }
 
   protected List<String> getExistingInstanceIdsIncludingSecondaryInstances () {

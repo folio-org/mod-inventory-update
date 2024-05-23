@@ -51,12 +51,12 @@ public abstract class RecordStorage {
     protected abstract String getResultSetName();
 
     // INTERNAL DATABASE OPERATIONS - insert() IS DECLARED PUBLIC SO THE TEST SUITE CAN INITIALIZE DATA OUTSIDE THE API.
-    public StorageResponse insert (InventoryRecord record) {
-        Resp validation = validateCreate(record);
+    public StorageResponse insert (InventoryRecord inventoryRecord) {
+        Resp validation = validateCreate(inventoryRecord);
 
         if (validation.statusCode == 201) {
-            record.setFirstVersion();
-            records.put(record.getId(), record);
+            inventoryRecord.setFirstVersion();
+            records.put(inventoryRecord.getId(), inventoryRecord);
         }
         return new StorageResponse(validation.statusCode, validation.message);
     }
@@ -70,22 +70,22 @@ public abstract class RecordStorage {
         }
     }
 
-    public Resp validateCreate(InventoryRecord record) {
+    public Resp validateCreate(InventoryRecord inventoryRecord) {
         if (failOnCreate) {
             return new Resp(500, "forced fail");
         }
-        if (!record.hasId()) {
-            record.generateId();
+        if (!inventoryRecord.hasId()) {
+            inventoryRecord.generateId();
         }
-        if (records.containsKey(record.getId())) {
-            logger.error("Fake record storage already contains a record with id " + record.getId() + ", cannot create " + record.getJson().encodePrettily());
-            return new Resp(400, "Record storage already contains a record with id " + record.getId());
+        if (records.containsKey(inventoryRecord.getId())) {
+            logger.error("Fake record storage already contains a record with id " + inventoryRecord.getId() + ", cannot create " + inventoryRecord.getJson().encodePrettily());
+            return new Resp(400, "Record storage already contains a record with id " + inventoryRecord.getId());
         }
         for (InventoryRecord existingRecord : records.values()) {
           for (String nameOfUniqueProperty : uniqueProperties) {
-            if (record.getStringValue(nameOfUniqueProperty) != null && existingRecord.getStringValue(nameOfUniqueProperty) != null ) {
-              if (record.getStringValue(nameOfUniqueProperty).equals(existingRecord.getStringValue(nameOfUniqueProperty))) {
-                return new Resp(400,  this.STORAGE_NAME +" already contains a record with " + nameOfUniqueProperty + " = " + record.getStringValue(nameOfUniqueProperty));
+            if (inventoryRecord.getStringValue(nameOfUniqueProperty) != null && existingRecord.getStringValue(nameOfUniqueProperty) != null ) {
+              if (inventoryRecord.getStringValue(nameOfUniqueProperty).equals(existingRecord.getStringValue(nameOfUniqueProperty))) {
+                return new Resp(400,  this.STORAGE_NAME +" already contains a record with " + nameOfUniqueProperty + " = " + inventoryRecord.getStringValue(nameOfUniqueProperty));
               }
             }
           }
@@ -93,51 +93,51 @@ public abstract class RecordStorage {
         logger.debug("Checking foreign keys");
         logger.debug("Got " + masterEntities.size() + " foreign keys");
         for (ForeignKey fk : masterEntities) {
-            if (! record.getJson().containsKey(fk.getDependentPropertyName())) {
+            if (! inventoryRecord.getJson().containsKey(fk.getDependentPropertyName())) {
                 logger.error("Foreign key violation, record must contain " + fk.getDependentPropertyName());
                 return new Resp(422, "{\"errors\":[{\"message\":\"must not be null\",\"type\":\"1\",\"code\":\"-1\",\"parameters\":[{\"key\":\""+fk.getDependentPropertyName()+"\",\"value\":\"null\"}]}]}");
             }
-            if (!fk.getMasterStorage().hasId(record.getJson().getString(fk.getDependentPropertyName()))) {
-                logger.error("Foreign key violation " + fk.getDependentPropertyName() + " not found in "+ fk.getMasterStorage().getResultSetName() + ", cannot create " + record.getJson().encodePrettily());
+            if (!fk.getMasterStorage().hasId(inventoryRecord.getJson().getString(fk.getDependentPropertyName()))) {
+                logger.error("Foreign key violation " + fk.getDependentPropertyName() + " not found in "+ fk.getMasterStorage().getResultSetName() + ", cannot create " + inventoryRecord.getJson().encodePrettily());
                 logger.error(new JsonObject().encode());
                 return new Resp (500, new JsonObject("{ \"message\": \"insert or update on table \\\"storage_table\\\" violates foreign key constraint \\\"fkey\\\"\", \"severity\": \"ERROR\", \"code\": \"23503\", \"detail\": \"Key (property value)=(the id) is not present in table \\\"a_referenced_table\\\".\", \"file\": \"ri_triggers.c\", \"line\": \"3266\", \"routine\": \"ri_ReportViolation\", \"schema\": \"diku_mod_inventory_storage\", \"table\": \"storage_table\", \"constraint\": \"a_fkey\" }").encodePrettily());
             } else {
-                logger.debug("Found " + record.getJson().getString(fk.getDependentPropertyName()) + " in " + fk.getMasterStorage().getResultSetName());
+                logger.debug("Found " + inventoryRecord.getJson().getString(fk.getDependentPropertyName()) + " in " + fk.getMasterStorage().getResultSetName());
             }
         }
         for (String mandatory : mandatoryProperties) {
-            if (!record.getJson().containsKey(mandatory)) {
+            if (!inventoryRecord.getJson().containsKey(mandatory)) {
                 return new Resp(422, new JsonObject("{\"message\" : {\n" + "      \"errors\" : [ {\n" + "        \"message\" : \"must not be null\",\n" + "        \"type\" : \"1\",\n" + "        \"code\" : \"javax.validation.constraints.NotNull.message\",\n" + "        \"parameters\" : [ {\n" + "          \"key\" : \"" + mandatory +"\",\n" + "          \"value\" : \"null\"\n" + "        } ]\n" + "      } ]\n" + "    }}").encodePrettily());
             }
         }
         return new Resp(201,"created");
     }
 
-    protected int update (String id, InventoryRecord record) {
+    protected int update (String id, InventoryRecord inventoryRecord) {
 
-        Resp validation = validateUpdate(id, record);
+        Resp validation = validateUpdate(id, inventoryRecord);
         if (validation.statusCode == 204) {
-            records.put(id, record);
+            records.put(id, inventoryRecord);
         }
         return validation.statusCode;
     }
 
-    public Resp validateUpdate (String id, InventoryRecord record) {
+    public Resp validateUpdate (String id, InventoryRecord inventoryRecord) {
         if (failOnUpdate) {
             return new Resp(500, "forced faile on update");
         }
-        if (record.hasId() && !id.equals(record.getId())) {
+        if (inventoryRecord.hasId() && !id.equals(inventoryRecord.getId())) {
             return new Resp(400, "Fake record storage received request to update a record at an ID that doesn't match the ID in the record");
         }
         if (! records.containsKey(id)) {
-            return new Resp(404,"Record not found, cannot update " + record.getJson().encodePrettily());
+            return new Resp(404,"Record not found, cannot update " + inventoryRecord.getJson().encodePrettily());
         }
         for (ForeignKey fk : masterEntities) {
-            if (! record.getJson().containsKey(fk.getDependentPropertyName())) {
+            if (! inventoryRecord.getJson().containsKey(fk.getDependentPropertyName())) {
                 return new Resp(422, "Foreign key violation, record must contain " + fk.getDependentPropertyName());
             }
-            if (!fk.getMasterStorage().hasId(record.getJson().getString(fk.getDependentPropertyName()))) {
-                return new Resp(500, "Not found: "+ record.getJson().getString(fk.getDependentPropertyName()) + " in " + fk.getMasterStorage().getResultSetName());
+            if (!fk.getMasterStorage().hasId(inventoryRecord.getJson().getString(fk.getDependentPropertyName()))) {
+                return new Resp(500, "Not found: "+ inventoryRecord.getJson().getString(fk.getDependentPropertyName()) + " in " + fk.getMasterStorage().getResultSetName());
             }
         }
         return new Resp(204,"");
@@ -170,11 +170,11 @@ public abstract class RecordStorage {
         if (failOnGetRecordById) {
             return null;
         } else {
-            InventoryRecord record = records.get( id );
-            if (record != null) {
-              record.setVersion(record.getVersion() + 1);
+            InventoryRecord inventoryRecord = records.get( id );
+            if (inventoryRecord != null) {
+              inventoryRecord.setVersion(inventoryRecord.getVersion() + 1);
             }
-            return record;
+            return inventoryRecord;
         }
     }
 
@@ -190,9 +190,9 @@ public abstract class RecordStorage {
      * @return
      */
     protected boolean hasValue (String fkPropertyName, String value) {
-        for (InventoryRecord record : records.values()) {
-            logger.debug("Checking " + record.getJson().toString() + " for value " + value);
-            if (record.getJson().containsKey(fkPropertyName) && record.getJson().getString(fkPropertyName).equals(value)) {
+        for (InventoryRecord inventoryRecord : records.values()) {
+            logger.debug("Checking " + inventoryRecord.getJson().toString() + " for value " + value);
+            if (inventoryRecord.getJson().containsKey(fkPropertyName) && inventoryRecord.getJson().getString(fkPropertyName).equals(value)) {
                 return true;
             }
         }
@@ -238,10 +238,10 @@ public abstract class RecordStorage {
      */
     protected void getRecordById(RoutingContext routingContext) {
         final String id = routingContext.pathParam("id");
-        InventoryRecord record = getRecord(id);
+        InventoryRecord inventoryRecord = getRecord(id);
 
-        if (record != null) {
-            respond(routingContext, record.getJson(), 200);
+        if (inventoryRecord != null) {
+            respond(routingContext, inventoryRecord.getJson(), 200);
         } else {
             respondWithMessage(routingContext, (failOnGetRecordById ? "Forced error on get from " : "No record with ID " + id + " in ") + STORAGE_NAME, 404);
         }
@@ -275,7 +275,7 @@ public abstract class RecordStorage {
      *
      */
     protected void createRecord(RoutingContext routingContext) {
-        JsonObject recordJson = new JsonObject(routingContext.getBodyAsString());
+        JsonObject recordJson = new JsonObject(routingContext.body().asString());
         StorageResponse response = insert(new InventoryRecord(recordJson));
         if (response.statusCode == 201) {
             respond(routingContext, recordJson, response.statusCode);
@@ -290,7 +290,7 @@ public abstract class RecordStorage {
      *
      */
     protected void updateRecord(RoutingContext routingContext) {
-        JsonObject recordJson = new JsonObject(routingContext.getBodyAsString());
+        JsonObject recordJson = new JsonObject(routingContext.body().asString());
         String id = routingContext.pathParam("id");
         int code = update(id, new InventoryRecord(recordJson));
         if (code == 204) {
@@ -302,18 +302,18 @@ public abstract class RecordStorage {
 
     protected void upsertRecords (RoutingContext routingContext) {
         UUID transaction = UUID.randomUUID();
-        JsonObject requestJson = new JsonObject(routingContext.getBodyAsString());
+        JsonObject requestJson = new JsonObject(routingContext.body().asString());
         JsonArray recordsJson = requestJson.getJsonArray(getResultSetName());
         for (Object o : recordsJson) {
-            InventoryRecord record = new InventoryRecord((JsonObject) o);
-            if (hasId(record.getId())) {
-                Resp validation = validateUpdate(record.getId(), record);
+            InventoryRecord inventoryRecord = new InventoryRecord((JsonObject) o);
+            if (hasId(inventoryRecord.getId())) {
+                Resp validation = validateUpdate(inventoryRecord.getId(), inventoryRecord);
                 if (validation.statusCode != 204 ) {
                     respondWithMessage(routingContext, validation.message, validation.statusCode);
                     return;
                 }
             } else {
-                Resp validation = validateCreate(record);
+                Resp validation = validateCreate(inventoryRecord);
                 if (validation.statusCode != 201 ) {
                     respondWithMessage(routingContext, validation.message, validation.statusCode);
                     return;
@@ -321,11 +321,11 @@ public abstract class RecordStorage {
             }
         }
         for (Object o : recordsJson) {
-            InventoryRecord record = new InventoryRecord((JsonObject) o);
-            if (hasId(record.getId())) {
-                update(record.getId(), record);
+            InventoryRecord inventoryRecord = new InventoryRecord((JsonObject) o);
+            if (hasId(inventoryRecord.getId())) {
+                update(inventoryRecord.getId(), inventoryRecord);
             } else {
-                insert(record);
+                insert(inventoryRecord);
             }
         }
         respond(routingContext, requestJson, 201);
@@ -336,9 +336,9 @@ public abstract class RecordStorage {
         if (failOnGetRecords) return null;
         JsonObject response = new JsonObject();
         JsonArray jsonRecords = new JsonArray();
-        getRecords().forEach( record -> {
-            if (optionalQuery == null || record.match(optionalQuery)) {
-                jsonRecords.add(record.getJson());
+        getRecords().forEach( inventoryRecord -> {
+            if (optionalQuery == null || inventoryRecord.match(optionalQuery)) {
+                jsonRecords.add(inventoryRecord.getJson());
             }});
         response.put(getResultSetName(), jsonRecords);
         response.put(TOTAL_RECORDS, jsonRecords.size());
@@ -396,7 +396,7 @@ public abstract class RecordStorage {
     }
 
     public void logRecords (Logger logger) {
-        records.values().stream().forEach(record -> logger.debug(record.getJson().encodePrettily()));
+        records.values().stream().forEach(inventoryRecord -> logger.debug(inventoryRecord.getJson().encodePrettily()));
     }
 
     public static class ForeignKey {

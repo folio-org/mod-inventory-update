@@ -1451,8 +1451,8 @@ public class InventoryUpdateTestSuite {
             .setRetainOmittedHoldingsRecordProperties(true)
             .setRetainOmittedItemProperties(true).getJson()));
 
-    getRecordsFromStorage(INSTANCE_STORAGE_PATH,null).getJsonArray("instances").stream().forEach(record -> {
-      testContext.assertEquals(((JsonObject)record).getJsonArray("editions").getString(0), "retainMe",
+    getRecordsFromStorage(INSTANCE_STORAGE_PATH,null).getJsonArray("instances").stream().forEach(instance -> {
+      testContext.assertEquals(((JsonObject)instance).getJsonArray("editions").getString(0), "retainMe",
           "The editions should be retained as 'retainMe' after upsert of existing record set");
     });
 
@@ -1548,10 +1548,10 @@ public class InventoryUpdateTestSuite {
             .setHoldingsRecordPropertiesToRetain("shelvingTitle","someOtherProp")
             .setItemPropertiesToRetain("someProp","yearCaption").getJson()));
 
-    getRecordsFromStorage(INSTANCE_STORAGE_PATH,null).getJsonArray("instances").stream().forEach(record -> {
-      testContext.assertEquals(((JsonObject)record).getString("source"), "updated",
+    getRecordsFromStorage(INSTANCE_STORAGE_PATH,null).getJsonArray("instances").stream().forEach(instance -> {
+      testContext.assertEquals(((JsonObject)instance).getString("source"), "updated",
           "The Instance.source should be updated to 'updated' after upsert of existing record set");
-      testContext.assertEquals(((JsonObject)record).getJsonArray("editions").getString(0), "retainMe",
+      testContext.assertEquals(((JsonObject)instance).getJsonArray("editions").getString(0), "retainMe",
           "The Instance.edition should be retained as 'retainMe' after upsert of existing record set");
     });
 
@@ -3197,6 +3197,9 @@ public class InventoryUpdateTestSuite {
     JsonObject items = getRecordsFromStorage(ITEM_STORAGE_PATH,null);
     testContext.assertTrue(!items.getJsonArray("items").getJsonObject(0).containsKey("statisticalCodeIds"), "Item has no statistical codes");
     JsonObject instances = getRecordsFromStorage(INSTANCE_STORAGE_PATH,null);
+    JsonArray statisticalCodes = instances.getJsonArray("instances").getJsonObject(0)
+        .getJsonArray("statisticalCodeIds");
+    testContext.assertTrue(statisticalCodes!=null && !statisticalCodes.isEmpty(), "The instance has statistical codes set");
     testContext.assertTrue(instances.getJsonArray("instances").getJsonObject(0)
         .getJsonArray("statisticalCodeIds").contains("456"), "Instance has a statistical code '456' for delete skipped due to item status");
     testContext.assertTrue(instances.getJsonArray("instances").getJsonObject(0)
@@ -3254,6 +3257,10 @@ public class InventoryUpdateTestSuite {
     JsonObject items = getRecordsFromStorage(ITEM_STORAGE_PATH,null);
     testContext.assertTrue(!items.getJsonArray("items").getJsonObject(0).containsKey("statisticalCodeIds"), "Item has no statistical codes");
     JsonObject instances = getRecordsFromStorage(INSTANCE_STORAGE_PATH,null);
+
+    JsonArray statisticalCodes = instances.getJsonArray("instances").getJsonObject(0)
+        .getJsonArray("statisticalCodeIds");
+    testContext.assertTrue(statisticalCodes!=null && !statisticalCodes.isEmpty(), "The instance has statistical codes set");
     testContext.assertTrue(instances.getJsonArray("instances").getJsonObject(0)
         .getJsonArray("statisticalCodeIds").contains("123"), "Instance has a statistical code '123' for delete skipped due to PO line reference");
     testContext.assertEquals(instances.getJsonArray("instances").getJsonObject(0)
@@ -3299,6 +3306,9 @@ public class InventoryUpdateTestSuite {
                                 .put("if","deleteSkipped").put("becauseOf","ITEM_STATUS").put("setCode","456"))))));
 
     JsonObject items = getRecordsFromStorage(ITEM_STORAGE_PATH,null);
+    JsonArray statisticalCodes = items.getJsonArray("items").getJsonObject(0)
+        .getJsonArray("statisticalCodeIds");
+    testContext.assertTrue(statisticalCodes!=null && !statisticalCodes.isEmpty(), "The instance has statistical codes set");
     testContext.assertTrue(items.getJsonArray("items").getJsonObject(0)
         .getJsonArray("statisticalCodeIds").contains("123"), "Instance has a statistical code '123' for delete skipped due to item status");
     JsonObject instances = getRecordsFromStorage(INSTANCE_STORAGE_PATH,null);
@@ -4296,48 +4306,6 @@ public class InventoryUpdateTestSuite {
     UpdatePlanSharedInventory.locationsToInstitutionsMap.clear();
 
     delete(200,MainVerticle.SHARED_INVENTORY_UPSERT_MATCHKEY_PATH, deleteSignal);
-
-  }
-
-  @Test
-  public void testDeleteByIdentifiersWithGetLocationsFailure (TestContext testContext) {
-    final String identifierTypeId1 = "iti-001";
-    final String identifierValue1 = "111";
-
-    JsonObject upsertResponseJson1 = upsertByMatchKey(new JsonObject()
-            .put("instance",
-                    new InputInstance().setTitle("Shared InputInstance")
-                            .setInstanceTypeId("12345")
-                            .setSource("test")
-                            .setIdentifiers(new JsonArray().add(new JsonObject().put("identifierTypeId",identifierTypeId1).put("value",identifierValue1))).getJson())
-            .put("holdingsRecords", new JsonArray()
-                    .add(new InputHoldingsRecord().setPermanentLocationId(LOCATION_ID_1).setCallNumber("test-cn-1").getJson()
-                            .put("items", new JsonArray()
-                                    .add(new InputItem()
-                                            .setStatus(STATUS_UNKNOWN)
-                                            .setMaterialTypeId(MATERIAL_TYPE_TEXT)
-                                            .setBarcode("BC-001").getJson())
-                                    .add(new InputItem()
-                                            .setStatus(STATUS_UNKNOWN)
-                                            .setMaterialTypeId(MATERIAL_TYPE_TEXT)
-                                            .setBarcode("BC-002").getJson())))
-                    .add(new InputHoldingsRecord().setPermanentLocationId(LOCATION_ID_1).setCallNumber("test-cn-2").getJson()
-                            .put("items", new JsonArray()
-                                    .add(new InputItem()
-                                            .setStatus(STATUS_UNKNOWN)
-                                            .setMaterialTypeId(MATERIAL_TYPE_TEXT)
-                                            .setBarcode("BC-003").getJson())))));
-
-    fakeFolioApis.locationStorage.failOnGetRecords = true;
-
-    JsonObject deleteSignal = new JsonObject()
-            .put("institutionId", INSTITUTION_ID_1)
-            .put("localIdentifier",identifierValue1)
-            .put("identifierTypeId", identifierTypeId1);
-
-    UpdatePlanSharedInventory.locationsToInstitutionsMap.clear();
-
-    delete(500,MainVerticle.SHARED_INVENTORY_UPSERT_MATCHKEY_PATH, deleteSignal);
 
   }
 

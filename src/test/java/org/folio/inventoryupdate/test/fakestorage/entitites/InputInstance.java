@@ -25,10 +25,6 @@ public class InputInstance extends InventoryRecord {
   public static String PHYSICAL_DESCRIPTIONS = "physicalDescriptions";
   public static String EDITIONS = "editions";
 
-  public InputInstance(JsonObject record) {
-    super(record);
-  }
-
   public InputInstance() {
     super();
   }

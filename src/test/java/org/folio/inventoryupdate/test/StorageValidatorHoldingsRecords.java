@@ -51,8 +51,8 @@ public class StorageValidatorHoldingsRecords {
         JsonObject existingRecord = responseJson.getJsonArray(RESULT_SET_HOLDINGS_RECORDS).getJsonObject(0);
         existingRecord.put("callNumber", SECOND_CALL_NUMBER);
         FakeFolioApis.put(HOLDINGS_STORAGE_PATH, existingRecord);
-        JsonObject record = FakeFolioApis.getRecordById(HOLDINGS_STORAGE_PATH, existingRecord.getString("id"));
-        testContext.assertEquals(record.getString("callNumber"), SECOND_CALL_NUMBER);
+        JsonObject holdingsRecord = FakeFolioApis.getRecordById(HOLDINGS_STORAGE_PATH, existingRecord.getString("id"));
+        testContext.assertEquals(holdingsRecord.getString("callNumber"), SECOND_CALL_NUMBER);
     }
 
     protected void validateCanDeleteHoldingsRecordById (TestContext testContext) {

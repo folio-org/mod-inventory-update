@@ -11,14 +11,6 @@ public class InputInstanceRelationship extends InventoryRecord {
     public static final String INSTANCE_IDENTIFIER = "instanceIdentifier";
     public static final String PROVISIONAL_INSTANCE = "provisionalInstance";
 
-    public InputInstanceRelationship(JsonObject record) {
-        super(record);
-    }
-
-    public InputInstanceRelationship() {
-        super();
-    }
-
     public InputInstanceRelationship setSubInstanceId (String id) {
         recordJson.put(SUB_INSTANCE_ID, id);
         return this;

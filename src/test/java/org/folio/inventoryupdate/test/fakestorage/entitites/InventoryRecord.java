@@ -19,8 +19,8 @@ public class InventoryRecord {
         recordJson = new JsonObject();
     }
 
-    public InventoryRecord(JsonObject record) {
-        recordJson = record;
+    public InventoryRecord(JsonObject inventoryRecord) {
+        recordJson = inventoryRecord;
     }
 
 

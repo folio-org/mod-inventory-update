@@ -60,19 +60,19 @@ public class InventoryStorage {
   public static final String ITEMS = "items";
   public static final String LOCATIONS = "locations";
 
-  public static Future<JsonObject> postInventoryRecord (OkapiClient okapiClient, InventoryRecord record) {
+  public static Future<JsonObject> postInventoryRecord (OkapiClient okapiClient, InventoryRecord inventoryRecord) {
     Promise<JsonObject> promise = Promise.promise();
-    okapiClient.post(getApi(record.entityType()), record.asJsonString(), postResult -> {
+    okapiClient.post(getApi(inventoryRecord.entityType()), inventoryRecord.asJsonString(), postResult -> {
       if (postResult.succeeded()) {
         String result = postResult.result();
         JsonObject responseJson = new JsonObject(result);
-        record.complete();
+        inventoryRecord.complete();
         promise.complete(responseJson);
       } else {
-        record.fail();
-        record.skipDependants();
-        record.logError(okapiClient.getResponsebody(), okapiClient.getStatusCode(), ErrorReport.ErrorCategory.STORAGE, record.getOriginJson());
-        promise.fail(record.getErrorAsJson().encodePrettily());
+        inventoryRecord.fail();
+        inventoryRecord.skipDependants();
+        inventoryRecord.logError(okapiClient.getResponsebody(), okapiClient.getStatusCode(), ErrorReport.ErrorCategory.STORAGE, inventoryRecord.getOriginJson());
+        promise.fail(inventoryRecord.getErrorAsJson().encodePrettily());
       }
     });
     return promise.future();
@@ -98,19 +98,19 @@ public class InventoryStorage {
       logger.debug("Posting request: " + request.encodePrettily() + " to " + getBatchApi(arrayName));
       okapiClient.post(getBatchApi(arrayName) + "?upsert=true", request.encode(), postResult -> {
         if (postResult.succeeded()) {
-          for (InventoryRecord record : records) {
-            record.complete();
+          for (InventoryRecord inventoryRecord : records) {
+            inventoryRecord.complete();
           }
           promise.complete();
         } else {
-          for (InventoryRecord record : records) {
-            record.fail();
-            record.skipDependants();
-            record.logError(
+          for (InventoryRecord inventoryRecord : records) {
+            inventoryRecord.fail();
+            inventoryRecord.skipDependants();
+            inventoryRecord.logError(
                     okapiClient.getResponsebody(),
                     okapiClient.getStatusCode(),
                     (records.size()>1 ? ErrorReport.ErrorCategory.BATCH_STORAGE : ErrorReport.ErrorCategory.STORAGE),
-                    record.getOriginJson()
+                    inventoryRecord.getOriginJson()
             );
           }
           promise.fail(records.get(0).getErrorAsJson().encodePrettily());
@@ -124,23 +124,23 @@ public class InventoryStorage {
 
   private static JsonArray jsonArrayFromInventoryRecordList (List<InventoryRecord> records) {
     JsonArray array = new JsonArray();
-    for (InventoryRecord record : records) {
-      array.add(record.asJson());
+    for (InventoryRecord inventoryRecord : records) {
+      array.add(inventoryRecord.asJson());
     }
     return array;
   }
 
-  public static Future<JsonObject> putInventoryRecord (OkapiClient okapiClient, InventoryRecord record) {
+  public static Future<JsonObject> putInventoryRecord (OkapiClient okapiClient, InventoryRecord inventoryRecord) {
     Promise<JsonObject> promise = Promise.promise();
-    logger.debug("Putting " + record.entityType() + ": " + record.asJson().encodePrettily());
-    okapiClient.request(HttpMethod.PUT, getApi(record.entityType())+"/"+record.getUUID(), record.asJsonString(), putResult -> {
+    logger.debug("Putting " + inventoryRecord.entityType() + ": " + inventoryRecord.asJson().encodePrettily());
+    okapiClient.request(HttpMethod.PUT, getApi(inventoryRecord.entityType())+"/"+inventoryRecord.getUUID(), inventoryRecord.asJsonString(), putResult -> {
       if (putResult.succeeded()) {
-        record.complete();
-        promise.complete(record.asJson());
+        inventoryRecord.complete();
+        promise.complete(inventoryRecord.asJson());
       } else {
-        record.fail();
-        record.logError(okapiClient.getResponsebody(), okapiClient.getStatusCode(), ErrorReport.ErrorCategory.STORAGE, record.getOriginJson());
-        promise.fail(record.getErrorAsJson().encodePrettily());
+        inventoryRecord.fail();
+        inventoryRecord.logError(okapiClient.getResponsebody(), okapiClient.getStatusCode(), ErrorReport.ErrorCategory.STORAGE, inventoryRecord.getOriginJson());
+        promise.fail(inventoryRecord.getErrorAsJson().encodePrettily());
       }
     });
     return promise.future();
@@ -152,28 +152,28 @@ public class InventoryStorage {
    * Will not count as an update, and will not throw an error if the PUT fails (it can for example fail for attempting
    * to set non-compliant UUIDs for statistical codes).
    */
-  public static Future<JsonObject> putInventoryRecordOutcomeLess (OkapiClient okapiClient, InventoryRecord record) {
+  public static Future<JsonObject> putInventoryRecordOutcomeLess (OkapiClient okapiClient, InventoryRecord inventoryRecord) {
     Promise<JsonObject> promise = Promise.promise();
-    logger.debug("Putting " + record.entityType() + ": " + record.asJson().encodePrettily());
-    okapiClient.request(HttpMethod.PUT, getApi(record.entityType())+"/"+record.getUUID(), record.asJsonString(), putResult -> {
+    logger.debug("Putting " + inventoryRecord.entityType() + ": " + inventoryRecord.asJson().encodePrettily());
+    okapiClient.request(HttpMethod.PUT, getApi(inventoryRecord.entityType())+"/"+inventoryRecord.getUUID(), inventoryRecord.asJsonString(), putResult -> {
       if (putResult.failed()) {
-        record.logError(okapiClient.getResponsebody(), okapiClient.getStatusCode(), ErrorReport.ErrorCategory.STORAGE, record.getOriginJson());
+        inventoryRecord.logError(okapiClient.getResponsebody(), okapiClient.getStatusCode(), ErrorReport.ErrorCategory.STORAGE, inventoryRecord.getOriginJson());
       }
-      promise.complete(record.asJson());
+      promise.complete(inventoryRecord.asJson());
     });
     return promise.future();
   }
 
-  public static Future<JsonObject> deleteInventoryRecord (OkapiClient okapiClient, InventoryRecord record) {
+  public static Future<JsonObject> deleteInventoryRecord (OkapiClient okapiClient, InventoryRecord inventoryRecord) {
     Promise<JsonObject> promise = Promise.promise();
-    okapiClient.delete(getApi(record.entityType())+"/"+record.getUUID(), deleteResult -> {
+    okapiClient.delete(getApi(inventoryRecord.entityType())+"/"+inventoryRecord.getUUID(), deleteResult -> {
       if (deleteResult.succeeded()) {
-        record.complete();
+        inventoryRecord.complete();
         promise.complete();
       } else {
-        record.fail();
-        record.logError(deleteResult.cause().getMessage(), okapiClient.getStatusCode(), ErrorReport.ErrorCategory.STORAGE, record.getOriginJson());
-        promise.fail(record.getErrorAsJson().encodePrettily());
+        inventoryRecord.fail();
+        inventoryRecord.logError(deleteResult.cause().getMessage(), okapiClient.getStatusCode(), ErrorReport.ErrorCategory.STORAGE, inventoryRecord.getOriginJson());
+        promise.fail(inventoryRecord.getErrorAsJson().encodePrettily());
       }
     });
     return promise.future();

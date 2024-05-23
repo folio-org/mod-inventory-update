@@ -72,9 +72,9 @@ public class UpdatePlanAllHRIDs extends UpdatePlan {
             inventoryRecordSet.getJsonArray(HOLDINGS_RECORDS)
                     .stream()
                     .map( rec -> (JsonObject) rec)
-                    .forEach( record -> {
-                        if (!record.containsKey(HRID_IDENTIFIER_KEY)) {
-                            logger.error("Holdings Records must have a HRID to be processed by this API. Received: " + record.encodePrettily());
+                    .forEach( holdingsRecord -> {
+                        if (!holdingsRecord.containsKey(HRID_IDENTIFIER_KEY)) {
+                            logger.error("Holdings Records must have a HRID to be processed by this API. Received: " + holdingsRecord.encodePrettily());
                             validationErrors.registerError(
                                 new ErrorReport(
                                     ErrorReport.ErrorCategory.VALIDATION,
@@ -83,11 +83,11 @@ public class UpdatePlanAllHRIDs extends UpdatePlan {
                                         .setRequestJson(inventoryRecordSet)
                                         .setShortMessage("Missing HRID in holdings record")
                                         .setEntityType(InventoryRecord.Entity.HOLDINGS_RECORD)
-                                        .setEntity(record)
+                                        .setEntity(holdingsRecord)
                                         .setDetails(inventoryRecordSet));
                         }
-                        if (record.containsKey(ITEMS)) {
-                            record.getJsonArray(ITEMS)
+                        if (holdingsRecord.containsKey(ITEMS)) {
+                            holdingsRecord.getJsonArray(ITEMS)
                                     .stream()
                                     .map(item -> (JsonObject) item)
                                     .forEach(item -> {

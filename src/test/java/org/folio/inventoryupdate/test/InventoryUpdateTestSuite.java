@@ -1451,8 +1451,8 @@ public class InventoryUpdateTestSuite {
             .setRetainOmittedHoldingsRecordProperties(true)
             .setRetainOmittedItemProperties(true).getJson()));
 
-    getRecordsFromStorage(INSTANCE_STORAGE_PATH,null).getJsonArray("instances").stream().forEach(record -> {
-      testContext.assertEquals(((JsonObject)record).getJsonArray("editions").getString(0), "retainMe",
+    getRecordsFromStorage(INSTANCE_STORAGE_PATH,null).getJsonArray("instances").stream().forEach(instance -> {
+      testContext.assertEquals(((JsonObject)instance).getJsonArray("editions").getString(0), "retainMe",
           "The editions should be retained as 'retainMe' after upsert of existing record set");
     });
 
@@ -1548,10 +1548,10 @@ public class InventoryUpdateTestSuite {
             .setHoldingsRecordPropertiesToRetain("shelvingTitle","someOtherProp")
             .setItemPropertiesToRetain("someProp","yearCaption").getJson()));
 
-    getRecordsFromStorage(INSTANCE_STORAGE_PATH,null).getJsonArray("instances").stream().forEach(record -> {
-      testContext.assertEquals(((JsonObject)record).getString("source"), "updated",
+    getRecordsFromStorage(INSTANCE_STORAGE_PATH,null).getJsonArray("instances").stream().forEach(instance -> {
+      testContext.assertEquals(((JsonObject)instance).getString("source"), "updated",
           "The Instance.source should be updated to 'updated' after upsert of existing record set");
-      testContext.assertEquals(((JsonObject)record).getJsonArray("editions").getString(0), "retainMe",
+      testContext.assertEquals(((JsonObject)instance).getJsonArray("editions").getString(0), "retainMe",
           "The Instance.edition should be retained as 'retainMe' after upsert of existing record set");
     });
 

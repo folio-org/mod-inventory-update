@@ -66,8 +66,8 @@ public class InstanceSetView extends RecordStorage {
         });
         var precedingTitles = new JsonArray();
         var succeedingTitles = new JsonArray();
-        fakeStorage.precedingSucceedingStorage.records.forEach((id, record) -> {
-            var json = record.getJson();
+        fakeStorage.precedingSucceedingStorage.records.forEach((id, inventoryRecord) -> {
+            var json = inventoryRecord.getJson();
             if (instanceId.equals(json.getString("precedingInstanceId"))) {
                 succeedingTitles.add(json);
             }
@@ -77,8 +77,8 @@ public class InstanceSetView extends RecordStorage {
         });
         var superInstanceRelationships = new JsonArray();
         var subInstanceRelationships = new JsonArray();
-        fakeStorage.instanceRelationshipStorage.records.forEach((id, record) -> {
-            var json = record.getJson();
+        fakeStorage.instanceRelationshipStorage.records.forEach((id, inventoryRecord) -> {
+            var json = inventoryRecord.getJson();
             if (instanceId.equals(json.getString("superInstanceId"))) {
                 subInstanceRelationships.add(json);
             }

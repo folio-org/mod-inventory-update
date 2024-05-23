@@ -388,23 +388,23 @@ public abstract class UpdatePlan {
                 List<InventoryRecord> holdingsRecordsAndItemsInUpdatingSet = Stream.of(
                         updatingSet.getHoldingsRecords(), updatingSet.getItems()).flatMap(
                         Collection::stream).collect(Collectors.toList());
-                for (InventoryRecord record : holdingsRecordsAndItemsInUpdatingSet) {
-                    metrics.entity(record.entityType()).transaction(record.getTransaction()).outcomes.increment(record.getOutcome());
+                for (InventoryRecord inventoryRecord : holdingsRecordsAndItemsInUpdatingSet) {
+                    metrics.entity(inventoryRecord.entityType()).transaction(inventoryRecord.getTransaction()).outcomes.increment(inventoryRecord.getOutcome());
                 }
                 if (!updatingSet.getInstanceToInstanceRelations().isEmpty()) {
-                    for (InstanceToInstanceRelation record : updatingSet.getInstanceToInstanceRelations()) {
-                        if (!record.getTransaction().equals(InventoryRecord.Transaction.NONE)) {
-                            if (record.getTransaction().equals(Transaction.UNKNOWN)) {
+                    for (InstanceToInstanceRelation instanceToInstanceRelation : updatingSet.getInstanceToInstanceRelations()) {
+                        if (!instanceToInstanceRelation.getTransaction().equals(InventoryRecord.Transaction.NONE)) {
+                            if (instanceToInstanceRelation.getTransaction().equals(Transaction.UNKNOWN)) {
                                 logger.debug("Cannot increment outcome for transaction UNKNOWN");
                             } else {
-                                metrics.entity(record.entityType()).transaction(record.getTransaction()).outcomes.increment(
-                                        record.getOutcome());
+                                metrics.entity(instanceToInstanceRelation.entityType()).transaction(instanceToInstanceRelation.getTransaction()).outcomes.increment(
+                                        instanceToInstanceRelation.getOutcome());
                               if (repository instanceof RepositoryByHrids) {
                                 Map<String, Instance> provisionalInstances = ((RepositoryByHrids) repository).provisionalInstancesByHrid;
-                                if (provisionalInstances.containsKey(record.getReferenceInstanceHrid()))
+                                if (provisionalInstances.containsKey(instanceToInstanceRelation.getReferenceInstanceHrid()))
                                 {
-                                  Instance provisional = provisionalInstances.get(record.getReferenceInstanceHrid());
-                                  ( (UpdateMetrics.InstanceRelationsMetrics) metrics.entity(record.entityType()) ).provisionalInstanceMetrics.increment(
+                                  Instance provisional = provisionalInstances.get(instanceToInstanceRelation.getReferenceInstanceHrid());
+                                  ( (UpdateMetrics.InstanceRelationsMetrics) metrics.entity(instanceToInstanceRelation.entityType()) ).provisionalInstanceMetrics.increment(
                                       provisional.getOutcome());
                                 }
                               }
@@ -420,22 +420,22 @@ public abstract class UpdatePlan {
             List<InventoryRecord> holdingsRecordsAndItemsInExistingSet = Stream.of(existingSet.getHoldingsRecords(),
                     existingSet.getItems()).flatMap(Collection::stream).collect(Collectors.toList());
 
-            for (InventoryRecord record : holdingsRecordsAndItemsInExistingSet) {
-                if (record.isDeleting()) {
-                    metrics.entity(record.entityType()).transaction(record.getTransaction()).outcomes.increment(record.getOutcome());
+            for (InventoryRecord inventoryRecord : holdingsRecordsAndItemsInExistingSet) {
+                if (inventoryRecord.isDeleting()) {
+                    metrics.entity(inventoryRecord.entityType()).transaction(inventoryRecord.getTransaction()).outcomes.increment(inventoryRecord.getOutcome());
                 }
             }
             if (!existingSet.getInstanceToInstanceRelations().isEmpty()) {
-                for (InstanceToInstanceRelation record : existingSet.getInstanceToInstanceRelations()) {
-                    if (!record.getTransaction().equals(InventoryRecord.Transaction.NONE)) {
-                        metrics.entity(record.entityType()).transaction(record.getTransaction()).outcomes.increment(
-                                record.getOutcome());
+                for (InstanceToInstanceRelation instanceToInstanceRelation : existingSet.getInstanceToInstanceRelations()) {
+                    if (!instanceToInstanceRelation.getTransaction().equals(InventoryRecord.Transaction.NONE)) {
+                        metrics.entity(instanceToInstanceRelation.entityType()).transaction(instanceToInstanceRelation.getTransaction()).outcomes.increment(
+                                instanceToInstanceRelation.getOutcome());
                         if (repository instanceof RepositoryByHrids) {
                           Map<String, Instance> provisionalInstances = ((RepositoryByHrids) repository).provisionalInstancesByHrid;
-                          if (provisionalInstances.containsKey(record.getReferenceInstanceHrid()))
+                          if (provisionalInstances.containsKey(instanceToInstanceRelation.getReferenceInstanceHrid()))
                           {
-                            Instance provisional = provisionalInstances.get(record.getReferenceInstanceHrid());
-                              ( (UpdateMetrics.InstanceRelationsMetrics) metrics.entity(record.entityType()) ).provisionalInstanceMetrics.increment(
+                            Instance provisional = provisionalInstances.get(instanceToInstanceRelation.getReferenceInstanceHrid());
+                              ( (UpdateMetrics.InstanceRelationsMetrics) metrics.entity(instanceToInstanceRelation.entityType()) ).provisionalInstanceMetrics.increment(
                                   provisional.getOutcome());
                           }
                         }

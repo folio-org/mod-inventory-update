@@ -37,8 +37,8 @@ public class HoldingsRecord extends InventoryRecord {
     }
 
     public void setItemsHoldingsRecordId (String uuid) {
-        for (Item record : items) {
-            record.setHoldingsRecordId(uuid);
+        for (Item item : items) {
+            item.setHoldingsRecordId(uuid);
         }
     }
 

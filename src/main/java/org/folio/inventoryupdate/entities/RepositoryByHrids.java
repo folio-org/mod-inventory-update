@@ -299,8 +299,8 @@ public class RepositoryByHrids extends Repository {
     List<String> hrids = new ArrayList<>();
     for (PairedRecordSets pair : pairsOfRecordSets) {
       List<HoldingsRecord> holdingsRecords = pair.getIncomingRecordSet().getHoldingsRecords();
-      for (HoldingsRecord record : holdingsRecords) {
-        hrids.add(record.getHRID());
+      for (HoldingsRecord holdingsRecord : holdingsRecords) {
+        hrids.add(holdingsRecord.getHRID());
       }
     }
     return hrids;
@@ -310,8 +310,8 @@ public class RepositoryByHrids extends Repository {
     List<String> hrids = new ArrayList<>();
     for (PairedRecordSets pair : pairsOfRecordSets) {
       List<Item> items = pair.getIncomingRecordSet().getItems();
-      for (Item record : items) {
-        hrids.add(record.getHRID());
+      for (Item item : items) {
+        hrids.add(item.getHRID());
       }
     }
     return hrids;

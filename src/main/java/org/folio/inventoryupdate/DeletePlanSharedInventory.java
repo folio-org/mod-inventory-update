@@ -114,8 +114,8 @@ public class DeletePlanSharedInventory extends DeletePlan {
     if (incomingSet != null) allHoldingsRecords.addAll(incomingSet.getHoldingsRecords());
     if (existingSet != null) allHoldingsRecords.addAll(existingSet.getHoldingsRecords());
     if (incomingSet != null) {
-      for (HoldingsRecord record : allHoldingsRecords) {
-        if (! (locationsToInstitutionsMap.containsKey(record.getPermanentLocationId()))) {
+      for (HoldingsRecord holdingsRecord : allHoldingsRecords) {
+        if (! (locationsToInstitutionsMap.containsKey(holdingsRecord.getPermanentLocationId()))) {
           missMappings = true;
           break;
         }

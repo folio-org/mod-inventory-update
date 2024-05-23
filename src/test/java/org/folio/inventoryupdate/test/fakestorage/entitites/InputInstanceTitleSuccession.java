@@ -8,22 +8,6 @@ public class InputInstanceTitleSuccession extends InventoryRecord {
     public static final String SUCCEEDING_INSTANCE_ID = "succeedingInstanceId";
     public static final String INSTANCE_IDENTIFIER = "instanceIdentifier";
 
-    public InputInstanceTitleSuccession(JsonObject record) {
-        super(record);
-    }
-
-    public InputInstanceTitleSuccession() {
-        super();
-    }
-
-    public String getPrecedingInstanceId () {
-        return recordJson.getString(PRECEDING_INSTANCE_ID);
-    }
-
-    public String getSucceedingInstanceId () {
-        return recordJson.getString(SUCCEEDING_INSTANCE_ID);
-    }
-
     public InputInstanceTitleSuccession setPrecedingInstanceId (String id) {
         recordJson.put(PRECEDING_INSTANCE_ID, id);
         return this;

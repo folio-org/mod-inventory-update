@@ -26,8 +26,8 @@ public class Instance extends InventoryRecord {
 
     public void replaceJson(JsonObject instance) {
         jsonRecord = instance;
-        for (HoldingsRecord record : holdingsRecords) {
-            record.setInstanceId(getUUID());
+        for (HoldingsRecord holdingsRecord : holdingsRecords) {
+            holdingsRecord.setInstanceId(getUUID());
         }
     }
 
@@ -67,8 +67,8 @@ public class Instance extends InventoryRecord {
     }
 
     public void setHoldingsRecordsInstanceId (String uuid) {
-        for (HoldingsRecord record : holdingsRecords) {
-            record.setInstanceId(uuid);
+        for (HoldingsRecord holdingsRecord : holdingsRecords) {
+            holdingsRecord.setInstanceId(uuid);
         }
     }
 

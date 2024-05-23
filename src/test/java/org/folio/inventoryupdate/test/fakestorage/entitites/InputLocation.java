@@ -13,10 +13,6 @@ public class InputLocation extends InventoryRecord {
         super();
     }
 
-    public InputLocation(JsonObject record) {
-        super(record);
-    }
-
     public InputLocation setId (String id) {
         recordJson.put(ID, id);
         return this;
@@ -24,11 +20,6 @@ public class InputLocation extends InventoryRecord {
 
     public InputLocation setName(String name) {
         recordJson.put(NAME, name);
-        return this;
-    }
-
-    public InputLocation setCode(String code) {
-        recordJson.put(CODE, code);
         return this;
     }
 

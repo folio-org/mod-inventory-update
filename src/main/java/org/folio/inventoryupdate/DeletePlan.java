@@ -153,24 +153,24 @@ public abstract class DeletePlan {
 
     if (foundExistingRecordSet()) {
       if (existingSet.getInstance().isDeleting()) {
-        InventoryRecord record = existingSet.getInstance();
-        metrics.entity(record.entityType()).transaction(record.getTransaction()).outcomes.increment(record.getOutcome());
+        InventoryRecord inventoryRecord = existingSet.getInstance();
+        metrics.entity(inventoryRecord.entityType()).transaction(inventoryRecord.getTransaction()).outcomes.increment(inventoryRecord.getOutcome());
       }
       List<InventoryRecord> holdingsRecordsAndItemsInExistingSet = Stream.of(
           existingSet.getHoldingsRecords(),
           existingSet.getItems()
       ).flatMap(Collection::stream).collect(Collectors.toList());
 
-      for (InventoryRecord record : holdingsRecordsAndItemsInExistingSet) {
-        if (record.isDeleting()) {
-          metrics.entity(record.entityType()).transaction(record.getTransaction()).outcomes.increment(record.getOutcome());
+      for (InventoryRecord inventoryRecord : holdingsRecordsAndItemsInExistingSet) {
+        if (inventoryRecord.isDeleting()) {
+          metrics.entity(inventoryRecord.entityType()).transaction(inventoryRecord.getTransaction()).outcomes.increment(inventoryRecord.getOutcome());
         }
       }
       if (! existingSet.getInstanceToInstanceRelations().isEmpty()) {
-        for ( InstanceToInstanceRelation record : existingSet.getInstanceToInstanceRelations() ) {
-          if ( !record.getTransaction().equals( InventoryRecord.Transaction.NONE ) ) {
-            metrics.entity( record.entityType() ).transaction( record.getTransaction() ).outcomes.increment(
-                record.getOutcome() );
+        for ( InstanceToInstanceRelation instanceToInstanceRelation : existingSet.getInstanceToInstanceRelations() ) {
+          if ( !instanceToInstanceRelation.getTransaction().equals( InventoryRecord.Transaction.NONE ) ) {
+            metrics.entity( instanceToInstanceRelation.entityType() ).transaction( instanceToInstanceRelation.getTransaction() ).outcomes.increment(
+                instanceToInstanceRelation.getOutcome() );
           }
         }
       }

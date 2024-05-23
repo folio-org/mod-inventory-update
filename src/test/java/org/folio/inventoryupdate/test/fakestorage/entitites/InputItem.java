@@ -9,15 +9,6 @@ public class InputItem extends InventoryRecord {
     public static String BARCODE = "barcode";
     public static String HOLDINGS_RECORD_ID = "holdingsRecordId";
 
-    public InputItem(JsonObject record) {
-        super(record);
-    }
-
-    public InputItem() {
-        super();
-        //setStatus("Unknown");
-    }
-
     public InputItem setHrid (String hrid) {
         recordJson.put(HRID,hrid);
         return this;

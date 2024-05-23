@@ -22,7 +22,7 @@ public abstract class DeletePlan {
   protected InventoryRecordSet existingSet = null;
   protected static final Logger logger = LoggerFactory.getLogger("inventory-update");
 
-  protected DeletePlan (InventoryQuery existingInstanceQuery) {
+  protected DeletePlan(InventoryQuery existingInstanceQuery) {
     this.instanceQuery = existingInstanceQuery;
   }
 
@@ -30,15 +30,15 @@ public abstract class DeletePlan {
 
   public abstract Future<Void> doInventoryDelete(OkapiClient client);
 
-  public boolean isInstanceDeleting () {
+  public boolean isInstanceDeleting() {
     return foundExistingRecordSet() && existingSet.getInstance().getTransaction() == InventoryRecord.Transaction.DELETE;
   }
 
-  public boolean foundExistingRecordSet () {
+  public boolean foundExistingRecordSet() {
     return existingSet != null;
   }
 
-  public InventoryRecordSet getExistingRecordSet () {
+  public InventoryRecordSet getExistingRecordSet() {
     return existingSet;
   }
 
@@ -46,19 +46,19 @@ public abstract class DeletePlan {
     return foundExistingRecordSet() ? existingSet.getInstance() : null;
   }
 
-  public List<Item> itemsToDelete () {
+  public List<Item> itemsToDelete() {
     return foundExistingRecordSet() ? existingSet.getItemsByTransactionType(InventoryRecord.Transaction.DELETE) : new ArrayList<>();
   }
 
-  public List<Item> itemsToSilentlyUpdate () {
+  public List<Item> itemsToSilentlyUpdate() {
     return foundExistingRecordSet() ? existingSet.getItemsForSilentUpdate() : new ArrayList<>();
   }
 
-  public List<HoldingsRecord> holdingsToDelete () {
+  public List<HoldingsRecord> holdingsToDelete() {
     return foundExistingRecordSet() ? existingSet.getHoldingsRecordsByTransactionType(InventoryRecord.Transaction.DELETE) : new ArrayList<>();
   }
 
-  public List<HoldingsRecord> holdingsRecordsToSilentlyUpdate () {
+  public List<HoldingsRecord> holdingsRecordsToSilentlyUpdate() {
     return foundExistingRecordSet() ? existingSet.getHoldingsRecordsForSilentUpdate() : new ArrayList<>();
   }
 
@@ -66,16 +66,15 @@ public abstract class DeletePlan {
     return foundExistingRecordSet() ? existingSet.getInstanceRelationsByTransactionType(InventoryRecord.Transaction.DELETE) : new ArrayList<>();
   }
 
-  protected Future<InventoryRecordSet> lookupExistingRecordSet (OkapiClient okapiClient, InventoryQuery instanceQuery) {
+  protected Future<InventoryRecordSet> lookupExistingRecordSet(OkapiClient okapiClient, InventoryQuery instanceQuery) {
     Promise<InventoryRecordSet> promise = Promise.promise();
-    InventoryStorage.lookupSingleInventoryRecordSet(okapiClient, instanceQuery).onComplete( recordSet -> {
+    InventoryStorage.lookupSingleInventoryRecordSet(okapiClient, instanceQuery).onComplete(recordSet -> {
       if (recordSet.succeeded()) {
         JsonObject existingInventoryRecordSetJson = recordSet.result();
         if (existingInventoryRecordSetJson != null) {
           promise.complete(InventoryRecordSet.makeExistingRecordSet(existingInventoryRecordSetJson));
-        } else
-        {
-          promise.complete( null );
+        } else {
+          promise.complete(null);
         }
       } else {
         promise.fail(recordSet.cause().getMessage());
@@ -90,9 +89,31 @@ public abstract class DeletePlan {
    */
   public Future<Void> handleSingleSetDelete(OkapiClient okapiClient) {
     Promise<Void> promise = Promise.promise();
+    Future.join(deleteRelationsAndItems(okapiClient)).onSuccess(
+        relationsItemsDone -> {
+          Future.join(deleteHoldingsRecords(okapiClient)).onSuccess(
+              holdingsDone -> {
+                if (isInstanceDeleting()) {
+                  if (getExistingInstance().skipped()) {
+                    InventoryStorage.putInventoryRecordOutcomeLess(okapiClient, getExistingInstance())
+                        .onSuccess(res -> promise.complete()).onFailure(promise::fail);
+                  } else {
+                    InventoryStorage.deleteInventoryRecord(okapiClient, getExistingRecordSet().getInstance())
+                        .onSuccess(res -> promise.complete()).onFailure(promise::fail);
+                  }
+                } else {
+                  promise.complete();
+                }
+              }
+          ).onFailure(promise::fail);
+        }).onFailure(promise::fail);
+    return promise.future();
+  }
+
+  List<Future<JsonObject>> deleteRelationsAndItems(OkapiClient okapiClient) {
     List<Future<JsonObject>> deleteRelationsDeleteItems = new ArrayList<>();
     for (InstanceToInstanceRelation relation : instanceRelationsToDelete()) {
-      deleteRelationsDeleteItems.add(InventoryStorage.deleteInventoryRecord(okapiClient,relation));
+      deleteRelationsDeleteItems.add(InventoryStorage.deleteInventoryRecord(okapiClient, relation));
     }
     for (Item item : itemsToDelete()) {
       deleteRelationsDeleteItems.add(InventoryStorage.deleteInventoryRecord(okapiClient, item));
@@ -100,53 +121,21 @@ public abstract class DeletePlan {
     for (Item item : itemsToSilentlyUpdate()) {
       deleteRelationsDeleteItems.add(InventoryStorage.putInventoryRecordOutcomeLess(okapiClient, item));
     }
-
-    Future.join(deleteRelationsDeleteItems).onComplete (allRelationshipsDoneAllItemsDone -> {
-      if (allRelationshipsDoneAllItemsDone.succeeded()) {
-        List<Future<JsonObject>> deleteHoldingsRecords = new ArrayList<>();
-        for (HoldingsRecord holdingsRecord : holdingsToDelete()) {
-          deleteHoldingsRecords.add(InventoryStorage.deleteInventoryRecord(okapiClient, holdingsRecord));
-        }
-        for (HoldingsRecord holdingsRecord : holdingsRecordsToSilentlyUpdate()) {
-          deleteHoldingsRecords.add(InventoryStorage.putInventoryRecordOutcomeLess(okapiClient, holdingsRecord));
-        }
-        Future.join(deleteHoldingsRecords).onComplete( allHoldingsDone -> {
-          if (allHoldingsDone.succeeded()) {
-            if (isInstanceDeleting()) {
-              if (getExistingInstance().skipped()) {
-                InventoryStorage.putInventoryRecordOutcomeLess(okapiClient, getExistingInstance()).onComplete(
-                    handler -> {
-                      if (handler.succeeded()) {
-                        promise.complete();
-                      } else {
-                        promise.fail(handler.cause().getMessage());
-                      }
-                    }
-                );
-              } else {
-                InventoryStorage.deleteInventoryRecord(okapiClient, getExistingRecordSet().getInstance()).onComplete( handler -> {
-                  if (handler.succeeded()) {
-                    promise.complete();
-                  } else {
-                    promise.fail(handler.cause().getMessage());
-                  }
-                });}
-            } else {
-              promise.complete();
-            }
-          } else {
-            promise.fail(allHoldingsDone.cause().getMessage());
-          }
-
-        });
-      } else {
-        promise.fail(allRelationshipsDoneAllItemsDone.cause().getMessage());
-      }
-    });
-    return promise.future();
+    return deleteRelationsDeleteItems;
   }
 
-  public JsonObject getUpdateStats () {
+  List<Future<JsonObject>> deleteHoldingsRecords(OkapiClient okapiClient) {
+    List<Future<JsonObject>> deleteHoldingsRecords = new ArrayList<>();
+    for (HoldingsRecord holdingsRecord : holdingsToDelete()) {
+      deleteHoldingsRecords.add(InventoryStorage.deleteInventoryRecord(okapiClient, holdingsRecord));
+    }
+    for (HoldingsRecord holdingsRecord : holdingsRecordsToSilentlyUpdate()) {
+      deleteHoldingsRecords.add(InventoryStorage.putInventoryRecordOutcomeLess(okapiClient, holdingsRecord));
+    }
+    return deleteHoldingsRecords;
+  }
+
+  public JsonObject getUpdateStats() {
     UpdateMetrics metrics = new UpdateMetrics();
 
     if (foundExistingRecordSet()) {
@@ -164,11 +153,11 @@ public abstract class DeletePlan {
           metrics.entity(inventoryRecord.entityType()).transaction(inventoryRecord.getTransaction()).outcomes.increment(inventoryRecord.getOutcome());
         }
       }
-      if (! existingSet.getInstanceToInstanceRelations().isEmpty()) {
-        for ( InstanceToInstanceRelation instanceToInstanceRelation : existingSet.getInstanceToInstanceRelations() ) {
-          if ( !instanceToInstanceRelation.getTransaction().equals( InventoryRecord.Transaction.NONE ) ) {
-            metrics.entity( instanceToInstanceRelation.entityType() ).transaction( instanceToInstanceRelation.getTransaction() ).outcomes.increment(
-                instanceToInstanceRelation.getOutcome() );
+      if (!existingSet.getInstanceToInstanceRelations().isEmpty()) {
+        for (InstanceToInstanceRelation instanceToInstanceRelation : existingSet.getInstanceToInstanceRelations()) {
+          if (!instanceToInstanceRelation.getTransaction().equals(InventoryRecord.Transaction.NONE)) {
+            metrics.entity(instanceToInstanceRelation.entityType()).transaction(instanceToInstanceRelation.getTransaction()).outcomes.increment(
+                instanceToInstanceRelation.getOutcome());
           }
         }
       }
@@ -177,7 +166,7 @@ public abstract class DeletePlan {
     return metrics.asJson();
   }
 
-  public JsonArray getErrors () {
+  public JsonArray getErrors() {
     return getExistingRecordSet().getErrors();
   }
 

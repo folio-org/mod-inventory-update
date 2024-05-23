@@ -3197,6 +3197,9 @@ public class InventoryUpdateTestSuite {
     JsonObject items = getRecordsFromStorage(ITEM_STORAGE_PATH,null);
     testContext.assertTrue(!items.getJsonArray("items").getJsonObject(0).containsKey("statisticalCodeIds"), "Item has no statistical codes");
     JsonObject instances = getRecordsFromStorage(INSTANCE_STORAGE_PATH,null);
+    JsonArray statisticalCodes = instances.getJsonArray("instances").getJsonObject(0)
+        .getJsonArray("statisticalCodeIds");
+    testContext.assertTrue(statisticalCodes!=null && !statisticalCodes.isEmpty(), "The instance has statistical codes set");
     testContext.assertTrue(instances.getJsonArray("instances").getJsonObject(0)
         .getJsonArray("statisticalCodeIds").contains("456"), "Instance has a statistical code '456' for delete skipped due to item status");
     testContext.assertTrue(instances.getJsonArray("instances").getJsonObject(0)
@@ -3254,6 +3257,10 @@ public class InventoryUpdateTestSuite {
     JsonObject items = getRecordsFromStorage(ITEM_STORAGE_PATH,null);
     testContext.assertTrue(!items.getJsonArray("items").getJsonObject(0).containsKey("statisticalCodeIds"), "Item has no statistical codes");
     JsonObject instances = getRecordsFromStorage(INSTANCE_STORAGE_PATH,null);
+
+    JsonArray statisticalCodes = instances.getJsonArray("instances").getJsonObject(0)
+        .getJsonArray("statisticalCodeIds");
+    testContext.assertTrue(statisticalCodes!=null && !statisticalCodes.isEmpty(), "The instance has statistical codes set");
     testContext.assertTrue(instances.getJsonArray("instances").getJsonObject(0)
         .getJsonArray("statisticalCodeIds").contains("123"), "Instance has a statistical code '123' for delete skipped due to PO line reference");
     testContext.assertEquals(instances.getJsonArray("instances").getJsonObject(0)
@@ -3299,6 +3306,9 @@ public class InventoryUpdateTestSuite {
                                 .put("if","deleteSkipped").put("becauseOf","ITEM_STATUS").put("setCode","456"))))));
 
     JsonObject items = getRecordsFromStorage(ITEM_STORAGE_PATH,null);
+    JsonArray statisticalCodes = items.getJsonArray("items").getJsonObject(0)
+        .getJsonArray("statisticalCodeIds");
+    testContext.assertTrue(statisticalCodes!=null && !statisticalCodes.isEmpty(), "The instance has statistical codes set");
     testContext.assertTrue(items.getJsonArray("items").getJsonObject(0)
         .getJsonArray("statisticalCodeIds").contains("123"), "Instance has a statistical code '123' for delete skipped due to item status");
     JsonObject instances = getRecordsFromStorage(INSTANCE_STORAGE_PATH,null);

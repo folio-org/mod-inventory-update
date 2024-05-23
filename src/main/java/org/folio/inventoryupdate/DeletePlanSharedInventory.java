@@ -15,7 +15,7 @@ import static org.folio.inventoryupdate.entities.InventoryRecordSet.*;
 public class DeletePlanSharedInventory extends DeletePlan {
   private RecordIdentifiers deletionIdentifiers;
   protected InventoryRecordSet updatingSet;
-  public static final Map<String,String> locationsToInstitutionsMap = new HashMap<>();
+  protected static final Map<String,String> locationsToInstitutionsMap = new HashMap<>();
 
   private DeletePlanSharedInventory(InventoryQuery existingInstanceQuery) {
     super(existingInstanceQuery);

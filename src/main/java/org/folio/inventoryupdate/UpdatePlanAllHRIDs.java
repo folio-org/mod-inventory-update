@@ -22,12 +22,6 @@ import static org.folio.inventoryupdate.entities.InventoryRecordSet.*;
 
 public class UpdatePlanAllHRIDs extends UpdatePlan {
 
-    /**
-     * Constructs deletion plane
-     */
-    public UpdatePlanAllHRIDs () {
-    }
-
     @Override
     public Repository getNewRepository() {
         return new RepositoryByHrids();

@@ -12,6 +12,11 @@
       "type": "string",
       "description": "the human readable ID, also called eye readable ID. A system-assigned sequential ID which maps to the Instance ID"
     },
+    "sourceId": {
+      "description": "(A reference to) the source of a holdings record",
+      "type": "string",
+      "$ref": "raml-util/schemas/uuid.schema"
+    },
     "holdingsTypeId": {
       "type": "string",
       "description": "unique ID for the type of this holdings record, a UUID",
@@ -260,6 +265,7 @@
   },
   "additionalProperties": false,
   "required": [
+    "sourceId",
     "instanceId",
     "permanentLocationId"
   ]

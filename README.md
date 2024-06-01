@@ -198,7 +198,9 @@ means that any existing relationships will be left untouched by the update reque
 #### Instance DELETE requests
 
 The API supports DELETE requests, which would delete the Instance with all of its associated holdings records and items
-and any relations it might have to other Instances.
+and any relations it might have to other Instances. 
+
+Note that deleting any relations that the Instance had to other instances only cuts those links between them but does not otherwise affect those other instances. 
 
 ##### Protecting certain items or holdings records from deletion in DELETE requests
 

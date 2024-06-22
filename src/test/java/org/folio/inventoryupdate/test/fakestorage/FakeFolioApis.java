@@ -18,6 +18,9 @@ public class FakeFolioApis {
     public static final String HOLDINGS_STORAGE_PATH = "/holdings-storage/holdings";
     public static final String ITEM_STORAGE_PATH = "/item-storage/items";
     public static final String LOCATION_STORAGE_PATH = "/locations";
+    public static final String MATERIAL_TYPE_STORAGE_PATH = "/material-types";
+    public static final String INSTANCE_TYPE_STORAGE_PATH = "/instance-types";
+    public static final String CLASSIFICATION_TYPE_STORAGE_PATH = "/classification-types";
 
     public static final String INSTANCE_STORAGE_BATCH_PATH = "/instance-storage/batch/synchronous";
     public static final String HOLDINGS_STORAGE_BATCH_PATH = "/holdings-storage/batch/synchronous";
@@ -36,11 +39,15 @@ public class FakeFolioApis {
     public ItemStorage itemStorage = new ItemStorage();
     public InstanceRelationshipStorage instanceRelationshipStorage = new InstanceRelationshipStorage();
     public PrecedingSucceedingStorage precedingSucceedingStorage = new PrecedingSucceedingStorage();
+    public MaterialTypeStorage materialTypeStorage = new MaterialTypeStorage();
+    public InstanceTypeStorage instanceTypeStorage = new InstanceTypeStorage();
 
     public OrdersStorage ordersStorage = new OrdersStorage();
 
     public FakeFolioApis(Vertx vertx, TestContext testContext) {
         locationStorage.attachToFakeStorage(this);
+        materialTypeStorage.attachToFakeStorage(this);
+        instanceTypeStorage.attachToFakeStorage(this);
         instanceStorage.attachToFakeStorage(this);
         instanceSetview.attachToFakeStorage(this);
         holdingsStorage.attachToFakeStorage(this);
@@ -52,6 +59,11 @@ public class FakeFolioApis {
         Router router = Router.router(vertx);
         router.get(LOCATION_STORAGE_PATH).handler(locationStorage::getRecords);
         router.get(LOCATION_STORAGE_PATH + "/:id").handler(locationStorage::getRecordById);
+        router.get(MATERIAL_TYPE_STORAGE_PATH).handler(materialTypeStorage::getRecords);
+        router.get(MATERIAL_TYPE_STORAGE_PATH + "/:id").handler(materialTypeStorage::getRecordById);
+        router.get(INSTANCE_TYPE_STORAGE_PATH).handler(instanceTypeStorage::getRecords);
+        router.get(INSTANCE_TYPE_STORAGE_PATH + "/:id").handler(instanceTypeStorage::getRecordById);
+
         router.get(INSTANCE_STORAGE_PATH).handler(instanceStorage::getRecords);
         router.get(INSTANCE_STORAGE_PATH + "/:id").handler(instanceStorage::getRecordById);
         router.get(INSTANCE_SET_PATH).handler(instanceSetview::getRecords);
@@ -67,6 +79,8 @@ public class FakeFolioApis {
         router.get(ORDER_LINES_STORAGE_PATH + "/:id").handler(ordersStorage::getRecordById);
         router.post("/*").handler(BodyHandler.create());
         router.post(LOCATION_STORAGE_PATH).handler(locationStorage::createRecord);
+        router.post(MATERIAL_TYPE_STORAGE_PATH).handler(materialTypeStorage::createRecord);
+        router.post(INSTANCE_TYPE_STORAGE_PATH).handler(instanceTypeStorage::createRecord);
         router.post(INSTANCE_STORAGE_PATH).handler(instanceStorage::createRecord);
         router.post(HOLDINGS_STORAGE_PATH).handler(holdingsStorage::createRecord);
         router.post(HOLDINGS_STORAGE_BATCH_PATH).handler(holdingsStorage::upsertRecords);
@@ -78,16 +92,23 @@ public class FakeFolioApis {
         router.post(ORDER_LINES_STORAGE_PATH).handler(ordersStorage::createRecord);
         router.put("/*").handler(BodyHandler.create());
         router.put(LOCATION_STORAGE_PATH + "/:id").handler(locationStorage::updateRecord);
+        router.put(MATERIAL_TYPE_STORAGE_PATH + "/:id").handler(materialTypeStorage::updateRecord);
+        router.put(INSTANCE_TYPE_STORAGE_PATH + "/:id").handler(instanceTypeStorage::updateRecord);
         router.put(INSTANCE_STORAGE_PATH + "/:id").handler(instanceStorage::updateRecord);
         router.put(HOLDINGS_STORAGE_PATH + "/:id").handler(holdingsStorage::updateRecord);
         router.put(ITEM_STORAGE_PATH + "/:id").handler(itemStorage::updateRecord);
         router.delete(LOCATION_STORAGE_PATH + "/:id").handler(locationStorage::deleteRecord);
+        router.delete(MATERIAL_TYPE_STORAGE_PATH + "/:id").handler(materialTypeStorage::deleteRecord);
+        router.delete(INSTANCE_TYPE_STORAGE_PATH + "/:id").handler(instanceTypeStorage::deleteRecord);
         router.delete(INSTANCE_STORAGE_PATH + "/:id").handler(instanceStorage::deleteRecord);
         router.delete(HOLDINGS_STORAGE_PATH + "/:id").handler(holdingsStorage::deleteRecord);
         router.delete(ITEM_STORAGE_PATH + "/:id").handler(itemStorage::deleteRecord);
         router.delete(INSTANCE_RELATIONSHIP_STORAGE_PATH + "/:id").handler(instanceRelationshipStorage::deleteRecord);
         router.delete(PRECEDING_SUCCEEDING_TITLE_STORAGE_PATH + "/:id").handler(precedingSucceedingStorage::deleteRecord);
         router.delete(LOCATION_STORAGE_PATH).handler(locationStorage::deleteAll);
+        router.delete(MATERIAL_TYPE_STORAGE_PATH).handler(materialTypeStorage::deleteAll);
+        router.delete(INSTANCE_TYPE_STORAGE_PATH).handler(instanceTypeStorage::deleteAll);
+
 
         HttpServerOptions so = new HttpServerOptions().setHandle100ContinueAutomatically(true);
         vertx.createHttpServer(so)

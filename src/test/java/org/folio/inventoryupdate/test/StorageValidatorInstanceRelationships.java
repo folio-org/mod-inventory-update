@@ -6,6 +6,7 @@ import org.folio.inventoryupdate.test.fakestorage.FakeFolioApis;
 import org.folio.inventoryupdate.test.fakestorage.entitites.InputInstance;
 import org.folio.inventoryupdate.test.fakestorage.entitites.InputInstanceRelationship;
 
+import static org.folio.inventoryupdate.test.InventoryUpdateTestSuite.INSTANCE_TYPE_ID_TEXT;
 import static org.folio.inventoryupdate.test.fakestorage.FakeFolioApis.*;
 import static org.folio.inventoryupdate.test.fakestorage.entitites.InputInstanceRelationship.*;
 
@@ -22,11 +23,11 @@ public class StorageValidatorInstanceRelationships {
     protected void createTwoTitles (TestContext testContext) {
         JsonObject responseOnPOSTChild = FakeFolioApis.post(
                 INSTANCE_STORAGE_PATH,
-                new InputInstance().setTitle("Child Instance").setInstanceTypeId("12345").setSource("test").getJson(), 201);
+                new InputInstance().setTitle("Child Instance").setInstanceTypeId(INSTANCE_TYPE_ID_TEXT).setSource("test").getJson(), 201);
         childInstanceId = responseOnPOSTChild.getString("id");
         JsonObject responseOnPOSTParent = FakeFolioApis.post(
                 INSTANCE_STORAGE_PATH,
-                new InputInstance().setTitle("Parent Instance").setInstanceTypeId("12345").setSource("test").getJson(), 201);
+                new InputInstance().setTitle("Parent Instance").setInstanceTypeId(INSTANCE_TYPE_ID_TEXT).setSource("test").getJson(), 201);
         parentInstanceId = responseOnPOSTParent.getString("id");
     }
 

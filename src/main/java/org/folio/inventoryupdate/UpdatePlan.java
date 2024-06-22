@@ -14,6 +14,7 @@ import io.vertx.ext.web.RoutingContext;
 import org.folio.inventoryupdate.entities.*;
 import org.folio.inventoryupdate.entities.InventoryRecord.Entity;
 import org.folio.inventoryupdate.entities.InventoryRecord.Transaction;
+import org.folio.inventoryupdate.referencemapping.ReferenceDataMappings;
 import org.folio.okapi.common.OkapiClient;
 
 import io.vertx.core.Future;
@@ -48,6 +49,7 @@ import static org.folio.inventoryupdate.InventoryUpdateOutcome.OK;
  */
 public abstract class UpdatePlan {
 
+    protected String tenant;
     protected static final Logger logger = LoggerFactory.getLogger("inventory-update");
     protected boolean isDeletion = false;
 
@@ -66,7 +68,9 @@ public abstract class UpdatePlan {
 
     public abstract Future<Void> doCreateInstanceRelations (OkapiClient okapiClient);
 
+
     public Future<InventoryUpdateOutcome> upsertBatch(RoutingContext routingContext, JsonArray inventoryRecordSets) {
+        this.tenant = ReferenceDataMappings.getTenant(routingContext);
         repository = getNewRepository();
         Promise<InventoryUpdateOutcome> promise = Promise.promise();
         RequestValidation validations = validateIncomingRecordSets (inventoryRecordSets);
@@ -232,13 +236,7 @@ public abstract class UpdatePlan {
       }
     }
 
-
-
-
-
     /* UPDATE METHODS */
-
-
     public Future<Void> doCreateRecordsWithDependants(OkapiClient okapiClient) {
         Promise<Void> promise = Promise.promise();
         doCreateNewInstances(okapiClient).onComplete(instances -> {

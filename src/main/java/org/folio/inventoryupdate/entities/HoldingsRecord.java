@@ -1,10 +1,14 @@
 package org.folio.inventoryupdate.entities;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
 import io.vertx.core.json.JsonObject;
+import org.folio.inventoryupdate.referencemapping.AlternateFKValues;
+import org.folio.inventoryupdate.referencemapping.ReferenceApi;
+import org.folio.inventoryupdate.referencemapping.ForeignKey;
 
 public class HoldingsRecord extends InventoryRecord {
 
@@ -98,6 +102,33 @@ public class HoldingsRecord extends InventoryRecord {
     if (recordRetention.isDeleteProtectedByPatternMatch(this)) {
       handleDeleteProtection(DeletionConstraint.HOLDINGS_RECORD_PATTERN_MATCH);
     }
+  }
+
+  // Support for alternate identifiers for reference record foreign keys
+  private static final ForeignKey HOLDINGS_NOTE_TYPE = new ForeignKey("holdingsNoteTypeId", "notes", ReferenceApi.HOLDINGS_NOTE_TYPES);
+  private static final ForeignKey HOLDINGS_SOURCE = new ForeignKey("sourceId", "", ReferenceApi.HOLDINGS_SOURCES);
+  private static final ForeignKey HOLDINGS_TYPE = new ForeignKey("holdingsTypeId", "", ReferenceApi.HOLDINGS_TYPES);
+  private static final ForeignKey CALL_NUMBER_TYPE = new ForeignKey("callNumberTypeId", "", ReferenceApi.CALL_NUMBER_TYPES);
+  private static final ForeignKey ILL_POLICY = new ForeignKey("illPolicyId", "", ReferenceApi.ILL_POLICIES);
+  private static final ForeignKey STATISTICAL_CODE = new ForeignKey("", "statisticalCodeIds", ReferenceApi.STATISTICAL_CODES);
+
+  public List<AlternateFKValues> getAlternateFKValues() {
+    List<AlternateFKValues> list = new ArrayList<>();
+    // Find alternate identifies embedded in arrays of objects
+    list.add(new AlternateFKValues(HOLDINGS_NOTE_TYPE.referencedApi(), getAltIdsFromArrayOfObjects(HOLDINGS_NOTE_TYPE.foreignKeyEmbeddedIn(),HOLDINGS_NOTE_TYPE.foreignKeyName())));
+    // Find alternate identifiers in arrays of strings
+    list.add(new AlternateFKValues(STATISTICAL_CODE.referencedApi(), getAltIdsFromArrayOfStrings(STATISTICAL_CODE.foreignKeyEmbeddedIn())));
+    for (ForeignKey rd : Arrays.asList(CALL_NUMBER_TYPE, HOLDINGS_SOURCE, ILL_POLICY, HOLDINGS_TYPE)) {
+      if (isNoUUID(asJson().getString(rd.foreignKeyName()))) {
+        list.add(new AlternateFKValues(rd.referencedApi(), asJson().getString(rd.foreignKeyName())));
+      }
+    }
+    return list;
+  }
+
+  @Override
+  public List<ForeignKey> getForeignKeys() {
+    return Arrays.asList(HOLDINGS_NOTE_TYPE, STATISTICAL_CODE, CALL_NUMBER_TYPE, HOLDINGS_SOURCE, ILL_POLICY, HOLDINGS_TYPE);
   }
 
 

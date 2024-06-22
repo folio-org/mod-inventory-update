@@ -7,6 +7,7 @@ import org.folio.inventoryupdate.test.fakestorage.RecordStorage;
 import org.folio.inventoryupdate.test.fakestorage.entitites.InputHoldingsRecord;
 import org.folio.inventoryupdate.test.fakestorage.entitites.InputInstance;
 
+import static org.folio.inventoryupdate.test.InventoryUpdateTestSuite.INSTANCE_TYPE_ID_TEXT;
 import static org.folio.inventoryupdate.test.fakestorage.FakeFolioApis.*;
 
 public class StorageValidatorHoldingsRecords {
@@ -29,7 +30,7 @@ public class StorageValidatorHoldingsRecords {
     protected void createDependencies() {
         JsonObject responseOnPOST = FakeFolioApis.post(
                 INSTANCE_STORAGE_PATH,
-                new InputInstance().setTitle(INSTANCE_TITLE).setInstanceTypeId("123").setSource("test").getJson());
+                new InputInstance().setTitle(INSTANCE_TITLE).setInstanceTypeId(INSTANCE_TYPE_ID_TEXT).setSource("test").getJson());
         existingInstanceId = responseOnPOST.getString("id");
     }
 

@@ -8,8 +8,7 @@ import org.folio.inventoryupdate.test.fakestorage.entitites.InputHoldingsRecord;
 import org.folio.inventoryupdate.test.fakestorage.entitites.InputInstance;
 import org.folio.inventoryupdate.test.fakestorage.entitites.InputItem;
 
-import static org.folio.inventoryupdate.test.InventoryUpdateTestSuite.MATERIAL_TYPE_TEXT;
-import static org.folio.inventoryupdate.test.InventoryUpdateTestSuite.STATUS_UNKNOWN;
+import static org.folio.inventoryupdate.test.InventoryUpdateTestSuite.*;
 import static org.folio.inventoryupdate.test.fakestorage.FakeFolioApis.*;
 
 public class StorageValidatorItems {
@@ -26,7 +25,7 @@ public class StorageValidatorItems {
     protected void createInstanceAndHoldings(TestContext testContext) {
         JsonObject responseOnInstancePOST = FakeFolioApis.post(
                 INSTANCE_STORAGE_PATH,
-                new InputInstance().setTitle("Instance for Item test").setInstanceTypeId("123").setSource("test").getJson());
+                new InputInstance().setTitle("Instance for Item test").setInstanceTypeId(INSTANCE_TYPE_ID_TEXT).setSource("test").getJson());
         String existingInstanceId = responseOnInstancePOST.getString("id");
         JsonObject responseOnHoldingsPOST = FakeFolioApis.post(
                 HOLDINGS_STORAGE_PATH,
@@ -39,7 +38,7 @@ public class StorageValidatorItems {
                 ITEM_STORAGE_PATH,
                 new InputItem().setHoldingsRecordId(existingHoldingsRecordId).setBarcode("bc-001")
                         .setStatus(STATUS_UNKNOWN)
-                        .setMaterialTypeId(MATERIAL_TYPE_TEXT)
+                        .setMaterialTypeId(MATERIAL_TYPE_ID_TEXT)
                         .getJson());
         testContext.assertEquals(responseOnPOST.getString("barcode"), "bc-001");
         JsonObject responseOnGET = FakeFolioApis.getRecordById(ITEM_STORAGE_PATH, responseOnPOST.getString("id"));
@@ -64,7 +63,7 @@ public class StorageValidatorItems {
                 ITEM_STORAGE_PATH,
                 new InputItem()
                         .setStatus(STATUS_UNKNOWN)
-                        .setMaterialTypeId(MATERIAL_TYPE_TEXT)
+                        .setMaterialTypeId(MATERIAL_TYPE_ID_TEXT)
                         .setBarcode("TEST-BC").setHoldingsRecordId(existingHoldingsRecordId).getJson());
         testContext.assertEquals(responseOnPOST.getString("barcode"), "TEST-BC");
         FakeFolioApis.delete(ITEM_STORAGE_PATH, responseOnPOST.getString("id"),200);
@@ -75,7 +74,7 @@ public class StorageValidatorItems {
                 ITEM_STORAGE_PATH,
                 new InputItem()
                         .setStatus(STATUS_UNKNOWN)
-                        .setMaterialTypeId(MATERIAL_TYPE_TEXT)
+                        .setMaterialTypeId(MATERIAL_TYPE_ID_TEXT)
                         .setHoldingsRecordId("12345").setBarcode("bc-003").getJson(),
                 500);
         JsonObject responseJson = FakeFolioApis.getRecordsByQuery(

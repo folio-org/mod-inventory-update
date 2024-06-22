@@ -22,6 +22,8 @@ public abstract class RecordStorage {
     public static final String INSTANCE_RELATIONSHIPS = "instanceRelationships";
     public static final String PRECEDING_SUCCEEDING_TITLES = "precedingSucceedingTitles";
     public static final String LOCATIONS = "locations";
+    public static final String MATERIAL_TYPES = "mtypes";
+    public static final String INSTANCE_TYPES = "instanceTypes";
     public static final String PO_LINES = "poLines";
 
     public final String STORAGE_NAME = getClass().getSimpleName();

@@ -5,6 +5,8 @@ import io.vertx.ext.unit.TestContext;
 import org.folio.inventoryupdate.test.fakestorage.FakeFolioApis;
 import org.folio.inventoryupdate.test.fakestorage.entitites.InputInstance;
 import org.folio.inventoryupdate.test.fakestorage.entitites.InputInstanceTitleSuccession;
+
+import static org.folio.inventoryupdate.test.InventoryUpdateTestSuite.INSTANCE_TYPE_ID_TEXT;
 import static org.folio.inventoryupdate.test.fakestorage.entitites.InputInstanceTitleSuccession.*;
 import static org.folio.inventoryupdate.test.fakestorage.FakeFolioApis.*;
 
@@ -19,11 +21,11 @@ public class StorageValidatorPrecedingSucceeding  {
     protected void createTwoTitles (TestContext testContext) {
         JsonObject responseOnPOSTSucceeding = FakeFolioApis.post(
                 INSTANCE_STORAGE_PATH,
-                new InputInstance().setTitle("Succeeding title").setInstanceTypeId("12345").setSource("test").getJson(), 201);
+                new InputInstance().setTitle("Succeeding title").setInstanceTypeId(INSTANCE_TYPE_ID_TEXT).setSource("test").getJson(), 201);
         succeedingInstanceId = responseOnPOSTSucceeding.getString("id");
         JsonObject responseOnPOSTPreceding = FakeFolioApis.post(
                 INSTANCE_STORAGE_PATH,
-                new InputInstance().setTitle("Preceding title").setInstanceTypeId("12345").setSource("test").getJson(), 201);
+                new InputInstance().setTitle("Preceding title").setInstanceTypeId(INSTANCE_TYPE_ID_TEXT).setSource("test").getJson(), 201);
         precedingInstanceId = responseOnPOSTPreceding.getString("id");
     }
 

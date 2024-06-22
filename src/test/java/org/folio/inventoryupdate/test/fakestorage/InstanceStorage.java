@@ -1,5 +1,7 @@
 package org.folio.inventoryupdate.test.fakestorage;
 
+import org.folio.inventoryupdate.test.fakestorage.entitites.InputInstance;
+
 public class InstanceStorage extends RecordStorage {
 
     public String getResultSetName() {
@@ -8,7 +10,7 @@ public class InstanceStorage extends RecordStorage {
 
     @Override
     protected void declareDependencies() {
-        // Instances have none in fake storage
+      fakeStorage.instanceTypeStorage.acceptDependant(this, InputInstance.INSTANCE_TYPE_ID);
     }
 
     @Override

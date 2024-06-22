@@ -203,7 +203,10 @@ public class UpdatePlanAllHRIDs extends UpdatePlan {
                 }
                 // Updates, deletes
                 Instance existingInstance = pair.getExistingRecordSet().getInstance();
-                incomingInstance.setTransition(UPDATE).applyOverlays(existingInstance, rules.forInstance());
+                incomingInstance
+                    .setTransition(UPDATE)
+                    .mapReferenceNamesToUuids(tenant)
+                    .applyOverlays(existingInstance, rules.forInstance());
                 if (!incomingInstance.ignoreHoldings()) {
                     // If a record set came in with a list of holdings records (even if it was an empty list)
                     for (HoldingsRecord existingHoldingsRecord : existingInstance.getHoldingsRecords()) {
@@ -215,8 +218,10 @@ public class UpdatePlanAllHRIDs extends UpdatePlan {
                           planToDeleteOrRetainHoldingsRecord(existingHoldingsRecord, rules);
                         } else {
                             // There is an existing holdings record with the same HRID on the same Instance
-                            incomingHoldingsRecord.setTransition(UPDATE)
-                               .applyOverlays(existingHoldingsRecord, rules.forHoldingsRecord());
+                            incomingHoldingsRecord
+                                .setTransition(UPDATE)
+                                .mapReferenceNamesToUuids(tenant)
+                                .applyOverlays(existingHoldingsRecord, rules.forHoldingsRecord());
                         }
                         for (Item existingItem : existingHoldingsRecord.getItems()) {
                             Item incomingItem = pair.getIncomingRecordSet().getItemByHRID(existingItem.getHRID());
@@ -226,14 +231,19 @@ public class UpdatePlanAllHRIDs extends UpdatePlan {
                             } else {
                                 // Existing Item still exists in incoming record (possibly under a
                                 // different holdings record)
-                                incomingItem.setTransition(UPDATE);
-                                incomingItem.applyOverlays(existingItem, rules.forItem());
+                                incomingItem
+                                    .setTransition(UPDATE)
+                                    .mapReferenceNamesToUuids(tenant)
+                                    .applyOverlays(existingItem, rules.forItem());
                             }
                         }
                     }
                 }
             } else {
-                incomingInstance.setTransition(CREATE).generateUUIDIfNotProvided();
+                incomingInstance
+                    .setTransition(CREATE)
+                    .mapReferenceNamesToUuids(tenant)
+                    .generateUUIDIfNotProvided();
             }
             // Remaining holdings and item transactions: Creates, imports from other Instance(s)
             // Find incoming holdings we didn't already resolve above
@@ -254,11 +264,15 @@ public class UpdatePlanAllHRIDs extends UpdatePlan {
     if (repository.existingItemsByHrid.containsKey(item.getHRID())) {
         // Import from different Instance
         Item existing = repository.existingItemsByHrid.get(item.getHRID());
-        item.setTransition(UPDATE);
-        item.applyOverlays(existing, rules.forItem());
+        item.setTransition(UPDATE)
+            .mapReferenceNamesToUuids(tenant)
+            .applyOverlays(existing, rules.forItem());
     } else {
         // The HRID does not exist in Inventory, create
-        item.setTransition(CREATE).generateUUIDIfNotProvided();
+        item
+            .setTransition(CREATE)
+            .mapReferenceNamesToUuids(tenant)
+            .generateUUIDIfNotProvided();
     }
   }
 
@@ -266,10 +280,16 @@ public class UpdatePlanAllHRIDs extends UpdatePlan {
     if (repository.existingHoldingsRecordsByHrid.containsKey(holdingsRecord.getHRID())) {
         // Import from different Instance
         HoldingsRecord existing = repository.existingHoldingsRecordsByHrid.get(holdingsRecord.getHRID());
-        holdingsRecord.setTransition(UPDATE).applyOverlays(existing, rules.forHoldingsRecord());
+        holdingsRecord
+            .setTransition(UPDATE)
+            .mapReferenceNamesToUuids(tenant)
+            .applyOverlays(existing, rules.forHoldingsRecord());
     } else {
         // The HRID does not exist in Inventory, create
-        holdingsRecord.setTransition(CREATE).generateUUIDIfNotProvided();
+        holdingsRecord
+            .setTransition(CREATE)
+            .mapReferenceNamesToUuids(tenant)
+            .generateUUIDIfNotProvided();
     }
   }
 

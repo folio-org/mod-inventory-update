@@ -1,8 +1,8 @@
 package org.folio.inventoryupdate.entities;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.UUID;
+import java.util.*;
+import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 import io.vertx.core.impl.logging.Logger;
 import io.vertx.core.impl.logging.LoggerFactory;
@@ -13,6 +13,9 @@ import org.folio.inventoryupdate.ErrorReport;
 import org.folio.inventoryupdate.instructions.ProcessingInstructionsUpsert;
 import org.folio.inventoryupdate.instructions.RecordRetention;
 import org.folio.inventoryupdate.instructions.StatisticalCoding;
+import org.folio.inventoryupdate.referencemapping.AlternateFKValues;
+import org.folio.inventoryupdate.referencemapping.ForeignKey;
+import org.folio.inventoryupdate.referencemapping.ReferenceDataMappings;
 
 import static org.folio.inventoryupdate.ErrorReport.UNPROCESSABLE_ENTITY;
 
@@ -217,7 +220,8 @@ public abstract class InventoryRecord {
       }
     }
 
-    public JsonObject asJson() {
+
+  public JsonObject asJson() {
         return jsonRecord;
     }
 
@@ -292,8 +296,7 @@ public abstract class InventoryRecord {
 
     protected String findShortMessage (Object inventoryMessage) {
         String shortMessage;
-        if (inventoryMessage instanceof JsonObject) {
-            JsonObject jsonFormattedError = (JsonObject)inventoryMessage;
+        if (inventoryMessage instanceof JsonObject jsonFormattedError) {
             if (jsonFormattedError.containsKey(ERRORS) && jsonFormattedError.getValue(ERRORS) instanceof JsonArray) {
                 // Looks like FOLIO json schema validation error
                 shortMessage = getMessageFromFolioSchemaValidationError(jsonFormattedError);
@@ -357,5 +360,106 @@ public abstract class InventoryRecord {
                 return null;
         }
     }
+
+    // Finding alternate IDs (codes, names) in UUID fields, and map them to UUIDs
+    // Replacing alternate IDs with UUID
+
+    public List<AlternateFKValues> getAlternateFKValues() {
+      return new ArrayList<>();
+    }
+
+    protected Set<String> getAltIdsFromArrayOfObjects(String arrayName, String key) {
+      JsonArray arr = asJson().getJsonArray(arrayName);
+      if (arr == null || arr.isEmpty()) {
+        return new TreeSet<>();
+      } else {
+        return arr.stream()
+            .map(o -> (JsonObject) o)
+            .map(o -> o.getString(key))
+            .filter(Instance::isNoUUID)
+            .collect(Collectors.toSet());
+      }
+    }
+
+    protected Set<String> getAltIdsFromArrayOfStrings(String arrayName) {
+      JsonArray arr = asJson().getJsonArray(arrayName);
+      if (arr == null || arr.isEmpty()) {
+        return new TreeSet<>();
+      } else {
+        return asJson().getJsonArray(arrayName)
+            .stream()
+            .map(Object::toString)
+            .filter(Instance::isNoUUID)
+            .collect(Collectors.toSet());
+      }
+    }
+
+    public abstract List<ForeignKey> getForeignKeys ();
+
+  public InventoryRecord mapReferenceNamesToUuids(String tenant) {
+    if (ReferenceDataMappings.hasMappings(tenant)) {
+      for (ForeignKey fk : getForeignKeys()) {
+        replaceAltKeysWithUuids(tenant, fk);
+      }
+    }
+    return this;
+  }
+
+  private void replaceAltKeysWithUuids(String tenant, ForeignKey fk) {
+    if (fk.foreignKeyEmbeddedIn().isEmpty()) {
+      // FK reference is simple property in root of the entity
+      replaceAltKeyWithUuid(tenant, asJson(), fk);
+    } else {
+      if (asJson().containsKey(fk.foreignKeyEmbeddedIn())) {
+        // If present, FK reference is in an object or array in the entity
+        Object fkValueContainer = asJson().getValue(fk.foreignKeyEmbeddedIn());
+        if (fkValueContainer instanceof JsonArray) {
+          JsonArray fkValueContainerArray = asJson().getJsonArray(fk.foreignKeyEmbeddedIn());
+          for (int i=0; i<fkValueContainerArray.size(); i++) {
+            if (fkValueContainerArray.getValue(i) instanceof String) {
+              // Array of strings
+              String value = fkValueContainerArray.getString(i);
+              if (isNoUUID(value)) {
+                String uuid = ReferenceDataMappings.getCachedUuidByAlternateKeyValue(tenant, fk.referencedApi(), value);
+                if (uuid != null && !uuid.isEmpty()) {
+                  fkValueContainerArray.set(i, uuid);
+                }
+              }
+            } else if (fkValueContainerArray.getValue(i) instanceof JsonObject) {
+              // Array of objects
+              replaceAltKeyWithUuid(tenant, fkValueContainerArray.getJsonObject(i), fk);
+            }
+          }
+        }
+      }
+    }
+  }
+
+  private void replaceAltKeyWithUuid(String tenant, JsonObject json, ForeignKey fk) {
+    if (json.containsKey(fk.foreignKeyName())) {
+      String value = json.getString(fk.foreignKeyName());
+      if (isNoUUID(value)) {
+        String uuid = ReferenceDataMappings.getCachedUuidByAlternateKeyValue(tenant, fk.referencedApi(), value);
+        if (uuid != null && !uuid.isEmpty()) {
+          json.put(fk.foreignKeyName(), uuid);
+        } else {
+          logger.error("Uuid for " + value + " not found in cache");
+        }
+      }
+    }
+  }
+
+
+  protected static final Pattern UUID_REGEX =
+        Pattern.compile("^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$");
+
+    /**
+     * @param value identifier to check
+     * @return true if Value is not null, not empty, and not a UUID
+     */
+    protected static boolean isNoUUID(String value) {
+      return value != null && !value.isEmpty() && !UUID_REGEX.matcher(value).matches();
+    }
+
 
 }

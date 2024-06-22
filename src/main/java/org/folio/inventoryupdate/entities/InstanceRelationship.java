@@ -1,6 +1,9 @@
 package org.folio.inventoryupdate.entities;
 
 import io.vertx.core.json.JsonObject;
+import org.folio.inventoryupdate.referencemapping.ForeignKey;
+
+import java.util.List;
 
 public class InstanceRelationship extends InstanceToInstanceRelation {
 
@@ -75,7 +78,12 @@ public class InstanceRelationship extends InstanceToInstanceRelation {
         // relationships have no dependants in the database
     }
 
-    @Override
+  @Override
+  public List<ForeignKey> getForeignKeys() {
+    return null;
+  }
+
+  @Override
     public boolean equals (Object o) {
         if (o instanceof InstanceRelationship other) {
             return other.toString().equals(this.toString());

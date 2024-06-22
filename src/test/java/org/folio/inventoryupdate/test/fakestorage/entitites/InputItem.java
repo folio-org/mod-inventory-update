@@ -8,6 +8,7 @@ public class InputItem extends InventoryRecord {
     public static String HRID = "hrid";
     public static String BARCODE = "barcode";
     public static String HOLDINGS_RECORD_ID = "holdingsRecordId";
+    public static String MATERIAL_TYPE_ID = "materialTypeId";
 
     public InputItem setHrid (String hrid) {
         recordJson.put(HRID,hrid);
@@ -31,7 +32,7 @@ public class InputItem extends InventoryRecord {
     }
 
     public InputItem setMaterialTypeId (String materialTypeId) {
-        recordJson.put("materialTypeId", materialTypeId);
+        recordJson.put(MATERIAL_TYPE_ID, materialTypeId);
         return this;
     }
 

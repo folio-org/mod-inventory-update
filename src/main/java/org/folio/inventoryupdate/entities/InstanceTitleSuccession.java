@@ -3,6 +3,9 @@ package org.folio.inventoryupdate.entities;
 import io.vertx.core.impl.logging.Logger;
 import io.vertx.core.impl.logging.LoggerFactory;
 import io.vertx.core.json.JsonObject;
+import org.folio.inventoryupdate.referencemapping.ForeignKey;
+
+import java.util.List;
 
 public class InstanceTitleSuccession extends InstanceToInstanceRelation {
 
@@ -61,7 +64,12 @@ public class InstanceTitleSuccession extends InstanceToInstanceRelation {
         // relations have no dependants
     }
 
-    @Override
+  @Override
+  public List<ForeignKey> getForeignKeys() {
+    return null;
+  }
+
+  @Override
     public boolean equals (Object o) {
         if (o instanceof InstanceTitleSuccession other) {
             return other.toString().equals(this.toString());
@@ -76,9 +84,8 @@ public class InstanceTitleSuccession extends InstanceToInstanceRelation {
     }
 
     public String toString () {
-        String str = "// Preceding: " + jsonRecord.getString(PRECEDING_INSTANCE_ID) +
+        return "// Preceding: " + jsonRecord.getString(PRECEDING_INSTANCE_ID) +
                 " Succeeding: " + jsonRecord.getString(SUCCEEDING_INSTANCE_ID);
-        return str;
     }
 
 }

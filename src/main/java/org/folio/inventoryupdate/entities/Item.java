@@ -85,6 +85,7 @@ public class Item extends InventoryRecord {
   }
 
 
+  // Alternate foreign key resolution (supporting use of codes or names instead of UUIDs in input)
   private static final ForeignKey ITEM_NOTE_TYPE = new ForeignKey("itemNoteTypeId", "notes", ReferenceApi.ITEM_NOTE_TYPES);
   private static final ForeignKey ITEM_DAMAGED_STATUS = new ForeignKey("itemDamagedStatusId", "",ReferenceApi.ITEM_DAMAGED_STATUSES);
   private static final ForeignKey PERMANENT_LOAN_TYPE = new ForeignKey("permanentLoanTypeId", "", ReferenceApi.LOAN_TYPES);

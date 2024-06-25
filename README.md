@@ -57,7 +57,7 @@ holdingsRecord, with the input JSON it receives from the client, except for the 
 The default behavior can be changed per request using structures
 in [`processing`](ramls/instructions/processing-upsert.json).
 
-##### Prevent MIU from override existing values
+##### Prevent MIU from overriding existing values
 
 MIU can be instructed to leave certain properties in place when updating Instances, holdings records, and Items.
 
@@ -119,6 +119,74 @@ processing": {
 ```
 
 The default behavior is to overwrite all statuses.
+
+##### Support for codes or names instead of UUIDs in reference data references in input data
+
+UUIDs are generally used for primary keys and foreign keys in inventory storage, and inventory storage thus expects UUID in instance, holdings and item records to indicate controlled list values like material types, identifier types, contributor types etc.
+
+MIU supports using values of an alternate key in reference tables. Some controlled lists have a `code` property to use as an alternate key, for example `/contributor-types` and `/instance-formats`, while most controlled list have an unique `name` property that can be used.
+
+MIU will use the `code` if available and otherwise the `name`.
+
+The names or codes are put in the UUID fields and mapped to UUID on the fly, for example:
+
+```
+{
+  "instance": {
+    "title": "a title for the instance"
+    "instanceTypeId": "txt",  <--
+    "identifiers": [
+      {
+        "value": "0747-0088",
+        "identifierTypeId": "LCCN"  <--
+      }
+    ],
+    "instanceFormatsIds": ["gf", "nn", "cd"]  <--
+  }
+}
+```
+
+###### Controlled lists used by instance records
+
+| Reference API                    | Alternate key |
+|----------------------------------|---------------|
+| /alternative-title-types         | name          |
+| /classification-types            | name          |
+| /contributor-name-types          | name          |
+| /contributor-types               | code          |
+| /electronic-access-relationships | name          |
+| /identifier-types                | name          |
+| /instance-formats                | code          |
+| /instance-note-types             | name          |
+| /instance-statuses               | code          |
+| /instance-types                  | code          |
+| /modes-of-issuance               | name          |
+| /nature-of-content-terms         | name          |
+| /statistical-codes               | code          |
+
+###### Controlled lists used by holdings record
+
+| Reference API                    | Alternate key |
+|----------------------------------|---------------|
+| /call-number-types               | name          |
+| /electronic-access-relationships | name          |
+| /holdings-note-types             | name          |
+| /holdings-sources                | name          |
+| /holdings-types                  | name          |
+| /ill-policies                    | name          |
+| /statistical-codes               | code          |
+
+###### Controlled lists used by item records
+
+| Reference API                    | Alternate key |
+|----------------------------------|---------------|
+| /item-damaged-statuses           | name          |
+| /item-note-types                 | name          |
+| /loan-types                      | name          |
+| /material-types                  | name          |
+| /electronic-access-relationships | name          |
+| /statistical-codes               | code          |
+
 
 ##### Instruct MIU to avoid deleting items even though they are missing from the input
 
@@ -198,9 +266,9 @@ means that any existing relationships will be left untouched by the update reque
 #### Instance DELETE requests
 
 The API supports DELETE requests, which would delete the Instance with all of its associated holdings records and items
-and any relations it might have to other Instances. 
+and any relations it might have to other Instances.
 
-Note that deleting any relations that the Instance had to other instances only cuts those links between them but does not otherwise affect those other instances. 
+Note that deleting any relations that the Instance had to other instances only cuts those links between them but does not otherwise affect those other instances.
 
 ##### Protecting certain items or holdings records from deletion in DELETE requests
 

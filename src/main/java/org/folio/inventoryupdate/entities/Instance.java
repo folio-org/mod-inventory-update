@@ -39,7 +39,6 @@ public class Instance extends InventoryRecord {
     setHoldingsRecordsInstanceId(uuid);
   }
 
-
   @Override
   public void prepareCheckedDeletion() {
   }
@@ -117,18 +116,20 @@ public class Instance extends InventoryRecord {
   private static final ForeignKey NATURE_OF_CONTENT_TERM = new ForeignKey("", "natureOfContentTermIds", ReferenceApi.NATURE_OF_CONTENT_TERMS);
   private static final ForeignKey STATISTICAL_CODE = new ForeignKey("", "statisticalCodeIds", ReferenceApi.STATISTICAL_CODES);
 
-  public List<AlternateFKValues> getAlternateFKValues() {
+  public List<AlternateFKValues> findAlternateFKValues() {
     List<AlternateFKValues> list = new ArrayList<>();
-    // Find alternate identifies embedded in arrays of objects
+    // Find alternate identifiers embedded in arrays of objects
     for (ForeignKey rd : Arrays.asList(
         ALTERNATIVE_TITLE_TYPE, CLASSIFICATION_TYPE, CONTRIBUTOR_TYPE, CONTRIBUTOR_NAME_TYPE, ELECTRONIC_ACCESS_RELATIONSHIP,
         IDENTIFIER_TYPE, INSTANCE_NOTE_TYPE)) {
       list.add(new AlternateFKValues(rd.referencedApi(),
           getAltIdsFromArrayOfObjects(rd.foreignKeyEmbeddedIn(), rd.foreignKeyName())));
     }
+    // ... in arrays of strings
     for (ForeignKey rd : Arrays.asList(INSTANCE_FORMAT, NATURE_OF_CONTENT_TERM, STATISTICAL_CODE)) {
       list.add(new AlternateFKValues(rd.referencedApi(), getAltIdsFromArrayOfStrings(rd.foreignKeyEmbeddedIn())));
     }
+    // ... in top level properties
     for (ForeignKey rd : Arrays.asList(INSTANCE_STATUS, INSTANCE_TYPE, MODE_OF_ISSUANCE)) {
       if (isNoUUID(asJson().getString(rd.foreignKeyName()))) {
         list.add(new AlternateFKValues(rd.referencedApi(), asJson().getString(rd.foreignKeyName())));

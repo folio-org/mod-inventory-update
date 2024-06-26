@@ -81,7 +81,7 @@ public class ReferenceDataMappings {
   }
 
   private static void accumulateDistinctAlternateFKValues(Map<String, AlternateFKValues> accumulatedList, InventoryRecord entity) {
-    for (AlternateFKValues altValues : entity.getAlternateFKValues()) {
+    for (AlternateFKValues altValues : entity.findAlternateFKValues()) {
       if (accumulatedList.containsKey(altValues.api.getPath())) {
         accumulatedList.get(altValues.api.getPath()).addAlternateIds(altValues.alternateIds);
       } else {

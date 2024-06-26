@@ -113,7 +113,7 @@ public class HoldingsRecord extends InventoryRecord {
   private static final ForeignKey ILL_POLICY = new ForeignKey("illPolicyId", "", ReferenceApi.ILL_POLICIES);
   private static final ForeignKey STATISTICAL_CODE = new ForeignKey("", "statisticalCodeIds", ReferenceApi.STATISTICAL_CODES);
 
-  public List<AlternateFKValues> getAlternateFKValues() {
+  public List<AlternateFKValues> findAlternateFKValues() {
     List<AlternateFKValues> list = new ArrayList<>();
     // Find alternate identifies embedded in arrays of objects
     list.add(new AlternateFKValues(HOLDINGS_NOTE_TYPE.referencedApi(), getAltIdsFromArrayOfObjects(HOLDINGS_NOTE_TYPE.foreignKeyEmbeddedIn(), HOLDINGS_NOTE_TYPE.foreignKeyName())));

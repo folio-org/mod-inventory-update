@@ -48,8 +48,9 @@ public class RepositoryByHrids extends Repository {
     for (List<String> idList : getSubListsOfFifty(getIncomingReferencedInstanceIds())) {
       existingRecordsByHridsFutures.add(requestReferencedInstancesByUUIDs(routingContext, idList));
     }
+    //todo time this call
     existingRecordsByHridsFutures.addAll(ReferenceDataMappings.createReferenceDataLookupFutures(routingContext, pairsOfRecordSets));
-
+//
     return GenericCompositeFuture.join(existingRecordsByHridsFutures)
         .onSuccess(x -> setExistingRecordSets())
         .mapEmpty();

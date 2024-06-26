@@ -93,7 +93,7 @@ public class Item extends InventoryRecord {
   private static final ForeignKey MATERIAL_TYPE = new ForeignKey("materialTypeId", "", ReferenceApi.MATERIAL_TYPES);
   private static final ForeignKey STATISTICAL_CODE = new ForeignKey("", "statisticalCodeIds", ReferenceApi.STATISTICAL_CODES);
 
-  public List<AlternateFKValues> getAlternateFKValues() {
+  public List<AlternateFKValues> findAlternateFKValues() {
     List<AlternateFKValues> list = new ArrayList<>();
     // Find alternate identifies embedded in arrays of objects
     list.add(new AlternateFKValues(ITEM_NOTE_TYPE.referencedApi(), getAltIdsFromArrayOfObjects(ITEM_NOTE_TYPE.foreignKeyEmbeddedIn(), ITEM_NOTE_TYPE.foreignKeyName())));

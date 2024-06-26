@@ -365,7 +365,7 @@ public abstract class InventoryRecord {
   // (1) Finding alternate IDs (codes, names) in UUID fields in the entity, and map them to UUIDs
   // (2) Replacing alternate IDs with UUID
 
-  public List<AlternateFKValues> getAlternateFKValues() {
+  public List<AlternateFKValues> findAlternateFKValues() {
     return new ArrayList<>();
   }
 

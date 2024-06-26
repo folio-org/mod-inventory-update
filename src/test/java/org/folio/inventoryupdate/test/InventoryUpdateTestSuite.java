@@ -73,6 +73,7 @@ public class InventoryUpdateTestSuite {
 
   public static final String INSTANCE_TYPE_ID_UNSPECIFIED = "a2c91e87-6bab-44d6-8adb-1fd02481fc4f";
   public static final String INSTANCE_TYPE_ID_TEXT = "6312d172-f0cf-40f6-b27d-9fa8feaf332f";
+  public static final String INSTANCE_RELATIONSHIP_TYPE_ID_MULTIPART = "a17daf0a-f057-43b3-9997-13d0724cdf51";
 
   private final Logger logger = io.vertx.core.impl.logging.LoggerFactory.getLogger("InventoryUpdateTestSuite");
   @Rule
@@ -2245,7 +2246,8 @@ public class InventoryUpdateTestSuite {
     upsertByHrid(
             new JsonObject()
                     .put("instance",
-                            new InputInstance().setTitle("Updated InputInstance").setInstanceTypeId(INSTANCE_TYPE_ID_TEXT).setHrid(instanceHrid).setSource("test").getJson()));
+                            new InputInstance().setTitle("Updated InputInstance")
+                                .setInstanceTypeId(INSTANCE_TYPE_ID_TEXT).setHrid(instanceHrid).setSource("test").getJson()));
 
     JsonObject holdingsAfterUpsert1Json = getRecordsFromStorage(FakeFolioApis.HOLDINGS_STORAGE_PATH, "instanceId==\"" + instanceId + "\"");
     getRecordsFromStorage(FakeFolioApis.ITEM_STORAGE_PATH, null);
@@ -2254,7 +2256,8 @@ public class InventoryUpdateTestSuite {
     upsertByHrid(
             new JsonObject()
                     .put("instance",
-                            new InputInstance().setTitle("2nd Updated InputInstance").setInstanceTypeId(INSTANCE_TYPE_ID_TEXT).setHrid(instanceHrid).setSource("test").getJson())
+                            new InputInstance().setTitle("2nd Updated InputInstance")
+                                .setInstanceTypeId(INSTANCE_TYPE_ID_TEXT).setHrid(instanceHrid).setSource("test").getJson())
                     .put("holdingsRecords", new JsonArray()));
 
     JsonObject holdingsAfterUpsert2Json = getRecordsFromStorage(FakeFolioApis.HOLDINGS_STORAGE_PATH, "instanceId==\"" + instanceId + "\"");
@@ -2285,7 +2288,9 @@ public class InventoryUpdateTestSuite {
                     new InputInstance().setTitle("Child InputInstance").setInstanceTypeId(INSTANCE_TYPE_ID_TEXT).setHrid(childHrid).setSource("test").getJson())
             .put("instanceRelations", new JsonObject()
                     .put("parentInstances", new JsonArray()
-                            .add(new InputInstanceRelationship().setInstanceIdentifierHrid(instanceHrid).getJson()))));
+                            .add(new InputInstanceRelationship()
+                                .setInstanceRelationshipTypeId(INSTANCE_RELATIONSHIP_TYPE_ID_MULTIPART)
+                                .setInstanceIdentifierHrid(instanceHrid).getJson()))));
 
     testContext.assertEquals(getMetric(childResponseJson, INSTANCE_RELATIONSHIP, CREATE , COMPLETED), 1,
             "After upsert of new Instance with parent relation, metrics should report [1] instance relationship successfully created " + childResponseJson.encodePrettily());
@@ -2298,7 +2303,9 @@ public class InventoryUpdateTestSuite {
                     new InputInstance().setTitle("Child InputInstance").setInstanceTypeId(INSTANCE_TYPE_ID_TEXT).setHrid(grandParentHrid).setSource("test").getJson())
             .put("instanceRelations", new JsonObject()
                     .put("childInstances", new JsonArray()
-                            .add(new InputInstanceRelationship().setInstanceIdentifierHrid(instanceHrid).getJson()))));
+                            .add(new InputInstanceRelationship()
+                                .setInstanceRelationshipTypeId(INSTANCE_RELATIONSHIP_TYPE_ID_MULTIPART)
+                                .setInstanceIdentifierHrid(instanceHrid).getJson()))));
 
     testContext.assertEquals(getMetric(grandParentResponseJson, INSTANCE_RELATIONSHIP, CREATE , COMPLETED), 1,
             "After upsert of new Instance with child relation, metrics should report [1] instance relationship successfully created " + grandParentResponseJson.encodePrettily());
@@ -2319,13 +2326,17 @@ public class InventoryUpdateTestSuite {
 
     JsonObject parentResponse = upsertByHrid(new JsonObject()
             .put("instance",
-                    new InputInstance().setTitle("Parent InputInstance").setInstanceTypeId(INSTANCE_TYPE_ID_TEXT).setHrid(instanceHrid).setSource("test").getJson()));
+                    new InputInstance().setTitle("Parent InputInstance")
+                        .setInstanceTypeId(INSTANCE_TYPE_ID_TEXT).setHrid(instanceHrid).setSource("test").getJson()));
     JsonObject childResponseJson = upsertByHrid(new JsonObject()
             .put("instance",
-                    new InputInstance().setTitle("Child InputInstance").setInstanceTypeId(INSTANCE_TYPE_ID_TEXT).setHrid(childHrid).setSource("test").getJson())
+                    new InputInstance().setTitle("Child InputInstance")
+                        .setInstanceTypeId(INSTANCE_TYPE_ID_TEXT).setHrid(childHrid).setSource("test").getJson())
             .put("instanceRelations", new JsonObject()
                     .put("parentInstances", new JsonArray()
-                            .add(new InputInstanceRelationship().setInstanceIdentifierUuid(parentResponse.getJsonObject( "instance" ).getString( "id" )).getJson()))));
+                            .add(new InputInstanceRelationship()
+                                .setInstanceRelationshipTypeId(INSTANCE_RELATIONSHIP_TYPE_ID_MULTIPART)
+                                .setInstanceIdentifierUuid(parentResponse.getJsonObject( "instance" ).getString( "id" )).getJson()))));
 
     testContext.assertEquals(getMetric(childResponseJson, INSTANCE_RELATIONSHIP, CREATE , COMPLETED), 1,
             "After upsert of new Instance with parent relation, metrics should report [1] instance relationship successfully created " + childResponseJson.encodePrettily());
@@ -2338,7 +2349,8 @@ public class InventoryUpdateTestSuite {
                     new InputInstance().setTitle("Child InputInstance").setInstanceTypeId(INSTANCE_TYPE_ID_TEXT).setHrid(grandParentHrid).setSource("test").getJson())
             .put("instanceRelations", new JsonObject()
                     .put("childInstances", new JsonArray()
-                            .add(new InputInstanceRelationship().setInstanceIdentifierHrid(instanceHrid).getJson()))));
+                            .add(new InputInstanceRelationship()
+                                .setInstanceRelationshipTypeId(INSTANCE_RELATIONSHIP_TYPE_ID_MULTIPART).setInstanceIdentifierHrid(instanceHrid).getJson()))));
 
     testContext.assertEquals(getMetric(grandParentResponseJson, INSTANCE_RELATIONSHIP, CREATE , COMPLETED), 1,
             "After upsert of new Instance with child relation, metrics should report [1] instance relationship successfully created " + grandParentResponseJson.encodePrettily());
@@ -2367,7 +2379,9 @@ public class InventoryUpdateTestSuite {
                     new InputInstance().setTitle("Child InputInstance").setInstanceTypeId(INSTANCE_TYPE_ID_TEXT).setHrid(childHrid).setSource("test").getJson())
             .put("instanceRelations", new JsonObject()
                     .put("parentInstances", new JsonArray()
-                            .add(new InputInstanceRelationship().setInstanceIdentifierHrid(instanceHrid).getJson()))));
+                            .add(new InputInstanceRelationship()
+                                .setInstanceRelationshipTypeId(INSTANCE_RELATIONSHIP_TYPE_ID_MULTIPART)
+                                .setInstanceIdentifierHrid(instanceHrid).getJson()))));
 
     testContext.assertEquals(getMetric(childResponseJson, INSTANCE_RELATIONSHIP, CREATE , COMPLETED), 1,
       "After upsert of Instance with parent relation, metrics should report [1] instance relationship successfully created " + childResponseJson.encodePrettily());
@@ -2508,7 +2522,9 @@ public class InventoryUpdateTestSuite {
                     new InputInstance().setTitle("Parent InputInstance").setInstanceTypeId(INSTANCE_TYPE_ID_TEXT).setHrid(parentHrid).setSource("test").getJson())
             .put("instanceRelations", new JsonObject()
                     .put("childInstances", new JsonArray()
-                            .add(new InputInstanceRelationship().setInstanceIdentifierHrid(instanceHrid).getJson()))));
+                            .add(new InputInstanceRelationship()
+                                .setInstanceRelationshipTypeId(INSTANCE_RELATIONSHIP_TYPE_ID_MULTIPART)
+                                .setInstanceIdentifierHrid(instanceHrid).getJson()))));
 
     testContext.assertEquals(getMetric(parentResponseJson, INSTANCE_RELATIONSHIP, CREATE , COMPLETED), 1,
             "After upsert of Instance with child relation, metrics should report [1] instance relationship successfully created " + parentResponseJson.encodePrettily());
@@ -2666,7 +2682,9 @@ public class InventoryUpdateTestSuite {
                     new InputInstance().setTitle("Child InputInstance").setInstanceTypeId(INSTANCE_TYPE_ID_TEXT).setHrid(childHrid).setSource("test").getJson())
             .put("instanceRelations", new JsonObject()
                     .put("parentInstances", new JsonArray()
-                            .add(new InputInstanceRelationship().setInstanceIdentifierHrid(parentHrid)
+                            .add(new InputInstanceRelationship()
+                                .setInstanceRelationshipTypeId(INSTANCE_RELATIONSHIP_TYPE_ID_MULTIPART)
+                                .setInstanceIdentifierHrid(parentHrid)
                                     .setProvisionalInstance(
                                             new InputInstance()
                                                     .setTitle("Provisional Instance")
@@ -2692,10 +2710,13 @@ public class InventoryUpdateTestSuite {
 
     batch.addRecordSet(new JsonObject()
         .put("instance",
-            new InputInstance().setTitle("Child InputInstance 1").setInstanceTypeId(INSTANCE_TYPE_ID_TEXT).setHrid(childHrid1).setSource("test").getJson())
+            new InputInstance().setTitle("Child InputInstance 1")
+                .setInstanceTypeId(INSTANCE_TYPE_ID_TEXT).setHrid(childHrid1).setSource("test").getJson())
         .put("instanceRelations", new JsonObject()
             .put("parentInstances", new JsonArray()
-                .add(new InputInstanceRelationship().setInstanceIdentifierHrid(parentHrid)
+                .add(new InputInstanceRelationship()
+                    .setInstanceRelationshipTypeId(INSTANCE_RELATIONSHIP_TYPE_ID_MULTIPART)
+                    .setInstanceIdentifierHrid(parentHrid)
                     .setProvisionalInstance(
                         new InputInstance()
                             .setTitle("Provisional Instance")
@@ -2707,7 +2728,9 @@ public class InventoryUpdateTestSuite {
             new InputInstance().setTitle("Child InputInstance 2").setInstanceTypeId(INSTANCE_TYPE_ID_TEXT).setHrid(childHrid2).setSource("test").getJson())
         .put("instanceRelations", new JsonObject()
             .put("parentInstances", new JsonArray()
-                .add(new InputInstanceRelationship().setInstanceIdentifierHrid(parentHrid)
+                .add(new InputInstanceRelationship()
+                    .setInstanceRelationshipTypeId(INSTANCE_RELATIONSHIP_TYPE_ID_MULTIPART)
+                    .setInstanceIdentifierHrid(parentHrid)
                     .setProvisionalInstance(
                         new InputInstance()
                             .setTitle("Provisional Instance")
@@ -2730,7 +2753,9 @@ public class InventoryUpdateTestSuite {
             new InputInstance().setTitle("Child InputInstance 2").setInstanceTypeId(INSTANCE_TYPE_ID_TEXT).setHrid(childHrid1).setSource("test").getJson())
         .put("instanceRelations", new JsonObject()
             .put("parentInstances", new JsonArray()
-                .add(new InputInstanceRelationship().setInstanceIdentifierHrid(parentHrid)
+                .add(new InputInstanceRelationship()
+                    .setInstanceRelationshipTypeId(INSTANCE_RELATIONSHIP_TYPE_ID_MULTIPART)
+                    .setInstanceIdentifierHrid(parentHrid)
                     .setProvisionalInstance(
                         new InputInstance()
                             .setTitle("Provisional Instance")
@@ -2761,7 +2786,9 @@ public class InventoryUpdateTestSuite {
                     new InputInstance().setTitle("Child InputInstance").setInstanceTypeId(INSTANCE_TYPE_ID_TEXT).setHrid(childHrid).setSource("test").getJson())
             .put("instanceRelations", new JsonObject()
                     .put("parentInstances", new JsonArray()
-                            .add(new InputInstanceRelationship().setInstanceIdentifierHrid(parentHrid).getJson()))));
+                            .add(new InputInstanceRelationship()
+                                .setInstanceRelationshipTypeId(INSTANCE_RELATIONSHIP_TYPE_ID_MULTIPART)
+                                .setInstanceIdentifierHrid(parentHrid).getJson()))));
 
     JsonObject responseJson = new JsonObject(childResponse.getBody().asString());
     testContext.assertEquals(getMetric(responseJson, INSTANCE_RELATIONSHIP, CREATE, FAILED), 1,
@@ -2772,7 +2799,9 @@ public class InventoryUpdateTestSuite {
                     new InputInstance().setTitle("Child InputInstance").setInstanceTypeId(INSTANCE_TYPE_ID_TEXT).setHrid(childHrid).setSource("test").getJson())
             .put("instanceRelations", new JsonObject()
                     .put("parentInstances", new JsonArray()
-                            .add(new InputInstanceRelationship().setInstanceIdentifierHrid(parentHrid)
+                            .add(new InputInstanceRelationship()
+                                .setInstanceRelationshipTypeId(INSTANCE_RELATIONSHIP_TYPE_ID_MULTIPART)
+                                .setInstanceIdentifierHrid(parentHrid)
                                     .setProvisionalInstance(
                                             new InputInstance()
                                                     .setInstanceTypeId(INSTANCE_TYPE_ID_TEXT).getJson()).getJson()))));
@@ -2792,10 +2821,12 @@ public class InventoryUpdateTestSuite {
 
     Response childResponse = upsertByHrid(200, new JsonObject()
             .put("instance",
-                    new InputInstance().setTitle("Child InputInstance").setInstanceTypeId(INSTANCE_TYPE_ID_TEXT).setHrid(childHrid).setSource("test").getJson())
+                    new InputInstance().setTitle("Child InputInstance")
+                        .setInstanceTypeId(INSTANCE_TYPE_ID_TEXT).setHrid(childHrid).setSource("test").getJson())
             .put("instanceRelations", new JsonObject()
                     .put("parentInstances", new JsonArray()
                             .add(new InputInstanceRelationship()
+                                .setInstanceRelationshipTypeId(INSTANCE_RELATIONSHIP_TYPE_ID_MULTIPART)
                                     .setProvisionalInstance(
                                             new InputInstance()
                                                     .setSource("MARC")
@@ -2807,10 +2838,13 @@ public class InventoryUpdateTestSuite {
 
     childResponse = upsertByHrid(200, new JsonObject()
             .put("instance",
-                    new InputInstance().setTitle("Child InputInstance").setInstanceTypeId(INSTANCE_TYPE_ID_TEXT).setHrid(childHrid).setSource("test").getJson())
+                    new InputInstance().setTitle("Child InputInstance")
+                        .setInstanceTypeId(INSTANCE_TYPE_ID_TEXT).setHrid(childHrid).setSource("test").getJson())
             .put("instanceRelations", new JsonObject()
                     .put("parentInstances", new JsonArray()
-                            .add(new InputInstanceRelationship().setInstanceIdentifierHrid(null)
+                            .add(new InputInstanceRelationship()
+                                .setInstanceRelationshipTypeId(INSTANCE_RELATIONSHIP_TYPE_ID_MULTIPART)
+                                .setInstanceIdentifierHrid(null)
                                     .setProvisionalInstance(
                                             new InputInstance()
                                                     .setSource("MARC")
@@ -2833,7 +2867,9 @@ public class InventoryUpdateTestSuite {
                     new InputInstance().setTitle("Child InputInstance").setInstanceTypeId(INSTANCE_TYPE_ID_TEXT).setHrid(childHrid).setSource("test").getJson())
             .put("instanceRelations", new JsonObject()
                     .put("parentInstances", new JsonArray()
-                            .add(new InputInstanceRelationship().setInstanceIdentifierUuid(badUuid).getJson()))));
+                            .add(new InputInstanceRelationship()
+                                .setInstanceRelationshipTypeId(INSTANCE_RELATIONSHIP_TYPE_ID_MULTIPART)
+                                .setInstanceIdentifierUuid(badUuid).getJson()))));
 
     JsonObject responseJson = new JsonObject(childResponse.getBody().asString());
     testContext.assertEquals(getMetric(responseJson, INSTANCE_RELATIONSHIP, CREATE, FAILED), 1,
@@ -2852,7 +2888,8 @@ public class InventoryUpdateTestSuite {
      String instanceHrid = "002";
      JsonObject upsertResponseJson = upsertByHrid(new JsonObject()
              .put("instance",
-                     new InputInstance().setTitle("Initial InputInstance").setInstanceTypeId(INSTANCE_TYPE_ID_TEXT).setHrid(instanceHrid).setSource("test").getJson())
+                     new InputInstance().setTitle("Initial InputInstance")
+                         .setInstanceTypeId(INSTANCE_TYPE_ID_TEXT).setHrid(instanceHrid).setSource("test").getJson())
              .put("holdingsRecords", new JsonArray()
                      .add(new InputHoldingsRecord().setHrid("HOL-001").setPermanentLocationId(LOCATION_ID_1).setCallNumber("test-cn-1").getJson()
                              .put("items", new JsonArray()
@@ -3444,12 +3481,14 @@ public class InventoryUpdateTestSuite {
      upsertByHrid(
              new JsonObject()
                      .put("instance",
-                             new InputInstance().setTitle("A succeeding title").setInstanceTypeId(INSTANCE_TYPE_ID_TEXT).setHrid("001").setSource("test").getJson()));
+                             new InputInstance().setTitle("A succeeding title")
+                                 .setInstanceTypeId(INSTANCE_TYPE_ID_TEXT).setHrid("001").setSource("test").getJson()));
      // Create preceding title
      upsertByHrid(
              new JsonObject()
                      .put("instance",
-                             new InputInstance().setTitle("A preceding title").setInstanceTypeId(INSTANCE_TYPE_ID_TEXT).setHrid("002").setSource("test").getJson()));
+                             new InputInstance().setTitle("A preceding title")
+                                 .setInstanceTypeId(INSTANCE_TYPE_ID_TEXT).setHrid("002").setSource("test").getJson()));
 
      JsonObject newInstance = upsertByHrid(new JsonObject()
              .put("instance",
@@ -3477,9 +3516,11 @@ public class InventoryUpdateTestSuite {
                      .put("precedingTitles", new JsonArray()
                              .add(new InputInstanceTitleSuccession().setInstanceIdentifierHrid("002").getJson()))
                      .put("parentInstances", new JsonArray()
-                             .add(new InputInstanceRelationship().setInstanceIdentifierHrid( "001" ).getJson() ))
+                             .add(new InputInstanceRelationship()
+                                 .setInstanceRelationshipTypeId(INSTANCE_RELATIONSHIP_TYPE_ID_MULTIPART).setInstanceIdentifierHrid( "001" ).getJson() ))
                      .put("childInstances", new JsonArray()
-                             .add(new InputInstanceRelationship().setInstanceIdentifierHrid( "002" ).getJson()))));
+                             .add(new InputInstanceRelationship()
+                                 .setInstanceRelationshipTypeId(INSTANCE_RELATIONSHIP_TYPE_ID_MULTIPART).setInstanceIdentifierHrid( "002" ).getJson()))));
 
      fetchRecordSetFromUpsertHrid( "1" );
      fetchRecordSetFromUpsertHrid (newInstance.getJsonObject( "instance" ).getString( "id" ));

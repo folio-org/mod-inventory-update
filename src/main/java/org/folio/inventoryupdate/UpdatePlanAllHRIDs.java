@@ -330,12 +330,12 @@ public class UpdatePlanAllHRIDs extends UpdatePlan {
             for (InstanceToInstanceRelation incomingRelation : pair.getIncomingRecordSet().getInstanceToInstanceRelations()) {
                 if (pair.hasExistingRecordSet()) {
                     if (pair.getExistingRecordSet().hasThisRelation(incomingRelation)) {
-                        incomingRelation.skip();
+                      incomingRelation.skip();
                     } else {
-                        incomingRelation.setTransition(Transaction.CREATE);
+                      incomingRelation.setTransition(Transaction.CREATE).mapReferenceNamesToUuids(tenant);
                     }
                 } else {
-                    incomingRelation.setTransition(Transaction.CREATE);
+                  incomingRelation.setTransition(Transaction.CREATE).mapReferenceNamesToUuids(tenant);
                 }
             }
         }

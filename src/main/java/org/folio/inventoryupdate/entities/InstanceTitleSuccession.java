@@ -5,6 +5,7 @@ import io.vertx.core.impl.logging.LoggerFactory;
 import io.vertx.core.json.JsonObject;
 import org.folio.inventoryupdate.referencemapping.ForeignKey;
 
+import java.util.ArrayList;
 import java.util.List;
 
 public class InstanceTitleSuccession extends InstanceToInstanceRelation {
@@ -66,7 +67,7 @@ public class InstanceTitleSuccession extends InstanceToInstanceRelation {
 
   @Override
   public List<ForeignKey> getForeignKeys() {
-    return null;
+    return new ArrayList<>();
   }
 
   @Override

@@ -25,7 +25,7 @@ import io.vertx.ext.web.RoutingContext;
  *
  */
 public class InventoryUpdateService {
-  private static final Logger logger = LoggerFactory.getLogger("inventory-update");
+  public static final Logger logger = LoggerFactory.getLogger("inventory-update");
 
   public void handleInventoryUpsertByHRID(RoutingContext routingContext) {
     UpdatePlan plan = new UpdatePlanAllHRIDs();

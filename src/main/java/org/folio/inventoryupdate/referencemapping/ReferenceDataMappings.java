@@ -76,8 +76,30 @@ public class ReferenceDataMappings {
       for (Item item : irs.getItems()) {
         accumulateDistinctAlternateFKValues(accumulatedList, item);
       }
+      addAlternateInstanceRelationshipTypeIds(accumulatedList, irs.instanceRelationsJson);
     }
     return accumulatedList;
+  }
+
+  /**
+   * Need special handling to find alternate foreign key values in input instance relations, because instance relations
+   * InventoryRecord objects are not yet ready for use (like instance, holdings, or item Inventory Records are), until
+   * after performing some extra steps to resolve referenced Instance IDs and potentially create provisional instances.
+   */
+  private static void addAlternateInstanceRelationshipTypeIds(Map<String, AlternateFKValues> accumulatedList, JsonObject relationsInputJson) {
+    ReferenceApi relTypes = ReferenceApi.INSTANCE_RELATIONSHIP_TYPES;
+    ForeignKey parents = new ForeignKey("instanceRelationshipTypeId","parentInstances", relTypes);
+    ForeignKey children = new ForeignKey("instanceRelationshipTypeId","childInstances", relTypes);
+    Set<String> relTypeIds = new TreeSet<>();
+    for (ForeignKey fk : Arrays.asList(parents, children)) {
+      if (relationsInputJson.containsKey(fk.foreignKeyEmbeddedIn())) {
+        for (Object o : relationsInputJson.getJsonArray(fk.foreignKeyEmbeddedIn())) {
+          relTypeIds.add( ((JsonObject) o).getString(fk.foreignKeyName()));
+        }
+      }
+    }
+    AlternateFKValues altFkValues = new AlternateFKValues(relTypes,relTypeIds);
+    accumulatedList.put(altFkValues.api.getPath(), altFkValues);
   }
 
   private static void accumulateDistinctAlternateFKValues(Map<String, AlternateFKValues> accumulatedList, InventoryRecord entity) {

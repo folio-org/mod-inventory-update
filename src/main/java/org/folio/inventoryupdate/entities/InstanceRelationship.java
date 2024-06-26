@@ -2,6 +2,7 @@ package org.folio.inventoryupdate.entities;
 
 import io.vertx.core.json.JsonObject;
 import org.folio.inventoryupdate.referencemapping.ForeignKey;
+import org.folio.inventoryupdate.referencemapping.ReferenceApi;
 
 import java.util.List;
 
@@ -80,7 +81,8 @@ public class InstanceRelationship extends InstanceToInstanceRelation {
 
   @Override
   public List<ForeignKey> getForeignKeys() {
-    return null;
+    return List.of(
+            new ForeignKey("instanceRelationshipTypeId", "", ReferenceApi.INSTANCE_RELATIONSHIP_TYPES));
   }
 
   @Override

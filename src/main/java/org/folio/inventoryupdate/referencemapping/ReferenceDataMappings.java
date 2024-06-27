@@ -14,11 +14,14 @@ import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
+import static org.folio.inventoryupdate.entities.InventoryRecord.isNoUUID;
+import static org.folio.okapi.common.HttpResponse.responseJson;
+
 public class ReferenceDataMappings {
 
   private static final Map<String, Map<ReferenceApi, Map<String, Map<String, String>>>> referenceDataByTenant = new ConcurrentHashMap<>();
 
-  private static Map<ReferenceApi, Map<String, Map<String, String>>> getTenantMappings (String tenant) {
+  public static Map<ReferenceApi, Map<String, Map<String, String>>> getTenantMappings (String tenant) {
     if (!referenceDataByTenant.containsKey(tenant)) {
       referenceDataByTenant.put(tenant, new ConcurrentHashMap<>());
     }
@@ -26,7 +29,7 @@ public class ReferenceDataMappings {
   }
 
   public static boolean hasMappings(String tenant) {
-    return referenceDataByTenant.containsKey(tenant);
+    return referenceDataByTenant.containsKey(tenant) && !referenceDataByTenant.get(tenant).isEmpty();
   }
 
   private static Map<String,Map<String, String>> getFieldMappingsFromReferenceApi (String tenant, ReferenceApi referenceApi) {
@@ -94,12 +97,17 @@ public class ReferenceDataMappings {
     for (ForeignKey fk : Arrays.asList(parents, children)) {
       if (relationsInputJson.containsKey(fk.foreignKeyEmbeddedIn())) {
         for (Object o : relationsInputJson.getJsonArray(fk.foreignKeyEmbeddedIn())) {
-          relTypeIds.add( ((JsonObject) o).getString(fk.foreignKeyName()));
+          String fkVal = ((JsonObject) o).getString(fk.foreignKeyName());
+          if (isNoUUID(fkVal)) {
+            relTypeIds.add(fkVal);
+          }
         }
       }
     }
-    AlternateFKValues altFkValues = new AlternateFKValues(relTypes,relTypeIds);
-    accumulatedList.put(altFkValues.api.getPath(), altFkValues);
+    if (!relTypeIds.isEmpty()) {
+      AlternateFKValues altFkValues = new AlternateFKValues(relTypes, relTypeIds);
+      accumulatedList.put(altFkValues.api.getPath(), altFkValues);
+    }
   }
 
   private static void accumulateDistinctAlternateFKValues(Map<String, AlternateFKValues> accumulatedList, InventoryRecord entity) {
@@ -147,6 +155,39 @@ public class ReferenceDataMappings {
 
   public static String getCachedUuidByAlternateKeyValue(String tenant, ReferenceApi referenceApi, String value) {
     return getApiFieldMap(tenant, referenceApi).get(value);
+  }
+
+  public static void handleGet(RoutingContext routingContext) {
+    responseJson( routingContext, 200 ).end( asJson(getTenant(routingContext)).encodePrettily() );
+  }
+
+  public static void handleClear(RoutingContext routingContext) {
+    referenceDataByTenant.remove(getTenant(routingContext));
+    responseJson( routingContext, 200 ).end( new JsonObject().put("cache", new JsonArray()).encodePrettily() );
+  }
+
+  public static JsonObject asJson(String tenant) {
+    JsonObject cachedMappingAsJson = new JsonObject().put("cache", new JsonArray());
+    Map<ReferenceApi, Map<String, Map<String, String>>> tenantMap = getTenantMappings(tenant);
+    for (ReferenceApi api : tenantMap.keySet()) {
+      JsonObject apiMapJson = new JsonObject();
+      cachedMappingAsJson.getJsonArray("cache").add(apiMapJson);
+      apiMapJson.put("api", api.name());
+      apiMapJson.put("maps", new JsonArray());
+      for (String altKey : tenantMap.get(api).keySet()) {
+        JsonObject map = new JsonObject();
+        apiMapJson.getJsonArray("maps").add(map);
+        map.put("alternateKey", altKey);
+        map.put("mappings", new JsonArray());
+        for (String altKeyVal : tenantMap.get(api).get(altKey).keySet()) {
+          JsonObject mapping = new JsonObject();
+          map.getJsonArray("mappings").add(mapping);
+          mapping.put("alternateKeyValue", altKeyVal);
+          mapping.put("primaryKeyValue", tenantMap.get(api).get(altKey).get(altKeyVal));
+        }
+      }
+    }
+    return cachedMappingAsJson;
   }
 
   public static String getTenant(RoutingContext routingContext) {

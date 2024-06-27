@@ -210,6 +210,17 @@
           ]
         }
       ]
+    },
+    {
+      "id": "cached-reference-data-mappings",
+      "version": "1.0",
+      "handlers": [
+        {
+          "methods": ["GET","DELETE"],
+          "pathPattern": "/inventory-upsert/cached-reference-data-mappings",
+          "permissionsRequired": []
+        }
+      ]
     }
   ],
   "requires": [

@@ -74,7 +74,7 @@ public class InventoryUpdateTestSuite {
   public static final String INSTANCE_TYPE_ID_UNSPECIFIED = "a2c91e87-6bab-44d6-8adb-1fd02481fc4f";
   public static final String INSTANCE_TYPE_ID_TEXT = "6312d172-f0cf-40f6-b27d-9fa8feaf332f";
   public static final String INSTANCE_RELATIONSHIP_TYPE_ID_MULTIPART = "a17daf0a-f057-43b3-9997-13d0724cdf51";
-
+  public static final String INSTANCE_RELATIONSHIP_TYPE_ID_BOUND_WITH = "758f13db-ffb4-440e-bb10-8a364aa6cb4a";
   private final Logger logger = io.vertx.core.impl.logging.LoggerFactory.getLogger("InventoryUpdateTestSuite");
   @Rule
   public final TestName name = new TestName();
@@ -2421,7 +2421,7 @@ public class InventoryUpdateTestSuite {
                     new InputInstance().setTitle("Child InputInstance").setInstanceTypeId(INSTANCE_TYPE_ID_TEXT).setHrid(childHrid).setSource("test").getJson())
             .put("instanceRelations", new JsonObject()
                     .put("parentInstances", new JsonArray()
-                            .add(new InputInstanceRelationship().setInstanceRelationshipTypeId("3333").setInstanceIdentifierHrid(instanceHrid).getJson()))));
+                            .add(new InputInstanceRelationship().setInstanceRelationshipTypeId(INSTANCE_RELATIONSHIP_TYPE_ID_MULTIPART).setInstanceIdentifierHrid(instanceHrid).getJson()))));
 
     testContext.assertEquals(getMetric(childResponseJson, INSTANCE_RELATIONSHIP, CREATE , COMPLETED), 1,
             "After upsert of Instance with parent relation, metrics should report [1] instance relationship successfully created " + childResponseJson.encodePrettily());
@@ -2432,7 +2432,7 @@ public class InventoryUpdateTestSuite {
                     new InputInstance().setTitle("Child InputInstance").setInstanceTypeId(INSTANCE_TYPE_ID_TEXT).setHrid(childHrid).setSource("test").getJson())
             .put("instanceRelations", new JsonObject()
                     .put("parentInstances", new JsonArray()
-                            .add(new InputInstanceRelationship().setInstanceRelationshipTypeId("4444").setInstanceIdentifierHrid(instanceHrid).getJson()))));
+                            .add(new InputInstanceRelationship().setInstanceRelationshipTypeId(INSTANCE_RELATIONSHIP_TYPE_ID_BOUND_WITH).setInstanceIdentifierHrid(instanceHrid).getJson()))));
 
     testContext.assertEquals(getMetric(childResponseJson, INSTANCE_RELATIONSHIP, DELETE, COMPLETED), 1,
             "After upsert with different instance relationship type, metrics should report one instance relation deleted " + childResponseJson.encodePrettily());
@@ -2463,11 +2463,11 @@ public class InventoryUpdateTestSuite {
                     new InputInstance().setTitle("InputInstance with 8 relations").setInstanceTypeId(INSTANCE_TYPE_ID_TEXT).setHrid("MAIN-INSTANCE").setSource("test").getJson())
             .put("instanceRelations", new JsonObject()
                     .put("parentInstances", new JsonArray()
-                      .add(new InputInstanceRelationship().setInstanceIdentifierHrid(parent1Hrid).setInstanceRelationshipTypeId("multipart").getJson())
-                      .add(new InputInstanceRelationship().setInstanceIdentifierHrid(parent2Hrid).setInstanceRelationshipTypeId("multipart").getJson()))
+                      .add(new InputInstanceRelationship().setInstanceIdentifierHrid(parent1Hrid).setInstanceRelationshipTypeId(INSTANCE_RELATIONSHIP_TYPE_ID_MULTIPART).getJson())
+                      .add(new InputInstanceRelationship().setInstanceIdentifierHrid(parent2Hrid).setInstanceRelationshipTypeId(INSTANCE_RELATIONSHIP_TYPE_ID_MULTIPART).getJson()))
                     .put("childInstances", new JsonArray()
-                      .add(new InputInstanceRelationship().setInstanceIdentifierHrid(child1Hrid).setInstanceRelationshipTypeId("multipart").getJson())
-                      .add(new InputInstanceRelationship().setInstanceIdentifierHrid(child2Hrid).setInstanceRelationshipTypeId("multipart").getJson()))
+                      .add(new InputInstanceRelationship().setInstanceIdentifierHrid(child1Hrid).setInstanceRelationshipTypeId(INSTANCE_RELATIONSHIP_TYPE_ID_MULTIPART).getJson())
+                      .add(new InputInstanceRelationship().setInstanceIdentifierHrid(child2Hrid).setInstanceRelationshipTypeId(INSTANCE_RELATIONSHIP_TYPE_ID_MULTIPART).getJson()))
                     .put("precedingTitles", new JsonArray()
                       .add(new InputInstanceTitleSuccession().setInstanceIdentifierHrid(preceding1Hrid).getJson())
                       .add(new InputInstanceTitleSuccession().setInstanceIdentifierHrid(preceding2Hrid).getJson()))
@@ -2486,9 +2486,9 @@ public class InventoryUpdateTestSuite {
                     new InputInstance().setTitle("InputInstance with 8 relations").setInstanceTypeId(INSTANCE_TYPE_ID_TEXT).setHrid("MAIN-INSTANCE").setSource("test").getJson())
             .put("instanceRelations", new JsonObject()
                     .put("parentInstances", new JsonArray()
-                            .add(new InputInstanceRelationship().setInstanceIdentifierHrid(parent2Hrid).setInstanceRelationshipTypeId("multipart").getJson()))
+                            .add(new InputInstanceRelationship().setInstanceIdentifierHrid(parent2Hrid).setInstanceRelationshipTypeId(INSTANCE_RELATIONSHIP_TYPE_ID_MULTIPART).getJson()))
                     .put("childInstances", new JsonArray()
-                            .add(new InputInstanceRelationship().setInstanceIdentifierHrid(child2Hrid).setInstanceRelationshipTypeId("multipart").getJson()))
+                            .add(new InputInstanceRelationship().setInstanceIdentifierHrid(child2Hrid).setInstanceRelationshipTypeId(INSTANCE_RELATIONSHIP_TYPE_ID_MULTIPART).getJson()))
                     .put("precedingTitles", new JsonArray()
                             .add(new InputInstanceTitleSuccession().setInstanceIdentifierHrid(preceding2Hrid).getJson()))
                     .put("succeedingTitles", new JsonArray()

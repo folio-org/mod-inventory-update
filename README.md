@@ -145,6 +145,14 @@ The names or codes are put in the UUID fields and mapped to UUID on the fly, for
   }
 }
 ```
+###### Viewing and clearing the reference data mapping cache
+
+When a non UUID is put in place of a UUID field, MIU will look it up by an alternate unique field in the corresponding
+reference API. If found, MIU will cache the value mapping to avoid repeated look-ups. The mapping cache is thus built incrementally
+with minimal performance impact.
+
+The cache can be inspected by a GET request to the API `/inventory-upsert/cached-reference-data-mappings`. The current cache
+can be cleared by a DELETE request to the same API.
 
 ###### Controlled lists used by instance records
 

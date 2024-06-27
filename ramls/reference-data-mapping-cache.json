@@ -1,0 +1,39 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "type": "object",
+  "description": "Shows currently cached references.",
+  "properties": {
+    "cache": {
+      "type": "array",
+      "description": "Contains key mappings per API.",
+      "items": {
+        "type": "object",
+        "description": "Mappings from the given reference API.",
+        "properties": {
+          "alternateKey": {
+            "type": "string",
+            "description": "A secondary unique property (i.e. 'name' or 'code') of the records of the API."
+          },
+          "mappings": {
+            "type": "array",
+            "description": "List of alternate key to primary key mappings from the API, based on the given alternate key property.",
+            "items": {
+              "type": "object",
+              "description": "Mapping of an alternate key value to its primary key value (UUID).",
+              "properties": {
+                "alternateKeyValue": {
+                  "type": "string",
+                  "description": "The value of the alternate key property of a reference record."
+                },
+                "primaryKeyValue": {
+                  "type": "string",
+                  "description": "The UUID corresponding to the alternate key value."
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

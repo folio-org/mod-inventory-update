@@ -24,6 +24,7 @@ types:
   batch-upsert-response-207: !include batch-upsert-response-207.json
   error-response: !include error-response.json
   metrics: !include metrics.json
+  reference-data-mappings: !include reference-data-mapping-cache.json
   get-recordset-response: !include get-recordset-response.json
 
 resourceTypes:
@@ -252,3 +253,19 @@ traits:
           application/json:
             type: error-response
 
+/inventory-upsert/cached-reference-data-mappings:
+  displayName: Retrieve as JSON or clear currently mapped reference data keys
+  get:
+    responses:
+      200:
+        description: "Displayed currently cached reference record mappings."
+        body:
+          application/json:
+            type: reference-data-mappings
+  delete:
+    responses:
+      200:
+        description: "Cleared currently cached reference record mappings."
+        body:
+          application/json:
+            type: reference-data-mappings

@@ -457,7 +457,7 @@ public abstract class InventoryRecord {
    * @param value identifier to check
    * @return true if Value is not null, not empty, and not a UUID
    */
-  protected static boolean isNoUUID(String value) {
+  public static boolean isNoUUID(String value) {
     return value != null && !value.isEmpty() && !UUID_REGEX.matcher(value).matches();
   }
 

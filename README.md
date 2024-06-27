@@ -183,6 +183,7 @@ can be cleared by a DELETE request to the same API.
 | /holdings-types                  | name          |
 | /ill-policies                    | name          |
 | /statistical-codes               | code          |
+| /locations                       | code          |
 
 ###### Controlled lists used by item records
 
@@ -194,6 +195,7 @@ can be cleared by a DELETE request to the same API.
 | /material-types                  | name          |
 | /electronic-access-relationships | name          |
 | /statistical-codes               | code          |
+| /locations                       | code          |
 
 
 ##### Instruct MIU to avoid deleting items even though they are missing from the input

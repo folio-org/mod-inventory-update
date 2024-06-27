@@ -112,6 +112,8 @@ public class HoldingsRecord extends InventoryRecord {
   private static final ForeignKey CALL_NUMBER_TYPE = new ForeignKey("callNumberTypeId", "", ReferenceApi.CALL_NUMBER_TYPES);
   private static final ForeignKey ILL_POLICY = new ForeignKey("illPolicyId", "", ReferenceApi.ILL_POLICIES);
   private static final ForeignKey STATISTICAL_CODE = new ForeignKey("", "statisticalCodeIds", ReferenceApi.STATISTICAL_CODES);
+  private static final ForeignKey PERMANENT_LOCATION = new ForeignKey("permanentLocationId", "", ReferenceApi.LOCATIONS);
+  private static final ForeignKey TEMPORARY_LOCATION = new ForeignKey("temporaryLocationId", "", ReferenceApi.LOCATIONS);
 
   public List<AlternateFKValues> findAlternateFKValues() {
     List<AlternateFKValues> list = new ArrayList<>();
@@ -119,7 +121,8 @@ public class HoldingsRecord extends InventoryRecord {
     list.add(new AlternateFKValues(HOLDINGS_NOTE_TYPE.referencedApi(), getAltIdsFromArrayOfObjects(HOLDINGS_NOTE_TYPE.foreignKeyEmbeddedIn(), HOLDINGS_NOTE_TYPE.foreignKeyName())));
     // Find alternate identifiers in arrays of strings
     list.add(new AlternateFKValues(STATISTICAL_CODE.referencedApi(), getAltIdsFromArrayOfStrings(STATISTICAL_CODE.foreignKeyEmbeddedIn())));
-    for (ForeignKey rd : Arrays.asList(CALL_NUMBER_TYPE, HOLDINGS_SOURCE, ILL_POLICY, HOLDINGS_TYPE)) {
+    // Find alternative identifiers in top level string properties
+    for (ForeignKey rd : Arrays.asList(CALL_NUMBER_TYPE, HOLDINGS_SOURCE, ILL_POLICY, HOLDINGS_TYPE, PERMANENT_LOCATION, TEMPORARY_LOCATION)) {
       if (isNoUUID(asJson().getString(rd.foreignKeyName()))) {
         list.add(new AlternateFKValues(rd.referencedApi(), asJson().getString(rd.foreignKeyName())));
       }
@@ -129,7 +132,7 @@ public class HoldingsRecord extends InventoryRecord {
 
   @Override
   public List<ForeignKey> getForeignKeys() {
-    return Arrays.asList(HOLDINGS_NOTE_TYPE, STATISTICAL_CODE, CALL_NUMBER_TYPE, HOLDINGS_SOURCE, ILL_POLICY, HOLDINGS_TYPE);
+    return Arrays.asList(HOLDINGS_NOTE_TYPE, STATISTICAL_CODE, CALL_NUMBER_TYPE, HOLDINGS_SOURCE, ILL_POLICY, HOLDINGS_TYPE, PERMANENT_LOCATION, TEMPORARY_LOCATION);
   }
 
 

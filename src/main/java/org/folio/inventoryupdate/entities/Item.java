@@ -92,6 +92,8 @@ public class Item extends InventoryRecord {
   private static final ForeignKey TEMPORARY_LOAN_TYPE = new ForeignKey("temporaryLoanTypeId", "", ReferenceApi.LOAN_TYPES);
   private static final ForeignKey MATERIAL_TYPE = new ForeignKey("materialTypeId", "", ReferenceApi.MATERIAL_TYPES);
   private static final ForeignKey STATISTICAL_CODE = new ForeignKey("", "statisticalCodeIds", ReferenceApi.STATISTICAL_CODES);
+  private static final ForeignKey PERMANENT_LOCATION = new ForeignKey("permanentLocationId", "", ReferenceApi.LOCATIONS);
+  private static final ForeignKey TEMPORARY_LOCATION = new ForeignKey("temporaryLocationId", "", ReferenceApi.LOCATIONS);
 
   public List<AlternateFKValues> findAlternateFKValues() {
     List<AlternateFKValues> list = new ArrayList<>();
@@ -100,7 +102,8 @@ public class Item extends InventoryRecord {
     // Find alternate identifiers in arrays of strings
     list.add(new AlternateFKValues(STATISTICAL_CODE.referencedApi(), getAltIdsFromArrayOfStrings(STATISTICAL_CODE.foreignKeyEmbeddedIn())));
     // Find alternate identifiers in top level string properties
-    for (ForeignKey fk : Arrays.asList(ITEM_DAMAGED_STATUS, MATERIAL_TYPE, PERMANENT_LOAN_TYPE, TEMPORARY_LOAN_TYPE)) {
+    for (ForeignKey fk : Arrays.asList(ITEM_DAMAGED_STATUS, MATERIAL_TYPE, PERMANENT_LOAN_TYPE, TEMPORARY_LOAN_TYPE,
+        PERMANENT_LOCATION, TEMPORARY_LOCATION)) {
       if (isNoUUID(asJson().getString(fk.foreignKeyName()))) {
         list.add(new AlternateFKValues(fk.referencedApi(), asJson().getString(fk.foreignKeyName())));
       }
@@ -110,7 +113,7 @@ public class Item extends InventoryRecord {
 
   @Override
   public List<ForeignKey> getForeignKeys() {
-    return Arrays.asList(ITEM_NOTE_TYPE, ITEM_DAMAGED_STATUS, PERMANENT_LOAN_TYPE, TEMPORARY_LOAN_TYPE, MATERIAL_TYPE, STATISTICAL_CODE);
+    return Arrays.asList(ITEM_NOTE_TYPE, ITEM_DAMAGED_STATUS, PERMANENT_LOAN_TYPE, TEMPORARY_LOAN_TYPE, MATERIAL_TYPE, STATISTICAL_CODE, PERMANENT_LOCATION, TEMPORARY_LOCATION);
   }
 
 }

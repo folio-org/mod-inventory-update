@@ -19,6 +19,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import static org.folio.inventoryupdate.InventoryUpdateService.logger;
 import static org.folio.inventoryupdate.entities.InventoryRecordSet.*;
 
 public class RepositoryByHrids extends Repository {
@@ -48,9 +49,9 @@ public class RepositoryByHrids extends Repository {
     for (List<String> idList : getSubListsOfFifty(getIncomingReferencedInstanceIds())) {
       existingRecordsByHridsFutures.add(requestReferencedInstancesByUUIDs(routingContext, idList));
     }
-    // TODO time this call
+    long start = System.currentTimeMillis();
     existingRecordsByHridsFutures.addAll(ReferenceDataMappings.createReferenceDataLookupFutures(routingContext, pairsOfRecordSets));
-    //
+    logger.info("Reference data look-ups: " + (System.currentTimeMillis()-start) + " ms.");
     return GenericCompositeFuture.join(existingRecordsByHridsFutures)
         .onSuccess(x -> setExistingRecordSets())
         .mapEmpty();

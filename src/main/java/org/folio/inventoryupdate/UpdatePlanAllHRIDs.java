@@ -329,10 +329,11 @@ public class UpdatePlanAllHRIDs extends UpdatePlan {
             // Plan storage transactions
             for (InstanceToInstanceRelation incomingRelation : pair.getIncomingRecordSet().getInstanceToInstanceRelations()) {
                 if (pair.hasExistingRecordSet()) {
+                    incomingRelation.mapReferenceNamesToUuids(tenant);
                     if (pair.getExistingRecordSet().hasThisRelation(incomingRelation)) {
                       incomingRelation.skip();
                     } else {
-                      incomingRelation.setTransition(Transaction.CREATE).mapReferenceNamesToUuids(tenant);
+                      incomingRelation.setTransition(Transaction.CREATE);
                     }
                 } else {
                   incomingRelation.setTransition(Transaction.CREATE).mapReferenceNamesToUuids(tenant);

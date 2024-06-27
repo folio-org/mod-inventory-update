@@ -29,6 +29,7 @@ import io.vertx.ext.unit.junit.VertxUnitRunner;
 
 import java.util.Arrays;
 
+import static org.folio.inventoryupdate.MainVerticle.CACHED_REFERENCE_DATA_MAPPINGS_PATH;
 import static org.folio.inventoryupdate.test.fakestorage.FakeFolioApis.*;
 
 
@@ -41,9 +42,11 @@ public class InventoryUpdateTestSuite {
           + FakeFolioApis.PORT_OKAPI);
 
   private FakeFolioApis fakeFolioApis;
-  public static final String LOCATION_ID_1 = "LOC1";
+  public static final String LOCATION_ID_1 = "5016c01c-551d-49fc-abdc-01fc3399b6c7";
+  public static final String LOCATION_CODE_1 = "LOC1";
   public static final String INSTITUTION_ID_1 = "INST1";
-  public static final String LOCATION_ID_2 = "LOC2";
+  public static final String LOCATION_ID_2 = "23b67fcc-dd41-41ad-a3a5-73768b30d36c";
+  public static final String LOCATION_CODE_2 = "LOC2";
   public static final String INSTITUTION_ID_2 = "INST2";
 
   public static final String MATERIAL_TYPE_ID_TEXT = "d9acad2f-2aac-4b48-9097-e6ab85906b25";
@@ -99,14 +102,15 @@ public class InventoryUpdateTestSuite {
     .onComplete(testContext.asyncAssertSuccess(x -> {
       fakeFolioApis = new FakeFolioApis(vertx, testContext);
       createReferenceRecords();
+      clearReferenceMappingCache();
     }));
   }
 
   public void createReferenceRecords () {
     fakeFolioApis.locationStorage.insert(
-            new InputLocation().setId(LOCATION_ID_1).setInstitutionId(INSTITUTION_ID_1));
+            new InputLocation().setId(LOCATION_ID_1).setCode(LOCATION_CODE_1).setInstitutionId(INSTITUTION_ID_1));
     fakeFolioApis.locationStorage.insert(
-            new InputLocation().setId(LOCATION_ID_2).setInstitutionId(INSTITUTION_ID_2));
+            new InputLocation().setId(LOCATION_ID_2).setCode(LOCATION_CODE_2).setInstitutionId(INSTITUTION_ID_2));
     fakeFolioApis.materialTypeStorage.insert(
         new InputMaterialType().setId(MATERIAL_TYPE_ID_TEXT).setName("text"));
     fakeFolioApis.instanceTypeStorage.insert(
@@ -114,6 +118,17 @@ public class InventoryUpdateTestSuite {
     fakeFolioApis.instanceTypeStorage.insert(
         new InputInstanceType().setId(INSTANCE_TYPE_ID_UNSPECIFIED).setCode("zzz").setName("unspecified"));
   }
+
+  public void clearReferenceMappingCache() {
+    RestAssured.port = PORT_INVENTORY_UPDATE;
+    RestAssured.given()
+        .header(OKAPI_URL_HEADER)
+        .delete(CACHED_REFERENCE_DATA_MAPPINGS_PATH)
+        .then()
+        .log().ifValidationFails()
+        .statusCode(200).extract().response();
+  }
+
   public void createInitialInstanceWithMatchKey() {
     InputInstance instance = new InputInstance()
             .setInstanceTypeId(INSTANCE_TYPE_ID_UNSPECIFIED)
@@ -1341,7 +1356,7 @@ public class InventoryUpdateTestSuite {
             .put("instance",
                     new InputInstance().setTitle("Initial InputInstance").setInstanceTypeId(INSTANCE_TYPE_ID_TEXT).setHrid(instanceHrid).setSource("test").getJson())
             .put("holdingsRecords", new JsonArray()
-                    .add(new InputHoldingsRecord().setHrid("HOL-001").setPermanentLocationId(LOCATION_ID_1).setCallNumber("test-cn-1").getJson()
+                    .add(new InputHoldingsRecord().setHrid("HOL-001").setPermanentLocationId(LOCATION_CODE_1).setCallNumber("test-cn-1").getJson()
                             .put("items", new JsonArray()
                                     .add(new InputItem().setHrid("ITM-001")
                                             .setStatus(STATUS_UNKNOWN)
@@ -1351,7 +1366,7 @@ public class InventoryUpdateTestSuite {
                                             .setStatus(STATUS_UNKNOWN)
                                             .setMaterialTypeId(MATERIAL_TYPE_ID_TEXT)
                                             .setBarcode("BC-002").getJson())))
-                    .add(new InputHoldingsRecord().setHrid("HOL-002").setPermanentLocationId(LOCATION_ID_1).setCallNumber("test-cn-2").getJson()
+                    .add(new InputHoldingsRecord().setHrid("HOL-002").setPermanentLocationId(LOCATION_CODE_1).setCallNumber("test-cn-2").getJson()
                             .put("items", new JsonArray()
                                     .add(new InputItem()
                                             .setStatus(STATUS_UNKNOWN)
@@ -4281,6 +4296,7 @@ public class InventoryUpdateTestSuite {
 
   @Test
   public void testUpsertByMatchKeyWithEmptyLocationsTable (TestContext testContext) {
+    RestAssured.port = PORT_OKAPI;
     RestAssured.given()
             .body("{}")
             .header("Content-type","application/json")
@@ -4493,6 +4509,16 @@ public class InventoryUpdateTestSuite {
             .then()
             .log().ifValidationFails()
             .statusCode(expectedStatusCode).extract().response();
+  }
+
+  private Response delete(int expectedStatusCode, String apiPath) {
+    RestAssured.port = PORT_INVENTORY_UPDATE;
+    return RestAssured.given()
+        .header(OKAPI_URL_HEADER)
+        .delete(apiPath)
+        .then()
+        .log().ifValidationFails()
+        .statusCode(expectedStatusCode).extract().response();
   }
 
   private JsonObject getRecordsFromStorage(String apiPath, String query) {

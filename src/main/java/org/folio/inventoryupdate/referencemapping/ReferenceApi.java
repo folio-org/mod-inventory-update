@@ -24,7 +24,8 @@ package org.folio.inventoryupdate.referencemapping;
     MODES_OF_ISSUANCE("/modes-of-issuance", "issuanceModes", "name"),
     NATURE_OF_CONTENT_TERMS("/nature-of-content-terms", "natureOfContentTerms", "name"),
     STATISTICAL_CODES("/statistical-codes", "statisticalCodes", "code"),
-    INSTANCE_RELATIONSHIP_TYPES("/instance-relationship-types", "instanceRelationshipTypes", "name");
+    INSTANCE_RELATIONSHIP_TYPES("/instance-relationship-types", "instanceRelationshipTypes", "name"),
+    LOCATIONS("/locations", "locations", "code");
 
     private final String path;
     private final String recordsArray;

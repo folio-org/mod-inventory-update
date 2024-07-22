@@ -1,3 +1,16 @@
+## 3.4.0 2024-07-22
+
+* Requires `holdings-storage 5.0 6.0 7.0`
+* Requires `holdings-storage-batch-sync 1.1 2.0`
+* [MODINVUP-104](https://issues.folio.org/browse/MODINVUP-104) Adds missing module permissions for Inventory's batch storage APIs
+* [MODINVUP-18](https://issues.folio.org/browse/MODINVUP-18) Prevents deletion of certain inventory records when in use or referenced by other modules
+* [MODINVUP-99](https://issues.folio.org/browse/MODINVUP-99) Tweaks reporting of skipped deletes (protected holdings/items)
+
+## 3.3.1 2024-04-08
+
+* [MODINVUP-93](https://issues.folio.org/browse/MODINVUP-93) Configurable retention of 'external' holdings/items on delete request
+
+
 ## 3.3.0 2024-03-21
 
 * [MODINVUP-61](https://issues.folio.org/browse/MODINVUP-61) Configurable retention of 'external' holdings/items by pattern matching

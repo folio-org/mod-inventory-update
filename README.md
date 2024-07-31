@@ -120,7 +120,7 @@ processing": {
 
 The default behavior is to overwrite all statuses.
 
-##### Support for codes or names instead of UUIDs in reference data references in input data
+##### Support for using codes or names instead of UUIDs in reference data references in input data
 
 UUIDs are generally used for primary keys and foreign keys in inventory storage, and inventory storage thus expects UUID in instance, holdings and item records to indicate controlled list values like material types, identifier types, contributor types etc.
 

@@ -286,16 +286,21 @@ public abstract class UpdatePlan {
 
     public Future<Void> doUpdateInstancesAndHoldings(OkapiClient okapiClient) {
         Promise<Void> promise = Promise.promise();
-        List<Future<Void>> updates = new ArrayList<>();
-        updates.add(InventoryStorage.postInstances(okapiClient,repository.getInstancesToUpdate()));
-        updates.add(InventoryStorage.postHoldingsRecords(okapiClient,repository.getHoldingsToUpdate()));
-        Future.join(updates).onComplete(handler -> {
-            if (handler.succeeded()) {
-                promise.complete();
-            } else {
-                logger.error("Error updating instances/holdings: " + handler.cause().getMessage());
-                promise.fail(handler.cause().getMessage());
-            }
+        InventoryStorage.postInstances(okapiClient,repository.getInstancesToUpdate())
+            .onComplete(instances -> {
+              if (instances.succeeded()) {
+                InventoryStorage.postHoldingsRecords(okapiClient,repository.getHoldingsToUpdate())
+                    .onComplete(holdings -> {
+                      if (holdings.succeeded()) {
+                        promise.complete();
+                      } else {
+                        logger.error("Error updating holdings records: " + holdings.cause().getMessage());
+                        promise.fail(holdings.cause().getMessage());
+                    }});
+              } else {
+                logger.error("Error updating instance records: " + instances.cause().getMessage());
+                promise.fail(instances.cause().getMessage());
+             }
         });
         return promise.future();
     }

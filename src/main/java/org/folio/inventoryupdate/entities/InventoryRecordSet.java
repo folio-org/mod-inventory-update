@@ -379,12 +379,15 @@ public class InventoryRecordSet extends JsonRepresentation {
                 if (reference.hasReferenceHrid() || reference.hasReferenceUuid()) {
                     reference.setFromInstanceId(getInstanceUUID());
                     if (reference.hasReferenceHrid()) {
+                        // Referenced instance exists in storage?
                         Instance referencedInstance =
                             repository.referencedInstancesByHrid.get(reference.getReferenceHrid());
                         if (referencedInstance == null) {
+                          // Referenced instance will be created by the batch?
                           referencedInstance = repository.getCreatingInstanceByHrid(reference.getReferenceHrid());
                         }
                         if (referencedInstance == null) {
+                          // If not in storage and not in batch, add -- if not done already -- to provisional instances to be created
                           if (repository.provisionalInstancesByHrid.containsKey(reference.getReferenceHrid())) {
                             referencedInstance = repository.provisionalInstancesByHrid.get(reference.getReferenceHrid());
                           } else {

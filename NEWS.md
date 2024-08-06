@@ -1,3 +1,7 @@
+## 3.4.1 2024-08-06
+
+* [MODINVUP-106](https://issues.folio.org/browse/MODINVUP-106) Works around inventory storage deadlock when updating instance records plus holdings records
+
 ## 3.4.0 2024-07-22
 
 * Requires `holdings-storage 5.0 6.0 7.0`

@@ -7,9 +7,48 @@
       "version": "2.1",
       "handlers": [
         {
-          "methods": ["PUT", "DELETE"],
+          "methods": ["PUT"],
           "pathPattern": "/inventory-upsert-hrid",
-          "permissionsRequired": ["inventory-upsert-hrid.item.put"],
+          "permissionsRequired": ["inventory-update.by-hrid.item.put"],
+          "modulePermissions": [
+            "inventory-storage.items.collection.get",
+            "inventory-storage.items.item.get",
+            "inventory-storage.items.item.post",
+            "inventory-storage.items.item.put",
+            "inventory-storage.items.item.delete",
+            "inventory-storage.items.batch.post",
+            "inventory-storage.holdings.collection.get",
+            "inventory-storage.holdings.item.get",
+            "inventory-storage.holdings.item.post",
+            "inventory-storage.holdings.item.put",
+            "inventory-storage.holdings.item.delete",
+            "inventory-storage.holdings.batch.post",
+            "inventory-storage.instances.collection.get",
+            "inventory-storage.instances.item.get",
+            "inventory-storage.instances.item.post",
+            "inventory-storage.instances.item.put",
+            "inventory-storage.instances.item.delete",
+            "inventory-storage.instances.batch.post",
+            "inventory-storage.locations.collection.get",
+            "inventory-storage.locations.item.get",
+            "inventory-storage.preceding-succeeding-titles.collection.get",
+            "inventory-storage.preceding-succeeding-titles.item.get",
+            "inventory-storage.preceding-succeeding-titles.item.post",
+            "inventory-storage.preceding-succeeding-titles.item.put",
+            "inventory-storage.preceding-succeeding-titles.item.delete",
+            "inventory-storage.instances.preceding-succeeding-titles.collection.put",
+            "inventory-storage.instance-relationships.collection.get",
+            "inventory-storage.instance-relationships.item.post",
+            "inventory-storage.instance-relationships.item.get",
+            "inventory-storage.instance-relationships.item.put",
+            "inventory-storage.instance-relationships.item.delete",
+            "inventory-storage.inventory-view.instance-set.get"
+          ]
+        },
+        {
+          "methods": ["DELETE"],
+          "pathPattern": "/inventory-upsert-hrid",
+          "permissionsRequired": ["inventory-update.by-hrid.item.delete"],
           "modulePermissions": [
             "inventory-storage.items.collection.get",
             "inventory-storage.items.item.get",
@@ -48,7 +87,7 @@
         {
           "methods": ["GET"],
           "pathPattern": "/inventory-upsert-hrid/fetch/{id}",
-          "permissionsRequired": ["inventory-upsert-hrid.item.get"],
+          "permissionsRequired": ["inventory-update.by-hrid.item.get"],
           "modulePermissions": [
             "inventory-storage.items.collection.get",
             "inventory-storage.items.item.get",
@@ -75,7 +114,7 @@
         {
           "methods": ["PUT"],
           "pathPattern": "/inventory-batch-upsert-hrid",
-          "permissionsRequired": ["inventory-upsert-hrid.item.put"],
+          "permissionsRequired": ["inventory-update.batch-by-hrid.collection.put"],
           "modulePermissions": [
             "inventory-storage.items.collection.get",
             "inventory-storage.items.item.get",
@@ -118,9 +157,48 @@
       "version": "2.0",
       "handlers": [
         {
-          "methods": ["PUT", "DELETE"],
+          "methods": ["PUT"],
           "pathPattern": "/shared-inventory-upsert-matchkey",
-          "permissionsRequired": ["shared-inventory-upsert-matchkey.item.put"],
+          "permissionsRequired": ["inventory-update.by-matchkey.item.put"],
+          "modulePermissions": [
+            "inventory-storage.items.collection.get",
+            "inventory-storage.items.item.get",
+            "inventory-storage.items.item.post",
+            "inventory-storage.items.item.put",
+            "inventory-storage.items.item.delete",
+            "inventory-storage.items.batch.post",
+            "inventory-storage.holdings.collection.get",
+            "inventory-storage.holdings.item.get",
+            "inventory-storage.holdings.item.post",
+            "inventory-storage.holdings.item.put",
+            "inventory-storage.holdings.item.delete",
+            "inventory-storage.holdings.batch.post",
+            "inventory-storage.instances.collection.get",
+            "inventory-storage.instances.item.get",
+            "inventory-storage.instances.item.post",
+            "inventory-storage.instances.item.put",
+            "inventory-storage.instances.item.delete",
+            "inventory-storage.instances.batch.post",
+            "inventory-storage.locations.collection.get",
+            "inventory-storage.locations.item.get",
+            "inventory-storage.preceding-succeeding-titles.collection.get",
+            "inventory-storage.preceding-succeeding-titles.item.get",
+            "inventory-storage.preceding-succeeding-titles.item.post",
+            "inventory-storage.preceding-succeeding-titles.item.put",
+            "inventory-storage.preceding-succeeding-titles.item.delete",
+            "inventory-storage.instances.preceding-succeeding-titles.collection.put",
+            "inventory-storage.instance-relationships.collection.get",
+            "inventory-storage.instance-relationships.item.post",
+            "inventory-storage.instance-relationships.item.get",
+            "inventory-storage.instance-relationships.item.put",
+            "inventory-storage.instance-relationships.item.delete",
+            "inventory-storage.inventory-view.instance-set.get"
+          ]
+        },
+        {
+          "methods": ["DELETE"],
+          "pathPattern": "/shared-inventory-upsert-matchkey",
+          "permissionsRequired": ["inventory-update.by-matchkey.item.delete"],
           "modulePermissions": [
             "inventory-storage.items.collection.get",
             "inventory-storage.items.item.get",
@@ -159,7 +237,7 @@
         {
           "methods": ["GET"],
           "pathPattern": "/shared-inventory-upsert-matchkey/fetch/{id}",
-          "permissionsRequired": ["shared-inventory-upsert-matchkey.item.get"],
+          "permissionsRequired": ["inventory-update.by-matchkey.item.get"],
           "modulePermissions": [
             "inventory-storage.items.collection.get",
             "inventory-storage.items.item.get",
@@ -185,7 +263,7 @@
         {
           "methods": ["PUT"],
           "pathPattern": "/shared-inventory-batch-upsert-matchkey",
-          "permissionsRequired": ["shared-inventory-upsert-matchkey.item.put"],
+          "permissionsRequired": ["inventory-update.batch-by-matchkey.collection.put"],
           "modulePermissions": [
             "inventory-storage.items.collection.get",
             "inventory-storage.items.item.get",
@@ -269,22 +347,42 @@
   ],
   "permissionSets": [
     {
-      "permissionName": "inventory-upsert-hrid.item.put",
+      "permissionName": "inventory-update.by-hrid.item.put",
       "displayName": "Inventory upsert based on HRID - create or update existing records",
+      "description": "Create or update instance, holdings and items based on the Instance HRID"
+    },
+    {
+      "permissionName": "inventory-update.batch-by-hrid.collection.put",
+      "displayName": "Inventory batch upsert based on HRID - create or update existing records",
       "description": "Create or update instances, holdings and items based on the Instance HRID"
     },
     {
-      "permissionName": "inventory-upsert-hrid.item.get",
+      "permissionName": "inventory-update.by-hrid.item.delete",
+      "displayName": "Inventory delete based on HRID - deletes inventory record set",
+      "description": "Delete instance, holdings and items based on the Instance HRID"
+    },
+    {
+      "permissionName": "inventory-update.by-hrid.item.get",
       "displayName": "Get an Inventory record set - by UUID or HRID",
       "description": "Fetching an Inventory record set including holdings, items and relations, by Instance ID or HRID"
     },
     {
-      "permissionName": "shared-inventory-upsert-matchkey.item.put",
+      "permissionName": "inventory-update.by-matchkey.item.put",
       "displayName": "Updating a shared Inventory by match key - create or update existing records",
+      "description": "Create or update an instance, create or replace holdings and items, based on the Instance matchkey"
+    },
+    {
+      "permissionName": "inventory-update.batch-by-matchkey.collection.put",
+      "displayName": "Updating a shared Inventory record set by match key - create or update existing records",
       "description": "Create or update instances, create or replace holdings and items, based on the Instance matchkey"
     },
     {
-      "permissionName": "shared-inventory-upsert-matchkey.item.get",
+      "permissionName": "inventory-update.by-matchkey.item.delete",
+      "displayName": "Inventory delete based on HRID - deletes inventory record set",
+      "description": "Delete instance, holdings and items based on the Instance HRID"
+    },
+    {
+      "permissionName": "inventory-update.by-matchkey.item.get",
       "displayName": "Get an Inventory records set - by UUID or HRID",
       "description": "Fetching an Inventory record set including holdings, items and relations, by Instance ID or HRID"
     },
@@ -293,10 +391,14 @@
       "displayName": "inventory Update module - all permissions",
       "description": "Set of permissions required to use all APIs of the inventory update module",
       "subPermissions": [
-        "inventory-upsert-hrid.item.put",
-        "inventory-upsert-hrid.item.get",
-        "shared-inventory-upsert-matchkey.item.put",
-        "shared-inventory-upsert-matchkey.item.get"
+        "inventory-update.by-hrid.item.put",
+        "inventory-update.batch-by-hrid.collection.put",
+        "inventory-update.by-hrid.item.delete",
+        "inventory-update.by-hrid.item.get",
+        "inventory-update.by-matchkey.item.put",
+        "inventory-update.batch-by-matchkey.collection.put",
+        "inventory-update.by-matchkey.item.delete",
+        "inventory-update.by-matchkey.item.get"
       ]
     }
   ],

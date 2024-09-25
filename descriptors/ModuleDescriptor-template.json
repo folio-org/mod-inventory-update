@@ -305,7 +305,7 @@
   "requires": [
     {
       "id": "instance-storage",
-      "version": "9.0 10.0"
+      "version": "9.0 10.0 11.0"
     },
     { "id": "holdings-storage",
       "version":  "5.0 6.0 7.0"
@@ -316,7 +316,7 @@
     },
     {
       "id": "instance-storage-batch-sync",
-      "version": "1.1 2.0"
+      "version": "1.1 2.0 3.0"
     },
     {
       "id": "holdings-storage-batch-sync",
@@ -332,7 +332,7 @@
     },
     {
       "id": "inventory-view-instance-set",
-      "version": "1.0 2.0"
+      "version": "1.0 2.0 3.0"
     },
     {
       "id": "locations",

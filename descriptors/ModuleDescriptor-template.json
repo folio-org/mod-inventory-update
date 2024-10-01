@@ -348,41 +348,49 @@
   "permissionSets": [
     {
       "permissionName": "inventory-update.by-hrid.item.put",
+      "replaces":  ["inventory-upsert-hrid.item.put"],
       "displayName": "Inventory upsert based on HRID - create or update existing records",
       "description": "Create or update instance, holdings and items based on the Instance HRID"
     },
     {
       "permissionName": "inventory-update.batch-by-hrid.collection.put",
+      "replaces":  ["inventory-upsert-hrid.item.put"],
       "displayName": "Inventory batch upsert based on HRID - create or update existing records",
       "description": "Create or update instances, holdings and items based on the Instance HRID"
     },
     {
       "permissionName": "inventory-update.by-hrid.item.delete",
+      "replaces":  ["inventory-upsert-hrid.item.put"],
       "displayName": "Inventory delete based on HRID - deletes inventory record set",
       "description": "Delete instance, holdings and items based on the Instance HRID"
     },
     {
       "permissionName": "inventory-update.by-hrid.item.get",
+      "replaces": ["inventory-upsert-hrid.item.get"],
       "displayName": "Get an Inventory record set - by UUID or HRID",
       "description": "Fetching an Inventory record set including holdings, items and relations, by Instance ID or HRID"
     },
     {
       "permissionName": "inventory-update.by-matchkey.item.put",
+      "replaces": ["shared-inventory-upsert-matchkey.item.put"],
       "displayName": "Updating a shared Inventory by match key - create or update existing records",
       "description": "Create or update an instance, create or replace holdings and items, based on the Instance matchkey"
     },
     {
       "permissionName": "inventory-update.batch-by-matchkey.collection.put",
+      "replaces": ["shared-inventory-upsert-matchkey.item.put"],
       "displayName": "Updating a shared Inventory record set by match key - create or update existing records",
       "description": "Create or update instances, create or replace holdings and items, based on the Instance matchkey"
     },
     {
       "permissionName": "inventory-update.by-matchkey.item.delete",
+      "replaces": ["shared-inventory-upsert-matchkey.item.put"],
       "displayName": "Inventory delete based on HRID - deletes inventory record set",
       "description": "Delete instance, holdings and items based on the Instance HRID"
     },
     {
       "permissionName": "inventory-update.by-matchkey.item.get",
+      "replaces": ["shared-inventory-upsert-matchkey.item.get"],
       "displayName": "Get an Inventory records set - by UUID or HRID",
       "description": "Fetching an Inventory record set including holdings, items and relations, by Instance ID or HRID"
     },

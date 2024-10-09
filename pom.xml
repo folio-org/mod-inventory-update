@@ -258,12 +258,8 @@
                https://issues.apache.org/jira/browse/SUREFIRE-1588
           -->
           <useSystemClassLoader>false</useSystemClassLoader>
-          <excludes>
-            <exclude>**/package/**XYZ.class</exclude>
-          </excludes>
           <includes>
-              <include>**/test/InventoryUpdateTestSuite.class</include>
-              <include>**/UnitTest.class</include>
+              <include>**/test/*.class</include>
           </includes>
         </configuration>
       </plugin>

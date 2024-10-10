@@ -7,6 +7,10 @@ import org.folio.okapi.common.OkapiClient;
 
 public class PostProcessing {
 
+  private PostProcessing() {
+    throw new IllegalStateException("SC");
+  }
+
   public static Future<Void> process(OkapiClient okapiClient, Repository repository) {
     return OrderLinesPatching.processPoLineReferences(okapiClient, repository);
   }

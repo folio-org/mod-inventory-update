@@ -17,8 +17,8 @@ public class OrderLinesPatching {
 
   private static final Logger logger = LoggerFactory.getLogger("inventory-update");
 
-  public OrderLinesPatching() {
-    // Noop
+  private OrderLinesPatching() {
+    throw new IllegalStateException("SC");
   }
 
   public static Future<Void> processPoLineReferences (OkapiClient okapiClient, Repository repository) {

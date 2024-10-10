@@ -42,4 +42,9 @@ public class InputItem extends InventoryRecord {
       return this;
     }
 
+    public InputItem setPurchaseOrderLineIdentifier (String id) {
+      recordJson.put("purchaseOrderLineIdentifier", id);
+      return this;
+    }
+
 }

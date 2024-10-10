@@ -1,4 +1,4 @@
-package org.folio.inventoryupdate.foreignconstraints;
+package org.folio.inventoryupdate.remotereferences;
 
 import io.vertx.core.Future;
 import io.vertx.core.Promise;
@@ -11,7 +11,9 @@ public class OrdersStorage {
   private static final String ORDER_LINES_STORAGE_PATH = "/orders-storage/po-lines";
   private static final String PURCHASE_ORDER_LINES = "poLines";
 
-  public static Future<JsonArray> lookupPurchaseOrderLines (OkapiClient okapiClient, String instanceId) {
+  public OrdersStorage() {}
+
+  public static Future<JsonArray> lookupPurchaseOrderLinesByInstanceId(OkapiClient okapiClient, String instanceId) {
     Promise<JsonArray> promise = Promise.promise();
     okapiClient.get(ORDER_LINES_STORAGE_PATH + "?query=instanceId==" + instanceId)
         .onComplete(response -> {

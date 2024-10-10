@@ -31,6 +31,7 @@ public class Orders {
 
 class OrdersConfiguration {
   public OrdersConfiguration () {
+    // SC
   }
 
   public String ordersPath() {

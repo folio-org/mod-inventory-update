@@ -9,7 +9,17 @@ import org.folio.okapi.common.OkapiClient;
 public class OrdersStorage {
 
   private final OrdersStorageConfiguration config;
-  private static final String PURCHASE_ORDER_LINES = "poLines";
+  static class OrdersStorageConfiguration {
+    public OrdersStorageConfiguration () {
+      // SC
+    }
+    public String ordersStoragePath() {
+      return "/orders-storage/po-lines";
+    }
+    public String purchaseOrderLines() {
+      return "poLines";
+    }
+  }
 
   public OrdersStorage() {
     config = new OrdersStorageConfiguration();
@@ -20,7 +30,7 @@ public class OrdersStorage {
     okapiClient.get(config.ordersStoragePath() + "?query=instanceId==" + instanceId)
         .onComplete(response -> {
           if (response.succeeded()) {
-            promise.complete(new JsonObject(response.result()).getJsonArray(PURCHASE_ORDER_LINES));
+            promise.complete(new JsonObject(response.result()).getJsonArray(config.purchaseOrderLines()));
           } else {
             promise.complete(new JsonArray());
           }
@@ -29,11 +39,3 @@ public class OrdersStorage {
   }
 }
 
-class OrdersStorageConfiguration {
-  public OrdersStorageConfiguration () {
-  }
-
-  public String ordersStoragePath() {
-    return "/orders-storage/po-lines";
-  }
-}

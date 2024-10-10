@@ -29,7 +29,7 @@ public class HoldingsRecord extends InventoryRecord {
         setItemsHoldingsRecordId(uuid);
     }
 
-  @Override
+    @Override
     public String generateUUID () {
         String uuid = super.generateUUID();
         setItemsHoldingsRecordId(uuid);
@@ -59,6 +59,15 @@ public class HoldingsRecord extends InventoryRecord {
         if (hasUUID() && ! item.hasHoldingsRecordId()) {
             item.setHoldingsRecordId(getUUID());
         }
+    }
+
+    public boolean hasItem(Item item) {
+      for (Item gotItem : items) {
+        if (gotItem.getHRID().equals(item.getHRID())) {
+          return true;
+        }
+      }
+      return false;
     }
 
     public List<Item> getItems() {

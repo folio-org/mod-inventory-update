@@ -9,16 +9,16 @@ import io.vertx.core.json.JsonObject;
 import org.folio.okapi.common.OkapiClient;
 
 public class Orders {
+  private final OrdersConfiguration ordersConfiguration;
   private static final Logger logger = LoggerFactory.getLogger("inventory-update");
-  private static final String ORDER_LINES_PATH = "/orders/order-lines";
 
-  private Orders() {
-    throw new IllegalStateException("SC");
+  public Orders() {
+    ordersConfiguration = new OrdersConfiguration();
   }
 
-  public static Future<Void> patchOrderLine(OkapiClient okapiClient, String purchaseOrderLineId, JsonObject patchBody) {
+  public Future<Void> patchOrderLine(OkapiClient okapiClient, String purchaseOrderLineId, JsonObject patchBody) {
     Promise<Void> promise = Promise.promise();
-    okapiClient.request(HttpMethod.PATCH, ORDER_LINES_PATH + "/" + purchaseOrderLineId, patchBody.toString())
+    okapiClient.request(HttpMethod.PATCH, ordersConfiguration.ordersPath() + "/" + purchaseOrderLineId, patchBody.toString())
         .onComplete(response -> {
           if (response.failed()) {
             logger.error("Problem patching order line: " + response.cause());
@@ -27,6 +27,13 @@ public class Orders {
         });
     return promise.future();
   }
+}
 
+class OrdersConfiguration {
+  public OrdersConfiguration () {
+  }
 
+  public String ordersPath() {
+    return  "/orders/order-lines";
+  }
 }

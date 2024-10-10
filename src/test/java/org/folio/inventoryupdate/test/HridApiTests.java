@@ -18,6 +18,7 @@ import org.junit.runner.RunWith;
 import java.util.Arrays;
 
 import static org.folio.inventoryupdate.test.fakestorage.FakeFolioApis.*;
+import static org.junit.Assert.assertEquals;
 
 @RunWith(VertxUnitRunner.class)
 public class HridApiTests extends InventoryUpdateTestSuite {
@@ -2538,7 +2539,7 @@ public class HridApiTests extends InventoryUpdateTestSuite {
 
   @Test
   public void upsertWithMissingInstanceHridWillBeRejected(TestContext ignoredTestContext) {
-    upsertByHrid(422, new JsonObject()
+    Response response = upsertByHrid(422, new JsonObject()
         .put("instance",
             new InputInstance().setTitle("Initial InputInstance").setInstanceTypeId("12345").setSource("test").getJson())
         .put("holdingsRecords", new JsonArray()
@@ -2580,13 +2581,15 @@ public class HridApiTests extends InventoryUpdateTestSuite {
                         .setMaterialTypeId(MATERIAL_TYPE_TEXT)
                         .setBarcode("BC-003").getJson())))));
 
+    assertEquals("SC", response.getStatusCode(),422);
+
   }
 
 
   @Test
   public void upsertWithMissingItemHridWillBeRejected(TestContext ignoredTestContext) {
     String instanceHrid = "1";
-    upsertByHrid(422, new JsonObject()
+    Response response = upsertByHrid(422, new JsonObject()
         .put("instance",
             new InputInstance().setTitle("Initial InputInstance").setInstanceTypeId("12345").setHrid(instanceHrid).setSource("test").getJson())
         .put("holdingsRecords", new JsonArray()
@@ -2606,13 +2609,15 @@ public class HridApiTests extends InventoryUpdateTestSuite {
                         .setStatus(STATUS_UNKNOWN)
                         .setMaterialTypeId(MATERIAL_TYPE_TEXT)
                         .setBarcode("BC-003").getJson())))));
+    assertEquals("SC", response.getStatusCode(),422);
+
 
   }
 
   @Test
   public void upsertWithMissingHoldingsHridWillBeRejected(TestContext ignoredTestContext) {
     String instanceHrid = "1";
-    upsertByHrid(422, new JsonObject()
+    Response response = upsertByHrid(422, new JsonObject()
         .put("instance",
             new InputInstance().setTitle("Initial InputInstance").setInstanceTypeId("12345").setHrid(instanceHrid).setSource("test").getJson())
         .put("holdingsRecords", new JsonArray()
@@ -2633,6 +2638,7 @@ public class HridApiTests extends InventoryUpdateTestSuite {
                         .setMaterialTypeId(MATERIAL_TYPE_TEXT)
                         .setBarcode("BC-003").getJson())))));
 
+    assertEquals("SC", response.getStatusCode(),422);
   }
 
 
@@ -2782,7 +2788,9 @@ public class HridApiTests extends InventoryUpdateTestSuite {
 
   @Test
   public void upsertWillReturnErrorResponseOnMissingInstanceInRequestBody(TestContext ignoredTestContext) {
-    upsertByHrid(400, new JsonObject().put("invalid", "No Instance here"));
+    Response response = upsertByHrid(400, new JsonObject().put("invalid", "No Instance here"));
+    assertEquals("SC", response.getStatusCode(),400);
+
   }
 
   @Test
@@ -2818,7 +2826,8 @@ public class HridApiTests extends InventoryUpdateTestSuite {
 
   @Test
   public void testSendingNonInventoryRecordSetArrayToBatchApi(TestContext ignoredTestContext) {
-    batchUpsertByHrid(400, new JsonObject().put("unknownProperty", new JsonArray()));
+    Response response = batchUpsertByHrid(400, new JsonObject().put("unknownProperty", new JsonArray()));
+    assertEquals("SC", response.getStatusCode(),400);
   }
 
   @Test
@@ -3066,8 +3075,8 @@ public class HridApiTests extends InventoryUpdateTestSuite {
                         .setStatus(STATUS_UNKNOWN)
                         .setMaterialTypeId(MATERIAL_TYPE_TEXT)
                         .setBarcode("BC-003").getJson()))));
-    upsertByHrid(500, inventoryRecordSet);
-
+    Response response = upsertByHrid(500, inventoryRecordSet);
+    assertEquals("SC", response.getStatusCode(),500);
   }
 
   @Test
@@ -3093,8 +3102,8 @@ public class HridApiTests extends InventoryUpdateTestSuite {
                         .setStatus(STATUS_UNKNOWN)
                         .setMaterialTypeId(MATERIAL_TYPE_TEXT)
                         .setBarcode("BC-003").getJson()))));
-    upsertByHrid(500, inventoryRecordSet);
-
+    Response response = upsertByHrid(500, inventoryRecordSet);
+    assertEquals("SC", response.getStatusCode(),500);
   }
 
   @Test
@@ -3120,8 +3129,8 @@ public class HridApiTests extends InventoryUpdateTestSuite {
                         .setStatus(STATUS_UNKNOWN)
                         .setMaterialTypeId(MATERIAL_TYPE_TEXT)
                         .setBarcode("BC-003").getJson()))));
-    upsertByHrid(500, inventoryRecordSet);
-
+    Response response = upsertByHrid(500, inventoryRecordSet);
+    assertEquals("SC", response.getStatusCode(),500);
   }
 
   @Test
@@ -3154,7 +3163,8 @@ public class HridApiTests extends InventoryUpdateTestSuite {
             .put("succeedingTitles", new JsonArray())
             .put("precedingTitles", new JsonArray()));
     upsertByHrid(inventoryRecordSet);
-    upsertByHrid(500, inventoryRecordSet);
+    Response response = upsertByHrid(500, inventoryRecordSet);
+    assertEquals("SC", response.getStatusCode(),500);
 
   }
 

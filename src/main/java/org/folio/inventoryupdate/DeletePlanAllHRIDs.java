@@ -49,7 +49,7 @@ public class DeletePlanAllHRIDs extends DeletePlan {
   }
 
   public static Future<Void> setDeleteConstraintIfReferencedByAcquisitions(OkapiClient okapiClient, Instance existingInstance) {
-    return OrdersStorage.lookupPurchaseOrderLinesByInstanceId(okapiClient, existingInstance.getUUID())
+    return new OrdersStorage().lookupPurchaseOrderLinesByInstanceId(okapiClient, existingInstance.getUUID())
         .onComplete(poLinesLookup -> {
           if (!poLinesLookup.result().isEmpty()) {
             existingInstance.handleDeleteProtection(InventoryRecord.DeletionConstraint.PO_LINE_REFERENCE);

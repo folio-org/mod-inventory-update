@@ -8,16 +8,16 @@ import org.folio.okapi.common.OkapiClient;
 
 public class OrdersStorage {
 
-  private static final String ORDER_LINES_STORAGE_PATH = "/orders-storage/po-lines";
+  private final OrdersStorageConfiguration config;
   private static final String PURCHASE_ORDER_LINES = "poLines";
 
-  private OrdersStorage() {
-    throw new IllegalStateException("SC");
+  public OrdersStorage() {
+    config = new OrdersStorageConfiguration();
   }
 
-  public static Future<JsonArray> lookupPurchaseOrderLinesByInstanceId(OkapiClient okapiClient, String instanceId) {
+  public Future<JsonArray> lookupPurchaseOrderLinesByInstanceId(OkapiClient okapiClient, String instanceId) {
     Promise<JsonArray> promise = Promise.promise();
-    okapiClient.get(ORDER_LINES_STORAGE_PATH + "?query=instanceId==" + instanceId)
+    okapiClient.get(config.ordersStoragePath() + "?query=instanceId==" + instanceId)
         .onComplete(response -> {
           if (response.succeeded()) {
             promise.complete(new JsonObject(response.result()).getJsonArray(PURCHASE_ORDER_LINES));
@@ -26,5 +26,14 @@ public class OrdersStorage {
           }
         });
     return promise.future();
+  }
+}
+
+class OrdersStorageConfiguration {
+  public OrdersStorageConfiguration () {
+  }
+
+  public String ordersStoragePath() {
+    return "/orders-storage/po-lines";
   }
 }

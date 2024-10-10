@@ -32,7 +32,7 @@ public class OrderLinesPatching {
                 new JsonObject()
                     .put("holdingsOperation", "Move")
                     .put("newInstanceId", item.getNewInstanceId()));
-        orderLinePatchingFutures.add(Orders.patchOrderLine(okapiClient, item.getPurchaseOrderLineIdentifier(), patchBody));
+        orderLinePatchingFutures.add(new Orders().patchOrderLine(okapiClient, item.getPurchaseOrderLineIdentifier(), patchBody));
       }
     }
     return GenericCompositeFuture.join(orderLinePatchingFutures).mapEmpty();

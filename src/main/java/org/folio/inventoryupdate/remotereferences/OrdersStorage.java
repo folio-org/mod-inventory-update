@@ -11,7 +11,9 @@ public class OrdersStorage {
   private static final String ORDER_LINES_STORAGE_PATH = "/orders-storage/po-lines";
   private static final String PURCHASE_ORDER_LINES = "poLines";
 
-  public OrdersStorage() {}
+  public OrdersStorage() {
+    // Noop
+  }
 
   public static Future<JsonArray> lookupPurchaseOrderLinesByInstanceId(OkapiClient okapiClient, String instanceId) {
     Promise<JsonArray> promise = Promise.promise();

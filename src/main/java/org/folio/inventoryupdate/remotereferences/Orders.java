@@ -12,7 +12,9 @@ public class Orders {
   private static final Logger logger = LoggerFactory.getLogger("inventory-update");
   private static final String ORDER_LINES_PATH = "/orders/order-lines";
 
-  public Orders() {}
+  public Orders() {
+    // Noop
+  }
 
   public static Future<Void> patchOrderLine(OkapiClient okapiClient, String purchaseOrderLineId, JsonObject patchBody) {
     Promise<Void> promise = Promise.promise();

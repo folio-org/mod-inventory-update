@@ -17,7 +17,9 @@ public class OrderLinesPatching {
 
   private static final Logger logger = LoggerFactory.getLogger("inventory-update");
 
-  public OrderLinesPatching() {}
+  public OrderLinesPatching() {
+    // Noop
+  }
 
   public static Future<Void> processPoLineReferences (OkapiClient okapiClient, Repository repository) {
     List<Future<Void>> orderLinePatchingFutures = new ArrayList<>();

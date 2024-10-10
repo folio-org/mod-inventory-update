@@ -3,6 +3,8 @@ package org.folio.inventoryupdate.entities;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Future;
 import io.vertx.core.Promise;
+import io.vertx.core.impl.logging.Logger;
+import io.vertx.core.impl.logging.LoggerFactory;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.RoutingContext;
@@ -14,6 +16,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
 
 import static org.folio.inventoryupdate.entities.InventoryRecordSet.*;
 
@@ -31,6 +34,7 @@ public abstract class Repository {
 
   public final Map<String,HoldingsRecord> existingHoldingsRecordsByHrid = new HashMap<>();
 
+  protected static final Logger logger = LoggerFactory.getLogger("inventory-update");
 
   // List of incoming record sets paired with existing record sets
   protected final List<PairedRecordSets> pairsOfRecordSets = new ArrayList<>();

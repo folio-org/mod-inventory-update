@@ -37,7 +37,7 @@ public class HridApiTests extends InventoryUpdateTestSuite {
     JsonObject instancesBeforePutJson = getRecordsFromStorage(FakeFolioApis.INSTANCE_STORAGE_PATH, null);
     testContext.assertEquals(instancesBeforePutJson.getInteger("totalRecords"), 1,
         "Number of instance records before PUT expected: 1");
-    batchUpsertByHrid(batch.getJson());
+    canBatchUpsertByHrid(batch.getJson());
     JsonObject instancesAfterPutJson = getRecordsFromStorage(FakeFolioApis.INSTANCE_STORAGE_PATH, null);
     testContext.assertEquals(instancesAfterPutJson.getInteger("totalRecords"), 201,
         "Number of instance records after PUT expected: 201");
@@ -60,7 +60,7 @@ public class HridApiTests extends InventoryUpdateTestSuite {
     JsonObject instancesBeforePutJson = getRecordsFromStorage(FakeFolioApis.INSTANCE_STORAGE_PATH, null);
     testContext.assertEquals(instancesBeforePutJson.getInteger("totalRecords"), 1,
         "Number of instance records for before PUT expected: 1");
-    batchUpsertByHrid(207, batch.getJson());
+    canBatchUpsertByHrid(207, batch.getJson());
     JsonObject instancesAfterPutJson = getRecordsFromStorage(FakeFolioApis.INSTANCE_STORAGE_PATH, null);
     testContext.assertEquals(instancesAfterPutJson.getInteger("totalRecords"), 100,
         "Number of instance records after PUT expected: 100");
@@ -83,7 +83,7 @@ public class HridApiTests extends InventoryUpdateTestSuite {
     JsonObject instancesBeforePutJson = getRecordsFromStorage(FakeFolioApis.INSTANCE_STORAGE_PATH, null);
     testContext.assertEquals(instancesBeforePutJson.getInteger("totalRecords"), 1,
         "Number of instance records for before PUT expected: 1");
-    batchUpsertByHrid(207, batch.getJson());
+    canBatchUpsertByHrid(207, batch.getJson());
     JsonObject instancesAfterPutJson = getRecordsFromStorage(FakeFolioApis.INSTANCE_STORAGE_PATH, null);
     testContext.assertEquals(instancesAfterPutJson.getInteger("totalRecords"), 100,
         "Number of instance records after PUT expected: 100");
@@ -111,7 +111,7 @@ public class HridApiTests extends InventoryUpdateTestSuite {
     JsonObject instancesBeforePutJson = getRecordsFromStorage(FakeFolioApis.INSTANCE_STORAGE_PATH, null);
     testContext.assertEquals(instancesBeforePutJson.getInteger("totalRecords"), 1,
         "Number of instance records for before PUT expected: 1");
-    Response response = batchUpsertByHrid(200, batch.getJson());
+    Response response = canBatchUpsertByHrid(200, batch.getJson());
     JsonObject responseJson = new JsonObject(response.asString());
     JsonObject metrics = responseJson.getJsonObject("metrics");
     testContext.assertEquals(metrics.getJsonObject("INSTANCE").getJsonObject("CREATE").getInteger("COMPLETED"), 29,
@@ -186,7 +186,7 @@ public class HridApiTests extends InventoryUpdateTestSuite {
                   .put("items", new JsonArray())))
           .put(PROCESSING, new JsonObject().put(CLIENTS_RECORD_IDENTIFIER, "in" + i)));
     }
-    Response response = batchUpsertByHrid(207, batch.getJson());
+    Response response = canBatchUpsertByHrid(207, batch.getJson());
     JsonObject responseJson = new JsonObject(response.getBody().asString());
     JsonArray errors = responseJson.getJsonArray("errors", new JsonArray());
     testContext.assertTrue((errors != null && !errors.isEmpty() && errors.size() == 2),
@@ -1160,6 +1160,47 @@ public class HridApiTests extends InventoryUpdateTestSuite {
   }
 
   @Test
+  public void upsertWillNotDeleteOmittedItemIfCurrentlyInAcquisitions(TestContext testContext) {
+    String instanceHrid = "1";
+    JsonObject inventoryRecordSet = new JsonObject()
+        .put("instance",
+            new InputInstance().setTitle("Initial InputInstance").setInstanceTypeId("12345").setHrid(instanceHrid).setSource("test").getJson())
+        .put("holdingsRecords", new JsonArray()
+            .add(new InputHoldingsRecord().setHrid("HOL-002").setPermanentLocationId(LOCATION_ID_1).setCallNumber("test-cn-2").getJson()
+                .put("items", new JsonArray()
+                    .add(new InputItem().setHrid("ITM-003")
+                        .setStatus(STATUS_ON_ORDER)
+                        .setMaterialTypeId(MATERIAL_TYPE_TEXT)
+                        .setBarcode("BC-003")
+                        .setPurchaseOrderLineIdentifier("polineid").getJson()))));
+
+    JsonObject upsertResponseJson = upsertByHrid(inventoryRecordSet);
+    String instanceId = upsertResponseJson.getJsonObject("instance").getString("id");
+
+    inventoryRecordSet = new JsonObject()
+        .put("instance",
+            new InputInstance().setTitle("Initial InputInstance").setInstanceTypeId("12345").setHrid(instanceHrid).setSource("test").getJson())
+        .put("holdingsRecords", new JsonArray()
+            .add(new InputHoldingsRecord().setHrid("HOL-002").setPermanentLocationId(LOCATION_ID_1).setCallNumber("test-cn-2").getJson()
+                .put("items", new JsonArray())));
+
+    upsertResponseJson = upsertByHrid(inventoryRecordSet);
+
+    testContext.assertEquals(getMetric(upsertResponseJson, HOLDINGS_RECORD, UPDATE, COMPLETED), 1,
+        "After upsert with item on order omitted, metrics should report [1] holdings record updated " + upsertResponseJson.encodePrettily());
+    testContext.assertEquals(getMetric(upsertResponseJson, ITEM, DELETE, SKIPPED), 1,
+        "After upsert with item on order omitted, metrics should report [1] item deletion skipped " + upsertResponseJson.encodePrettily());
+
+    JsonObject holdingsAfterUpsertJson = getRecordsFromStorage(FakeFolioApis.HOLDINGS_STORAGE_PATH, "instanceId==\"" + instanceId + "\"");
+    testContext.assertEquals(holdingsAfterUpsertJson.getInteger("totalRecords"), 1,
+        "After upsert with item on order omitted, number of holdings records left for the Instance should still be [1] " + holdingsAfterUpsertJson.encodePrettily());
+    JsonObject itemsAfterUpsertJson = getRecordsFromStorage(FakeFolioApis.ITEM_STORAGE_PATH, null);
+    testContext.assertEquals(itemsAfterUpsertJson.getInteger("totalRecords"), 1,
+        "After upsert with item on order removed, the total number of item records should still be [1] " + itemsAfterUpsertJson.encodePrettily());
+  }
+
+
+  @Test
   public void upsertWillNotDeleteOmittedHoldingsWithCirculatingItem(TestContext testContext) {
     String instanceHrid = "1";
     JsonObject inventoryRecordSet = new JsonObject()
@@ -1719,7 +1760,7 @@ public class HridApiTests extends InventoryUpdateTestSuite {
                             .setSource("MARC")
                             .setInstanceTypeId("12345").getJson()).getJson()))));
 
-    batchUpsertByHrid(200, batch.getJson());
+    canBatchUpsertByHrid(200, batch.getJson());
     assertTrue("SC dummy", scDummy);
   }
 
@@ -1746,7 +1787,7 @@ public class HridApiTests extends InventoryUpdateTestSuite {
         .put("instance",
             new InputInstance().setTitle("Parent InputInstance 1").setInstanceTypeId("12345").setHrid(parentHrid).setSource("test").getJson()));
 
-    JsonObject response = new JsonObject(batchUpsertByHrid(200, batch.getJson()).asString());
+    JsonObject response = new JsonObject(canBatchUpsertByHrid(200, batch.getJson()).asString());
     testContext.assertEquals(getMetric(response, INSTANCE, CREATE, COMPLETED), 2,
         "Upsert metrics response should report [2] instances successfully created " + response.encodePrettily());
     testContext.assertEquals(getMetric(response, INSTANCE_RELATIONSHIP, CREATE, COMPLETED), 1,
@@ -2533,8 +2574,8 @@ public class HridApiTests extends InventoryUpdateTestSuite {
             .put("childInstances", new JsonArray()
                 .add(new InputInstanceRelationship().setInstanceIdentifierHrid("002").getJson()))));
 
-    fetchRecordSetFromUpsertHrid("1");
-    fetchRecordSetFromUpsertHrid(newInstance.getJsonObject("instance").getString("id"));
+    canFetchRecordSetFromUpsertHrid("1");
+    canFetchRecordSetFromUpsertHrid(newInstance.getJsonObject("instance").getString("id"));
     getJsonObjectById(MainVerticle.FETCH_INVENTORY_RECORD_SETS_ID_PATH, "2", 404);
     assertTrue("SC dummy", scDummy);
   }
@@ -2683,7 +2724,7 @@ public class HridApiTests extends InventoryUpdateTestSuite {
             new InputInstance().setHrid("001")
                 .setTitle("InputInstance v2").setInstanceTypeId("12345").setSource("test").getJson()));
 
-    Response upsertResponse = batchUpsertByHrid(200, batch.getJson());
+    Response upsertResponse = canBatchUpsertByHrid(200, batch.getJson());
     JsonObject responseJson = new JsonObject(upsertResponse.getBody().asString());
     testContext.assertEquals(getMetric(responseJson, INSTANCE, CREATE, COMPLETED), 1,
         "Upsert metrics response should report [1] instance create completed " + responseJson.encodePrettily());
@@ -2725,7 +2766,7 @@ public class HridApiTests extends InventoryUpdateTestSuite {
                         .setHrid("I002")
                         .getJson())))));
 
-    Response upsertResponse = batchUpsertByHrid(200, batch.getJson());
+    Response upsertResponse = canBatchUpsertByHrid(200, batch.getJson());
     JsonObject responseJson = new JsonObject(upsertResponse.getBody().asString());
     testContext.assertEquals(getMetric(responseJson, INSTANCE, CREATE, COMPLETED), 2,
         "Upsert metrics response should report [2] instance creates completed " + responseJson.encodePrettily());
@@ -2770,7 +2811,7 @@ public class HridApiTests extends InventoryUpdateTestSuite {
                         .setHrid("I001")
                         .getJson())))));
 
-    Response upsertResponse = batchUpsertByHrid(200, batch.getJson());
+    Response upsertResponse = canBatchUpsertByHrid(200, batch.getJson());
     JsonObject responseJson = new JsonObject(upsertResponse.getBody().asString());
     testContext.assertEquals(getMetric(responseJson, INSTANCE, CREATE, COMPLETED), 2,
         "Upsert metrics response should report [2] instance creates completed " + responseJson.encodePrettily());
@@ -2823,7 +2864,7 @@ public class HridApiTests extends InventoryUpdateTestSuite {
 
   @Test
   public void testSendingNonInventoryRecordSetArrayToBatchApi(TestContext ignoredTestContext) {
-    batchUpsertByHrid(400, new JsonObject().put("unknownProperty", new JsonArray()));
+    canBatchUpsertByHrid(400, new JsonObject().put("unknownProperty", new JsonArray()));
     assertTrue("SC dummy", scDummy);
   }
 

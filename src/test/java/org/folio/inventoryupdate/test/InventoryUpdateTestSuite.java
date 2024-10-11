@@ -155,11 +155,11 @@ public class InventoryUpdateTestSuite {
   }
 
   protected void canFetchRecordSetFromUpsertHrid(String hridOrUuid) {
-    getJsonObjectById( MainVerticle.FETCH_INVENTORY_RECORD_SETS_ID_PATH, hridOrUuid );
+    canGetJsonObjectById( MainVerticle.FETCH_INVENTORY_RECORD_SETS_ID_PATH, hridOrUuid );
   }
 
   protected void fetchRecordSetFromUpsertSharedInventory (String hridOrUuid) {
-    getJsonObjectById( MainVerticle.FETCH_SHARED_INVENTORY_RECORD_SETS_ID_PATH, hridOrUuid );
+    canGetJsonObjectById( MainVerticle.FETCH_SHARED_INVENTORY_RECORD_SETS_ID_PATH, hridOrUuid );
   }
 
   protected Response upsertByHrid (int expectedStatusCode, JsonObject inventoryRecordSet) {
@@ -182,7 +182,7 @@ public class InventoryUpdateTestSuite {
     return new JsonObject(putJsonObject(apiPath, requestJson, 200).getBody().asString());
   }
 
-  protected Response getJsonObjectById (String apiPath, String id, int expectedStatusCode) {
+  protected Response canGetJsonObjectById(String apiPath, String id, int expectedStatusCode) {
     RestAssured.port = PORT_INVENTORY_UPDATE;
     return RestAssured.given()
             .header("Content-type","application/json")
@@ -193,8 +193,8 @@ public class InventoryUpdateTestSuite {
             .statusCode(expectedStatusCode).extract().response();
   }
 
-  protected JsonObject getJsonObjectById(String apiPath, String hridOrUuid) {
-    return new JsonObject(getJsonObjectById(apiPath, hridOrUuid, 200).getBody().asString());
+  protected void canGetJsonObjectById(String apiPath, String hridOrUuid) {
+    new JsonObject(canGetJsonObjectById(apiPath, hridOrUuid, 200).getBody().asString());
   }
 
   protected JsonObject delete(String apiPath, JsonObject requestJson) {

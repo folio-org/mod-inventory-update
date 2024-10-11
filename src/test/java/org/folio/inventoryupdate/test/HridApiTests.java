@@ -2576,7 +2576,7 @@ public class HridApiTests extends InventoryUpdateTestSuite {
 
     canFetchRecordSetFromUpsertHrid("1");
     canFetchRecordSetFromUpsertHrid(newInstance.getJsonObject("instance").getString("id"));
-    getJsonObjectById(MainVerticle.FETCH_INVENTORY_RECORD_SETS_ID_PATH, "2", 404);
+    canGetJsonObjectById(MainVerticle.FETCH_INVENTORY_RECORD_SETS_ID_PATH, "2", 404);
     assertTrue("SC dummy", scDummy);
   }
 

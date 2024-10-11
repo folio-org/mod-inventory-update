@@ -244,7 +244,7 @@ public class MatchKeyApiTests extends InventoryUpdateTestSuite {
                   .put("items", new JsonArray())))
           .put(PROCESSING, new JsonObject().put(CLIENTS_RECORD_IDENTIFIER, "in" + i)));
     }
-    Response response = batchUpsertByHrid(207, batch.getJson());
+    Response response = canBatchUpsertByHrid(207, batch.getJson());
     JsonObject responseJson = new JsonObject(response.getBody().asString());
     JsonArray errors = responseJson.getJsonArray("errors", new JsonArray());
     testContext.assertTrue(( errors != null && !errors.isEmpty() && errors.size() == 2 ),
@@ -1056,7 +1056,7 @@ public class MatchKeyApiTests extends InventoryUpdateTestSuite {
 
     fetchRecordSetFromUpsertSharedInventory( "1" );
     fetchRecordSetFromUpsertSharedInventory (newInstance.getJsonObject( "instance" ).getString( "id" ));
-    getJsonObjectById( MainVerticle.FETCH_SHARED_INVENTORY_RECORD_SETS_ID_PATH, "2", 404 );
+    canGetJsonObjectById( MainVerticle.FETCH_SHARED_INVENTORY_RECORD_SETS_ID_PATH, "2", 404 );
 
   }
 
@@ -1089,7 +1089,7 @@ public class MatchKeyApiTests extends InventoryUpdateTestSuite {
                         .setBarcode("BC-003").getJson())))));
 
 
-    getJsonObjectById( MainVerticle.FETCH_SHARED_INVENTORY_RECORD_SETS_ID_PATH, "1", 400 );
+    canGetJsonObjectById( MainVerticle.FETCH_SHARED_INVENTORY_RECORD_SETS_ID_PATH, "1", 400 );
   }
 
   @Test

@@ -55,19 +55,12 @@ public class HoldingsRecord extends InventoryRecord {
     }
 
     public void addItem(Item item) {
+        logger.info("ID-NE: items " + items);
         items.add(item);
+        logger.info("ID-NE added item to " + items);
         if (hasUUID() && ! item.hasHoldingsRecordId()) {
             item.setHoldingsRecordId(getUUID());
         }
-    }
-
-    public boolean hasItem(Item item) {
-      for (Item gotItem : items) {
-        if (gotItem.getHRID().equals(item.getHRID())) {
-          return true;
-        }
-      }
-      return false;
     }
 
     public List<Item> getItems() {

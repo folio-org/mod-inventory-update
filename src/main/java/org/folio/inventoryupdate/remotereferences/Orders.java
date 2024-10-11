@@ -9,7 +9,16 @@ import io.vertx.core.json.JsonObject;
 import org.folio.okapi.common.OkapiClient;
 
 public class Orders {
+
   private final OrdersConfiguration ordersConfiguration;
+  static class OrdersConfiguration {
+    public OrdersConfiguration() {
+      // SC
+    }
+    public String ordersPath() {
+      return "/orders/order-lines";
+    }
+  }
   private static final Logger logger = LoggerFactory.getLogger("inventory-update");
 
   public Orders() {
@@ -26,15 +35,5 @@ public class Orders {
           promise.complete();
         });
     return promise.future();
-  }
-}
-
-class OrdersConfiguration {
-  public OrdersConfiguration () {
-    // SC
-  }
-
-  public String ordersPath() {
-    return  "/orders/order-lines";
   }
 }

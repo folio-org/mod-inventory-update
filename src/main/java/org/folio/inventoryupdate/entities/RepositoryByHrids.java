@@ -48,16 +48,7 @@ public class RepositoryByHrids extends Repository {
       existingRecordsByHridsFutures.add(requestReferencedInstancesByUUIDs(routingContext, idList));
     }
     return GenericCompositeFuture.join(existingRecordsByHridsFutures)
-        .compose(x -> {
-          // Also round up items of holdings records that already exist but outside the fetched inventory record sets
-          // (holdings to be "imported" from other instances)
-          List<Future<Void>> externalHoldingsRecordsFutures = new ArrayList<>();
-          for (List<String> idList : getSubListsOfFifty(getIncomingHoldingsRecordIds())) {
-            externalHoldingsRecordsFutures.add(requestItemsByHoldingsRecordIds(routingContext, idList));
-          }
-          return GenericCompositeFuture.join(externalHoldingsRecordsFutures);
-        })
-        .onSuccess(y -> setExistingRecordSets())
+        .onSuccess(x -> setExistingRecordSets())
         .mapEmpty();
   }
 
@@ -313,18 +304,6 @@ public class RepositoryByHrids extends Repository {
     }
     return hrids;
   }
-
-  private List<String> getIncomingHoldingsRecordIds () {
-    List<String> ids = new ArrayList<>();
-    for (PairedRecordSets pair : pairsOfRecordSets) {
-      List<HoldingsRecord> holdingsRecords = pair.getIncomingRecordSet().getHoldingsRecords();
-      for (HoldingsRecord holdingsRecord : holdingsRecords) {
-        ids.add(holdingsRecord.getUUID());
-      }
-    }
-    return ids;
-  }
-
 
   private List<String> getIncomingItemHRIDs () {
     List<String> hrids = new ArrayList<>();

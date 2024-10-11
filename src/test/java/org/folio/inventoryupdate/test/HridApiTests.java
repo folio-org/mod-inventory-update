@@ -3164,5 +3164,5 @@ public class HridApiTests extends InventoryUpdateTestSuite {
     assertTrue("SC dummy", scDummy);
   }
 
-  private boolean scDummy = true;
+  private final boolean scDummy = true;
 }

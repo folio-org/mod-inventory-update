@@ -38,4 +38,3 @@ public class OrdersStorage {
     return promise.future();
   }
 }
-

@@ -268,12 +268,6 @@ public class UpdatePlanAllHRIDs extends UpdatePlan {
         // Import from different Instance
         HoldingsRecord existingHoldingsRecord = repository.existingHoldingsRecordsByHrid.get(holdingsRecord.getHRID());
         holdingsRecord.setTransition(UPDATE).applyOverlays(existingHoldingsRecord, rules.forHoldingsRecord());
-        // Remove existing items of the holdings record if not present in the upsert
-        for (Item existingItem : existingHoldingsRecord.getItems()) {
-          if (! holdingsRecord.hasItem(existingItem)) {
-            planToDeleteOrRetainItem(existingItem, rules, existingHoldingsRecord);
-          }
-        }
     } else {
         // The HRID does not exist in Inventory, create
         holdingsRecord.setTransition(CREATE).generateUUIDIfNotProvided();
@@ -317,7 +311,6 @@ public class UpdatePlanAllHRIDs extends UpdatePlan {
         existingHoldingsRecord.skip();
       }
     }
-
   }
 
   private void planInstanceRelations(PairedRecordSets pair) {

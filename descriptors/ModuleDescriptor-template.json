@@ -308,7 +308,7 @@
       "version": "9.0 10.0 11.0"
     },
     { "id": "holdings-storage",
-      "version":  "5.0 6.0 7.0"
+      "version":  "5.0 6.0 7.0 8.0"
     },
     {
       "id": "item-storage",

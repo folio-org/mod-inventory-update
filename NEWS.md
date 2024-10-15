@@ -1,3 +1,9 @@
+## 3.4.2
+
+* Provides `instance-storage 11.0`
+* Provides `holdings-storage 8.0`
+* Provides `instance-storage-batch-sync 3.0`
+
 ## 3.4.1 2024-08-06
 
 * [MODINVUP-106](https://issues.folio.org/browse/MODINVUP-106) Works around inventory storage deadlock when updating instance records plus holdings records

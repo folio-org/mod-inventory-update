@@ -1,8 +1,6 @@
 ## 3.4.2
 
-* Provides `instance-storage 11.0`
 * Provides `holdings-storage 8.0`
-* Provides `instance-storage-batch-sync 3.0`
 
 ## 3.4.1 2024-08-06
 

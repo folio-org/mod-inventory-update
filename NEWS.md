@@ -1,6 +1,6 @@
 ## 3.4.2
 
-* Provides `holdings-storage 8.0`
+* Requires `holdings-storage 5.0 6.0 7.0 8.0`
 
 ## 3.4.1 2024-08-06
 

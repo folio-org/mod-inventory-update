@@ -4,7 +4,7 @@
 
   <groupId>org.folio</groupId>
   <artifactId>mod-inventory-update</artifactId>
-  <version>3.4.2-SNAPSHOT</version>
+  <version>4.0.1-SNAPSHOT</version>
   <name>Inventory Update Module</name>
 
   <licenses>
@@ -273,18 +273,6 @@
           <pushChanges>false</pushChanges>
           <localCheckout>true</localCheckout>
         </configuration>
-      </plugin>
-      <plugin>
-        <groupId>org.folio</groupId>
-        <artifactId>folio-module-descriptor-validator</artifactId>
-        <version>${folio-module-descriptor-validator.version}</version>
-        <executions>
-          <execution>
-            <goals>
-              <goal>validate</goal>
-            </goals>
-          </execution>
-        </executions>
       </plugin>
     </plugins>
   </build>

@@ -1,6 +1,12 @@
-## 3.4.2
+## 4.0.0 2024-10-17
 
+Maintenance release
 * Requires `holdings-storage 5.0 6.0 7.0 8.0`
+* Requires `instance-storage 9.0 10.0 11.0`
+* Requires `instance-storage-batch-sync 1.1 2.0 3.0`
+* Requires `inventory-view-instance-set 1.0 2.0 3.0`
+* [MODINVUP-109](https://issues.folio.org/browse/MODINVUP-109) [MODINVUP-112](https://issues.folio.org/browse/MODINVUP-112) Reorganizes permissions (breaking change)
+* [MODINVUP-115](https://issues.folio.org/browse/MODINVUP-115) Reorganizes unit tests
 
 ## 3.4.1 2024-08-06
 

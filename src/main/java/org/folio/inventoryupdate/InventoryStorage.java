@@ -429,6 +429,7 @@ public class InventoryStorage {
     headers.put("Content-type", "application/json");
     if (ctx.request().getHeader("X-Okapi-Tenant") != null) headers.put("X-Okapi-Tenant", ctx.request().getHeader("X-Okapi-Tenant"));
     if (ctx.request().getHeader("X-Okapi-Token") != null) headers.put("X-Okapi-Token", ctx.request().getHeader("X-Okapi-Token"));
+    if (ctx.request().getHeader("X-Okapi-Request-Id") != null) headers.put("X-Okapi-Request-Id", ctx.request().getHeader("X-Okapi-Request-Id"));
     headers.put("Accept", "application/json, text/plain");
     client.setHeaders(headers);
     return client;

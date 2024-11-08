@@ -236,26 +236,27 @@ public class UpdatePlanAllHRIDs extends UpdatePlan {
                 incomingInstance.setTransition(CREATE).generateUUIDIfNotProvided();
             }
             // Remaining holdings and item transactions: Creates, imports from other Instance(s)
-            // Find incoming holdings we didn't already resolve above
+            // Find incoming holdings we didn't already resolve (UPDATE or DELETE) above
             List<HoldingsRecord> holdingsRecords =
                     incomingSet.getHoldingsRecordsByTransactionType(Transaction.UNKNOWN);
             for (HoldingsRecord holdingsRecord : holdingsRecords) {
               planToCreateNewHoldingsRecordOrMoveExistingOver(holdingsRecord, rules);
             }
-            // Find incoming items we didn't already resolve (update or delete) above
+            // Find incoming items we didn't already resolve (UPDATE or DELETE) above
             List<Item> items = incomingSet.getItemsByTransactionType(Transaction.UNKNOWN);
             for (Item item : items) {
-              planToCreateNewItemOnMoveExistingOver(item, rules);
+              planToCreateNewItemOrMoveExistingOver(item, rules, incomingInstance.getUUID());
             }
         }
     }
 
-  private void planToCreateNewItemOnMoveExistingOver(Item item, ProcessingInstructionsUpsert rules) {
+  private void planToCreateNewItemOrMoveExistingOver(Item item, ProcessingInstructionsUpsert rules, String instanceId) {
     if (repository.existingItemsByHrid.containsKey(item.getHRID())) {
         // Import from different Instance
         Item existing = repository.existingItemsByHrid.get(item.getHRID());
         item.setTransition(UPDATE);
         item.applyOverlays(existing, rules.forItem());
+        item.isSwitchingToInstance(instanceId);
     } else {
         // The HRID does not exist in Inventory, create
         item.setTransition(CREATE).generateUUIDIfNotProvided();
@@ -265,8 +266,8 @@ public class UpdatePlanAllHRIDs extends UpdatePlan {
   private void planToCreateNewHoldingsRecordOrMoveExistingOver(HoldingsRecord holdingsRecord, ProcessingInstructionsUpsert rules) {
     if (repository.existingHoldingsRecordsByHrid.containsKey(holdingsRecord.getHRID())) {
         // Import from different Instance
-        HoldingsRecord existing = repository.existingHoldingsRecordsByHrid.get(holdingsRecord.getHRID());
-        holdingsRecord.setTransition(UPDATE).applyOverlays(existing, rules.forHoldingsRecord());
+        HoldingsRecord existingHoldingsRecord = repository.existingHoldingsRecordsByHrid.get(holdingsRecord.getHRID());
+        holdingsRecord.setTransition(UPDATE).applyOverlays(existingHoldingsRecord, rules.forHoldingsRecord());
     } else {
         // The HRID does not exist in Inventory, create
         holdingsRecord.setTransition(CREATE).generateUUIDIfNotProvided();
@@ -276,7 +277,6 @@ public class UpdatePlanAllHRIDs extends UpdatePlan {
   private static void planToDeleteOrRetainHoldingsRecord(HoldingsRecord existingHoldingsRecord, ProcessingInstructionsUpsert rules) {
     existingHoldingsRecord.setTransition(DELETE);
     if (rules.forHoldingsRecord().retainOmittedRecord(existingHoldingsRecord)) {
-      logger.info("Retain omitted record");
       existingHoldingsRecord.handleDeleteProtection(InventoryRecord.DeletionConstraint.HOLDINGS_RECORD_PATTERN_MATCH);
       existingHoldingsRecord.skip();
     }
@@ -288,15 +288,28 @@ public class UpdatePlanAllHRIDs extends UpdatePlan {
     if (rules.forItem().retainOmittedRecord(existingItem)) {
       existingItem.handleDeleteProtection(InventoryRecord.DeletionConstraint.ITEM_PATTERN_MATCH);
       existingItem.skip();
-      existingHoldingsRecord.handleDeleteProtection(InventoryRecord.DeletionConstraint.ITEM_PATTERN_MATCH);
-      existingHoldingsRecord.skip();
+      if (existingHoldingsRecord.isDeleting()) {
+        existingHoldingsRecord.handleDeleteProtection(InventoryRecord.DeletionConstraint.ITEM_PATTERN_MATCH);
+        existingHoldingsRecord.skip();
+      }
     }
     // and unless item appears to be still circulating
     if (existingItem.isCirculating()) {
       existingItem.handleDeleteProtection(InventoryRecord.DeletionConstraint.ITEM_STATUS);
       existingItem.skip();
-      existingHoldingsRecord.handleDeleteProtection(InventoryRecord.DeletionConstraint.ITEM_STATUS);
-      existingHoldingsRecord.skip();
+      if (existingHoldingsRecord.isDeleting()) {
+        existingHoldingsRecord.handleDeleteProtection(InventoryRecord.DeletionConstraint.ITEM_STATUS);
+        existingHoldingsRecord.skip();
+      }
+    }
+    // and unless item is linked to a purchase order line
+    if (existingItem.isInAcquisitions()) {
+      existingItem.handleDeleteProtection(InventoryRecord.DeletionConstraint.PO_LINE_REFERENCE);
+      existingItem.skip();
+      if (existingHoldingsRecord.isDeleting()) {
+        existingHoldingsRecord.handleDeleteProtection(InventoryRecord.DeletionConstraint.PO_LINE_REFERENCE);
+        existingHoldingsRecord.skip();
+      }
     }
   }
 

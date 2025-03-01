@@ -9,6 +9,7 @@ import java.util.List;
 public class Item extends InventoryRecord {
 
   public static final String HOLDINGS_RECORD_ID = "holdingsRecordId";
+  public static final String PO_LINE_ID = "purchaseOrderLineIdentifier";
   private static final List<String> statusesIndicatingCirculatingItem =
       Arrays.asList("Awaiting delivery",
         "Awaiting pickup",
@@ -18,6 +19,9 @@ public class Item extends InventoryRecord {
         "Declared lost",
         "Paged",
         "In transit");
+
+  private boolean isTransitingToAnotherInstance = false;
+  private String newInstanceId;
 
 
   public Item(JsonObject item, JsonObject originJson) {
@@ -80,4 +84,26 @@ public class Item extends InventoryRecord {
     return statusesIndicatingCirculatingItem.contains(getStatusName());
   }
 
- }
+  public boolean isInAcquisitions() {
+    return jsonRecord.getString(PO_LINE_ID) != null && !jsonRecord.getString(PO_LINE_ID).isEmpty();
+  }
+
+  public String getPurchaseOrderLineIdentifier() {
+    return jsonRecord.getString(PO_LINE_ID);
+  }
+
+  public boolean isSwitchingInstance() {
+    return isTransitingToAnotherInstance;
+  }
+
+  public void isSwitchingToInstance(String instanceId) {
+    newInstanceId = instanceId;
+    isTransitingToAnotherInstance = true;
+  }
+
+  public String getNewInstanceId () {
+    return newInstanceId;
+  }
+
+
+}

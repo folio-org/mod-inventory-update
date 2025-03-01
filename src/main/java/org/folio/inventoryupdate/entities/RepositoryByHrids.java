@@ -77,7 +77,6 @@ public class RepositoryByHrids extends Repository {
     }
   }
 
-
   private Future<Void> requestInstanceSetsByHRIDs(RoutingContext routingContext,
                                                List<String> hrids) {
     OkapiClient okapiClient = InventoryStorage.getOkapiClient(routingContext);

@@ -85,6 +85,7 @@ public abstract class UpdatePlan {
                                                         new JsonObject());
 
                                                 if (inventoryUpdated.succeeded()) {
+                                                    PostProcessing.process(getOkapiClient(routingContext), repository);
                                                     response.put("metrics", getUpdateMetricsFromRepository().asJson());
                                                     promise.complete(
                                                             new InventoryUpdateOutcome(response)
@@ -425,6 +426,7 @@ public abstract class UpdatePlan {
                     existingSet.getItems()).flatMap(Collection::stream).collect(Collectors.toList());
 
             for (InventoryRecord inventoryRecord : holdingsRecordsAndItemsInExistingSet) {
+                // Outcomes of deletes are registered on the existing records
                 if (inventoryRecord.isDeleting()) {
                     metrics.entity(inventoryRecord.entityType()).transaction(inventoryRecord.getTransaction()).outcomes.increment(inventoryRecord.getOutcome());
                 }

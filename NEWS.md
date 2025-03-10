@@ -1,3 +1,8 @@
+## 4.1.0 2025-03-10
+
+* [MODINVUP-120](https://issues.folio.org/browse/MODINVUP-120) Java 21.
+* [MODINVUP-7](https://issues.folio.org/browse/MODINVUP-7) Include inventory update request ID in inventory storage request logs.
+
 ## 4.0.0 2024-10-17
 
 Maintenance release

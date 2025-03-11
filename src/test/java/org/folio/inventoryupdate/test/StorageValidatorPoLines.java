@@ -21,5 +21,4 @@ public class StorageValidatorPoLines {
     testContext.assertEquals(responseOnGET.getString("titleOrPackage"), "New InputInstance");
   }
 
-
 }

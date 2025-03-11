@@ -15,6 +15,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+
 import static org.folio.inventoryupdate.entities.InventoryRecordSet.*;
 
 public abstract class Repository {
@@ -30,7 +31,6 @@ public abstract class Repository {
   public final Map<String,Map<String,Item>> existingItemsByHoldingsRecordId = new HashMap<>();
 
   public final Map<String,HoldingsRecord> existingHoldingsRecordsByHrid = new HashMap<>();
-
 
   // List of incoming record sets paired with existing record sets
   protected final List<PairedRecordSets> pairsOfRecordSets = new ArrayList<>();

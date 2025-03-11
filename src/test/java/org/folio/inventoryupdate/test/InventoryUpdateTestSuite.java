@@ -39,6 +39,7 @@ public class InventoryUpdateTestSuite {
 
   public static final String STATUS_UNKNOWN = "Unknown";
   public static final String STATUS_CHECKED_OUT = "Checked out";
+  public static final String STATUS_ON_ORDER = "On order";
 
   public static final String CREATE = org.folio.inventoryupdate.entities.InventoryRecord.Transaction.CREATE.name();
   public static final String UPDATE = org.folio.inventoryupdate.entities.InventoryRecord.Transaction.UPDATE.name();
@@ -94,7 +95,7 @@ public class InventoryUpdateTestSuite {
   }
 
   @Test
-  public void testHealthCheck (TestContext testContext) {
+  public void testHealthCheck (TestContext ignoredTestContext) {
     RestAssured.port = PORT_INVENTORY_UPDATE;
     RestAssured.given()
         .header(OKAPI_URL_HEADER)
@@ -145,20 +146,20 @@ public class InventoryUpdateTestSuite {
     return putJsonObject(MainVerticle.INVENTORY_UPSERT_HRID_PATH, inventoryRecordSet);
   }
 
-  protected JsonObject batchUpsertByHrid (JsonObject batchOfInventoryRecordSets) {
-    return putJsonObject(MainVerticle.INVENTORY_BATCH_UPSERT_HRID_PATH, batchOfInventoryRecordSets);
+  protected void canBatchUpsertByHrid(JsonObject batchOfInventoryRecordSets) {
+    putJsonObject(MainVerticle.INVENTORY_BATCH_UPSERT_HRID_PATH, batchOfInventoryRecordSets);
   }
 
-  protected Response batchUpsertByHrid(int expectedStatusCode, JsonObject batchOfInventoryRecordSets) {
+  protected Response canBatchUpsertByHrid(int expectedStatusCode, JsonObject batchOfInventoryRecordSets) {
     return putJsonObject(MainVerticle.INVENTORY_BATCH_UPSERT_HRID_PATH, batchOfInventoryRecordSets, expectedStatusCode);
   }
 
-  protected JsonObject fetchRecordSetFromUpsertHrid (String hridOrUuid) {
-    return getJsonObjectById( MainVerticle.FETCH_INVENTORY_RECORD_SETS_ID_PATH, hridOrUuid );
+  protected void canFetchRecordSetFromUpsertHrid(String hridOrUuid) {
+    canGetJsonObjectById( MainVerticle.FETCH_INVENTORY_RECORD_SETS_ID_PATH, hridOrUuid );
   }
 
-  protected JsonObject fetchRecordSetFromUpsertSharedInventory (String hridOrUuid) {
-    return getJsonObjectById( MainVerticle.FETCH_SHARED_INVENTORY_RECORD_SETS_ID_PATH, hridOrUuid );
+  protected void fetchRecordSetFromUpsertSharedInventory (String hridOrUuid) {
+    canGetJsonObjectById( MainVerticle.FETCH_SHARED_INVENTORY_RECORD_SETS_ID_PATH, hridOrUuid );
   }
 
   protected Response upsertByHrid (int expectedStatusCode, JsonObject inventoryRecordSet) {
@@ -181,7 +182,7 @@ public class InventoryUpdateTestSuite {
     return new JsonObject(putJsonObject(apiPath, requestJson, 200).getBody().asString());
   }
 
-  protected Response getJsonObjectById (String apiPath, String id, int expectedStatusCode) {
+  protected Response canGetJsonObjectById(String apiPath, String id, int expectedStatusCode) {
     RestAssured.port = PORT_INVENTORY_UPDATE;
     return RestAssured.given()
             .header("Content-type","application/json")
@@ -192,8 +193,8 @@ public class InventoryUpdateTestSuite {
             .statusCode(expectedStatusCode).extract().response();
   }
 
-  protected JsonObject getJsonObjectById(String apiPath, String hridOrUuid) {
-    return new JsonObject(getJsonObjectById(apiPath, hridOrUuid, 200).getBody().asString());
+  protected void canGetJsonObjectById(String apiPath, String hridOrUuid) {
+    new JsonObject(canGetJsonObjectById(apiPath, hridOrUuid, 200).getBody().asString());
   }
 
   protected JsonObject delete(String apiPath, JsonObject requestJson) {

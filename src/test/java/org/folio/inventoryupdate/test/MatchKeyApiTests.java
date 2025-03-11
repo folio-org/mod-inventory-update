@@ -244,7 +244,7 @@ public class MatchKeyApiTests extends InventoryUpdateTestSuite {
                   .put("items", new JsonArray())))
           .put(PROCESSING, new JsonObject().put(CLIENTS_RECORD_IDENTIFIER, "in" + i)));
     }
-    Response response = batchUpsertByHrid(207, batch.getJson());
+    Response response = canBatchUpsertByHrid(207, batch.getJson());
     JsonObject responseJson = new JsonObject(response.getBody().asString());
     JsonArray errors = responseJson.getJsonArray("errors", new JsonArray());
     testContext.assertTrue(( errors != null && !errors.isEmpty() && errors.size() == 2 ),
@@ -391,7 +391,7 @@ public class MatchKeyApiTests extends InventoryUpdateTestSuite {
   }
 
   @Test
-  public void upsertByMatchKeyWillFailToCreateItemIfMaterialTypeIsMissing(TestContext testContext) {
+  public void upsertByMatchKeyWillFailToCreateItemIfMaterialTypeIsMissing(TestContext ignoredTestContext) {
     String instanceHrid = "1";
     upsertByMatchKey(207, new JsonObject()
         .put("instance",
@@ -864,7 +864,7 @@ public class MatchKeyApiTests extends InventoryUpdateTestSuite {
   }
 
   @Test
-  public void deleteByIdentifiersThatDoNotExistInSharedInventoryWillReturn404 (TestContext testContext) {
+  public void deleteByIdentifiersThatDoNotExistInSharedInventoryWillReturn404 (TestContext ignoredTestContext) {
     delete(404, MainVerticle.SHARED_INVENTORY_UPSERT_MATCHKEY_PATH,
         new JsonObject()
             .put("institutionId", INSTITUTION_ID_1)
@@ -873,7 +873,7 @@ public class MatchKeyApiTests extends InventoryUpdateTestSuite {
   }
 
   @Test
-  public void testForcedLocationsGetRecordsFailure (TestContext testContext) {
+  public void testForcedLocationsGetRecordsFailure (TestContext ignoredTestContext) {
     fakeFolioApis.locationStorage.failOnGetRecords = true;
     JsonObject inventoryRecordSet = new JsonObject()
         .put("instance",
@@ -905,7 +905,7 @@ public class MatchKeyApiTests extends InventoryUpdateTestSuite {
   }
 
   @Test
-  public void testUpsertByMatchKeyWithEmptyLocationsTable (TestContext testContext) {
+  public void testUpsertByMatchKeyWithEmptyLocationsTable (TestContext ignoredTestContext) {
     RestAssured.given()
         .body("{}")
         .header("Content-type","application/json")
@@ -946,7 +946,7 @@ public class MatchKeyApiTests extends InventoryUpdateTestSuite {
   }
 
   @Test
-  public void testDeleteByIdentifierWithEmptyLocationsTable (TestContext testContext) {
+  public void testDeleteByIdentifierWithEmptyLocationsTable (TestContext ignoredTestContext) {
     final String identifierTypeId1 = "iti-001";
     final String identifierValue1 = "111";
 
@@ -986,7 +986,7 @@ public class MatchKeyApiTests extends InventoryUpdateTestSuite {
   }
 
   @Test
-  public void testDeleteByIdentifiersWithDeleteRequestFailure (TestContext testContext) {
+  public void testDeleteByIdentifiersWithDeleteRequestFailure (TestContext ignoredTestContext) {
     final String identifierTypeId1 = "iti-001";
     final String identifierValue1 = "111";
 
@@ -1026,7 +1026,7 @@ public class MatchKeyApiTests extends InventoryUpdateTestSuite {
   }
 
   @Test
-  public void canFetchInventoryRecordSetFromUpsertSharedInventoryApiWithHridAndUuid (TestContext testContext) {
+  public void canFetchInventoryRecordSetFromUpsertSharedInventoryApiWithHridAndUuid (TestContext ignoredTestContext) {
     String instanceHrid1 = "1";
     JsonObject newInstance = upsertByHrid(new JsonObject()
         .put("instance",
@@ -1056,12 +1056,12 @@ public class MatchKeyApiTests extends InventoryUpdateTestSuite {
 
     fetchRecordSetFromUpsertSharedInventory( "1" );
     fetchRecordSetFromUpsertSharedInventory (newInstance.getJsonObject( "instance" ).getString( "id" ));
-    getJsonObjectById( MainVerticle.FETCH_SHARED_INVENTORY_RECORD_SETS_ID_PATH, "2", 404 );
+    canGetJsonObjectById( MainVerticle.FETCH_SHARED_INVENTORY_RECORD_SETS_ID_PATH, "2", 404 );
 
   }
 
   @Test
-  public void cannotFetchFromUpsertSharedInventoryApiIfInstanceHasNoMatchKey (TestContext testContext) {
+  public void cannotFetchFromUpsertSharedInventoryApiIfInstanceHasNoMatchKey (TestContext ignoredTestContext) {
     String instanceHrid1 = "1";
     upsertByHrid(new JsonObject()
         .put("instance",
@@ -1089,11 +1089,11 @@ public class MatchKeyApiTests extends InventoryUpdateTestSuite {
                         .setBarcode("BC-003").getJson())))));
 
 
-    getJsonObjectById( MainVerticle.FETCH_SHARED_INVENTORY_RECORD_SETS_ID_PATH, "1", 400 );
+    canGetJsonObjectById( MainVerticle.FETCH_SHARED_INVENTORY_RECORD_SETS_ID_PATH, "1", 400 );
   }
 
   @Test
-  public void testInvalidApiPath (TestContext testContext) {
+  public void testInvalidApiPath (TestContext ignoredTestContext) {
     JsonObject inventoryRecordSet = new JsonObject();
     inventoryRecordSet.put("instance", new InputInstance()
         .setTitle("Initial InputInstance").setInstanceTypeId("12345").getJson());
@@ -1101,12 +1101,12 @@ public class MatchKeyApiTests extends InventoryUpdateTestSuite {
   }
 
   @Test
-  public void testSendingNonInventoryRecordSetArrayToBatchApi (TestContext testContext) {
+  public void testSendingNonInventoryRecordSetArrayToBatchApi (TestContext ignoredTestContext) {
     batchUpsertByMatchKey(400, new JsonObject().put("unknownProperty", new JsonArray()));
   }
 
   @Test
-  public void testSendingNonJson (TestContext testContext) {
+  public void testSendingNonJson (TestContext ignoredTestContext) {
     RestAssured.port = PORT_INVENTORY_UPDATE;
 
     RestAssured.given()

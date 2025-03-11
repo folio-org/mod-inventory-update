@@ -6,7 +6,7 @@ import org.folio.inventoryupdate.entities.HoldingsRecord;
 import org.folio.inventoryupdate.entities.Instance;
 import org.folio.inventoryupdate.entities.InventoryRecord;
 import org.folio.inventoryupdate.entities.Item;
-import org.folio.inventoryupdate.foreignconstraints.OrdersStorage;
+import org.folio.inventoryupdate.remotereferences.OrdersStorage;
 import org.folio.inventoryupdate.instructions.ProcessingInstructionsDeletion;
 import org.folio.okapi.common.OkapiClient;
 
@@ -49,7 +49,7 @@ public class DeletePlanAllHRIDs extends DeletePlan {
   }
 
   public static Future<Void> setDeleteConstraintIfReferencedByAcquisitions(OkapiClient okapiClient, Instance existingInstance) {
-    return OrdersStorage.lookupPurchaseOrderLines(okapiClient, existingInstance.getUUID())
+    return new OrdersStorage().lookupPurchaseOrderLinesByInstanceId(okapiClient, existingInstance.getUUID())
         .onComplete(poLinesLookup -> {
           if (!poLinesLookup.result().isEmpty()) {
             existingInstance.handleDeleteProtection(InventoryRecord.DeletionConstraint.PO_LINE_REFERENCE);

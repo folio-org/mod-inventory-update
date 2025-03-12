@@ -22,7 +22,7 @@ import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
 
 @RunWith(VertxUnitRunner.class)
-public class InventoryUpdateTestSuite {
+public abstract class InventoryUpdateTestBase {
 
   protected Vertx vertx;
   protected static final int PORT_INVENTORY_UPDATE = 9031;
@@ -63,8 +63,6 @@ public class InventoryUpdateTestSuite {
   @Rule
   public final TestName name = new TestName();
 
-  public InventoryUpdateTestSuite() {}
-
   @Before
   public void setUp(TestContext testContext) {
     logger.debug("setUp " + name.getMethodName());
@@ -94,7 +92,7 @@ public class InventoryUpdateTestSuite {
   }
 
   @Test
-  public void testHealthCheck (TestContext testContext) {
+  public void testHealthCheck() {
     RestAssured.port = PORT_INVENTORY_UPDATE;
     RestAssured.given()
         .header(OKAPI_URL_HEADER)

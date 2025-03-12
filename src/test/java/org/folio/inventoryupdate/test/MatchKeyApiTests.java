@@ -17,11 +17,11 @@ import org.junit.runner.RunWith;
 import static org.folio.inventoryupdate.test.fakestorage.FakeFolioApis.*;
 
 @RunWith(VertxUnitRunner.class)
-public class MatchKeyApiTests extends InventoryUpdateTestSuite {
+public class MatchKeyApiTests extends InventoryUpdateTestBase {
 
   @Test
   public void upsertByMatchKeyWillCreateNewInstance (TestContext testContext) {
-    InventoryUpdateTestSuite.createInitialInstanceWithMatchKey();
+    InventoryUpdateTestBase.createInitialInstanceWithMatchKey();
     InputInstance instance = new InputInstance()
         .setTitle("New title")
         .setInstanceTypeId("12345")
@@ -35,7 +35,7 @@ public class MatchKeyApiTests extends InventoryUpdateTestSuite {
     testContext.assertEquals(instancesBeforePutJson.getInteger("totalRecords"), 0,
         "Number of instance records for query by matchKey 'new_title___(etc)' before PUT expected: 0" );
 
-    InventoryUpdateTestSuite.upsertByMatchKey(recordSet.getJson());
+    InventoryUpdateTestBase.upsertByMatchKey(recordSet.getJson());
 
     JsonObject instancesAfterPutJson = getRecordsFromStorage(FakeFolioApis.INSTANCE_STORAGE_PATH, "matchKey==\"" + matchKey.getKey() + "\"");
     testContext.assertEquals(instancesAfterPutJson.getInteger("totalRecords"), 1,

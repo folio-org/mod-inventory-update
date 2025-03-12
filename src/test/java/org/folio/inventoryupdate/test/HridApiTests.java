@@ -20,7 +20,7 @@ import java.util.Arrays;
 import static org.folio.inventoryupdate.test.fakestorage.FakeFolioApis.*;
 
 @RunWith(VertxUnitRunner.class)
-public class HridApiTests extends InventoryUpdateTestSuite{
+public class HridApiTests extends InventoryUpdateTestBase {
 
   @Test
   public void batchUpsertByHridWillCreate200NewInstances (TestContext testContext) {

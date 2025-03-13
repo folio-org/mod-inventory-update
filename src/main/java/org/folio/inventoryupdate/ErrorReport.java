@@ -203,13 +203,13 @@ public class ErrorReport {
     var code = getStatusCode();
     if (code < 100 || code > 599) {
       // code might be 0 if not set.
-      // nginx, curl, restassured, vert.x (as client), ... handle 0 as internal error and don't report/log the body.
+      // nginx, curl, restassured, vert.x (as client), ... handle 0 as invalid HTTP and don't report/log the body.
       //
       // https://datatracker.ietf.org/doc/html/rfc9110#section-15
       // "The status code of a response is a three-digit integer code"
       // "Values outside the range 100..599 are invalid. Implementations often use three-digit integer values
       // outside of that range (i.e., 600..999) for internal communication of non-HTTP status (e.g., library errors)."
-      code = 500;
+      code = INTERNAL_SERVER_ERROR;
     }
     responseJson(routingContext, code).end(asJsonPrettily());
   }

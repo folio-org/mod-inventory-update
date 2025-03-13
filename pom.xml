@@ -15,6 +15,7 @@
   </licenses>
 
   <properties>
+    <argLine></argLine>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <docker.registry>docker.indexdata.com:5000</docker.registry>
     <ramlfiles_path>${basedir}/ramls/</ramlfiles_path>
@@ -310,6 +311,7 @@
         <version>3.5.2</version>
         <configuration>
           <argLine>
+            @{argLine}
             -javaagent:${settings.localRepository}/org/mockito/mockito-core/${mockito.version}/mockito-core-${mockito.version}.jar
             -Xshare:off
           </argLine>

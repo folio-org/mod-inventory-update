@@ -8,8 +8,8 @@ import org.folio.inventoryupdate.test.fakestorage.entitites.InputHoldingsRecord;
 import org.folio.inventoryupdate.test.fakestorage.entitites.InputInstance;
 import org.folio.inventoryupdate.test.fakestorage.entitites.InputItem;
 
-import static org.folio.inventoryupdate.test.InventoryUpdateTestSuite.MATERIAL_TYPE_TEXT;
-import static org.folio.inventoryupdate.test.InventoryUpdateTestSuite.STATUS_UNKNOWN;
+import static org.folio.inventoryupdate.test.InventoryUpdateTestBase.MATERIAL_TYPE_TEXT;
+import static org.folio.inventoryupdate.test.InventoryUpdateTestBase.STATUS_UNKNOWN;
 import static org.folio.inventoryupdate.test.fakestorage.FakeFolioApis.*;
 
 public class StorageValidatorItems {
@@ -30,7 +30,7 @@ public class StorageValidatorItems {
         String existingInstanceId = responseOnInstancePOST.getString("id");
         JsonObject responseOnHoldingsPOST = FakeFolioApis.post(
                 HOLDINGS_STORAGE_PATH,
-                new InputHoldingsRecord().setPermanentLocationId(InventoryUpdateTestSuite.LOCATION_ID_1).setCallNumber("CN-FOR-ITEM-TEST").setInstanceId(existingInstanceId).getJson());
+                new InputHoldingsRecord().setPermanentLocationId(InventoryUpdateTestBase.LOCATION_ID_1).setCallNumber("CN-FOR-ITEM-TEST").setInstanceId(existingInstanceId).getJson());
         existingHoldingsRecordId = responseOnHoldingsPOST.getString("id");
     }
 

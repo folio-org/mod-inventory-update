@@ -6,7 +6,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 
 @RunWith(VertxUnitRunner.class)
-public class ValidateTestEnvironment extends InventoryUpdateTestSuite {
+public class ValidateTestEnvironment extends InventoryUpdateTestBase {
   @Test
   public void testFakeFolioApis(TestContext testContext) {
     new StorageValidatorLocations().validateStorage(testContext);

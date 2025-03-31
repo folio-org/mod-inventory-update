@@ -36,7 +36,7 @@ public class StorageValidatorHoldingsRecords {
     protected void validatePostAndGetById(TestContext testContext) {
         JsonObject responseOnPOST = FakeFolioApis.post(
                 HOLDINGS_STORAGE_PATH,
-                new InputHoldingsRecord().setInstanceId(existingInstanceId).setPermanentLocationId(InventoryUpdateTestSuite.LOCATION_ID_1).setCallNumber(FIRST_CALL_NUMBER).getJson());
+                new InputHoldingsRecord().setInstanceId(existingInstanceId).setPermanentLocationId(InventoryUpdateTestBase.LOCATION_ID_1).setCallNumber(FIRST_CALL_NUMBER).getJson());
         testContext.assertEquals(responseOnPOST.getString("callNumber"), FIRST_CALL_NUMBER);
         JsonObject responseOnGET = FakeFolioApis.getRecordById(HOLDINGS_STORAGE_PATH, responseOnPOST.getString("id"));
         testContext.assertEquals(responseOnGET.getString("callNumber"), FIRST_CALL_NUMBER);
@@ -58,7 +58,7 @@ public class StorageValidatorHoldingsRecords {
     protected void validateCanDeleteHoldingsRecordById (TestContext testContext) {
         JsonObject responseOnPOST = FakeFolioApis.post(
                 HOLDINGS_STORAGE_PATH,
-                new InputHoldingsRecord().setPermanentLocationId(InventoryUpdateTestSuite.LOCATION_ID_1).setCallNumber("TEST-CN").setInstanceId(existingInstanceId).getJson());
+                new InputHoldingsRecord().setPermanentLocationId(InventoryUpdateTestBase.LOCATION_ID_1).setCallNumber("TEST-CN").setInstanceId(existingInstanceId).getJson());
         testContext.assertEquals(responseOnPOST.getString("callNumber"), "TEST-CN");
         FakeFolioApis.delete(HOLDINGS_STORAGE_PATH, responseOnPOST.getString("id"),200);
     }
@@ -66,7 +66,7 @@ public class StorageValidatorHoldingsRecords {
     protected void validateCannotPostWithBadInstanceId (TestContext testContext) {
         JsonObject responseOnPOST = FakeFolioApis.post(
                 HOLDINGS_STORAGE_PATH,
-                new InputHoldingsRecord().setInstanceId(NON_EXISTING_INSTANCE_ID).setPermanentLocationId(InventoryUpdateTestSuite.LOCATION_ID_1).setCallNumber(FIRST_CALL_NUMBER).getJson(),
+                new InputHoldingsRecord().setInstanceId(NON_EXISTING_INSTANCE_ID).setPermanentLocationId(InventoryUpdateTestBase.LOCATION_ID_1).setCallNumber(FIRST_CALL_NUMBER).getJson(),
                 500);
         JsonObject responseJson = FakeFolioApis.getRecordsByQuery(
                 HOLDINGS_STORAGE_PATH,

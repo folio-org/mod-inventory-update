@@ -342,7 +342,7 @@
   "optional": [
     {
       "id": "orders-storage.po-lines",
-      "version": "12.0"
+      "version": "13.0"
     }
   ],
   "permissionSets": [

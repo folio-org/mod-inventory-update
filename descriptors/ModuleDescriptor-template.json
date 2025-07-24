@@ -4,7 +4,7 @@
   "provides": [
     {
       "id": "inventory-upsert-hrid",
-      "version": "2.1",
+      "version": "3.0",
       "handlers": [
         {
           "methods": ["PUT"],
@@ -109,7 +109,7 @@
     },
     {
       "id": "inventory-batch-upsert-hrid",
-      "version": "2.1",
+      "version": "3.0",
       "handlers": [
         {
           "methods": ["PUT"],
@@ -154,7 +154,7 @@
     },
     {
       "id": "shared-inventory-upsert-matchkey",
-      "version": "2.0",
+      "version": "3.0",
       "handlers": [
         {
           "methods": ["PUT"],
@@ -258,7 +258,7 @@
     },
     {
       "id": "shared-inventory-batch-upsert-matchkey",
-      "version": "2.0",
+      "version": "3.0",
       "handlers": [
         {
           "methods": ["PUT"],
@@ -312,7 +312,7 @@
     },
     {
       "id": "item-storage",
-      "version": "8.2 9.0 10.0"
+      "version": "8.2 9.0 10.0 11.0"
     },
     {
       "id": "instance-storage-batch-sync",
@@ -324,7 +324,7 @@
     },
     {
       "id": "item-storage-batch-sync",
-      "version": "1.0"
+      "version": "1.0 2.0"
     },
     {
       "id": "instance-preceding-succeeding-titles",

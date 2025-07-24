@@ -4,7 +4,7 @@
 
   <groupId>org.folio</groupId>
   <artifactId>mod-inventory-update</artifactId>
-  <version>4.1.1-SNAPSHOT</version>
+  <version>5.0.0-SNAPSHOT</version>
   <name>Inventory Update Module</name>
 
   <licenses>
@@ -15,7 +15,7 @@
   </licenses>
 
   <properties>
-    <argLine></argLine>
+    <argLine />
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <docker.registry>docker.indexdata.com:5000</docker.registry>
     <ramlfiles_path>${basedir}/ramls/</ramlfiles_path>
@@ -180,7 +180,7 @@
       </plugin>
       <plugin>
         <artifactId>maven-resources-plugin</artifactId>
-        <version>3.0.1</version>
+        <version>3.3.1</version>
         <executions>
           <execution>
             <id>copy-resources</id>

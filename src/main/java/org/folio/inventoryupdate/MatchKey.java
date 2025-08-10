@@ -8,15 +8,15 @@ import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import io.vertx.core.impl.logging.Logger;
-import io.vertx.core.impl.logging.LoggerFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 
 
 public class MatchKey {
 
-  private final Logger logger = LoggerFactory.getLogger("inventory-update-match-key");
+  private final Logger logger = LogManager.getLogger("inventory-update-match-key");
 
   private final JsonObject candidateInstance;
   private final String matchkee;

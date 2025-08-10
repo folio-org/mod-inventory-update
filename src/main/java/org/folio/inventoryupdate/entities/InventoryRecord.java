@@ -4,11 +4,11 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
-import io.vertx.core.impl.logging.Logger;
-import io.vertx.core.impl.logging.LoggerFactory;
 import io.vertx.core.json.DecodeException;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.folio.inventoryupdate.ErrorReport;
 import org.folio.inventoryupdate.instructions.ProcessingInstructionsUpsert;
 import org.folio.inventoryupdate.instructions.RecordRetention;
@@ -70,7 +70,7 @@ public abstract class InventoryRecord {
 
     private static final String STATISTICAL_CODE_IDS = "statisticalCodeIds";
 
-    protected static final Logger logger = LoggerFactory.getLogger("inventory-update");
+    protected static final Logger logger = LogManager.getLogger("inventory-update");
 
     private final List<DeletionConstraint> deletionConstraints = new ArrayList<>();
 

@@ -6,7 +6,6 @@ import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.RoutingContext;
 import org.folio.inventoryupdate.entities.InstanceReferences;
-import org.folio.okapi.common.GenericCompositeFuture;
 import org.folio.okapi.common.OkapiClient;
 
 import java.util.ArrayList;
@@ -272,7 +271,7 @@ public class InventoryFetchService
             promise.complete(new HashMap<>());
         } else
         {
-            GenericCompositeFuture.all( instanceFutures ).onComplete( relatedInstances -> {
+            Future.all( instanceFutures ).onComplete( relatedInstances -> {
                 if ( relatedInstances.succeeded() )
                 {
                     if ( relatedInstances.result().list() != null )

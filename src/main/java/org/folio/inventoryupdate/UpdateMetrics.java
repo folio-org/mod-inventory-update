@@ -1,15 +1,15 @@
 package org.folio.inventoryupdate;
 
-import io.vertx.core.impl.logging.Logger;
-import io.vertx.core.impl.logging.LoggerFactory;
 import io.vertx.core.json.JsonObject;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.folio.inventoryupdate.entities.InventoryRecord;
 import static org.folio.inventoryupdate.entities.InventoryRecord.*;
 
 import java.util.Arrays;
 
 public class UpdateMetrics {
-    protected static final Logger logger = LoggerFactory.getLogger("inventory-update");
+    protected static final Logger logger = LogManager.getLogger("inventory-update");
 
     InstanceMetrics instanceMetrics = new InstanceMetrics();
     HoldingsRecordMetrics holdingsRecordMetrics = new HoldingsRecordMetrics();

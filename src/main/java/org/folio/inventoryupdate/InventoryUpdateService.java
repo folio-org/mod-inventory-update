@@ -7,8 +7,8 @@ import static org.folio.inventoryupdate.InventoryUpdateOutcome.OK;
 import static org.folio.okapi.common.HttpResponse.responseError;
 import static org.folio.okapi.common.HttpResponse.responseJson;
 
-import io.vertx.core.impl.logging.Logger;
-import io.vertx.core.impl.logging.LoggerFactory;
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 import io.vertx.core.json.DecodeException;
 import io.vertx.core.json.JsonArray;
 import org.folio.inventoryupdate.entities.RecordIdentifiers;
@@ -25,7 +25,7 @@ import io.vertx.ext.web.RoutingContext;
  *
  */
 public class InventoryUpdateService {
-  private static final Logger logger = LoggerFactory.getLogger("inventory-update");
+  private static final Logger logger = LogManager.getLogger("inventory-update");
 
   public void handleInventoryUpsertByHRID(RoutingContext routingContext) {
     UpdatePlan plan = new UpdatePlanAllHRIDs();

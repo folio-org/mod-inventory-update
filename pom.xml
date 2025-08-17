@@ -297,8 +297,7 @@
               <transformers>
                 <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
                   <manifestEntries>
-                    <!-- change Main-Class to io.org.folio.okapi.common.MainLauncher when OKAPI-1218 is done -->
-                    <Main-Class>io.vertx.launcher.application.VertxApplication</Main-Class>
+                    <Main-Class>org.folio.okapi.common.MainLauncher</Main-Class>
                     <Main-Verticle>org.folio.inventoryupdate.MainVerticle</Main-Verticle>
                     <Multi-Release>true</Multi-Release>
                   </manifestEntries>

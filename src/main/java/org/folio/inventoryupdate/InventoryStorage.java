@@ -5,8 +5,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import io.vertx.core.impl.logging.Logger;
-import io.vertx.core.impl.logging.LoggerFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import io.vertx.ext.web.RoutingContext;
 import org.folio.inventoryupdate.entities.HoldingsRecord;
 import org.folio.inventoryupdate.entities.Instance;
@@ -30,7 +30,7 @@ import org.folio.okapi.common.WebClientFactory;
  */
 public class InventoryStorage {
 
-  private static final Logger logger = LoggerFactory.getLogger("inventory-update");
+  private static final Logger logger = LogManager.getLogger("inventory-update");
   @SuppressWarnings("java:S1075")  // suppress "URIs should not be hardcoded"
   private static final String INSTANCE_STORAGE_PATH = "/instance-storage/instances";
   @SuppressWarnings("java:S1075")  // suppress "URIs should not be hardcoded"

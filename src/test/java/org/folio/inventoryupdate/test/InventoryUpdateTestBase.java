@@ -15,9 +15,9 @@ import io.restassured.http.Header;
 import io.restassured.response.Response;
 import io.vertx.core.DeploymentOptions;
 import io.vertx.core.Vertx;
-import io.vertx.core.impl.logging.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import io.vertx.core.json.JsonObject;
-import io.vertx.ext.unit.Async;
 import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
 
@@ -59,7 +59,7 @@ public abstract class InventoryUpdateTestBase {
   public static final String CLIENTS_RECORD_IDENTIFIER = "clientsRecordIdentifier";
 
 
-  protected final Logger logger = io.vertx.core.impl.logging.LoggerFactory.getLogger("InventoryUpdateTestSuite");
+  protected final Logger logger = LoggerFactory.getLogger("InventoryUpdateTestSuite");
   @Rule
   public final TestName name = new TestName();
 
@@ -118,9 +118,8 @@ public abstract class InventoryUpdateTestBase {
   }
 
   @After
-  public void tearDown(TestContext context) {
-    Async async = context.async();
-    vertx.close(context.asyncAssertSuccess(res -> async.complete()));
+  public void tearDown() {
+    vertx.close();
   }
 
   public static JsonObject upsertByMatchKey(JsonObject inventoryRecordSet) {

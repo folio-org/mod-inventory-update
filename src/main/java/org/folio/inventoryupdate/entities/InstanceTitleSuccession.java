@@ -1,7 +1,7 @@
 package org.folio.inventoryupdate.entities;
 
-import io.vertx.core.impl.logging.Logger;
-import io.vertx.core.impl.logging.LoggerFactory;
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 import io.vertx.core.json.JsonObject;
 
 public class InstanceTitleSuccession extends InstanceToInstanceRelation {
@@ -9,7 +9,7 @@ public class InstanceTitleSuccession extends InstanceToInstanceRelation {
     public static final String ID = "id";
     public static final String PRECEDING_INSTANCE_ID = "precedingInstanceId";
     public static final String SUCCEEDING_INSTANCE_ID = "succeedingInstanceId";
-    protected static final Logger logger = LoggerFactory.getLogger("inventory-update");
+    protected static final Logger logger = LogManager.getLogger("inventory-update");
 
     public static InstanceTitleSuccession makeInstanceTitleSuccessionFromJsonRecord(String instanceId, JsonObject precedingSucceedingJson) {
         InstanceTitleSuccession titleSuccession = new InstanceTitleSuccession();

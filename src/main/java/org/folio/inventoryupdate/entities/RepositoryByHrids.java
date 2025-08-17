@@ -9,7 +9,6 @@ import io.vertx.ext.web.RoutingContext;
 import org.folio.inventoryupdate.ErrorReport;
 import org.folio.inventoryupdate.InventoryStorage;
 import org.folio.inventoryupdate.QueryByListOfIds;
-import org.folio.okapi.common.GenericCompositeFuture;
 import org.folio.okapi.common.OkapiClient;
 
 import java.util.ArrayList;
@@ -47,7 +46,7 @@ public class RepositoryByHrids extends Repository {
     for (List<String> idList : getSubListsOfFifty(getIncomingReferencedInstanceIds())) {
       existingRecordsByHridsFutures.add(requestReferencedInstancesByUUIDs(routingContext, idList));
     }
-    return GenericCompositeFuture.join(existingRecordsByHridsFutures)
+    return Future.join(existingRecordsByHridsFutures)
         .onSuccess(x -> setExistingRecordSets())
         .mapEmpty();
   }

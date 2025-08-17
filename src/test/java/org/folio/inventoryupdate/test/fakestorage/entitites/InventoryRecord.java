@@ -1,6 +1,7 @@
 package org.folio.inventoryupdate.test.fakestorage.entitites;
 
-import io.vertx.core.impl.logging.Logger;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import io.vertx.core.json.JsonObject;
 
 import java.util.UUID;
@@ -13,7 +14,7 @@ public class InventoryRecord {
     public static final String VERSION = "_version";
     protected JsonObject recordJson;
 
-    private final Logger logger = io.vertx.core.impl.logging.LoggerFactory.getLogger("InventoryRecord");
+    private final Logger logger = LogManager.getLogger("InventoryRecord");
 
     public InventoryRecord() {
         recordJson = new JsonObject();

@@ -2,8 +2,8 @@ package org.folio.inventoryupdate;
 
 import io.vertx.core.Future;
 import io.vertx.core.Promise;
-import io.vertx.core.impl.logging.Logger;
-import io.vertx.core.impl.logging.LoggerFactory;
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import org.folio.inventoryupdate.entities.*;
@@ -20,7 +20,7 @@ public abstract class DeletePlan {
   protected InventoryQuery instanceQuery;
   // Existing Inventory records matching either an incoming record set or a set of deletion identifiers
   protected InventoryRecordSet existingSet = null;
-  protected static final Logger logger = LoggerFactory.getLogger("inventory-update");
+  protected static final Logger logger = LogManager.getLogger("inventory-update");
 
   protected DeletePlan(InventoryQuery existingInstanceQuery) {
     this.instanceQuery = existingInstanceQuery;

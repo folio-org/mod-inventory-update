@@ -1,7 +1,7 @@
 package org.folio.inventoryupdate.test.fakestorage;
 
-import io.vertx.core.impl.logging.Logger;
-import io.vertx.core.impl.logging.LoggerFactory;
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.RoutingContext;
@@ -38,7 +38,7 @@ public abstract class RecordStorage {
     protected FakeFolioApis fakeStorage;
 
     protected final Map<String, InventoryRecord> records = new HashMap<>();
-    protected final Logger logger = LoggerFactory.getLogger("fake-inventory-storage");
+    protected final Logger logger = LogManager.getLogger("fake-inventory-storage");
 
     public void attachToFakeStorage(FakeFolioApis fakeStorage) {
         this.fakeStorage = fakeStorage;

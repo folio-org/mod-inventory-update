@@ -8,8 +8,8 @@ import java.util.function.BiFunction;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import io.vertx.core.impl.logging.Logger;
-import io.vertx.core.impl.logging.LoggerFactory;
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 import io.vertx.ext.web.RoutingContext;
 import org.folio.inventoryupdate.entities.*;
 import org.folio.inventoryupdate.entities.InventoryRecord.Entity;
@@ -48,7 +48,7 @@ import static org.folio.inventoryupdate.InventoryUpdateOutcome.OK;
  */
 public abstract class UpdatePlan {
 
-    protected static final Logger logger = LoggerFactory.getLogger("inventory-update");
+    protected static final Logger logger = LogManager.getLogger("inventory-update");
     protected boolean isDeletion = false;
 
     protected Repository repository;
@@ -182,7 +182,7 @@ public abstract class UpdatePlan {
         repository.buildRepositoryFromStorage(routingContext).onComplete(repositoryBuilt -> {
             if (repositoryBuilt.succeeded()) {
                 long builtMs = System.currentTimeMillis() - buildRepoStart;
-                logger.debug("Repo built in " +  builtMs + " ms.");
+                logger.debug("Repo built in {} ms.", builtMs);
                 promise.complete();
             } else {
                 promise.fail(repositoryBuilt.cause().getMessage());
@@ -264,7 +264,7 @@ public abstract class UpdatePlan {
                     if (handler.succeeded()) {
                         promise.complete();
                     } else {
-                        logger.error("Message: " + handler.cause().getMessage());
+                        logger.error("Message: {}", handler.cause().getMessage());
                         promise.fail(handler.cause().getMessage());
                     }
                 });
@@ -294,11 +294,11 @@ public abstract class UpdatePlan {
                       if (holdings.succeeded()) {
                         promise.complete();
                       } else {
-                        logger.error("Error updating holdings records: " + holdings.cause().getMessage());
+                        logger.error("Error updating holdings records: {}", holdings.cause().getMessage());
                         promise.fail(holdings.cause().getMessage());
                     }});
               } else {
-                logger.error("Error updating instance records: " + instances.cause().getMessage());
+                logger.error("Error updating instance records: {}", instances.cause().getMessage());
                 promise.fail(instances.cause().getMessage());
              }
         });

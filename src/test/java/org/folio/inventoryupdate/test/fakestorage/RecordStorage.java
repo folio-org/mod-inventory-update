@@ -1,7 +1,7 @@
 package org.folio.inventoryupdate.test.fakestorage;
 
-import io.vertx.core.impl.logging.Logger;
-import io.vertx.core.impl.logging.LoggerFactory;
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.RoutingContext;
@@ -38,7 +38,7 @@ public abstract class RecordStorage {
     protected FakeFolioApis fakeStorage;
 
     protected final Map<String, InventoryRecord> records = new HashMap<>();
-    protected final Logger logger = LoggerFactory.getLogger("fake-inventory-storage");
+    protected final Logger logger = LogManager.getLogger("fake-inventory-storage");
 
     public void attachToFakeStorage(FakeFolioApis fakeStorage) {
         this.fakeStorage = fakeStorage;
@@ -78,7 +78,7 @@ public abstract class RecordStorage {
             inventoryRecord.generateId();
         }
         if (records.containsKey(inventoryRecord.getId())) {
-            logger.error("Fake record storage already contains a record with id " + inventoryRecord.getId() + ", cannot create " + inventoryRecord.getJson().encodePrettily());
+            logger.error("Fake record storage already contains a record with id {}, cannot create {}", inventoryRecord::getId, () -> inventoryRecord.getJson().encodePrettily());
             return new Resp(400, "Record storage already contains a record with id " + inventoryRecord.getId());
         }
         for (InventoryRecord existingRecord : records.values()) {
@@ -91,18 +91,18 @@ public abstract class RecordStorage {
           }
         }
         logger.debug("Checking foreign keys");
-        logger.debug("Got " + masterEntities.size() + " foreign keys");
+        logger.debug("Got {} foreign keys", masterEntities.size());
         for (ForeignKey fk : masterEntities) {
             if (! inventoryRecord.getJson().containsKey(fk.getDependentPropertyName())) {
-                logger.error("Foreign key violation, record must contain " + fk.getDependentPropertyName());
+                logger.error("Foreign key violation, record must contain {}", fk.getDependentPropertyName());
                 return new Resp(422, "{\"errors\":[{\"message\":\"must not be null\",\"type\":\"1\",\"code\":\"-1\",\"parameters\":[{\"key\":\""+fk.getDependentPropertyName()+"\",\"value\":\"null\"}]}]}");
             }
             if (!fk.getMasterStorage().hasId(inventoryRecord.getJson().getString(fk.getDependentPropertyName()))) {
-                logger.error("Foreign key violation " + fk.getDependentPropertyName() + " not found in "+ fk.getMasterStorage().getResultSetName() + ", cannot create " + inventoryRecord.getJson().encodePrettily());
+                logger.error("Foreign key violation {} not found in {}, cannot create {}.", fk::getDependentPropertyName, () -> fk.getMasterStorage().getResultSetName(), () -> inventoryRecord.getJson().encodePrettily());
                 logger.error(new JsonObject().encode());
                 return new Resp (500, new JsonObject("{ \"message\": \"insert or update on table \\\"storage_table\\\" violates foreign key constraint \\\"fkey\\\"\", \"severity\": \"ERROR\", \"code\": \"23503\", \"detail\": \"Key (property value)=(the id) is not present in table \\\"a_referenced_table\\\".\", \"file\": \"ri_triggers.c\", \"line\": \"3266\", \"routine\": \"ri_ReportViolation\", \"schema\": \"diku_mod_inventory_storage\", \"table\": \"storage_table\", \"constraint\": \"a_fkey\" }").encodePrettily());
             } else {
-                logger.debug("Found " + inventoryRecord.getJson().getString(fk.getDependentPropertyName()) + " in " + fk.getMasterStorage().getResultSetName());
+                logger.debug("Found {} in {}", () -> inventoryRecord.getJson().getString(fk.getDependentPropertyName()), () -> fk.getMasterStorage().getResultSetName());
             }
         }
         for (String mandatory : mandatoryProperties) {
@@ -146,15 +146,15 @@ public abstract class RecordStorage {
     protected int delete (String id) {
         if (failOnDelete) return 500;
         if (!records.containsKey(id)) {
-            logger.error("Record " + id + " not found, cannot delete");
+            logger.error("Record {} not found, cannot delete", id);
             return 404;
         }
-        logger.debug("Dependent entities: " + dependentEntities.size());
+        logger.debug("Dependent entities: {}", dependentEntities.size());
         for (ForeignKey fk : dependentEntities) {
-            logger.debug("Deleting. Checking dependent " + fk.getDependentStorage().getResultSetName());
-            logger.debug("Looking at property " + fk.getDependentPropertyName());
+            logger.debug("Deleting. Checking dependent {}", fk.getDependentStorage().getResultSetName());
+            logger.debug("Looking at property {}", fk.getDependentPropertyName());
             if (fk.getDependentStorage().hasValue(fk.getDependentPropertyName(), id)) {
-               logger.error("Foreign key violation " + records.get(id).getJson().toString() + " has a dependent record in " + fk.getDependentStorage().getResultSetName());
+               logger.error("Foreign key violation {} has a dependent record in {} ", records.get(id).getJson(), fk.getDependentStorage().getResultSetName());
                return 400;
             }
         }
@@ -191,7 +191,7 @@ public abstract class RecordStorage {
      */
     protected boolean hasValue (String fkPropertyName, String value) {
         for (InventoryRecord inventoryRecord : records.values()) {
-            logger.debug("Checking " + inventoryRecord.getJson().toString() + " for value " + value);
+            logger.debug("Checking {} for value {}",inventoryRecord.getJson(), value);
             if (inventoryRecord.getJson().containsKey(fkPropertyName) && inventoryRecord.getJson().getString(fkPropertyName).equals(value)) {
                 return true;
             }
@@ -393,10 +393,6 @@ public abstract class RecordStorage {
 
     public static String encode (String string) {
       return URLEncoder.encode(string, StandardCharsets.UTF_8);
-    }
-
-    public void logRecords (Logger logger) {
-        records.values().stream().forEach(inventoryRecord -> logger.debug(inventoryRecord.getJson().encodePrettily()));
     }
 
     public static class ForeignKey {

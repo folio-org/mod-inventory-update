@@ -2,15 +2,16 @@ package org.folio.inventoryupdate;
 
 import java.lang.management.ManagementFactory;
 
-import io.vertx.core.AbstractVerticle;
-import io.vertx.core.Promise;
-import io.vertx.core.impl.logging.Logger;
-import io.vertx.core.impl.logging.LoggerFactory;
+import io.vertx.core.Future;
+import io.vertx.core.VerticleBase;
+import io.vertx.core.http.HttpServer;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.handler.BodyHandler;
 import io.vertx.ext.web.handler.StaticHandler;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
-public class MainVerticle extends AbstractVerticle {
+public class MainVerticle extends VerticleBase {
 
   public static final String HEALTH_CHECK = "/admin/health";
   public static final String INVENTORY_UPSERT_HRID_PATH = "/inventory-upsert-hrid";
@@ -22,16 +23,15 @@ public class MainVerticle extends AbstractVerticle {
   public static final String FETCH_INVENTORY_RECORD_SETS_ID_PATH = INVENTORY_UPSERT_HRID_PATH+"/fetch/:id";
   public static final String FETCH_SHARED_INVENTORY_RECORD_SETS_ID_PATH = SHARED_INVENTORY_UPSERT_MATCHKEY_PATH+"/fetch/:id";
 
-  private final Logger logger = LoggerFactory.getLogger("inventory-update");
+  private final Logger logger = LogManager.getLogger("inventory-update");
   private final InventoryUpdateService upsertService = new InventoryUpdateService();
   private final InventoryFetchService fetchService = new InventoryFetchService();
 
-  @Override
-  public void start(Promise<Void> promise)  {
+    @Override
+  public Future<?> start()  {
     final int port = Integer.parseInt(System.getProperty("port", "8080"));
-    logger.info("Starting Inventory Update service "
-      + ManagementFactory.getRuntimeMXBean().getName()
-      + " on port " + port);
+    logger.info("Starting Inventory Update service {} on port {}",
+        ManagementFactory.getRuntimeMXBean().getName(), port);
 
     Router router = Router.router(vertx);
     router.put("/*").handler(BodyHandler.create()); // Tell vertx we want the whole PUT body in the handler
@@ -52,16 +52,14 @@ public class MainVerticle extends AbstractVerticle {
     router.route(HEALTH_CHECK).handler(upsertService::handleHealthCheck);
     router.route("/*").handler(upsertService::handleUnrecognizedPath);
 
-    vertx.createHttpServer()
-      .requestHandler(router)
-      .listen(port, result -> {
-        if (result.succeeded()) {
-          logger.debug("Succeeded in starting the listener for Inventory match/upsert service");
-          promise.complete();
-        } else {
-          logger.error("Inventory upsert service failed: " + result.cause().getMessage());
-          promise.fail(result.cause());
-        }
-      });
+    HttpServer server = vertx.createHttpServer()
+        .requestHandler(router);
+    return server.listen(port).onComplete(httpserver -> {
+      if (httpserver.succeeded()) {
+        logger.debug("Succeeded in starting the listener for Inventory match/upsert service");
+      } else {
+        logger.error("Inventory upsert service failed: {}", httpserver.cause().getMessage());
+      }
+    });
   }
 }

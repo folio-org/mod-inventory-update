@@ -271,7 +271,7 @@ public class UpdatePlanSharedInventory extends UpdatePlan {
                               && itemUpdates.succeeded()
                               && itemCreates.succeeded()) {
                             long updatesDone = System.currentTimeMillis() - startUpdates;
-                            logger.debug("Updates performed in " + updatesDone + " ms.");
+                            logger.debug("Updates performed in {} ms.", updatesDone);
                             promise.complete();
                           } else {
                             String error = "";
@@ -292,7 +292,7 @@ public class UpdatePlanSharedInventory extends UpdatePlan {
       } else {
         logger.error(deletes.cause().getMessage());
         if (deletes.cause().getMessage().startsWith("404")) {
-          logger.error("One or more records to delete were not found: " + deletes.cause().getMessage());
+          logger.error("One or more records to delete were not found: {}", deletes.cause().getMessage());
           promise.complete();
         } else {
           promise.fail(ErrorReport.makeErrorReportFromJsonString(deletes.cause().getMessage()).setShortMessage(

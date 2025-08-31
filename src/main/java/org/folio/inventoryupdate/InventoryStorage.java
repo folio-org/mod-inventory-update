@@ -5,8 +5,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import io.vertx.core.impl.logging.Logger;
-import io.vertx.core.impl.logging.LoggerFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import io.vertx.ext.web.RoutingContext;
 import org.folio.inventoryupdate.entities.HoldingsRecord;
 import org.folio.inventoryupdate.entities.Instance;
@@ -30,7 +30,7 @@ import org.folio.okapi.common.WebClientFactory;
  */
 public class InventoryStorage {
 
-  private static final Logger logger = LoggerFactory.getLogger("inventory-update");
+  private static final Logger logger = LogManager.getLogger("inventory-update");
   @SuppressWarnings("java:S1075")  // suppress "URIs should not be hardcoded"
   private static final String INSTANCE_STORAGE_PATH = "/instance-storage/instances";
   @SuppressWarnings("java:S1075")  // suppress "URIs should not be hardcoded"
@@ -99,7 +99,7 @@ public class InventoryStorage {
     if (!records.isEmpty()) {
       JsonObject request = new JsonObject();
       request.put(arrayName, jsonArrayFromInventoryRecordList(records));
-      logger.debug("Posting request: " + request.encodePrettily() + " to " + getBatchApi(arrayName));
+      logger.debug("Posting request {}: to {}", request::encodePrettily, () ->getBatchApi(arrayName));
       okapiClient.post(getBatchApi(arrayName) + "?upsert=true", request.encode(), postResult -> {
         if (postResult.succeeded()) {
           for (InventoryRecord inventoryRecord : records) {
@@ -117,7 +117,7 @@ public class InventoryStorage {
                     inventoryRecord.getOriginJson()
             );
           }
-          promise.fail(records.get(0).getErrorAsJson().encodePrettily());
+          promise.fail(records.getFirst().getErrorAsJson().encodePrettily());
         }
       });
     } else {
@@ -136,7 +136,7 @@ public class InventoryStorage {
 
   public static Future<JsonObject> putInventoryRecord (OkapiClient okapiClient, InventoryRecord inventoryRecord) {
     Promise<JsonObject> promise = Promise.promise();
-    logger.debug("Putting " + inventoryRecord.entityType() + ": " + inventoryRecord.asJson().encodePrettily());
+    logger.debug("Putting {}: {}", inventoryRecord::entityType, () -> inventoryRecord.asJson().encodePrettily());
     okapiClient.request(HttpMethod.PUT, getApi(inventoryRecord.entityType())+"/"+inventoryRecord.getUUID(), inventoryRecord.asJsonString(), putResult -> {
       if (putResult.succeeded()) {
         inventoryRecord.complete();
@@ -158,7 +158,7 @@ public class InventoryStorage {
    */
   public static Future<JsonObject> putInventoryRecordOutcomeLess (OkapiClient okapiClient, InventoryRecord inventoryRecord) {
     Promise<JsonObject> promise = Promise.promise();
-    logger.debug("Putting " + inventoryRecord.entityType() + ": " + inventoryRecord.asJson().encodePrettily());
+    logger.debug("Putting {}: {}", inventoryRecord::entityType, () -> inventoryRecord.asJson().encodePrettily());
     okapiClient.request(HttpMethod.PUT, getApi(inventoryRecord.entityType())+"/"+inventoryRecord.getUUID(), inventoryRecord.asJsonString(), putResult -> {
       if (putResult.failed()) {
         inventoryRecord.logError(okapiClient.getResponsebody(), okapiClient.getStatusCode(), ErrorReport.ErrorCategory.STORAGE, inventoryRecord.getOriginJson());

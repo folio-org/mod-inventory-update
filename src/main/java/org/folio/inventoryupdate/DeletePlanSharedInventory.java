@@ -134,7 +134,7 @@ public class DeletePlanSharedInventory extends DeletePlan {
               locationsToInstitutionsMap.put(location.getString("id"), location.getString(INSTITUTION_ID));
 
             }
-            logger.debug("Updated a map of " + locationsToInstitutionsMap.size() + " FOLIO locations to institutions.");
+            logger.debug("Updated a map of {} FOLIO locations to institutions.", locationsToInstitutionsMap.size());
             mapReady.complete();
           }
         } else {
@@ -198,7 +198,7 @@ public class DeletePlanSharedInventory extends DeletePlan {
         });
       } else {
         if (deletes.cause().getMessage().startsWith("404")) {
-          logger.error("Records to delete not found: " + deletes.cause().getMessage());
+          logger.error("Records to delete not found: {}", deletes.cause().getMessage());
           promise.complete();
         } else {
           promise.fail(ErrorReport.makeErrorReportFromJsonString(deletes.cause().getMessage()).setShortMessage(

@@ -4,8 +4,8 @@ import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import io.vertx.core.impl.logging.Logger;
-import io.vertx.core.impl.logging.LoggerFactory;
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 import org.folio.inventoryupdate.ErrorReport;
 import org.folio.inventoryupdate.InventoryUpdateOutcome;
 import org.folio.inventoryupdate.entities.InventoryRecord.Transaction;
@@ -40,7 +40,7 @@ public class InventoryRecordSet extends JsonRepresentation {
     public static final String IDENTIFIER_TYPE_ID = "identifierTypeId";
 
     @SuppressWarnings("unused")
-    private final Logger logger = LoggerFactory.getLogger("inventory-update");
+    private final Logger logger = LogManager.getLogger("inventory-update");
 
 
     // Instance relations properties that the controller access directly
@@ -57,13 +57,13 @@ public class InventoryRecordSet extends JsonRepresentation {
 
     private InventoryRecordSet (JsonObject inventoryRecordSet) {
         if (inventoryRecordSet != null) {
-            logger.debug("Creating InventoryRecordSet from " + inventoryRecordSet.encodePrettily());
+            logger.debug("Creating InventoryRecordSet from {}", inventoryRecordSet::encodePrettily);
             sourceJson = new JsonObject(inventoryRecordSet.toString());
             theInstance = new Instance(new JsonObject(inventoryRecordSet.getJsonObject(INSTANCE).encode()), sourceJson);
             registerHoldingsRecordsAndItems(inventoryRecordSet.getJsonArray(HOLDINGS_RECORDS));
             instanceRelationsJson = (sourceJson.containsKey(InstanceReferences.INSTANCE_RELATIONS) ? sourceJson.getJsonObject(
                     InstanceReferences.INSTANCE_RELATIONS) : new JsonObject());
-            logger.debug("Caching processing info: " + inventoryRecordSet.getJsonObject( PROCESSING ));
+            logger.debug("Caching processing info: {}", inventoryRecordSet.getJsonObject( PROCESSING ));
             processing = inventoryRecordSet.getJsonObject( PROCESSING );
         }
     }

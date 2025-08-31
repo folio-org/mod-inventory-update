@@ -48,7 +48,7 @@ public class MatchKey {
 
   public MatchKey(JsonObject candidateInstance) {
     this.candidateInstance = candidateInstance;
-    logger.debug("MatchKey: candidateInstance " + candidateInstance.encodePrettily());
+    logger.debug("MatchKey: candidateInstance {}", candidateInstance.encodePrettily());
     matchkee = buildMatchKey();
   }
 
@@ -88,7 +88,7 @@ public class MatchKey {
           .append(getFormatChar());
     }
     keyStr = key.toString().trim().replace(" ", "_");
-    logger.debug("Match key is:" + keyStr);
+    logger.debug("Match key is: {}", keyStr);
     return keyStr;
   }
 

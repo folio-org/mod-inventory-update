@@ -57,13 +57,13 @@ public class InventoryRecordSet extends JsonRepresentation {
 
     private InventoryRecordSet (JsonObject inventoryRecordSet) {
         if (inventoryRecordSet != null) {
-            logger.debug("Creating InventoryRecordSet from " + inventoryRecordSet.encodePrettily());
+            logger.debug("Creating InventoryRecordSet from {}", inventoryRecordSet.encodePrettily());
             sourceJson = new JsonObject(inventoryRecordSet.toString());
             theInstance = new Instance(new JsonObject(inventoryRecordSet.getJsonObject(INSTANCE).encode()), sourceJson);
             registerHoldingsRecordsAndItems(inventoryRecordSet.getJsonArray(HOLDINGS_RECORDS));
             instanceRelationsJson = (sourceJson.containsKey(InstanceReferences.INSTANCE_RELATIONS) ? sourceJson.getJsonObject(
                     InstanceReferences.INSTANCE_RELATIONS) : new JsonObject());
-            logger.debug("Caching processing info: " + inventoryRecordSet.getJsonObject( PROCESSING ));
+            logger.debug("Caching processing info: {}", inventoryRecordSet.getJsonObject( PROCESSING ));
             processing = inventoryRecordSet.getJsonObject( PROCESSING );
         }
     }

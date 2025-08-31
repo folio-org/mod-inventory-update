@@ -30,9 +30,8 @@ public class MainVerticle extends VerticleBase {
     @Override
   public Future<?> start()  {
     final int port = Integer.parseInt(System.getProperty("port", "8080"));
-    logger.info("Starting Inventory Update service "
-      + ManagementFactory.getRuntimeMXBean().getName()
-      + " on port " + port);
+    logger.info("Starting Inventory Update service {} on port {}",
+        ManagementFactory.getRuntimeMXBean().getName(), port);
 
     Router router = Router.router(vertx);
     router.put("/*").handler(BodyHandler.create()); // Tell vertx we want the whole PUT body in the handler
@@ -59,7 +58,7 @@ public class MainVerticle extends VerticleBase {
       if (httpserver.succeeded()) {
         logger.debug("Succeeded in starting the listener for Inventory match/upsert service");
       } else {
-        logger.error("Inventory upsert service failed: " + httpserver.cause().getMessage());
+        logger.error("Inventory upsert service failed: {}", httpserver.cause().getMessage());
       }
     });
   }

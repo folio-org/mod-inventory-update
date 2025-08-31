@@ -51,7 +51,7 @@ public class UpdatePlanAllHRIDs extends UpdatePlan {
         String instanceHRID = inventoryRecordSet.getJsonObject(INSTANCE).getString(HRID_IDENTIFIER_KEY);
         String instanceTitle = inventoryRecordSet.getJsonObject(INSTANCE).getString("title");
         if (instanceHRID == null || instanceHRID.isEmpty()) {
-            logger.error("Missing or empty HRID. Instances must have a HRID to be processed by this API. Title: " + instanceTitle);
+            logger.error("Missing or empty HRID. Instances must have a HRID to be processed by this API. Title: {}", instanceTitle);
             validationErrors.registerError(
                     new ErrorReport(
                             ErrorReport.ErrorCategory.VALIDATION,
@@ -67,7 +67,7 @@ public class UpdatePlanAllHRIDs extends UpdatePlan {
                     .map( rec -> (JsonObject) rec)
                     .forEach( holdingsRecord -> {
                         if (!holdingsRecord.containsKey(HRID_IDENTIFIER_KEY)) {
-                            logger.error("Holdings Records must have a HRID to be processed by this API. Received: " + holdingsRecord.encodePrettily());
+                            logger.error("Holdings Records must have a HRID to be processed by this API. Received: {}", holdingsRecord.encodePrettily());
                             validationErrors.registerError(
                                 new ErrorReport(
                                     ErrorReport.ErrorCategory.VALIDATION,
@@ -85,7 +85,7 @@ public class UpdatePlanAllHRIDs extends UpdatePlan {
                                     .map(item -> (JsonObject) item)
                                     .forEach(item -> {
                                         if (!item.containsKey(HRID_IDENTIFIER_KEY)) {
-                                            logger.error("Items must have a HRID to be processed by this API. Received: " + item.encodePrettily());
+                                            logger.error("Items must have a HRID to be processed by this API. Received: {}", item.encodePrettily());
                                             validationErrors.registerError(
                                                  new ErrorReport(
                                                     ErrorReport.ErrorCategory.VALIDATION,

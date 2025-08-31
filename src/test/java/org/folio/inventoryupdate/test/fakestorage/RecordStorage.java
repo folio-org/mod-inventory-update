@@ -154,7 +154,7 @@ public abstract class RecordStorage {
             logger.debug("Deleting. Checking dependent {}", fk.getDependentStorage().getResultSetName());
             logger.debug("Looking at property {}", fk.getDependentPropertyName());
             if (fk.getDependentStorage().hasValue(fk.getDependentPropertyName(), id)) {
-               logger.error("Foreign key violation {} has a dependent record in {} ", records.get(id).getJson().toString(), fk.getDependentStorage().getResultSetName());
+               logger.error("Foreign key violation {} has a dependent record in {} ", records.get(id).getJson(), fk.getDependentStorage().getResultSetName());
                return 400;
             }
         }
@@ -191,7 +191,7 @@ public abstract class RecordStorage {
      */
     protected boolean hasValue (String fkPropertyName, String value) {
         for (InventoryRecord inventoryRecord : records.values()) {
-            logger.debug("Checking {} for value {}",inventoryRecord.getJson().toString(), value);
+            logger.debug("Checking {} for value {}",inventoryRecord.getJson(), value);
             if (inventoryRecord.getJson().containsKey(fkPropertyName) && inventoryRecord.getJson().getString(fkPropertyName).equals(value)) {
                 return true;
             }

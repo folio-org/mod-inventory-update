@@ -65,7 +65,7 @@ public abstract class InventoryUpdateTestBase {
 
   @Before
   public void setUp(TestContext testContext) {
-    logger.debug("setUp " + name.getMethodName());
+    logger.debug("setUp {}", name.getMethodName());
 
     vertx = Vertx.vertx();
 

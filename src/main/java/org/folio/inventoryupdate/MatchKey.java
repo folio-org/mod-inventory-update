@@ -48,7 +48,7 @@ public class MatchKey {
 
   public MatchKey(JsonObject candidateInstance) {
     this.candidateInstance = candidateInstance;
-    logger.debug("MatchKey: candidateInstance {}", candidateInstance.encodePrettily());
+    logger.debug("MatchKey: candidateInstance {}", candidateInstance::encodePrettily);
     matchkee = buildMatchKey();
   }
 

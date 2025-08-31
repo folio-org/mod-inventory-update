@@ -66,7 +66,7 @@ public class InventoryRecord {
     }
 
     public boolean match(String query) {
-        logger.debug("Matching " + recordJson + " with query " + query);
+        logger.debug("Matching {} with query {}", recordJson, query);
         Pattern orListPattern = Pattern.compile("[(]?(.*)==\\(([^)]*)\\)[)]?");
         Matcher orListMatcher = orListPattern.matcher(query);
         if (orListMatcher.find()) {
@@ -95,33 +95,38 @@ public class InventoryRecord {
                         String value = equalityParts.length > 1 ? equalityParts[1].replace("\"", "") : "";
                         if (recordJson.getString(key) != null && recordJson.getString(key).equals(
                                 value)) {
-                            logger.debug("NOT query, no match for " + key + " not equal to " + value + " in " + recordJson);
+                            logger.debug("NOT query, no match for {} not equal to {} in {}", key, value, recordJson);
                             return false;
                         } else {
-                            logger.debug("NOT query, have match for " + key + " not equal to " + value + " in " + recordJson);
+                            logger.debug("NOT query, have match for {} not equal to {} in {}", key, value, recordJson);
                         }
                     }
                 }
                 if (orSections[i].contains("@identifierTypeId")) {
                     if (matchIdentifierQuery(orSections[i])) {
-                        logger.debug("Have match for " + orSections[i] + " in " + recordJson);
+                        logger.debug("Have match for {} in {}", orSections[i], recordJson);
                         return true;
                     } else {
-                        logger.debug("No match for " + orSections[i] + " in " + recordJson);
+                        logger.debug("No match for {} in {}", orSections[i], recordJson);
                     }
                 }
                 String[] queryParts = orSections[i].split("==");
-                logger.debug("query: " + query);
-                logger.debug("queryParts[0]: " + queryParts[0]);
+                logger.debug("query: {}", query);
+                logger.debug("queryParts[0]: {}", queryParts[0]);
                 String key = queryParts[0];
                 String value = queryParts.length > 1 ? queryParts[1].replace("\"", "") : "";
-                logger.debug("key: " + key);
-                logger.debug("value: " + value);
-                logger.debug("recordJson.getString(key): " + recordJson.getString(key));
+                logger.debug("key: {}", key);
+                logger.debug("value: {}", value);
+                logger.debug("recordJson.getString(key): {}", recordJson.getString(key));
                 logger.debug(
                         "Query parameter [" + value + "] matches record property [" + key + "(" + recordJson.getString(
                                 key) + ")] ?: " + ( recordJson.getString(
                                 key) != null && recordJson.getString(key).equals(value) ));
+              logger.debug(
+                  "Query parameter [{}] matches record property [{}({})] ?: {}",
+                  () -> value, () -> key, () -> recordJson.getString(key),
+                  () -> recordJson.getString(key) != null && recordJson.getString(key).equals(value));
+
                 if (recordJson.getString(key) != null && recordJson.getString(key).equals(value)) {
                     return true;
                 }

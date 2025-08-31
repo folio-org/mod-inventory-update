@@ -248,7 +248,7 @@ public class InventoryUpdateService {
                         "No request body provided."));
       }
       JsonObject bodyAsJson = new JsonObject(bodyAsString);
-      logger.debug("Request body {}", bodyAsJson.encodePrettily());
+      logger.debug("Request body {}", bodyAsJson::encodePrettily);
       return new InventoryUpdateOutcome(bodyAsJson);
     } catch (DecodeException de) {
       return new InventoryUpdateOutcome(new ErrorReport(ErrorReport.ErrorCategory.VALIDATION,

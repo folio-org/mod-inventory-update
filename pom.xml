@@ -18,7 +18,6 @@
     <argLine />
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <docker.registry>docker.indexdata.com:5000</docker.registry>
-    <ramlfiles_path>${basedir}/ramls/</ramlfiles_path>
     <folio-vertx-lib.version>4.0.0</folio-vertx-lib.version>
     <okapi.version>7.0.0</okapi.version>
     <vertx.version>5.0.2</vertx.version>

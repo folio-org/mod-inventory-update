@@ -17,8 +17,8 @@ name: api-doc
 # e.g. ''
 
 env:
-  API_TYPES: 'RAML'
-  API_DIRECTORIES: 'ramls'
+  API_TYPES: 'OAS'
+  API_DIRECTORIES: 'src/main/resources/openapi'
   API_EXCLUDES: ''
   OUTPUT_DIR: 'folio-api-docs'
   AWS_S3_BUCKET: 'foliodocs'
@@ -28,10 +28,11 @@ env:
   AWS_S3_ACCESS_KEY: ${{ secrets.S3_SECRET_ACCESS_KEY }}
 
 on:
+  workflow_dispatch:
   push:
     branches: [ main, master ]
     paths:
-      - 'ramls/**'
+      - 'src/main/resources/openapi/**'
     tags: '[vV][0-9]+.[0-9]+.[0-9]+*'
 
 jobs:

@@ -268,22 +268,6 @@
         <artifactId>maven-resources-plugin</artifactId>
         <version>3.3.1</version>
         <executions>
-          <!-- execution>
-            <id>copy-resources</id>
-            <phase>process-resources</phase>
-            <goals>
-              <goal>copy-resources</goal>
-            </goals>
-            <configuration>
-              <outputDirectory>${basedir}/target/classes/apidocs/raml</outputDirectory>
-              <resources>
-                <resource>
-                  <directory>${ramlfiles_path}</directory>
-                  <filtering>true</filtering>
-                </resource>
-              </resources>
-            </configuration>
-          </execution -->
           <execution>
             <id>filter-descriptor-inputs</id>
             <phase>generate-resources</phase>
@@ -309,19 +293,10 @@
         <version>1.8</version>
         <executions>
           <execution>
-            <!-- Replace the baseUri in the RAMLs that have been copied to
-            apidocs directory so that they can be used via the local html api console. -->
             <phase>prepare-package</phase>
             <goals>
               <goal>run</goal>
             </goals>
-            <!--configuration>
-              <target>
-                <replaceregexp match="baseUri:.+$" replace="baseUri: http://localhost:8081" byline="true">
-                  <fileset dir="${basedir}/target/classes/apidocs/raml" includes="**/*.raml" />
-                </replaceregexp>
-              </target>
-            </configuration -->
           </execution>
         </executions>
       </plugin>

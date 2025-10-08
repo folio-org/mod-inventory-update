@@ -317,7 +317,8 @@ components:
           description: "List of inventory record sets."
           items:
             $ref: '#/components/schemas/inventory-record-set-with-hrids'
-      required: inventoryRecordSets
+      required:
+        - inventoryRecordSets
 
     inventory-record-set-with-hrids:
       type: object
@@ -358,17 +359,10 @@ components:
                       instanceTypeId:
                         type: string
                         description: "The parent record’s resource type ID (UUID)."
-                    required:
-                      - title
-                      - source
-                      - instanceTypeId
                     additionalProperties: true
                   instanceRelationShipTypeId:
                     type: string
                     description: "UUID for the type of relationship to establish to a parent instance (article, volume, multipart, series)."
-                required:
-                  - instanceIdentifier
-                  - instanceRelationshipTypeId
             childInstances:
               type: array
               description: "Collection of objects with information required for finding and linking to child instances"
@@ -395,17 +389,12 @@ components:
                       instanceTypeId:
                         type: string
                         description: "The child record’s resource type ID (UUID)."
-                    required:
-                      - title
-                      - source
-                      - instanceTypeId
                     additionalProperties: true
                   instanceRelationShipTypeId:
                     type: string
                     description: "UUID for the type of relationship to establish to a child instance (article, volume, multipart, series)."
                 required:
                   - instanceIdentifier
-                  - instanceRelationshipTypeId
             precedingTitles:
               type: array
               description: "Collection of objects with information required for finding and linking to preceding instances"
@@ -432,10 +421,6 @@ components:
                       instanceTypeId:
                         type: string
                         description: "The preceding record’s resource type ID (UUID)."
-                    required:
-                      - title
-                      - source
-                      - instanceTypeId
                     additionalProperties: true
                 required:
                   - instanceIdentifier
@@ -465,10 +450,6 @@ components:
                       instanceTypeId:
                         type: string
                         description: "The succeeding record’s resource type ID (UUID)."
-                    required:
-                      - title
-                      - source
-                      - instanceTypeId
                     additionalProperties: true
                 required:
                   - instanceIdentifier
@@ -485,8 +466,6 @@ components:
           type: string
           description: "The external identifier of the instance; the client's own unique ID for the updating record."
       additionalProperties: true
-      required:
-        - hrid
 
     holdings-record-with-hrid:
       type: object
@@ -509,8 +488,6 @@ components:
           type: string
           description: "The external identifier of the item; the client's own unique ID for the updating record."
       additionalProperties: true
-      required:
-        - hrid
 
     hrid-deletion:
       type: object
@@ -738,7 +715,7 @@ components:
             $ref: '#/components/schemas/holdings-record'
         instanceRelations:
           type: object
-          description: "Collection of the instance's relations to other instances.",
+          description: "Collection of the instance's relations to other instances."
           properties:
             parentInstances:
               type: array
@@ -1012,7 +989,7 @@ components:
 
     shared-index-deletion: # obsolete (shared index)
       type: object
-      description: "Deletion record for deleting a library's contributions to an Instance in a shared index."
+      description: "Deletion record for deleting a library's contributions to an instance in a shared index."
       properties:
         institutionId:
           type: string

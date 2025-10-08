@@ -78,7 +78,7 @@ public class RepositoryByHrids extends Repository {
 
 
   private Future<Void> requestInstanceSetsByHRIDs(RoutingContext routingContext,
-                                               List<String> hrids) {
+                                                  List<String> hrids) {
     OkapiClient okapiClient = InventoryStorage.getOkapiClient(routingContext);
     return InventoryStorage.lookupInstanceSets(okapiClient, new QueryByListOfIds("hrid", hrids))
         .onSuccess(this::stashInstanceSets)

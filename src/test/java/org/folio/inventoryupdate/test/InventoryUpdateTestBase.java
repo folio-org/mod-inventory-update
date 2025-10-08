@@ -1,9 +1,10 @@
 package org.folio.inventoryupdate.test;
 
-import org.folio.inventoryupdate.MainVerticle;
+import org.folio.inventoryupdate.NewMainVerticle;
 import org.folio.inventoryupdate.test.fakestorage.FakeFolioApis;
 import org.folio.inventoryupdate.test.fakestorage.RecordStorage;
 import org.folio.inventoryupdate.test.fakestorage.entitites.*;
+import org.folio.okapi.common.XOkapiHeaders;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
@@ -26,8 +27,21 @@ public abstract class InventoryUpdateTestBase {
 
   protected Vertx vertx;
   protected static final int PORT_INVENTORY_UPDATE = 9031;
+  public static final String INVENTORY_UPSERT_HRID_PATH = "/inventory-upsert-hrid";
+  public static final String INVENTORY_BATCH_UPSERT_HRID_PATH = "/inventory-batch-upsert-hrid";
+
+  public static final String SHARED_INVENTORY_BATCH_UPSERT_MATCHKEY_PATH = "/shared-inventory-batch-upsert-matchkey";
+  public static final String SHARED_INVENTORY_UPSERT_MATCHKEY_PATH = "/shared-inventory-upsert-matchkey";
+
+  public static final String FETCH_INVENTORY_RECORD_SETS_ID_PATH = INVENTORY_UPSERT_HRID_PATH+"/fetch/:id";
+  public static final String FETCH_SHARED_INVENTORY_RECORD_SETS_ID_PATH = SHARED_INVENTORY_UPSERT_MATCHKEY_PATH+"/fetch/:id";
+
   protected static final Header OKAPI_URL_HEADER = new Header("X-Okapi-Url", "http://localhost:"
           + FakeFolioApis.PORT_OKAPI);
+
+  public static final String TENANT = "test";
+  public static final Header OKAPI_TENANT_HEADER = new Header(XOkapiHeaders.TENANT, TENANT);
+  public static final Header OKAPI_TOKEN_HEADER = new Header(XOkapiHeaders.TOKEN,"eyJhbGciOiJIUzUxMiJ9eyJzdWIiOiJhZG1pbiIsInVzZXJfaWQiOiI3OWZmMmE4Yi1kOWMzLTViMzktYWQ0YS0wYTg0MDI1YWIwODUiLCJ0ZW5hbnQiOiJ0ZXN0X3RlbmFudCJ9BShwfHcNClt5ZXJ8ImQTMQtAM1sQEnhsfWNmXGsYVDpuaDN3RVQ9");
 
   protected static FakeFolioApis fakeFolioApis;
   public static final String LOCATION_ID_1 = "LOC1";
@@ -63,6 +77,7 @@ public abstract class InventoryUpdateTestBase {
   @Rule
   public final TestName name = new TestName();
 
+
   @Before
   public void setUp(TestContext testContext) {
     logger.debug("setUp {}", name.getMethodName());
@@ -73,11 +88,12 @@ public abstract class InventoryUpdateTestBase {
     vertx.exceptionHandler(testContext.exceptionHandler());
 
     deployService(testContext);
+
   }
 
   private void deployService(TestContext testContext) {
     System.setProperty("port", String.valueOf(PORT_INVENTORY_UPDATE));
-    vertx.deployVerticle(MainVerticle.class.getName(), new DeploymentOptions())
+    vertx.deployVerticle(NewMainVerticle.class.getName(), new DeploymentOptions())
     .onComplete(testContext.asyncAssertSuccess(x -> {
       fakeFolioApis = new FakeFolioApis(vertx, testContext);
       createReferenceRecords();
@@ -123,51 +139,52 @@ public abstract class InventoryUpdateTestBase {
   }
 
   public static JsonObject upsertByMatchKey(JsonObject inventoryRecordSet) {
-    return putJsonObject(MainVerticle.SHARED_INVENTORY_UPSERT_MATCHKEY_PATH, inventoryRecordSet);
+    return putJsonObject(SHARED_INVENTORY_UPSERT_MATCHKEY_PATH, inventoryRecordSet);
   }
 
   public static Response upsertByMatchKey (int expectedStatusCode, JsonObject inventoryRecordSet) {
-    return putJsonObject(MainVerticle.SHARED_INVENTORY_UPSERT_MATCHKEY_PATH, inventoryRecordSet, expectedStatusCode);
+    return putJsonObject(SHARED_INVENTORY_UPSERT_MATCHKEY_PATH, inventoryRecordSet, expectedStatusCode);
   }
 
   public JsonObject batchUpsertByMatchKey(JsonObject batchOfInventoryRecordSets) {
-    return putJsonObject(MainVerticle.SHARED_INVENTORY_BATCH_UPSERT_MATCHKEY_PATH, batchOfInventoryRecordSets);
+    return putJsonObject(SHARED_INVENTORY_BATCH_UPSERT_MATCHKEY_PATH, batchOfInventoryRecordSets);
   }
 
   public Response batchUpsertByMatchKey(int expectedStatusCode, JsonObject batchOfInventoryRecordSets) {
-    return putJsonObject(MainVerticle.SHARED_INVENTORY_BATCH_UPSERT_MATCHKEY_PATH, batchOfInventoryRecordSets, expectedStatusCode);
+    return putJsonObject(SHARED_INVENTORY_BATCH_UPSERT_MATCHKEY_PATH, batchOfInventoryRecordSets, expectedStatusCode);
   }
 
   protected JsonObject upsertByHrid (JsonObject inventoryRecordSet) {
-    return putJsonObject(MainVerticle.INVENTORY_UPSERT_HRID_PATH, inventoryRecordSet);
+    return putJsonObject(INVENTORY_UPSERT_HRID_PATH, inventoryRecordSet);
   }
 
   protected JsonObject batchUpsertByHrid (JsonObject batchOfInventoryRecordSets) {
-    return putJsonObject(MainVerticle.INVENTORY_BATCH_UPSERT_HRID_PATH, batchOfInventoryRecordSets);
+    return putJsonObject(INVENTORY_BATCH_UPSERT_HRID_PATH, batchOfInventoryRecordSets);
   }
 
   protected Response batchUpsertByHrid(int expectedStatusCode, JsonObject batchOfInventoryRecordSets) {
-    return putJsonObject(MainVerticle.INVENTORY_BATCH_UPSERT_HRID_PATH, batchOfInventoryRecordSets, expectedStatusCode);
+    return putJsonObject(INVENTORY_BATCH_UPSERT_HRID_PATH, batchOfInventoryRecordSets, expectedStatusCode);
   }
 
   protected JsonObject fetchRecordSetFromUpsertHrid (String hridOrUuid) {
-    return getJsonObjectById( MainVerticle.FETCH_INVENTORY_RECORD_SETS_ID_PATH, hridOrUuid );
+    return getJsonObjectById(FETCH_INVENTORY_RECORD_SETS_ID_PATH, hridOrUuid );
   }
 
   protected JsonObject fetchRecordSetFromUpsertSharedInventory (String hridOrUuid) {
-    return getJsonObjectById( MainVerticle.FETCH_SHARED_INVENTORY_RECORD_SETS_ID_PATH, hridOrUuid );
+    return getJsonObjectById(FETCH_SHARED_INVENTORY_RECORD_SETS_ID_PATH, hridOrUuid );
   }
 
   protected Response upsertByHrid (int expectedStatusCode, JsonObject inventoryRecordSet) {
-    return putJsonObject(MainVerticle.INVENTORY_UPSERT_HRID_PATH, inventoryRecordSet, expectedStatusCode);
+    return putJsonObject(INVENTORY_UPSERT_HRID_PATH, inventoryRecordSet, expectedStatusCode);
   }
 
   public static Response putJsonObject(String apiPath, JsonObject requestJson, int expectedStatusCode) {
     RestAssured.port = PORT_INVENTORY_UPDATE;
     return RestAssured.given()
-            .body(requestJson.toString())
-            .header("Content-type","application/json")
+            .header(new Header("Content-type","application/json"))
+            .header(OKAPI_TENANT_HEADER)
             .header(OKAPI_URL_HEADER)
+            .body(requestJson.encodePrettily())
             .put(apiPath)
             .then()
             .log().ifValidationFails()
@@ -182,7 +199,9 @@ public abstract class InventoryUpdateTestBase {
     RestAssured.port = PORT_INVENTORY_UPDATE;
     return RestAssured.given()
             .header("Content-type","application/json")
+            .header(OKAPI_TENANT_HEADER)
             .header(OKAPI_URL_HEADER)
+            .header(OKAPI_TOKEN_HEADER)
             .get(apiPath.replaceAll( ":id", id ))
             .then()
             .log().ifValidationFails()
@@ -202,7 +221,9 @@ public abstract class InventoryUpdateTestBase {
     return RestAssured.given()
             .body(requestJson.toString())
             .header("Content-type","application/json")
+            .header(OKAPI_TENANT_HEADER)
             .header(OKAPI_URL_HEADER)
+            .header(OKAPI_TOKEN_HEADER)
             .delete(apiPath)
             .then()
             .log().ifValidationFails()

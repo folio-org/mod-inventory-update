@@ -21,18 +21,19 @@ name: api-lint
 # e.g. false
 
 env:
-  API_TYPES: 'RAML'
-  API_DIRECTORIES: 'ramls'
+  API_TYPES: 'OAS'
+  API_DIRECTORIES: 'src/main/resources/openapi'
   API_EXCLUDES: ''
   API_WARNINGS: false
 
 on:
+  workflow_dispatch:
   push:
     paths:
-      - 'ramls/**'
+      - 'src/main/resources/openapi/**'
   pull_request:
     paths:
-      - 'ramls/**'
+      - 'src/main/resources/openapi/**'
 
 jobs:
   api-lint:

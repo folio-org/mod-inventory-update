@@ -15,6 +15,7 @@ paths:
         Create or update instance with holdings and items, based on
         incoming HRIDs on all three record types.
       requestBody:
+        required: true
         content:
           application/json:
             schema:
@@ -55,6 +56,7 @@ paths:
       description: >-
         Deletes a single record set (instance, holdings, items) by instance HRID.
       requestBody:
+        required: true
         content:
           application/json:
             schema:
@@ -102,6 +104,7 @@ paths:
     put:
       operationId: batchUpsertByHrid
       requestBody:
+        required: true
         content:
           application/json:
             schema:
@@ -166,6 +169,7 @@ paths:
     put:
       operationId: upsertByMatchkey
       requestBody:
+        required: true
         content:
           application/json:
             schema:
@@ -267,6 +271,7 @@ paths:
     put:
       operationId: batchUpsertByMatchkey
       requestBody:
+        required: true
         content:
           application/json:
             schema:

@@ -268,7 +268,7 @@
         <artifactId>maven-resources-plugin</artifactId>
         <version>3.3.1</version>
         <executions>
-          <execution>
+          <!-- execution>
             <id>copy-resources</id>
             <phase>process-resources</phase>
             <goals>
@@ -283,7 +283,7 @@
                 </resource>
               </resources>
             </configuration>
-          </execution>
+          </execution -->
           <execution>
             <id>filter-descriptor-inputs</id>
             <phase>generate-resources</phase>
@@ -380,7 +380,7 @@
                 <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
                   <manifestEntries>
                     <Main-Class>org.folio.okapi.common.MainLauncher</Main-Class>
-                    <Main-Verticle>org.folio.inventoryupdate.NewMainVerticle</Main-Verticle>
+                    <Main-Verticle>org.folio.inventoryupdate.service.MainVerticle</Main-Verticle>
                     <Multi-Release>true</Multi-Release>
                   </manifestEntries>
                 </transformer>

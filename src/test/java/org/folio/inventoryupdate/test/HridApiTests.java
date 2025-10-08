@@ -6,7 +6,6 @@ import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
-import org.folio.inventoryupdate.MainVerticle;
 import org.folio.inventoryupdate.instructions.ProcessingInstructionsUpsert;
 import org.folio.inventoryupdate.test.fakestorage.DeleteProcessingInstructions;
 import org.folio.inventoryupdate.test.fakestorage.FakeFolioApis;
@@ -21,6 +20,14 @@ import static org.folio.inventoryupdate.test.fakestorage.FakeFolioApis.*;
 
 @RunWith(VertxUnitRunner.class)
 public class HridApiTests extends InventoryUpdateTestBase {
+
+  @Test
+  public void testHealth() {
+    RestAssured.port = PORT_INVENTORY_UPDATE;
+    RestAssured.given()
+        .get("/admin/health")
+        .then().statusCode(200);
+  }
 
   @Test
   public void batchUpsertByHridWillCreate200NewInstances (TestContext testContext) {
@@ -1899,7 +1906,7 @@ public class HridApiTests extends InventoryUpdateTestBase {
     JsonObject deleteSignal = new JsonObject()
         .put("hrid",instanceHrid);
 
-    JsonObject deleteResponse = delete(MainVerticle.INVENTORY_UPSERT_HRID_PATH,deleteSignal);
+    JsonObject deleteResponse = delete(INVENTORY_UPSERT_HRID_PATH,deleteSignal);
     testContext.assertEquals(getMetric(deleteResponse, HOLDINGS_RECORD, DELETE , COMPLETED), 2,
         "Upsert metrics response should report [2] holdings records successfully deleted " + deleteResponse.encodePrettily());
     testContext.assertEquals(getMetric(deleteResponse, ITEM, DELETE , COMPLETED), 3,
@@ -1955,7 +1962,7 @@ public class HridApiTests extends InventoryUpdateTestBase {
     testContext.assertEquals(storedInstances.getInteger("totalRecords"), 1,
         "Before delete of instance with protected item the number of instance records with HRID " + instanceHrid + " should be [1] " + storedInstances.encodePrettily() );
 
-    JsonObject deleteResponse = delete(MainVerticle.INVENTORY_UPSERT_HRID_PATH, deleteSignal);
+    JsonObject deleteResponse = delete(INVENTORY_UPSERT_HRID_PATH, deleteSignal);
     // Checking metrics
     testContext.assertEquals(getMetric(deleteResponse, INSTANCE, DELETE, SKIPPED), 1,
         "Upsert metrics response should report [1] instance deletion skipped " + deleteResponse.encodePrettily());
@@ -2016,7 +2023,7 @@ public class HridApiTests extends InventoryUpdateTestBase {
     testContext.assertEquals(storedInstances.getInteger("totalRecords"), 1,
         "Before delete of instance with protected item the number of instance records with HRID " + instanceHrid + " should be [1] " + storedInstances.encodePrettily() );
 
-    JsonObject deleteResponse = delete(MainVerticle.INVENTORY_UPSERT_HRID_PATH, deleteSignal);
+    JsonObject deleteResponse = delete(INVENTORY_UPSERT_HRID_PATH, deleteSignal);
     // Checking metrics
     testContext.assertEquals(getMetric(deleteResponse, INSTANCE, DELETE, SKIPPED), 1,
         "Upsert metrics response should report [1] instance deletion skipped " + deleteResponse.encodePrettily());
@@ -2075,7 +2082,7 @@ public class HridApiTests extends InventoryUpdateTestBase {
         "\"titleOrPackage\": \"Initital InputInstance\" }");
     post(ORDER_LINES_STORAGE_PATH, poLine);
     JsonObject deleteSignal = new JsonObject().put("hrid", "IN-001");
-    JsonObject deleteResponse = delete(MainVerticle.INVENTORY_UPSERT_HRID_PATH, deleteSignal);
+    JsonObject deleteResponse = delete(INVENTORY_UPSERT_HRID_PATH, deleteSignal);
 
     testContext.assertEquals(getMetric(deleteResponse, INSTANCE, DELETE, SKIPPED), 1,
         "Upsert metrics response should report [1] instance deletion skipped " + deleteResponse.encodePrettily());
@@ -2114,7 +2121,7 @@ public class HridApiTests extends InventoryUpdateTestBase {
     upsertResponseJson.getJsonObject("instance").getString("id");
 
     JsonObject deleteSignal = new JsonObject().put("hrid", "IN-001");
-    JsonObject deleteResponse = delete(MainVerticle.INVENTORY_UPSERT_HRID_PATH, deleteSignal);
+    JsonObject deleteResponse = delete(INVENTORY_UPSERT_HRID_PATH, deleteSignal);
 
     testContext.assertEquals(getMetric(deleteResponse, INSTANCE, DELETE, SKIPPED), 1,
         "Upsert metrics response should report [1] instance deletion skipped " + deleteResponse.encodePrettily());
@@ -2152,7 +2159,7 @@ public class HridApiTests extends InventoryUpdateTestBase {
                         .setMaterialTypeId(MATERIAL_TYPE_TEXT)
                         .setBarcode("BC-003").getJson())))));
 
-    delete(MainVerticle.INVENTORY_UPSERT_HRID_PATH,
+    delete(INVENTORY_UPSERT_HRID_PATH,
         new JsonObject().put("hrid", "IN-001")
             .put(PROCESSING,
                 new JsonObject().put("item",
@@ -2206,7 +2213,7 @@ public class HridApiTests extends InventoryUpdateTestBase {
                         new JsonObject().put("blockDeletion",
                             new JsonObject().put("ifField","hrid").put("matchesPattern", "ITM.*"))));
 
-    delete(MainVerticle.INVENTORY_UPSERT_HRID_PATH, deleteSignal);
+    delete(INVENTORY_UPSERT_HRID_PATH, deleteSignal);
     JsonObject items = getRecordsFromStorage(ITEM_STORAGE_PATH,null);
     testContext.assertTrue(!items.getJsonArray("items").getJsonObject(0).containsKey("statisticalCodeIds"), "Item has no statistical codes");
     JsonObject instances = getRecordsFromStorage(INSTANCE_STORAGE_PATH,null);
@@ -2266,7 +2273,7 @@ public class HridApiTests extends InventoryUpdateTestBase {
                         new JsonObject().put("blockDeletion",
                             new JsonObject().put("ifField","hrid").put("matchesPattern", "ITM.*"))));
 
-    delete(MainVerticle.INVENTORY_UPSERT_HRID_PATH, deleteSignal);
+    delete(INVENTORY_UPSERT_HRID_PATH, deleteSignal);
     JsonObject items = getRecordsFromStorage(ITEM_STORAGE_PATH,null);
     testContext.assertTrue(!items.getJsonArray("items").getJsonObject(0).containsKey("statisticalCodeIds"), "Item has no statistical codes");
     JsonObject instances = getRecordsFromStorage(INSTANCE_STORAGE_PATH,null);
@@ -2304,7 +2311,7 @@ public class HridApiTests extends InventoryUpdateTestBase {
                         .setMaterialTypeId(MATERIAL_TYPE_TEXT)
                         .setBarcode("BC-003").getJson())))));
 
-    delete(MainVerticle.INVENTORY_UPSERT_HRID_PATH,
+    delete(INVENTORY_UPSERT_HRID_PATH,
         new JsonObject()
             .put("hrid", "IN-001")
             .put(PROCESSING,
@@ -2334,7 +2341,7 @@ public class HridApiTests extends InventoryUpdateTestBase {
   @Test
   public void deleteSignalByHridForNonExistingInstanceWillReturn404 (TestContext testContext) {
     JsonObject deleteSignal = new JsonObject().put("hrid","DOES_NOT_EXIST");
-    delete(404, MainVerticle.INVENTORY_UPSERT_HRID_PATH,deleteSignal);
+    delete(404, INVENTORY_UPSERT_HRID_PATH,deleteSignal);
   }
 
   @Test
@@ -2486,7 +2493,7 @@ public class HridApiTests extends InventoryUpdateTestBase {
 
     fetchRecordSetFromUpsertHrid( "1" );
     fetchRecordSetFromUpsertHrid (newInstance.getJsonObject( "instance" ).getString( "id" ));
-    getJsonObjectById( MainVerticle.FETCH_INVENTORY_RECORD_SETS_ID_PATH, "2", 404 );
+    getJsonObjectById( FETCH_INVENTORY_RECORD_SETS_ID_PATH, "2", 404 );
   }
 
 
@@ -2747,7 +2754,17 @@ public class HridApiTests extends InventoryUpdateTestBase {
         .body("bad request body")
         .header("Content-type","application/json")
         .header(OKAPI_URL_HEADER)
-        .put(MainVerticle.INVENTORY_UPSERT_HRID_PATH)
+        .header(OKAPI_TENANT_HEADER)
+        .put(INVENTORY_UPSERT_HRID_PATH)
+        .then()
+        .log().ifValidationFails()
+        .statusCode(400).extract().response();
+
+    RestAssured.given()
+        .header("Content-type","application/json")
+        .header(OKAPI_URL_HEADER)
+        .header(OKAPI_TENANT_HEADER)
+        .put(INVENTORY_UPSERT_HRID_PATH)
         .then()
         .log().ifValidationFails()
         .statusCode(400).extract().response();
@@ -2756,7 +2773,8 @@ public class HridApiTests extends InventoryUpdateTestBase {
         .body(new JsonObject().toString())
         .header("Content-type","text/plain")
         .header(OKAPI_URL_HEADER)
-        .put(MainVerticle.INVENTORY_UPSERT_HRID_PATH)
+        .header(OKAPI_TENANT_HEADER)
+        .put(INVENTORY_UPSERT_HRID_PATH)
         .then()
         .log().ifValidationFails()
         .statusCode(400).extract().response();
@@ -2765,7 +2783,8 @@ public class HridApiTests extends InventoryUpdateTestBase {
         .body(new JsonObject().toString())
         .header("Content-type","text/plain")
         .header(OKAPI_URL_HEADER)
-        .delete(MainVerticle.INVENTORY_UPSERT_HRID_PATH)
+        .header(OKAPI_TENANT_HEADER)
+        .delete(INVENTORY_UPSERT_HRID_PATH)
         .then()
         .log().ifValidationFails()
         .statusCode(400).extract().response();

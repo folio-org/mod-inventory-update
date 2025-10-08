@@ -1,24 +1,26 @@
-package org.folio.inventoryupdate;
+package org.folio.inventoryupdate.service;
 
-import io.vertx.core.Future;
-import io.vertx.core.Vertx;
 import io.vertx.core.json.DecodeException;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
-import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
-import io.vertx.ext.web.handler.impl.BodyHandlerImpl;
-import io.vertx.ext.web.openapi.router.RouterBuilder;
-import io.vertx.openapi.contract.OpenAPIContract;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.folio.inventoryupdate.DeletePlan;
+import org.folio.inventoryupdate.DeletePlanAllHRIDs;
+import org.folio.inventoryupdate.DeletePlanSharedInventory;
+import org.folio.inventoryupdate.ErrorReport;
+import org.folio.inventoryupdate.InventoryQuery;
+import org.folio.inventoryupdate.InventoryUpdateOutcome;
+import org.folio.inventoryupdate.QueryByHrid;
+import org.folio.inventoryupdate.UpdateMetrics;
+import org.folio.inventoryupdate.UpdatePlan;
+import org.folio.inventoryupdate.UpdatePlanAllHRIDs;
+import org.folio.inventoryupdate.UpdatePlanSharedInventory;
+import org.folio.inventoryupdate.UpdateRequest;
 import org.folio.inventoryupdate.entities.RecordIdentifiers;
 import org.folio.inventoryupdate.instructions.ProcessingInstructionsDeletion;
 import org.folio.okapi.common.OkapiClient;
-import org.folio.tlib.RouterCreator;
-import org.folio.tlib.TenantInitHooks;
-
-import java.util.function.Consumer;
 
 import static org.folio.inventoryupdate.ErrorReport.BAD_REQUEST;
 import static org.folio.inventoryupdate.ErrorReport.INTERNAL_SERVER_ERROR;
@@ -26,52 +28,11 @@ import static org.folio.inventoryupdate.ErrorReport.NOT_FOUND;
 import static org.folio.inventoryupdate.InventoryStorage.getOkapiClient;
 import static org.folio.inventoryupdate.InventoryUpdateOutcome.MULTI_STATUS;
 import static org.folio.inventoryupdate.InventoryUpdateOutcome.OK;
-import static org.folio.okapi.common.HttpResponse.responseError;
 import static org.folio.okapi.common.HttpResponse.responseJson;
 
-public class NewInventoryUpdateService implements RouterCreator, TenantInitHooks {
+public class HandlersUpdating {
 
-  public static final Logger logger = LogManager.getLogger("inventory-import");
-
-  NewInventoryFetchService fetchService = new NewInventoryFetchService();
-
-  @Override
-  public Future<Router> createRouter(Vertx vertx) {
-    return OpenAPIContract.from(vertx, "openapi/inventory-update-5.0.yaml")
-        .map(contract -> {
-          RouterBuilder routerBuilder = RouterBuilder.create(vertx, contract);
-          handlers(vertx, routerBuilder);
-          return routerBuilder.createRouter();
-        }).onSuccess(res -> logger.info("OpenAPI contract parsed OK"));
-
-  }
-
-
-  private void handlers(Vertx vertx, RouterBuilder routerBuilder) {
-    validatingHandler(vertx, routerBuilder, "singleRecordUpsertByHrid", this::handleInventoryUpsertByHRID);
-    validatingHandler(vertx, routerBuilder, "batchUpsertByHrid", this::handleInventoryUpsertByHRIDBatch);
-    validatingHandler(vertx, routerBuilder, "deleteInstanceByHrid", this::handleInventoryRecordSetDeleteByHRID);
-    validatingHandler(vertx, routerBuilder, "getInventoryRecordSet", fetchService::handleInventoryRecordSetFetchHrid);
-    // Shared index (decommissioned)
-    validatingHandler(vertx, routerBuilder, "upsertByMatchkey", this::handleSharedInventoryUpsertByMatchKey);
-    validatingHandler(vertx, routerBuilder, "batchUpsertByMatchkey", this::handleSharedInventoryUpsertByMatchKeyBatch);
-    validatingHandler(vertx, routerBuilder, "getSharedInstance", fetchService::handleSharedInventoryRecordSetFetch);
-    validatingHandler(vertx, routerBuilder, "sharedIndexDeletion", this::handleSharedInventoryRecordSetDeleteByIdentifiers);
-  }
-
-  private void validatingHandler(Vertx vertx, RouterBuilder routerBuilder, String operation,
-                                 Consumer<UpdateRequest> method) {
-    routerBuilder.getRoute(operation)
-        .addHandler(ctx -> {
-          try {
-            method.accept(new RequestValidated(vertx, ctx));
-          } catch (RuntimeException e) {
-            logger.error("Handler exception {}: {}", operation, e.getMessage(), e);
-            exceptionResponse(e, ctx);
-          }
-        })
-        .addFailureHandler(this::routerExceptionResponse); // Open API validation exception
-  }
+  public static final Logger logger = LogManager.getLogger("inventory-update");
 
   public void handleInventoryUpsertByHRID(UpdateRequest updateRequest) {
     UpdatePlan plan = new UpdatePlanAllHRIDs();
@@ -79,7 +40,6 @@ public class NewInventoryUpdateService implements RouterCreator, TenantInitHooks
   }
 
   public void handleInventoryUpsertByHRIDBatch(UpdateRequest request) {
-    System.out.println("In handleInventoryUpsertByHRIDBatch");
     UpdatePlan plan = new UpdatePlanAllHRIDs();
     doBatchUpsert(request, plan);
   }
@@ -158,21 +118,11 @@ public class NewInventoryUpdateService implements RouterCreator, TenantInitHooks
   }
 
   public void handleSharedInventoryRecordSetDeleteByIdentifiers(UpdateRequest request) {
-    InventoryUpdateOutcome isJsonContentType = contentTypeIsJson(request.routingContext());
-    if (isJsonContentType.failed()) {
-      isJsonContentType.getErrorResponse().respond(request.routingContext());
-      return;
-    }
 
-    InventoryUpdateOutcome incomingValidJson = getIncomingJsonBody(request);
-    if (incomingValidJson.failed()) {
-      incomingValidJson.getErrorResponse().respond(request.routingContext());
-      return;
-    }
-    JsonObject processing = incomingValidJson.getJson().getJsonObject( "processing" );
+    JsonObject processing = request.bodyAsJson().getJsonObject( "processing" );
     ProcessingInstructionsDeletion deleteInstructions =  new ProcessingInstructionsDeletion(processing);
 
-    RecordIdentifiers deletionIdentifiers = RecordIdentifiers.identifiersFromDeleteRequestJson(incomingValidJson.getJson());
+    RecordIdentifiers deletionIdentifiers = RecordIdentifiers.identifiersFromDeleteRequestJson(request.bodyAsJson());
     DeletePlan deletePlan = DeletePlanSharedInventory.getDeletionPlan(deletionIdentifiers);
     runDeletionPlan(deletePlan, deleteInstructions, request.routingContext());
   }
@@ -216,53 +166,6 @@ public class NewInventoryUpdateService implements RouterCreator, TenantInitHooks
     });
   }
 
-  // UTILS
-  public void handleHealthCheck(RoutingContext routingContext) {
-    responseJson(routingContext, OK).end("{ \"status\": \"UP\" }");
-  }
-
-  public void handleUnrecognizedPath(RoutingContext routingContext) {
-    responseError(routingContext, NOT_FOUND, "No Service found for requested path " + routingContext.request().path());
-  }
-
-  private InventoryUpdateOutcome contentTypeIsJson (RoutingContext routingCtx) {
-    String contentType = routingCtx.request().getHeader("Content-Type");
-    if (contentType != null && !contentType.startsWith("application/json")) {
-      logger.error("Only accepts Content-Type application/json, was: {}", contentType);
-      return new InventoryUpdateOutcome(new ErrorReport(
-          ErrorReport.ErrorCategory.VALIDATION,
-          BAD_REQUEST,
-          "Only accepts Content-Type application/json, content type was: "+ contentType)
-          .setShortMessage("Only accepts application/json")
-          .setStatusCode(BAD_REQUEST));
-    } else {
-      return new InventoryUpdateOutcome(new JsonObject().put("succeeded", "yes"));
-    }
-  }
-
-  private InventoryUpdateOutcome getIncomingJsonBody(UpdateRequest request) {
-    System.out.println("Get incoming JSON body");
-    String bodyAsString;
-    try {
-      bodyAsString = request.bodyAsJson().toString();
-      System.out.println(bodyAsString);
-      if (bodyAsString == null) {
-        return new InventoryUpdateOutcome(
-            new ErrorReport(
-                ErrorReport.ErrorCategory.VALIDATION,
-                BAD_REQUEST,
-                "No request body provided."));
-      }
-      JsonObject bodyAsJson = new JsonObject(bodyAsString);
-      logger.debug("Request body {}", bodyAsJson::encodePrettily);
-      return new InventoryUpdateOutcome(bodyAsJson);
-    } catch (DecodeException de) {
-      return new InventoryUpdateOutcome(new ErrorReport(ErrorReport.ErrorCategory.VALIDATION,
-          BAD_REQUEST,
-          "Could not parse JSON body of the request: " + de.getMessage())
-          .setShortMessage("Could not parse request JSON"));
-    }
-  }
 
   public void respondWithOK(RoutingContext routingContext, JsonObject message) {
     responseJson(routingContext, OK).end(message.encodePrettily());
@@ -270,24 +173,6 @@ public class NewInventoryUpdateService implements RouterCreator, TenantInitHooks
 
   public void respondWithMultiStatus(RoutingContext routingContext, JsonObject message) {
     responseJson(routingContext, MULTI_STATUS).end(message.encodePrettily());
-  }
-
-  private void exceptionResponse(Throwable cause, RoutingContext routingContext) {
-    if (cause.getMessage().toLowerCase().contains("could not find")) {
-      responseError(routingContext, 404, cause.getMessage());
-    } else {
-      responseError(routingContext, 400, cause.getClass().getSimpleName() + ": " + cause.getMessage());
-    }
-  }
-
-  /**
-   * Returns request validation exception, potentially with improved error message if problem was
-   * an error in a polymorph schema, like in `harvestable` of type `oaiPmh` vs `xmlBulk`.
-   */
-  private void routerExceptionResponse(RoutingContext ctx) {
-    String message = null;
-    if (ctx.failure() != null) message = ctx.failure().getMessage();
-    responseError(ctx, ctx.statusCode(), message + ": " + ctx.failure().getCause().getMessage());
   }
 
 }

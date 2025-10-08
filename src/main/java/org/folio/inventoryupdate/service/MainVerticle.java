@@ -1,4 +1,4 @@
-package org.folio.inventoryupdate;
+package org.folio.inventoryupdate.service;
 
 import io.vertx.core.AbstractVerticle;
 import io.vertx.core.Promise;
@@ -8,7 +8,7 @@ import org.folio.tlib.RouterCreator;
 import org.folio.tlib.api.HealthApi;
 import org.folio.tlib.api.Tenant2Api;
 
-public class NewMainVerticle extends AbstractVerticle {
+public class MainVerticle extends AbstractVerticle {
   private static final String module = "mod-inventory-update";
 
   @Override
@@ -17,7 +17,7 @@ public class NewMainVerticle extends AbstractVerticle {
     // listening port
     final int port = Integer.parseInt(Config.getSysConf("http.port", "port", "8080", config()));
 
-    NewInventoryUpdateService updateService = new NewInventoryUpdateService();
+    InventoryUpdateService updateService = new InventoryUpdateService();
     RouterCreator[] routerCreators = {
         updateService,
         new Tenant2Api(updateService),

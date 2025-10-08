@@ -15,10 +15,10 @@ public class InventoryUpdateOutcome {
 
   public static final String P_METRICS = "metrics";
   public static final String P_ERRORS = "errors";
-  int statusCode;
+  public int statusCode;
   JsonObject result = new JsonObject();
   List<ErrorReport> errors = new ArrayList<>();
-  UpdateMetrics metrics;
+  public UpdateMetrics metrics;
   public InventoryUpdateOutcome() {
 
   }

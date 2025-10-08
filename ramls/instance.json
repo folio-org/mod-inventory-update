@@ -1,5 +1,0 @@
-{
-  "$schema": "http://json-schema.org/draft-04/schema#",
-  "description": "An instance record in compliance with the schema of the given version of the underlying `instance-storage` API",
-  "type": "object"
-}

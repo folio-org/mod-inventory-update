@@ -1,10 +1,11 @@
-package org.folio.inventoryupdate;
+package org.folio.inventoryupdate.service;
 
 import io.vertx.core.Vertx;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.openapi.router.RouterBuilder;
 import io.vertx.openapi.validation.ValidatedRequest;
+import org.folio.inventoryupdate.UpdateRequest;
 import org.folio.tlib.util.TenantUtil;
 
 public class RequestValidated extends UpdateRequest {

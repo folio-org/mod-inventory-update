@@ -1,10 +1,15 @@
-package org.folio.inventoryupdate;
+package org.folio.inventoryupdate.service;
 
 import io.vertx.core.Future;
 import io.vertx.core.Promise;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.RoutingContext;
+import org.folio.inventoryupdate.InventoryQuery;
+import org.folio.inventoryupdate.InventoryStorage;
+import org.folio.inventoryupdate.QueryByHrid;
+import org.folio.inventoryupdate.QueryByUUID;
+import org.folio.inventoryupdate.UpdateRequest;
 import org.folio.inventoryupdate.entities.InstanceReferences;
 import org.folio.okapi.common.OkapiClient;
 
@@ -30,7 +35,7 @@ import static org.folio.inventoryupdate.entities.InventoryRecordSet.ITEMS;
 import static org.folio.inventoryupdate.entities.Item.HOLDINGS_RECORD_ID;
 import static org.folio.okapi.common.HttpResponse.responseJson;
 
-public class NewInventoryFetchService {
+public class HandlersFetching {
   private static final String PK = "id";
 
   /**

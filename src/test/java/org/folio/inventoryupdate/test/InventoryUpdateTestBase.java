@@ -1,6 +1,6 @@
 package org.folio.inventoryupdate.test;
 
-import org.folio.inventoryupdate.NewMainVerticle;
+import org.folio.inventoryupdate.service.MainVerticle;
 import org.folio.inventoryupdate.test.fakestorage.FakeFolioApis;
 import org.folio.inventoryupdate.test.fakestorage.RecordStorage;
 import org.folio.inventoryupdate.test.fakestorage.entitites.*;
@@ -72,28 +72,22 @@ public abstract class InventoryUpdateTestBase {
   public static final String STATISTICAL_CODING = "statisticalCoding";
   public static final String CLIENTS_RECORD_IDENTIFIER = "clientsRecordIdentifier";
 
-
   protected final Logger logger = LoggerFactory.getLogger("InventoryUpdateTestSuite");
   @Rule
   public final TestName name = new TestName();
 
-
   @Before
   public void setUp(TestContext testContext) {
     logger.debug("setUp {}", name.getMethodName());
-
     vertx = Vertx.vertx();
-
     // Register the testContext exception handler to catch assertThat
     vertx.exceptionHandler(testContext.exceptionHandler());
-
     deployService(testContext);
-
   }
 
   private void deployService(TestContext testContext) {
     System.setProperty("port", String.valueOf(PORT_INVENTORY_UPDATE));
-    vertx.deployVerticle(NewMainVerticle.class.getName(), new DeploymentOptions())
+    vertx.deployVerticle(MainVerticle.class.getName(), new DeploymentOptions())
     .onComplete(testContext.asyncAssertSuccess(x -> {
       fakeFolioApis = new FakeFolioApis(vertx, testContext);
       createReferenceRecords();

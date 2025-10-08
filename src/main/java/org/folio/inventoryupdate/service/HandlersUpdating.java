@@ -1,6 +1,5 @@
 package org.folio.inventoryupdate.service;
 
-import io.vertx.core.json.DecodeException;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.RoutingContext;
@@ -22,7 +21,6 @@ import org.folio.inventoryupdate.entities.RecordIdentifiers;
 import org.folio.inventoryupdate.instructions.ProcessingInstructionsDeletion;
 import org.folio.okapi.common.OkapiClient;
 
-import static org.folio.inventoryupdate.ErrorReport.BAD_REQUEST;
 import static org.folio.inventoryupdate.ErrorReport.INTERNAL_SERVER_ERROR;
 import static org.folio.inventoryupdate.ErrorReport.NOT_FOUND;
 import static org.folio.inventoryupdate.InventoryStorage.getOkapiClient;

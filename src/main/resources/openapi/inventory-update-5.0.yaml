@@ -616,9 +616,7 @@ components:
       description: "Defines retention policies for existing values when updating records."
       properties:
         forOmittedProperties:
-          type: boolean
-          description: "If set to true, MIU retains existing properties if they are absent from the incoming record. If set to false (default), MIU removes absent properties from the existing record too."
-          default: false
+          description: 'If set to true/"true" MIU retains existing properties if they are absent from the incoming record. If set to false (default), MIU removes absent properties from the existing record too.'
         forTheseProperties:
           type: array
           description: "List of properties to retain existing values for, whether they are present or not in the incoming record."

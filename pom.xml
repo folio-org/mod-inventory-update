@@ -129,10 +129,28 @@
       <groupId>io.vertx</groupId>
       <artifactId>vertx-rx-java2</artifactId>
     </dependency>
-   <dependency>
+    <dependency>
       <groupId>io.vertx</groupId>
       <artifactId>vertx-web-client</artifactId>
     </dependency>
+    <dependency>
+      <groupId>io.vertx</groupId>
+      <artifactId>vertx-pg-client</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>io.vertx</groupId>
+      <artifactId>vertx-codegen</artifactId>
+      <classifier>processor</classifier>
+    </dependency>
+    <dependency>
+      <groupId>io.vertx</groupId>
+      <artifactId>vertx-sql-client-templates</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>com.fasterxml.jackson.core</groupId>
+      <artifactId>jackson-databind</artifactId>
+    </dependency>
+
     <dependency>
       <groupId>org.apache.logging.log4j</groupId>
       <artifactId>log4j-core</artifactId>
@@ -140,6 +158,31 @@
     <dependency>
       <groupId>org.apache.logging.log4j</groupId>
       <artifactId>log4j-api</artifactId>
+    </dependency>
+    <dependency>
+        <groupId>io.netty</groupId>
+        <artifactId>netty-transport-native-epoll</artifactId>
+        <classifier>linux-x86_64</classifier>
+    </dependency>
+    <dependency>
+        <groupId>io.netty</groupId>
+        <artifactId>netty-tcnative-boringssl-static</artifactId>
+        <scope>runtime</scope>
+    </dependency>
+    <dependency>
+        <groupId>net.sf.saxon</groupId>
+        <artifactId>saxon</artifactId>
+        <version>8.7</version>
+    </dependency>
+    <dependency>
+        <groupId>net.sf.saxon</groupId>
+        <artifactId>saxon-dom</artifactId>
+        <version>8.7</version>
+    </dependency>
+    <dependency>
+        <groupId>org.apache.httpcomponents</groupId>
+        <artifactId>httpclient</artifactId>
+        <version>4.5.13</version>
     </dependency>
     <dependency>
       <groupId>com.ongres.scram</groupId>
@@ -150,6 +193,12 @@
       <groupId>org.apache.commons</groupId>
       <artifactId>commons-lang3</artifactId>
       <version>3.18.0</version>
+    </dependency>
+
+    <dependency>
+      <groupId>org.folio</groupId>
+      <artifactId>mod-reservoir-util</artifactId>
+      <version>0.0.1-SNAPSHOT</version>
     </dependency>
 
     <!-- Test dependencies -->

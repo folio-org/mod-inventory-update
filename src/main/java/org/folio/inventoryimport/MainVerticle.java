@@ -1,4 +1,4 @@
-package org.folio.inventoryupdate.service;
+package org.folio.inventoryimport;
 
 import io.vertx.core.AbstractVerticle;
 import io.vertx.core.Promise;
@@ -10,6 +10,7 @@ import org.folio.tlib.api.HealthApi;
 import org.folio.tlib.api.Tenant2Api;
 import org.folio.tlib.postgres.TenantPgPool;
 
+
 public class MainVerticle extends AbstractVerticle {
   private static final String module = "mod-inventory-update";
 
@@ -19,16 +20,13 @@ public class MainVerticle extends AbstractVerticle {
     TenantPgPool.setModule(module); // Postgres - schema separation
 
     // listening port
-    final int port = Integer.parseInt(Config.getSysConf("http.port", "port", "8080", config()));
+    final int port = Integer.parseInt(Config.getSysConf("http.port", "port", "8081", config()));
 
-    InventoryUpdateService updateService = new InventoryUpdateService();
     ImportService importService = new ImportService();
-
     RouterCreator[] routerCreators = {
-        importService,
+            importService,
         new Tenant2Api(importService),
         new HealthApi(),
-        updateService,
     };
 
     HttpServerOptions so = new HttpServerOptions()

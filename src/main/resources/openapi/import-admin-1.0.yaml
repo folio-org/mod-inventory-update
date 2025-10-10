@@ -1,10 +1,10 @@
 openapi: 3.1.0
 info:
-  title: Inventory import API
+  title: Inventory import configuration
   version: v0.1
 paths:
 
-  /inventory-import/import-configs:
+  /import-admin/import-configs:
     parameters:
       - $ref: "#/components/parameters/okapi_tenant"
       - $ref: "#/components/parameters/okapi_token"
@@ -55,7 +55,7 @@ paths:
         "500":
           $ref: "#/components/responses/trait_500"
 
-  /inventory-import/import-configs/{id}:
+  /import-admin/import-configs/{id}:
     parameters:
       - $ref: "#/components/parameters/okapi_tenant"
       - $ref: "#/components/parameters/okapi_token"
@@ -110,7 +110,7 @@ paths:
         "500":
           $ref: "#/components/responses/trait_500"
 
-  /inventory-import/import-configs/xml-bulk/{id}/import:
+  /import-admin/import-configs/xml-bulk/{id}/import:
     parameters:
       - $ref: "#/components/parameters/okapi_tenant"
       - $ref: "#/components/parameters/okapi_token"
@@ -141,7 +141,7 @@ paths:
 
 
 
-  /inventory-import/import-configs/xml-bulk/{id}/activate:
+  /import-admin/import-configs/xml-bulk/{id}/activate:
     parameters:
       - $ref: "#/components/parameters/okapi_tenant"
       - $ref: "#/components/parameters/okapi_token"
@@ -165,7 +165,7 @@ paths:
         "500":
           $ref: "#/components/responses/trait_500"
 
-  /inventory-import/import-configs/xml-bulk/{id}/pause:
+  /import-admin/import-configs/xml-bulk/{id}/pause:
     parameters:
       - $ref: "#/components/parameters/okapi_tenant"
       - $ref: "#/components/parameters/okapi_token"
@@ -189,7 +189,7 @@ paths:
         "500":
           $ref: "#/components/responses/trait_500"
 
-  /inventory-import/import-configs/xml-bulk/{id}/resume:
+  /import-admin/import-configs/xml-bulk/{id}/resume:
     parameters:
       - $ref: "#/components/parameters/okapi_tenant"
       - $ref: "#/components/parameters/okapi_token"
@@ -214,7 +214,7 @@ paths:
           $ref: "#/components/responses/trait_500"
 
 
-  /inventory-import/import-jobs:
+  /import-admin/import-jobs:
     parameters:
       - $ref: "#/components/parameters/okapi_tenant"
       - $ref: "#/components/parameters/okapi_token"
@@ -279,7 +279,7 @@ paths:
         "500":
           $ref: "#/components/responses/trait_500"
 
-  /inventory-import/import-jobs/{id}:
+  /import-admin/import-jobs/{id}:
     parameters:
       - $ref: "#/components/parameters/okapi_tenant"
       - $ref: "#/components/parameters/okapi_token"
@@ -320,7 +320,7 @@ paths:
         "500":
           $ref: "#/components/responses/trait_500"
 
-  /inventory-import/import-jobs/{id}/log:
+  /import-admin/import-jobs/{id}/log:
     parameters:
       - $ref: "#/components/parameters/okapi_tenant"
       - $ref: "#/components/parameters/okapi_token"
@@ -371,7 +371,7 @@ paths:
         "500":
           $ref: "#/components/responses/trait_500"
 
-  /inventory-import/import-jobs/{id}/failed-records:
+  /import-admin/import-jobs/{id}/failed-records:
     parameters:
       - $ref: "#/components/parameters/okapi_tenant"
       - $ref: "#/components/parameters/okapi_token"
@@ -443,7 +443,7 @@ paths:
         "500":
           $ref: "#/components/responses/trait_500"
 
-  /inventory-import/failed-records/{id}:
+  /import-admin/failed-records/{id}:
     parameters:
       - $ref: "#/components/parameters/okapi_tenant"
       - $ref: "#/components/parameters/okapi_token"
@@ -461,7 +461,7 @@ paths:
         "500":
           $ref: "#/components/responses/trait_500"
 
-  /inventory-import/steps:
+  /import-admin/steps:
     parameters:
       - $ref: "#/components/parameters/okapi_tenant"
       - $ref: "#/components/parameters/okapi_token"
@@ -512,7 +512,7 @@ paths:
         "500":
           $ref: "#/components/responses/trait_500"
 
-  /inventory-import/steps/{id}:
+  /import-admin/steps/{id}:
     parameters:
       - $ref: "#/components/parameters/okapi_tenant"
       - $ref: "#/components/parameters/okapi_token"
@@ -567,7 +567,7 @@ paths:
         "500":
           $ref: "#/components/responses/trait_500"
 
-  /inventory-import/steps/{id}/script:
+  /import-admin/steps/{id}/script:
     parameters:
       - $ref: "#/components/parameters/okapi_tenant"
       - $ref: "#/components/parameters/okapi_token"
@@ -608,7 +608,7 @@ paths:
         "500":
           $ref: "#/components/responses/trait_500"
 
-  /inventory-import/transformations:
+  /import-admin/transformations:
     parameters:
       - $ref: "#/components/parameters/okapi_tenant"
       - $ref: "#/components/parameters/okapi_token"
@@ -661,7 +661,7 @@ paths:
         "500":
           $ref: "#/components/responses/trait_500"
 
-  /inventory-import/transformations/{id}:
+  /import-admin/transformations/{id}:
     parameters:
       - $ref: "#/components/parameters/okapi_tenant"
       - $ref: "#/components/parameters/okapi_token"
@@ -720,7 +720,7 @@ paths:
         "500":
           $ref: "#/components/responses/trait_500"
 
-  /inventory-import/tsas:
+  /import-admin/tsas:
     parameters:
       - $ref: "#/components/parameters/okapi_tenant"
       - $ref: "#/components/parameters/okapi_token"
@@ -780,7 +780,7 @@ paths:
         "500":
           $ref: "#/components/responses/trait_500"
 
-  /inventory-import/tsas/{id}:
+  /import-admin/tsas/{id}:
     parameters:
       - $ref: "#/components/parameters/okapi_tenant"
       - $ref: "#/components/parameters/okapi_token"
@@ -839,7 +839,7 @@ paths:
         "500":
           $ref: "#/components/responses/trait_500"
 
-  /inventory-import/purge-aged-logs:
+  /import-admin/purge-aged-logs:
     post:
       operationId: purgeAgedLogs
       description: Delete old import job logs from storage

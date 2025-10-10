@@ -1,6 +1,6 @@
 package org.folio.inventoryupdate.test;
 
-import org.folio.inventoryupdate.service.MainVerticle;
+import org.folio.inventoryupdate.MainVerticle;
 import org.folio.inventoryupdate.test.fakestorage.FakeFolioApis;
 import org.folio.inventoryupdate.test.fakestorage.RecordStorage;
 import org.folio.inventoryupdate.test.fakestorage.entitites.*;

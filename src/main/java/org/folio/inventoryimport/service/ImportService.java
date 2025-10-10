@@ -49,7 +49,7 @@ public class ImportService implements RouterCreator, TenantInitHooks {
 
     @Override
     public Future<Router> createRouter(Vertx vertx) {
-        return OpenAPIContract.from(vertx, "openapi/inventory-import-1.0.yaml")
+        return OpenAPIContract.from(vertx, "openapi/import-admin-1.0.yaml")
             .map(contract -> {
                 RouterBuilder routerBuilder = RouterBuilder.create(vertx, contract);
                 handlers(vertx, routerBuilder);

@@ -1,9 +1,10 @@
-package org.folio.inventoryupdate.service;
+package org.folio.inventoryupdate;
 
 import io.vertx.core.AbstractVerticle;
 import io.vertx.core.Promise;
 import io.vertx.core.http.HttpServerOptions;
 import org.folio.inventoryimport.service.ImportService;
+import org.folio.inventoryupdate.service.InventoryUpdateService;
 import org.folio.okapi.common.Config;
 import org.folio.tlib.RouterCreator;
 import org.folio.tlib.api.HealthApi;

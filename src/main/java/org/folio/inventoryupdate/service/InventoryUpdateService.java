@@ -24,8 +24,8 @@ public class InventoryUpdateService implements RouterCreator, TenantInitHooks {
   public static final Logger logger = LogManager.getLogger("inventory-update");
   public static final String HEALTH_CHECK = "/admin/health";
 
-  HandlersUpdating handlersUpdating = new HandlersUpdating();
-  HandlersFetching handlersFetching = new HandlersFetching();
+  HandlersUpdating updating = new HandlersUpdating();
+  HandlersFetching fetching = new HandlersFetching();
 
 
   @Override
@@ -42,19 +42,19 @@ public class InventoryUpdateService implements RouterCreator, TenantInitHooks {
   }
 
   private void handlers(Vertx vertx, RouterBuilder routerBuilder) {
-    validatingHandler(vertx, routerBuilder, "singleRecordUpsertByHrid", handlersUpdating::handleInventoryUpsertByHRID);
-    validatingHandler(vertx, routerBuilder, "batchUpsertByHrid", handlersUpdating::handleInventoryUpsertByHRIDBatch);
-    validatingHandler(vertx, routerBuilder, "deleteInstanceByHrid", handlersUpdating::handleInventoryRecordSetDeleteByHRID);
-    validatingHandler(vertx, routerBuilder, "getInventoryRecordSet", handlersFetching::handleInventoryRecordSetFetchHrid);
+    handler(vertx, routerBuilder, "singleRecordUpsertByHrid", updating::handleInventoryUpsertByHRID);
+    handler(vertx, routerBuilder, "batchUpsertByHrid", updating::handleInventoryUpsertByHRIDBatch);
+    handler(vertx, routerBuilder, "deleteInstanceByHrid", updating::handleInventoryRecordSetDeleteByHRID);
+    handler(vertx, routerBuilder, "getInventoryRecordSet", fetching::handleInventoryRecordSetFetchHrid);
     // Shared index (decommissioned)
-    validatingHandler(vertx, routerBuilder, "upsertByMatchkey", handlersUpdating::handleSharedInventoryUpsertByMatchKey);
-    validatingHandler(vertx, routerBuilder, "batchUpsertByMatchkey", handlersUpdating::handleSharedInventoryUpsertByMatchKeyBatch);
-    validatingHandler(vertx, routerBuilder, "getSharedInstance", handlersFetching::handleSharedInventoryRecordSetFetch);
-    validatingHandler(vertx, routerBuilder, "sharedIndexDeletion", handlersUpdating::handleSharedInventoryRecordSetDeleteByIdentifiers);
+    handler(vertx, routerBuilder, "upsertByMatchkey", updating::handleSharedInventoryUpsertByMatchKey);
+    handler(vertx, routerBuilder, "batchUpsertByMatchkey", updating::handleSharedInventoryUpsertByMatchKeyBatch);
+    handler(vertx, routerBuilder, "getSharedInstance", fetching::handleSharedInventoryRecordSetFetch);
+    handler(vertx, routerBuilder, "sharedIndexDeletion", updating::handleSharedInventoryRecordSetDeleteByIdentifiers);
   }
 
-  private void validatingHandler(Vertx vertx, RouterBuilder routerBuilder, String operation,
-                                 Consumer<UpdateRequest> method) {
+  private void handler(Vertx vertx, RouterBuilder routerBuilder, String operation,
+                       Consumer<UpdateRequest> method) {
     routerBuilder.getRoute(operation)
         .addHandler(ctx -> {
           try {

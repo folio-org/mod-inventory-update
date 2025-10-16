@@ -6,7 +6,6 @@ import io.vertx.core.http.HttpServerOptions;
 import org.folio.okapi.common.Config;
 import org.folio.tlib.RouterCreator;
 import org.folio.tlib.api.HealthApi;
-import org.folio.tlib.api.Tenant2Api;
 
 public class MainVerticle extends AbstractVerticle {
   private static final String module = "mod-inventory-update";
@@ -20,7 +19,6 @@ public class MainVerticle extends AbstractVerticle {
     InventoryUpdateService updateService = new InventoryUpdateService();
     RouterCreator[] routerCreators = {
         updateService,
-        new Tenant2Api(updateService),
         new HealthApi(),
     };
 

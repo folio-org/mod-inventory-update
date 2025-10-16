@@ -20,7 +20,7 @@
     <docker.registry>docker.indexdata.com:5000</docker.registry>
     <folio-vertx-lib.version>4.0.0</folio-vertx-lib.version>
     <okapi.version>7.0.0</okapi.version>
-    <vertx.version>5.0.2</vertx.version>
+    <vertx.version>5.0.4</vertx.version>
     <mockito.version>5.18.0</mockito.version>
     <folio-module-descriptor-validator.version>0.0.1-SNAPSHOT</folio-module-descriptor-validator.version>
   </properties>

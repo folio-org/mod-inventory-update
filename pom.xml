@@ -18,7 +18,7 @@
     <argLine />
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <docker.registry>docker.indexdata.com:5000</docker.registry>
-    <folio-vertx-lib.version>4.0.0</folio-vertx-lib.version>
+    <folio-vertx-lib.version>4.0.1</folio-vertx-lib.version>
     <okapi.version>7.0.0</okapi.version>
     <vertx.version>5.0.4</vertx.version>
     <mockito.version>5.18.0</mockito.version>
@@ -140,11 +140,6 @@
     <dependency>
       <groupId>org.apache.logging.log4j</groupId>
       <artifactId>log4j-api</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>com.ongres.scram</groupId>
-      <artifactId>client</artifactId>
-      <version>2.1</version>
     </dependency>
     <dependency>
       <groupId>org.apache.commons</groupId>

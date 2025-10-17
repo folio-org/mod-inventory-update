@@ -2758,7 +2758,7 @@ public class HridApiTests extends InventoryUpdateTestBase {
         .put(INVENTORY_UPSERT_HRID_PATH)
         .then()
         .log().ifValidationFails()
-        .statusCode(400).extract().response();
+        .statusCode(400);
 
     RestAssured.given()
         .header("Content-type","application/json")
@@ -2767,7 +2767,7 @@ public class HridApiTests extends InventoryUpdateTestBase {
         .put(INVENTORY_UPSERT_HRID_PATH)
         .then()
         .log().ifValidationFails()
-        .statusCode(400).extract().response();
+        .statusCode(400);
 
     RestAssured.given()
         .body(new JsonObject().toString())
@@ -2787,7 +2787,7 @@ public class HridApiTests extends InventoryUpdateTestBase {
         .delete(INVENTORY_UPSERT_HRID_PATH)
         .then()
         .log().ifValidationFails()
-        .statusCode(400).extract().response();
+        .statusCode(400);
   }
 
   @Test

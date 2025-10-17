@@ -21,31 +21,31 @@ paths:
             schema:
               $ref: "#/components/schemas/inventory-record-set-with-hrids"
       responses:
-        200:
+        "200":
           description: "Inventory recordset successfully created or updated by HRIDs."
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/upsert-response-200-207'
-        207:
+        "207":
           description: "Partially successful update of record set. Errors listed in response."
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/upsert-response-200-207"
-        422:
+        "422":
           description: "One or more validation errors found in incoming record set. No updates performed."
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/error-response'
-        400:
+        "400":
           description: "Bad request, for example: empty request body, non-JSON or invalid JSON in request body or JSON not recognized as an inventory record set"
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/error-response'
-        500:
+        "500":
           description: "Internal errors in the module itself or in the modules that it uses."
           content:
             application/json:
@@ -62,31 +62,31 @@ paths:
             schema:
               $ref: '#/components/schemas/hrid-deletion'
       responses:
-        200:
+        "200":
           description: Record set was successfully found by HRID and deleted.
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/upsert-response-200-207'
-        400:
+        "400":
           description: "Bad request, for example: non-JSON in request body; inventory record set without an instance."
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/error-response'
-        404:
+        "404":
           description: "Did not find existing instance (record set) to delete for provided HRID."
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/error-response'
-        422:
+        "422":
           description: "One or more validation errors encountered. No deletion performed."
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/error-response'
-        500:
+        "500":
           description: "Internal error in the module or in storage during delete by HRID."
           content:
             application/json:
@@ -110,31 +110,31 @@ paths:
             schema:
               $ref: "#/components/schemas/inventory-record-sets-with-hrids"
       responses:
-        200:
+        "200":
           description: "Batch of Inventory record sets successfully created or updated by HRIDs."
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/metrics"
-        207:
+        "207":
           description: "Partially successful update of record set. Errors enumerated in response."
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/batch-upsert-response-207'
-        400:
+        "400":
           description: "Bad request, for example: empty request body, non-JSON or invalid JSON in request body or JSON does not contain inventory record sets"
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/error-response'
-        422:
+        "422":
           description: "One or more validation errors found in the incoming batch of record sets. No updates performed."
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/error-response'
-        500:
+        "500":
           description: "Internal error in the module or in storage during batch upsert by HRID"
           content:
             application/json:
@@ -148,10 +148,16 @@ paths:
       - $ref: "#/components/parameters/okapi_tenant"
       - $ref: "#/components/parameters/okapi_token"
       - $ref: "#/components/parameters/okapi_url"
+      - in: path
+        name: id
+        required: true
+        description: Instance UUID or HRID.
+        schema:
+          type: string
     get:
       operationId: getInventoryRecordSet
       responses:
-        200:
+        "200":
           description: "Inventory record set found"
           content:
             application/json:
@@ -175,31 +181,31 @@ paths:
             schema:
               $ref: '#/components/schemas/inventory-record-set'
       responses:
-        200:
+        "200":
           description: "Inventory recordset successfully created or updated by match key"
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/upsert-response-200-207'
-        207:
+        "207":
           description: "Partially successful update of record set. Errors listed in response."
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/upsert-response-200-207'
-        400:
+        "400":
           description: "Bad request, for example: non-JSON in request body; inventory record set without an instance."
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/error-response'
-        422:
+        "422":
           description: "One or more validation errors encountered. No updates performed."
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/error-response'
-        500:
+        "500":
           description: "Internal error in the module or in storage module."
           content:
             application/json:
@@ -213,31 +219,31 @@ paths:
             schema:
               $ref: '#/components/schemas/shared-index-deletion'
       responses:
-        200:
+        "200":
           description: "Record set was successfully found by local ID and cleaned up."
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/upsert-response-200-207'
-        400:
+        "400":
           description: "Bad request, for example: non-JSON in request body."
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/error-response'
-        404:
+        "404":
           description: "Did not find existing instance (record set) to clean up for given local ID."
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/error-response'
-        422:
+        "422":
           description: "One or more validation errors encountered. No deletion performed."
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/error-response'
-        500:
+        "500":
           description: "Internal error in the module or in storage during delete by local ID."
           content:
             application/json:
@@ -250,10 +256,16 @@ paths:
       - $ref: "#/components/parameters/okapi_tenant"
       - $ref: "#/components/parameters/okapi_token"
       - $ref: "#/components/parameters/okapi_url"
+      - in: path
+        name: id
+        required: true
+        description: Instance UUID or HRID.
+        schema:
+          type: string
     get:
       operationId: getSharedInstance
       responses:
-        200:
+        "200":
           description: "Inventory record set found"
           content:
             application/json:
@@ -277,31 +289,31 @@ paths:
             schema:
               $ref: '#/components/schemas/inventory-record-sets'
       responses:
-        200:
+        "200":
           description: "Batch of Inventory record sets successfully created or updated by match-key."
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/metrics'
-        207:
+        "207":
           description: "Partially successful update of record set. Errors enumerated in response."
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/batch-upsert-response-207"
-        400:
+        "400":
           description: "Bad request, for example: empty request body, non-JSON or invalid JSON in request body or JSON does not contain inventory record sets."
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/error-response'
-        422:
+        "422":
           description: "One or more problems encountered when creating/updating a batch of Inventory record sets by match-keys."
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/error-response'
-        500:
+        "500":
           description: "Internal error in the module or in the storage module."
           content:
             application/json:

@@ -29,8 +29,7 @@ public class MainVerticle extends AbstractVerticle {
         importService,
         new Tenant2Api(importService),
         updateService,
-        new HealthApi(),
-        updateService,
+        new HealthApi()
     };
 
     HttpServerOptions so = new HttpServerOptions()

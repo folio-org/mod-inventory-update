@@ -12,6 +12,7 @@ import org.folio.inventoryupdate.UpdateRequest;
 import org.folio.tlib.RouterCreator;
 import org.folio.tlib.TenantInitHooks;
 
+import java.util.Locale;
 import java.util.function.Consumer;
 
 import static org.folio.inventoryupdate.ErrorReport.NOT_FOUND;
@@ -35,8 +36,8 @@ public class InventoryUpdateService implements RouterCreator, TenantInitHooks {
           RouterBuilder routerBuilder = RouterBuilder.create(vertx, contract);
           handlers(vertx, routerBuilder);
           Router router = routerBuilder.createRouter();
-          router.route(HEALTH_CHECK).handler(this::handleHealthCheck);
-          router.route("/*").handler(this::handleUnrecognizedPath);
+          router.route(HEALTH_CHECK).handler(InventoryUpdateService::handleHealthCheck);
+          router.route("/*").handler(InventoryUpdateService::handleUnrecognizedPath);
           return router;
         }).onSuccess(res -> logger.info("OpenAPI contract parsed."));
   }
@@ -64,22 +65,22 @@ public class InventoryUpdateService implements RouterCreator, TenantInitHooks {
             exceptionResponse(e, ctx);
           }
         })
-        .addFailureHandler(this::routerExceptionResponse); // Open API validation exception
+        .addFailureHandler(InventoryUpdateService::routerExceptionResponse); // Open API validation exception
   }
 
 
   // UTILS
-  public void handleHealthCheck(RoutingContext routingContext) {
+  public static void handleHealthCheck(RoutingContext routingContext) {
     responseJson(routingContext, OK).end("{ \"status\": \"UP\" }");
   }
 
-  public void handleUnrecognizedPath(RoutingContext routingContext) {
+  public static void handleUnrecognizedPath(RoutingContext routingContext) {
     responseError(routingContext, NOT_FOUND, "No Service found for requested path " + routingContext.request().path());
   }
 
 
-  private void exceptionResponse(Throwable cause, RoutingContext routingContext) {
-    if (cause.getMessage().toLowerCase().contains("could not find")) {
+  private static void exceptionResponse(Throwable cause, RoutingContext routingContext) {
+    if (cause.getMessage().toLowerCase(Locale.ROOT).contains("could not find")) {
       responseError(routingContext, 404, cause.getMessage());
     } else {
       responseError(routingContext, 400, cause.getClass().getSimpleName() + ": " + cause.getMessage());
@@ -87,13 +88,18 @@ public class InventoryUpdateService implements RouterCreator, TenantInitHooks {
   }
 
   /**
-   * Returns request validation exception, potentially with improved error message if problem was
-   * an error in a polymorph schema, like in `harvestable` of type `oaiPmh` vs `xmlBulk`.
+   * OAS validation exception.
    */
-  private void routerExceptionResponse(RoutingContext ctx) {
-    String message = null;
-    if (ctx.failure() != null) message = ctx.failure().getMessage();
-    responseError(ctx, ctx.statusCode(), message + ": " + (ctx.failure().getCause() != null ? ctx.failure().getCause().getMessage() : ""));
+  private static void routerExceptionResponse(RoutingContext ctx) {
+    if (ctx.failure() != null) {
+      String message = ctx.failure().getMessage();
+      responseError(ctx, ctx.statusCode(), message + ": " +
+          (ctx.failure().getCause() != null ? ctx.failure().getCause().getMessage() : " (no cause provided)"));
+    } else {
+      responseError(ctx, ctx.statusCode(), " router exception");
+    }
+
+
   }
 
 }

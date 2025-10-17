@@ -56,19 +56,18 @@ public class HandlersUpdating {
    * Validates a single incoming record set and performs an upsert
    * @param plan a shared-inventory/matchKey, or an inventory/hrid upsert plan.
    */
-  private Void doUpsert(UpdateRequest request, UpdatePlan plan) {
+  private void doUpsert(UpdateRequest request, UpdatePlan plan) {
     JsonArray inventoryRecordSets = new JsonArray();
     inventoryRecordSets.add(request.bodyAsJson());
     plan.upsertBatch(request.routingContext(), inventoryRecordSets).onComplete(update ->{
       if (update.succeeded()) {
-        if (update.result().statusCode == OK || update.result().statusCode == MULTI_STATUS) {
-          responseJson(request.routingContext(), update.result().statusCode).end(update.result().getJson().encodePrettily());
+        if (update.result().getStatusCode() == OK || update.result().getStatusCode() == MULTI_STATUS) {
+          responseJson(request.routingContext(), update.result().getStatusCode()).end(update.result().getJson().encodePrettily());
         } else {
           update.result().getErrorResponse().respond(request.routingContext());
         }
       }
     });
-    return null;
   }
 
   /**
@@ -91,7 +90,7 @@ public class HandlersUpdating {
             listOfOutcomes -> {
               for (InventoryUpdateOutcome outcome : listOfOutcomes.result()) {
                 if (outcome.hasMetrics()) {
-                  accumulatedStats.add(outcome.metrics);
+                  accumulatedStats.add(outcome.getMetrics());
                 }
                 if (outcome.hasError()) {
                   accumulatedErrorReport.add(outcome.getError().asJson());

@@ -27,9 +27,9 @@ public abstract class UpdateRequest {
   public abstract String queryParam(String paramName);
 
   public String queryParam(String paramName, String defaultValue) {
-    return Objects.toString(queryParam(paramName), defaultValue);
+    String val = queryParam(paramName);
+    return val == null ? defaultValue : val;
   }
-
   public String getHeader(String headerName) {
     return request.getHeader(headerName);
   }

@@ -8,7 +8,7 @@ import org.folio.tlib.RouterCreator;
 import org.folio.tlib.api.HealthApi;
 
 public class MainVerticle extends AbstractVerticle {
-  private static final String module = "mod-inventory-update";
+  private static final String MODULE = "mod-inventory-update";
 
   @Override
   public void start(Promise<Void> promise) {
@@ -24,7 +24,7 @@ public class MainVerticle extends AbstractVerticle {
 
     HttpServerOptions so = new HttpServerOptions()
         .setHandle100ContinueAutomatically(true);
-    RouterCreator.mountAll(vertx, routerCreators, module)
+    RouterCreator.mountAll(vertx, routerCreators, MODULE)
         .compose(router ->
             vertx.createHttpServer(so)
                 .requestHandler(router)

@@ -38,7 +38,7 @@ public class RequestValidated extends UpdateRequest {
 
   public String bodyAsString() {
     if (validatedRequest.getBody() != null) {
-      if (validatedRequest.getBody().getJsonObject() != null) {
+      if (validatedRequest.getBody().getString() != null) {
         return validatedRequest.getBody().getString();
       }
     }

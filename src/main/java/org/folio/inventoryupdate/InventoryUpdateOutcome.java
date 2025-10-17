@@ -62,7 +62,7 @@ public class InventoryUpdateOutcome {
 
 
   public boolean hasErrors () {
-    return errors != null && ! errors.isEmpty();
+    return ! errors.isEmpty();
   }
 
   public InventoryUpdateOutcome setErrors (JsonArray errors) {

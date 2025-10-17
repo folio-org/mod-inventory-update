@@ -28,19 +28,15 @@ public class RequestValidated extends UpdateRequest {
   }
 
   public JsonObject bodyAsJson() {
-    if (validatedRequest.getBody() != null) {
-      if (validatedRequest.getBody().getJsonObject() != null) {
+    if (validatedRequest.getBody() != null && validatedRequest.getBody().getJsonObject() != null) {
         return validatedRequest.getBody().getJsonObject();
-      }
     }
     return new JsonObject();
   }
 
   public String bodyAsString() {
-    if (validatedRequest.getBody() != null) {
-      if (validatedRequest.getBody().getString() != null) {
+    if (validatedRequest.getBody() != null && validatedRequest.getBody().getString() != null) {
         return validatedRequest.getBody().getString();
-      }
     }
     return "";
   }

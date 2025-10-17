@@ -1,0 +1,10 @@
+{
+  "id": "c71b4d3a-2030-4f71-8b0a-294ec41fad22",
+  "name": "The name of an import configuration",
+  "type": "xml",
+  "url": "http",
+  "allowErrors": false,
+  "recordLimit": 10000,
+  "batchSize": 100,
+  "transformationId": "10928a21-89eb-440d-bc37-b9efae2c98a0"
+}

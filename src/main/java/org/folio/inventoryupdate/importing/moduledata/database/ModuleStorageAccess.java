@@ -117,7 +117,7 @@ public class ModuleStorageAccess {
                             definition.makeInsertTemplate(pool.getSchema()))
                     .mapFrom(definition.getTupleMapper())
                     .executeBatch(entities)
-                    .onSuccess(res -> logger.info("Saved batch of " + definition.entityName().toLowerCase() + ", row count: " + res.rowCount()))
+                    .onSuccess(res -> logger.info("Saved batch of " + entities.size() + " " + definition.entityName().toLowerCase() + (entities.size()!=1 ? "s." : "." )))
                     .onFailure(res -> logger.error("Couldn't save batch of " + definition.entityName().toLowerCase() + ": " + res.getMessage()))
                     .mapEmpty();
         } else {

@@ -1,10 +1,10 @@
-openapi: 3.1.0
+openapi: 3.1.1
 info:
-  title: Inventory import configuration
-  version: v0.1
+  title: Inventory import API
+  version: v1.0
 paths:
 
-  /import-admin/import-configs:
+  /inventory-import/import-configs:
     parameters:
       - $ref: "#/components/parameters/okapi_tenant"
       - $ref: "#/components/parameters/okapi_token"
@@ -55,7 +55,7 @@ paths:
         "500":
           $ref: "#/components/responses/trait_500"
 
-  /import-admin/import-configs/{id}:
+  /inventory-import/import-configs/{id}:
     parameters:
       - $ref: "#/components/parameters/okapi_tenant"
       - $ref: "#/components/parameters/okapi_token"
@@ -110,7 +110,7 @@ paths:
         "500":
           $ref: "#/components/responses/trait_500"
 
-  /import-admin/import-configs/xml-bulk/{id}/import:
+  /inventory-import/import-configs/xml-bulk/{id}/import:
     parameters:
       - $ref: "#/components/parameters/okapi_tenant"
       - $ref: "#/components/parameters/okapi_token"
@@ -139,9 +139,7 @@ paths:
         "500":
           $ref: "#/components/responses/trait_500"
 
-
-
-  /import-admin/import-configs/xml-bulk/{id}/activate:
+  /inventory-import/import-configs/xml-bulk/{id}/activate:
     parameters:
       - $ref: "#/components/parameters/okapi_tenant"
       - $ref: "#/components/parameters/okapi_token"
@@ -165,7 +163,7 @@ paths:
         "500":
           $ref: "#/components/responses/trait_500"
 
-  /import-admin/import-configs/xml-bulk/{id}/pause:
+  /inventory-import/import-configs/xml-bulk/{id}/pause:
     parameters:
       - $ref: "#/components/parameters/okapi_tenant"
       - $ref: "#/components/parameters/okapi_token"
@@ -189,7 +187,7 @@ paths:
         "500":
           $ref: "#/components/responses/trait_500"
 
-  /import-admin/import-configs/xml-bulk/{id}/resume:
+  /inventory-import/import-configs/xml-bulk/{id}/resume:
     parameters:
       - $ref: "#/components/parameters/okapi_tenant"
       - $ref: "#/components/parameters/okapi_token"
@@ -214,7 +212,7 @@ paths:
           $ref: "#/components/responses/trait_500"
 
 
-  /import-admin/import-jobs:
+  /inventory-import/import-jobs:
     parameters:
       - $ref: "#/components/parameters/okapi_tenant"
       - $ref: "#/components/parameters/okapi_token"
@@ -279,7 +277,7 @@ paths:
         "500":
           $ref: "#/components/responses/trait_500"
 
-  /import-admin/import-jobs/{id}:
+  /inventory-import/import-jobs/{id}:
     parameters:
       - $ref: "#/components/parameters/okapi_tenant"
       - $ref: "#/components/parameters/okapi_token"
@@ -320,18 +318,11 @@ paths:
         "500":
           $ref: "#/components/responses/trait_500"
 
-  /import-admin/import-jobs/{id}/log:
+  /inventory-import/import-jobs/log:
     parameters:
       - $ref: "#/components/parameters/okapi_tenant"
       - $ref: "#/components/parameters/okapi_token"
       - $ref: "#/components/parameters/okapi_url"
-      - in: path
-        name: id
-        required: true
-        description: Import job identifier
-        schema:
-          type: string
-          format: uuid
     get:
       operationId: getImportJobLogLines
       description: Retrieves the log of a past import job
@@ -371,7 +362,7 @@ paths:
         "500":
           $ref: "#/components/responses/trait_500"
 
-  /import-admin/import-jobs/{id}/failed-records:
+  /inventory-import/import-jobs/{id}/failed-records:
     parameters:
       - $ref: "#/components/parameters/okapi_tenant"
       - $ref: "#/components/parameters/okapi_token"
@@ -443,12 +434,20 @@ paths:
         "500":
           $ref: "#/components/responses/trait_500"
 
-  /import-admin/failed-records/{id}:
+  /inventory-import/failed-records/{id}:
     parameters:
       - $ref: "#/components/parameters/okapi_tenant"
       - $ref: "#/components/parameters/okapi_token"
       - $ref: "#/components/parameters/okapi_url"
     delete:
+      parameters:
+        - in: path
+          name: id
+          required: true
+          description: Failed record identifier
+          schema:
+            type: string
+            format: uuid
       operationId: deleteRecordFailure
       description: Delete a past import job with all its logs
       responses:
@@ -461,7 +460,7 @@ paths:
         "500":
           $ref: "#/components/responses/trait_500"
 
-  /import-admin/steps:
+  /inventory-import/steps:
     parameters:
       - $ref: "#/components/parameters/okapi_tenant"
       - $ref: "#/components/parameters/okapi_token"
@@ -512,7 +511,7 @@ paths:
         "500":
           $ref: "#/components/responses/trait_500"
 
-  /import-admin/steps/{id}:
+  /inventory-import/steps/{id}:
     parameters:
       - $ref: "#/components/parameters/okapi_tenant"
       - $ref: "#/components/parameters/okapi_token"
@@ -567,7 +566,7 @@ paths:
         "500":
           $ref: "#/components/responses/trait_500"
 
-  /import-admin/steps/{id}/script:
+  /inventory-import/steps/{id}/script:
     parameters:
       - $ref: "#/components/parameters/okapi_tenant"
       - $ref: "#/components/parameters/okapi_token"
@@ -608,7 +607,7 @@ paths:
         "500":
           $ref: "#/components/responses/trait_500"
 
-  /import-admin/transformations:
+  /inventory-import/transformations:
     parameters:
       - $ref: "#/components/parameters/okapi_tenant"
       - $ref: "#/components/parameters/okapi_token"
@@ -661,7 +660,7 @@ paths:
         "500":
           $ref: "#/components/responses/trait_500"
 
-  /import-admin/transformations/{id}:
+  /inventory-import/transformations/{id}:
     parameters:
       - $ref: "#/components/parameters/okapi_tenant"
       - $ref: "#/components/parameters/okapi_token"
@@ -720,7 +719,7 @@ paths:
         "500":
           $ref: "#/components/responses/trait_500"
 
-  /import-admin/tsas:
+  /inventory-import/tsas:
     parameters:
       - $ref: "#/components/parameters/okapi_tenant"
       - $ref: "#/components/parameters/okapi_token"
@@ -780,7 +779,7 @@ paths:
         "500":
           $ref: "#/components/responses/trait_500"
 
-  /import-admin/tsas/{id}:
+  /inventory-import/tsas/{id}:
     parameters:
       - $ref: "#/components/parameters/okapi_tenant"
       - $ref: "#/components/parameters/okapi_token"
@@ -839,7 +838,7 @@ paths:
         "500":
           $ref: "#/components/responses/trait_500"
 
-  /import-admin/purge-aged-logs:
+  /inventory-import/purge-aged-logs:
     post:
       operationId: purgeAgedLogs
       description: Delete old import job logs from storage
@@ -860,7 +859,7 @@ components:
             $ref: "#/components/schemas/transformation"
     transformation:
       type: object
-      description: >-
+      description: >- 
         A transformation pipeline configuration header that steps can be
         assigned to
       properties:
@@ -873,16 +872,31 @@ components:
           description: Name of the transformation pipeline.
         description:
           type: string
-          description: Free-text details about the pipeline.
+          description: "Free-text details about the pipeline."
         enabled:
           type: string
           description: >-
-           "Indicates if the transformation pipeline can be used by import jobs"
+           "Indicates if the transformation pipeline can be used by import jobs."
           enum:
             - "true"
             - "false"
+        steps:
+          type: array
+          description: The transformation steps making up this pipeline, in order of execution.
+          items:
+            type: object
+            description: A transformation step
+            properties:
+              id:
+                type: string
+                description: The ID (UUID) of the step at this position in the transformation pipeline.
+              name:
+                type: string
+                description: The (unique) name of the step.
+            required:
+              - id
     steps:
-      description: Collection of transformation step definitions
+      description: Collection of transformation step definitions, to be referenced from pipelines.
       type: object
       properties:
         steps:
@@ -1009,7 +1023,7 @@ components:
           items:
             $ref: "#/components/schemas/logLine"
     logLine:
-      description: A single log4j log statement from a harvest job.
+      description: A single import log statement from an import job.
       type: object
       properties:
         id:
@@ -1018,6 +1032,14 @@ components:
         importJobId:
           type: string
           description: UUID referencing the import job that generated the log.
+        importConfigId:
+          type: string
+          description: UUID referencing the configuration that defined the import job.
+          readOnly: true
+        importConfigName:
+          type: string
+          description: The name of the import configuration at the time the job was run.
+          readOnly: true
         timeStamp:
           type: string
           description: Date and time the log statement was created.
@@ -1049,9 +1071,11 @@ components:
         importConfigId:
           type: string
           description: UUID referencing the configuration that defined the import job.
+          readOnly: true
         importConfigName:
           type: string
           description: The name of the import configuration at the time the job was run.
+          readOnly: true
         recordErrors:
           type: array
           description: List of errors encountered during upsert or delete.

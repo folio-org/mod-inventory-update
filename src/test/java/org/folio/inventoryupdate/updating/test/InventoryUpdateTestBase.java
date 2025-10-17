@@ -26,7 +26,7 @@ import io.vertx.ext.unit.junit.VertxUnitRunner;
 public abstract class InventoryUpdateTestBase {
 
   protected Vertx vertx;
-  protected static final int PORT_INVENTORY_UPDATE = 9031;
+  protected static final int PORT_INVENTORY_UPDATE = 9230;
   public static final String INVENTORY_UPSERT_HRID_PATH = "/inventory-upsert-hrid";
   public static final String INVENTORY_BATCH_UPSERT_HRID_PATH = "/inventory-batch-upsert-hrid";
 

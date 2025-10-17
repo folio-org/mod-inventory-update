@@ -56,7 +56,7 @@ public class ImportService implements RouterCreator, TenantInitHooks {
 
     @Override
     public Future<Router> createRouter(Vertx vertx) {
-        return OpenAPIContract.from(vertx, "openapi/import-admin-1.0.yaml")
+        return OpenAPIContract.from(vertx, "openapi/inventory-import-1.0.yaml")
             .map(contract -> {
                 RouterBuilder routerBuilder = RouterBuilder.create(vertx, contract);
                 handlers(vertx, routerBuilder);
@@ -74,7 +74,7 @@ public class ImportService implements RouterCreator, TenantInitHooks {
         validatingHandler(vertx, routerBuilder, "postTransformation", this::postTransformation);
         validatingHandler(vertx, routerBuilder, "getTransformation", this::getTransformationById);
         validatingHandler(vertx, routerBuilder, "getTransformations", this::getTransformations);
-        validatingHandler(vertx, routerBuilder, "putTransformation", this::putTransformation);
+        validatingHandler(vertx, routerBuilder, "putTransformation", this::updateTransformation);
         validatingHandler(vertx, routerBuilder, "deleteTransformation", this::deleteTransformation);
         validatingHandler(vertx, routerBuilder, "postStep", this::postStep);
         validatingHandler(vertx, routerBuilder, "getSteps", this::getSteps);
@@ -159,13 +159,17 @@ public class ImportService implements RouterCreator, TenantInitHooks {
     }
 
     /**
-     * Returns request validation exception, potentially with improved error message if problem was
-     * an error in a polymorph schema, like in `harvestable` of type `oaiPmh` vs `xmlBulk`.
+     * OAS validation exception.
      */
     private void routerExceptionResponse(RoutingContext ctx) {
-        String message = null;
-        if (ctx.failure() != null) message = ctx.failure().getMessage();
-        responseError(ctx, ctx.statusCode(), message + ": " + ctx.failure().getCause().getMessage());
+        if (ctx.failure() != null) {
+            String message = ctx.failure().getMessage();
+            responseError(ctx, ctx.statusCode(), message + ": " +
+                (ctx.failure().getCause() != null ? ctx.failure().getCause().getMessage() : " (no cause provided)"));
+        } else {
+            responseError(ctx, ctx.statusCode(), " router exception");
+        }
+
 
     }
 
@@ -356,7 +360,55 @@ public class ImportService implements RouterCreator, TenantInitHooks {
     }
 
     private Future<Void> getLogStatements(ServiceRequest request) {
-        return getEntities(request, new LogLine());
+        ModuleStorageAccess db = request.moduleStorageAccess();
+        SqlQuery queryFromCql = new LogLine().makeSqlFromCqlQuery(
+                request, db.schemaDotTable(Tables.job_log_view))
+            .withDefaultLimit("100");
+        String from = request.queryParam("from");
+        String until = request.queryParam("until");
+
+        String timeRange = null;
+        if (from != null && until != null) {
+            timeRange = " (time_stamp >= '" + from
+                + "'  AND time_stamp <= '" + until + "') ";
+        } else if (from != null) {
+            timeRange = " time_stamp >= '" + from + "' ";
+        } else if (until != null) {
+            timeRange = " time_stamp <= '" + until + "' ";
+        }
+
+        if (timeRange != null) {
+            queryFromCql.withAdditionalWhereClause(timeRange);
+        }
+
+        return db.getEntities(queryFromCql.getQueryWithLimits(), new LogLine()).onComplete(
+            logStatements -> {
+                boolean asText = request.getHeader("Accept").equalsIgnoreCase("text/plain");
+                if (logStatements.succeeded()) {
+                    JsonObject responseJson = new JsonObject();
+                    final StringBuilder logAsText = new StringBuilder();
+                    JsonArray logLines = new JsonArray();
+                    responseJson.put("logLines", logLines);
+                    for (Entity logLine : logStatements.result()) {
+                        if (asText) {
+                            logAsText.append(logLine.toString()).append(System.lineSeparator());
+                        } else {
+                            logLines.add(logLine.asJson());
+                        }
+                    }
+                    if (asText) {
+                        responseText(request.routingContext, 200).end(logAsText.toString());
+                    } else {
+                        db.getCount(queryFromCql.getCountingSql()).onComplete(
+                            count -> {
+                                responseJson.put("totalRecords", count.result());
+                                responseJson(request.routingContext(), 200).end(responseJson.encodePrettily());
+                            }
+                        );
+                    }
+                }
+            }
+        ).mapEmpty();
     }
 
     private Future<Void> getFailedRecords(ServiceRequest request) {
@@ -515,8 +567,12 @@ public class ImportService implements RouterCreator, TenantInitHooks {
     }
 
     private Future<Void> postTransformation(ServiceRequest request) {
-        Entity transformation = new Transformation().fromJson(request.bodyAsJson());
-        return storeEntityRespondWith201(request, transformation);
+        Transformation transformation = new Transformation().fromJson(request.bodyAsJson());
+        return request.moduleStorageAccess().storeEntity(transformation)
+            .compose(transformationId ->
+                request.moduleStorageAccess()
+                    .storeEntities(new TransformationStep(), transformation.getListOfTransformationSteps()))
+            .onSuccess(res -> responseText(request.routingContext(), 201).end(transformation.asJson().encodePrettily()));
     }
 
     private Future<Void> getTransformationById(ServiceRequest request) {
@@ -527,13 +583,21 @@ public class ImportService implements RouterCreator, TenantInitHooks {
         return getEntities(request, new Transformation());
     }
 
-    private Future<Void> putTransformation(ServiceRequest request) {
+    private Future<Void> updateTransformation(ServiceRequest request) {
         Transformation transformation = new Transformation().fromJson(request.bodyAsJson());
         UUID id = UUID.fromString(request.requestParam("id"));
         return request.moduleStorageAccess().updateEntity(id, transformation)
                 .onSuccess(result-> {
                     if (result.rowCount()==1) {
+                    if (transformation.containsListOfSteps()) {
+                        new TransformationStep().deleteStepsOfATransformation(request, transformation.record.id())
+                            .compose(ignore ->
+                                request.moduleStorageAccess()
+                                    .storeEntities(new TransformationStep(), transformation.getListOfTransformationSteps())
+                            ).onSuccess(res -> responseText(request.routingContext(), 204).end());
+                    }  else {
                         responseText(request.routingContext(), 204).end();
+                    }
                     } else {
                         responseText(request.routingContext(), 404).end("Not found");
                     }
@@ -545,8 +609,9 @@ public class ImportService implements RouterCreator, TenantInitHooks {
     }
 
     private Future<Void> postTransformationStep(ServiceRequest request) {
-        Entity transformationStep = new TransformationStep().fromJson(request.bodyAsJson());
-        return storeEntityRespondWith201(request, transformationStep);
+        TransformationStep transformationStep = new TransformationStep().fromJson(request.bodyAsJson());
+        return transformationStep.createTsaRepositionSteps(request)
+            .onSuccess(result -> responseText(request.routingContext, 201).end());
     }
 
     private Future<Void> getTransformationStepById(ServiceRequest request) {
@@ -561,14 +626,13 @@ public class ImportService implements RouterCreator, TenantInitHooks {
         TransformationStep transformationStep = new TransformationStep().fromJson(request.bodyAsJson());
 
         UUID id = UUID.fromString(request.requestParam("id"));
-        ModuleStorageAccess db = request.moduleStorageAccess();
-        return db.getEntity(id, transformationStep)
+        return request.moduleStorageAccess().getEntity(id, transformationStep)
                 .compose(existingTsa -> {
                             if (existingTsa == null) {
                                 responseText(request.routingContext, 404).end("Not found");
                             } else {
                                 Integer positionOfExistingTsa = ((TransformationStep) existingTsa).record.position();
-                                transformationStep.updateTsaReorderSteps(db.getTenantPool(), positionOfExistingTsa)
+                                transformationStep.updateTsaRepositionSteps(request, positionOfExistingTsa)
                                         .onSuccess(result -> responseText(request.routingContext, 204).end());
                             }
                             return Future.succeededFuture();
@@ -576,7 +640,19 @@ public class ImportService implements RouterCreator, TenantInitHooks {
     }
 
     private Future<Void> deleteTransformationStep(ServiceRequest request) {
-        return deleteEntity(request, new TransformationStep());
+        UUID id = UUID.fromString(request.requestParam("id"));
+        ModuleStorageAccess db = request.moduleStorageAccess();
+        return db.getEntity(id, new TransformationStep())
+            .compose(existingTsa -> {
+                if (existingTsa == null) {
+                    responseText(request.routingContext, 404).end("Not found");
+                } else {
+                    Integer positionOfExistingTsa = ((TransformationStep) existingTsa).record.position();
+                    ((TransformationStep) existingTsa).deleteTsaRepositionSteps(db.getTenantPool(), positionOfExistingTsa)
+                        .onSuccess(result -> responseText(request.routingContext, 200).end());
+                }
+                return Future.succeededFuture();
+            });
     }
 
     private Future<Void> stageXmlSourceFile(ServiceRequest request) {

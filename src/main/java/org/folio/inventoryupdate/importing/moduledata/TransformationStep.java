@@ -6,6 +6,7 @@ import io.vertx.sqlclient.templates.RowMapper;
 import io.vertx.sqlclient.templates.SqlTemplate;
 import io.vertx.sqlclient.templates.TupleMapper;
 import org.folio.inventoryupdate.importing.moduledata.database.Tables;
+import org.folio.inventoryupdate.importing.service.ServiceRequest;
 import org.folio.tlib.postgres.TenantPgPool;
 
 import java.util.Collections;
@@ -104,8 +105,20 @@ public class TransformationStep extends Entity {
         return Tables.transformation_step;
     }
 
-    public Future<Void> updateTsaReorderSteps(TenantPgPool tenantPool, int positionOfExistingTsa) {
-        return findPositionOfLastStepOfTransformation(tenantPool).
+    public Future<Void> createTsaRepositionSteps(ServiceRequest request) {
+        return request.moduleStorageAccess().storeEntity(this)
+            .onSuccess(ignore -> executeSqlStatements(request.moduleStorageAccess().getTenantPool(),
+                // Potentially adjust the positions of other steps
+                "UPDATE " + this.table(request.dbSchema())
+                    + " SET position = position + 1"
+                    + " WHERE transformation_id = '" + record.transformationId + "'"
+                    + "   AND position >= " + this.record.position
+                    + "   AND id != '" + this.record.id + "'"
+        )).mapEmpty();
+    }
+
+    public Future<Void> updateTsaRepositionSteps(ServiceRequest request, int positionOfExistingTsa) {
+        return findPositionOfLastStepOfTransformation(request.moduleStorageAccess().getTenantPool()).
                 compose(maxPosition -> {
                     this.positionOfLastStepOfTransformation = maxPosition;
                     this.positionOfTheExistingStep = positionOfExistingTsa;
@@ -116,7 +129,7 @@ public class TransformationStep extends Entity {
                         this.newPosition = positionOfExistingTsa;
                     }
                     return Future.succeededFuture(this);
-                }).compose(rec -> executeUpdateAndAdjustPositions(tenantPool, rec));
+                }).compose(rec -> executeUpdateAndAdjustPositions(request));
     }
 
     public Future<Integer> findPositionOfLastStepOfTransformation(TenantPgPool tenantPool) {
@@ -129,27 +142,56 @@ public class TransformationStep extends Entity {
     }
 
 
-    public Future<Void> executeUpdateAndAdjustPositions(TenantPgPool tenantPool, TransformationStep updatingTsa) {
-        return executeSqlStatements(tenantPool,
+    public Future<Void> executeUpdateAndAdjustPositions(ServiceRequest request) {
+
+        return request.moduleStorageAccess().updateEntity(this.record.id, this).onSuccess(ignore ->
+            executeSqlStatements(request.moduleStorageAccess().getTenantPool(),
                 // Update the one property that can change besides position.
-                "UPDATE " + table(tenantPool.getSchema())
+                "UPDATE " + table(request.dbSchema())
                         + " SET step_id = '" + record.stepId + "'"
                         + " WHERE id = '" + record.id + "'",
                 // Update position while potentially adjusting the positions of other steps
-                "UPDATE " + table(tenantPool.getSchema())
+                "UPDATE " + table(request.dbSchema())
                         + " SET position = "
                         + "     CASE "
                         // set the new position of the step
-                        + "       WHEN id = '" + updatingTsa.record.id + "' THEN " + updatingTsa.newPosition + " "
+                        + "       WHEN id = '" + this.record.id + "' THEN " + this.newPosition + " "
                         // the step is moving towards end of pipeline, move affected steps back
-                        + "       WHEN " + updatingTsa.newPosition + " > " + updatingTsa.positionOfTheExistingStep + " THEN position - 1 "
+                        + "       WHEN " + this.newPosition + " > " + this.positionOfTheExistingStep + " THEN position - 1 "
                         // the step is moving towards beginning of pipeline, move affected steps forward
-                        + "       WHEN " + updatingTsa.newPosition + " < " + updatingTsa.positionOfTheExistingStep + " THEN position + 1 "
+                        + "       WHEN " + this.newPosition + " < " + this.positionOfTheExistingStep + " THEN position + 1 "
                         + "       ELSE position  "  // not a move (though we shouldn't get here due to the first WHEN
                         + "     END "
                         + " WHERE transformation_id = '" + record.transformationId + "'"
-                        + "   AND position BETWEEN SYMMETRIC " + updatingTsa.positionOfTheExistingStep + " AND " + updatingTsa.newPosition
+                        + "   AND position BETWEEN SYMMETRIC " + this.positionOfTheExistingStep + " AND " + this.newPosition
+        )).mapEmpty();
+    }
+
+    public Future<Void> deleteTsaRepositionSteps(TenantPgPool tenantPool, int positionOfExistingTsa) {
+        return findPositionOfLastStepOfTransformation(tenantPool).
+            compose(maxPosition -> {
+                this.positionOfLastStepOfTransformation = maxPosition;
+                this.positionOfTheExistingStep = positionOfExistingTsa;
+                return Future.succeededFuture(this);
+            }).compose(rec -> executeDeleteAndAdjustPositions(tenantPool, rec));
+    }
+
+    public Future<Void> executeDeleteAndAdjustPositions(TenantPgPool tenantPool, TransformationStep updatingTsa) {
+        return executeSqlStatements(tenantPool,
+            "DELETE FROM " + this.table(tenantPool.getSchema())
+                + " WHERE id = '" + record.id + "'",
+            // Delete position while potentially adjusting the positions of other steps
+            "UPDATE " + this.table(tenantPool.getSchema())
+                + " SET position = position - 1"
+                + " WHERE transformation_id = '" + record.transformationId + "'"
+                + "   AND position > " + updatingTsa.positionOfTheExistingStep
         ).mapEmpty();
+    }
+    public Future<Void> deleteStepsOfATransformation(ServiceRequest request, UUID transformationId) {
+        TenantPgPool pool = request.moduleStorageAccess().getTenantPool();
+        return executeSqlStatements(pool,
+            "DELETE FROM " + this.table(pool.getSchema())
+                + " WHERE transformation_id = '" + transformationId.toString() + "'").mapEmpty();
     }
     @Override
     public Future<Void> createDatabase(TenantPgPool pool) {

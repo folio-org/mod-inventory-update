@@ -5,8 +5,8 @@ import io.vertx.core.json.JsonObject;
 import io.vertx.sqlclient.templates.RowMapper;
 import io.vertx.sqlclient.templates.TupleMapper;
 import org.folio.inventoryupdate.importing.moduledata.database.Tables;
-import org.folio.inventoryupdate.importing.utils.SettableClock;
 import org.folio.inventoryupdate.importing.moduledata.database.ModuleStorageAccess;
+import org.folio.inventoryupdate.importing.utils.SettableClock;
 import org.folio.tlib.postgres.TenantPgPool;
 
 import java.time.LocalDateTime;

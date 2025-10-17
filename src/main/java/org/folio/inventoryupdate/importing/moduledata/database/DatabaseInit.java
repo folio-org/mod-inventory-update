@@ -23,14 +23,14 @@ public class DatabaseInit {
      */
     public static Future<Void> createDatabase(TenantPgPool pool) {
         return create(new Step(), pool)
-                .compose(na -> create(new Transformation(), pool))
-                .compose(na -> create(new ImportConfig(), pool))
-                .compose(na -> create(new ImportJob(), pool))
-                .compose(na -> create(new RecordFailure(), pool))
-                .compose(na -> create(new LogLine(), pool))
-                .compose(na -> create(new TransformationStep(), pool))
-                .compose(na -> pool.query(createRecordFailureView(pool.getSchema())).execute())
-                .mapEmpty();
+            .compose(na -> create(new Transformation(), pool))
+            .compose(na -> create(new ImportConfig(), pool))
+            .compose(na -> create(new ImportJob(), pool))
+            .compose(na -> create(new RecordFailure(), pool))
+            .compose(na -> create(new LogLine(), pool))
+            .compose(na -> create(new TransformationStep(), pool))
+            .compose(na -> pool.query(createRecordFailureView(pool.getSchema())).execute())
+            .compose(na -> pool.query(createJobLogsView(pool.getSchema())).execute()).mapEmpty();
 
 
         /* Template for processing parameters in init.
@@ -57,7 +57,7 @@ public class DatabaseInit {
     }
 
     /**
-     * Creates specific view.
+     * Creates custom views.
      */
     public static String createRecordFailureView(String schema) {
         String ddl;
@@ -71,9 +71,25 @@ public class DatabaseInit {
                 + "          rf.record_errors AS record_errors, "
                 + "          rf.original_record AS original_record, "
                 + "          rf.transformed_record AS transformed_record "
-                + "  FROM " + schema + ".record_failure AS rf, "
-                + "       " + schema + ".import_job as ij "
+                + "  FROM " + schema + "." + Tables.record_failure + " AS rf, "
+                + "       " + schema + "." + Tables.import_job + " as ij "
                 + "  WHERE rf.import_job_id = ij.id";
+        return ddl;
+    }
+
+    public static String createJobLogsView(String schema) {
+        String ddl;
+        ddl = "CREATE OR REPLACE VIEW " + schema + "." + Tables.job_log_view
+            + " AS SELECT ls.id AS id, "
+            + "          ls.import_job_Id AS import_job_id, "
+            + "          ij.import_config_id AS import_config_id, "
+            + "          ij.import_config_name AS import_config_name, "
+            + "          ls.time_stamp AS time_stamp, "
+            + "          ls.job_label AS job_label, "
+            + "          ls.statement AS statement "
+            + "  FROM " + schema + "." + Tables.log_statement + " AS ls, "
+            + "       " + schema + "." + Tables.import_job + " as ij "
+            + "  WHERE ls.import_job_id = ij.id";
         return ddl;
     }
 

@@ -33,6 +33,10 @@ public abstract class ServiceRequest {
         return new ModuleStorageAccess(vertx, tenant);
     }
 
+    public String dbSchema() {
+        return moduleStorageAccess().schema();
+    }
+
     public abstract String queryParam(String paramName);
 
     public String queryParam(String paramName, String defaultValue) {

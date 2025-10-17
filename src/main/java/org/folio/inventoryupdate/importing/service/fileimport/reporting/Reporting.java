@@ -5,13 +5,13 @@ import io.vertx.core.Vertx;
 import io.vertx.core.json.JsonObject;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.folio.inventoryupdate.importing.utils.SettableClock;
 import org.folio.inventoryupdate.importing.moduledata.Entity;
 import org.folio.inventoryupdate.importing.moduledata.LogLine;
 import org.folio.inventoryupdate.importing.moduledata.RecordFailure;
 import org.folio.inventoryupdate.importing.moduledata.database.ModuleStorageAccess;
 import org.folio.inventoryupdate.importing.service.fileimport.BatchOfRecords;
 import org.folio.inventoryupdate.importing.service.fileimport.FileProcessor;
+import org.folio.inventoryupdate.importing.utils.SettableClock;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -168,6 +168,8 @@ public class Reporting {
         lines.add(new LogLine(
                 UUID.randomUUID(),
                 fileProcessor.getImportJob().record.id(),
+                fileProcessor.getImportJob().record.importConfigId(),
+                fileProcessor.getImportJob().record.importConfigName(),
                 SettableClock.getLocalDateTime().toString(),
                 fileProcessor.getImportJob().record.importConfigName(),
                 statement));

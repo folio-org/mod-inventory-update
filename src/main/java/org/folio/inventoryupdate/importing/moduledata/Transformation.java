@@ -1,13 +1,16 @@
 package org.folio.inventoryupdate.importing.moduledata;
 
 import io.vertx.core.Future;
+import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.sqlclient.templates.RowMapper;
 import io.vertx.sqlclient.templates.TupleMapper;
 import org.folio.inventoryupdate.importing.moduledata.database.Tables;
 import org.folio.tlib.postgres.TenantPgPool;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
@@ -51,13 +54,38 @@ public class Transformation extends Entity {
         return "Transformation pipeline";
     }
 
+    private JsonArray stepsArray;
     public Transformation fromJson(JsonObject json) {
         return new Transformation(
                 getUuidOrGenerate(json.getString(jsonPropertyName(ID))),
                 json.getString(jsonPropertyName(NAME)),
                 true,
                 json.getString(jsonPropertyName(TYPE)),
-                json.getString(jsonPropertyName(DESCRIPTION)));
+                json.getString(jsonPropertyName(DESCRIPTION)))
+            .setStepsArray(json.getJsonArray("steps"));
+    }
+    public Transformation setStepsArray (JsonArray steps) {
+        stepsArray = steps;
+        return this;
+    }
+    public boolean containsListOfSteps () {
+        return stepsArray != null;
+    }
+    public List<Entity> getListOfTransformationSteps() {
+        if (containsListOfSteps()) {
+            List<Entity> tsas = new ArrayList<>();
+            for (int i=0; i<stepsArray.size(); i++) {
+                JsonObject step = stepsArray.getJsonObject(i);
+                    tsas.add(new TransformationStep(
+                        UUID.randomUUID(),
+                        this.record.id,
+                        UUID.fromString(step.getString("id")),
+                        i+1));
+            }
+            return tsas;
+        } else {
+            return null;
+        }
     }
 
     public JsonObject asJson() {

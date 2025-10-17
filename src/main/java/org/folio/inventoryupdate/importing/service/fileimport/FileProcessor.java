@@ -8,11 +8,11 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.folio.inventoryupdate.importing.moduledata.ImportConfig;
 import org.folio.inventoryupdate.importing.moduledata.ImportJob;
+import org.folio.inventoryupdate.importing.moduledata.database.ModuleStorageAccess;
 import org.folio.inventoryupdate.importing.service.fileimport.reporting.Reporting;
 import org.folio.inventoryupdate.importing.service.fileimport.transformation.TransformationPipeline;
 import org.folio.inventoryupdate.importing.service.fileimport.transformation.XmlRecordsReader;
 import org.folio.inventoryupdate.importing.utils.SettableClock;
-import org.folio.inventoryupdate.importing.moduledata.database.ModuleStorageAccess;
 
 import java.io.File;
 import java.io.IOException;

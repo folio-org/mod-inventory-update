@@ -38,10 +38,8 @@ public class RequestValidated extends ServiceRequest {
     }
 
     public String bodyAsString() {
-        if (validatedRequest.getBody() != null) {
-            if (validatedRequest.getBody().getJsonObject() != null) {
+        if (validatedRequest.getBody() != null && validatedRequest.getBody().getString() != null) {
                 return validatedRequest.getBody().getString();
-            }
         }
         return "";
     }

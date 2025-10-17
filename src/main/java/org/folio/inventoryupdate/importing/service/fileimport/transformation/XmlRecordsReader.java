@@ -2,10 +2,10 @@ package org.folio.inventoryupdate.importing.service.fileimport.transformation;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.folio.inventoryupdate.importing.utils.SecureSaxParser;
+import org.folio.inventoryupdate.importing.service.fileimport.RecordReceiver;
 import org.folio.inventoryupdate.importing.service.fileimport.ProcessingRecord;
 import org.folio.inventoryupdate.importing.service.fileimport.RecordProvider;
-import org.folio.inventoryupdate.importing.service.fileimport.RecordReceiver;
+import org.folio.inventoryupdate.importing.utils.SecureSaxParser;
 import org.folio.reservoir.util.EncodeXmlText;
 import org.xml.sax.Attributes;
 import org.xml.sax.SAXException;

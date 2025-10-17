@@ -28,7 +28,7 @@ public class MainVerticle extends AbstractVerticle {
         .compose(router ->
             vertx.createHttpServer(so)
                 .requestHandler(router)
-                .listen(port).mapEmpty())
+                .listen(port))
         .<Void>mapEmpty()
         .onComplete(promise);
   }

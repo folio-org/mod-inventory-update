@@ -18,7 +18,9 @@
     <argLine />
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <docker.registry>docker.indexdata.com:5000</docker.registry>
-    <ramlfiles_path>${basedir}/ramls/</ramlfiles_path>
+    <folio-vertx-lib.version>4.0.1</folio-vertx-lib.version>
+    <okapi.version>7.0.0</okapi.version>
+    <vertx.version>5.0.4</vertx.version>
     <mockito.version>5.18.0</mockito.version>
     <folio-module-descriptor-validator.version>0.0.1-SNAPSHOT</folio-module-descriptor-validator.version>
   </properties>
@@ -35,16 +37,46 @@
       <dependency>
         <groupId>io.vertx</groupId>
         <artifactId>vertx-stack-depchain</artifactId>
-        <version>5.0.2</version>
+        <version>${vertx.version}</version>
         <type>pom</type>
         <scope>import</scope>
       </dependency>
       <dependency>
+        <groupId>org.folio.okapi</groupId>
+        <artifactId>okapi-common</artifactId>
+        <version>${okapi.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.folio.okapi</groupId>
+        <artifactId>okapi-testing</artifactId>
+        <version>${okapi.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.z3950.zing</groupId>
+        <artifactId>cql-java</artifactId>
+        <version>1.13</version>
+      </dependency>
+      <dependency>
+        <groupId>io.rest-assured</groupId>
+        <artifactId>rest-assured</artifactId>
+        <version>5.5.1</version>
+      </dependency>
+      <dependency>
       <groupId>org.junit</groupId>
         <artifactId>junit-bom</artifactId>
-        <version>5.11.4</version>
+        <version>5.12.1</version>
         <type>pom</type>
         <scope>import</scope>
+      </dependency>
+      <dependency>
+        <groupId>junit</groupId>
+        <artifactId>junit</artifactId>
+        <version>4.13.2</version>
+      </dependency>
+      <dependency>
+        <groupId>org.mockito</groupId>
+        <artifactId>mockito-core</artifactId>
+        <version>${mockito.version}</version>
       </dependency>
       <dependency>
         <groupId>org.testcontainers</groupId>
@@ -53,10 +85,34 @@
         <type>pom</type>
         <scope>import</scope>
       </dependency>
+      <!--
+         remove commons-compress dependency when testcontainers
+         comes with commons-compress >= 1.26.0 fixing
+         https://nvd.nist.gov/vuln/detail/CVE-2024-25710
+         https://nvd.nist.gov/vuln/detail/CVE-2024-26308
+         see https://github.com/testcontainers/testcontainers-java/pull/8354
+      -->
+      <dependency>
+        <groupId>org.apache.commons</groupId>
+        <artifactId>commons-compress</artifactId>
+        <version>1.26.0</version>
+      </dependency>
+
     </dependencies>
   </dependencyManagement>
 
   <dependencies>
+    <dependency>
+      <groupId>org.folio</groupId>
+      <artifactId>vertx-lib</artifactId>
+      <version>${folio-vertx-lib.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.folio</groupId>
+      <artifactId>vertx-lib-pg-testing</artifactId>
+      <version>${folio-vertx-lib.version}</version>
+      <scope>test</scope>
+    </dependency>
     <dependency>
       <groupId>io.vertx</groupId>
       <artifactId>vertx-core</artifactId>
@@ -67,16 +123,15 @@
     </dependency>
     <dependency>
       <groupId>io.vertx</groupId>
-      <artifactId>vertx-web</artifactId>
+      <artifactId>vertx-web-openapi-router</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>io.vertx</groupId>
+      <artifactId>vertx-rx-java2</artifactId>
     </dependency>
    <dependency>
       <groupId>io.vertx</groupId>
       <artifactId>vertx-web-client</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>org.folio.okapi</groupId>
-      <artifactId>okapi-common</artifactId>
-      <version>7.0.0</version>
     </dependency>
     <dependency>
       <groupId>org.apache.logging.log4j</groupId>
@@ -86,7 +141,13 @@
       <groupId>org.apache.logging.log4j</groupId>
       <artifactId>log4j-api</artifactId>
     </dependency>
+    <dependency>
+      <groupId>org.apache.commons</groupId>
+      <artifactId>commons-lang3</artifactId>
+      <version>3.18.0</version>
+    </dependency>
 
+    <!-- Test dependencies -->
     <dependency>
       <groupId>org.junit.jupiter</groupId>
       <artifactId>junit-jupiter-api</artifactId>
@@ -103,23 +164,37 @@
       <scope>test</scope>
     </dependency>
     <dependency>
+      <groupId>junit</groupId>
+      <artifactId>junit</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
       <groupId>io.vertx</groupId>
       <artifactId>vertx-unit</artifactId>
       <scope>test</scope>
     </dependency>
     <dependency>
-      <groupId>org.mockito</groupId>
-      <artifactId>mockito-core</artifactId>
-      <version>${mockito.version}</version>
+      <groupId>io.rest-assured</groupId>
+      <artifactId>rest-assured</artifactId>
       <scope>test</scope>
     </dependency>
     <dependency>
-      <groupId>io.rest-assured</groupId>
-      <artifactId>rest-assured</artifactId>
-      <version>4.5.0</version>
+      <groupId>org.folio.okapi</groupId>
+      <artifactId>okapi-testing</artifactId>
       <scope>test</scope>
     </dependency>
-     <dependency>
+    <dependency>
+      <groupId>org.mockito</groupId>
+      <artifactId>mockito-core</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.awaitility</groupId>
+      <artifactId>awaitility</artifactId>
+      <version>4.2.0</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
       <groupId>org.testcontainers</groupId>
       <artifactId>junit-jupiter</artifactId>
       <scope>test</scope>
@@ -174,8 +249,9 @@
   <build>
     <plugins>
       <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-compiler-plugin</artifactId>
-        <version>3.8.1</version>
+        <version>3.14.0</version>
         <configuration>
           <release>21</release>
           <compilerArgument>-Xlint:unchecked</compilerArgument>
@@ -186,22 +262,6 @@
         <artifactId>maven-resources-plugin</artifactId>
         <version>3.3.1</version>
         <executions>
-          <execution>
-            <id>copy-resources</id>
-            <phase>process-resources</phase>
-            <goals>
-              <goal>copy-resources</goal>
-            </goals>
-            <configuration>
-              <outputDirectory>${basedir}/target/classes/apidocs/raml</outputDirectory>
-              <resources>
-                <resource>
-                  <directory>${ramlfiles_path}</directory>
-                  <filtering>true</filtering>
-                </resource>
-              </resources>
-            </configuration>
-          </execution>
           <execution>
             <id>filter-descriptor-inputs</id>
             <phase>generate-resources</phase>
@@ -227,19 +287,10 @@
         <version>1.8</version>
         <executions>
           <execution>
-            <!-- Replace the baseUri in the RAMLs that have been copied to
-            apidocs directory so that they can be used via the local html api console. -->
             <phase>prepare-package</phase>
             <goals>
               <goal>run</goal>
             </goals>
-            <configuration>
-              <target>
-                <replaceregexp match="baseUri:.+$" replace="baseUri: http://localhost:8081" byline="true">
-                  <fileset dir="${basedir}/target/classes/apidocs/raml" includes="**/*.raml" />
-                </replaceregexp>
-              </target>
-            </configuration>
           </execution>
         </executions>
       </plugin>
@@ -298,7 +349,7 @@
                 <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
                   <manifestEntries>
                     <Main-Class>org.folio.okapi.common.MainLauncher</Main-Class>
-                    <Main-Verticle>org.folio.inventoryupdate.MainVerticle</Main-Verticle>
+                    <Main-Verticle>org.folio.inventoryupdate.service.MainVerticle</Main-Verticle>
                     <Multi-Release>true</Multi-Release>
                   </manifestEntries>
                 </transformer>

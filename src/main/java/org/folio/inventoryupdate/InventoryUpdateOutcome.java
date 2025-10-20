@@ -15,10 +15,11 @@ public class InventoryUpdateOutcome {
 
   public static final String P_METRICS = "metrics";
   public static final String P_ERRORS = "errors";
-  int statusCode;
-  JsonObject result = new JsonObject();
-  List<ErrorReport> errors = new ArrayList<>();
-  UpdateMetrics metrics;
+  private int statusCode;
+  private JsonObject result = new JsonObject();
+  private final List<ErrorReport> errors = new ArrayList<>();
+
+  private UpdateMetrics metrics;
   public InventoryUpdateOutcome() {
 
   }
@@ -51,8 +52,17 @@ public class InventoryUpdateOutcome {
     return metrics != null;
   }
 
+  public int getStatusCode() {
+    return statusCode;
+  }
+
+  public UpdateMetrics getMetrics() {
+    return metrics;
+  }
+
+
   public boolean hasErrors () {
-    return errors != null && ! errors.isEmpty();
+    return ! errors.isEmpty();
   }
 
   public InventoryUpdateOutcome setErrors (JsonArray errors) {
@@ -66,7 +76,7 @@ public class InventoryUpdateOutcome {
 
   public ErrorReport getError () {
     if (hasErrors()) {
-      return errors.get(0);
+      return errors.getFirst();
     } else {
       return null;
     }
@@ -87,7 +97,7 @@ public class InventoryUpdateOutcome {
 
   public ErrorReport getErrorResponse() {
     if (isError()) {
-      return errors.get(0);
+      return errors.getFirst();
     } else {
       return null;
     }

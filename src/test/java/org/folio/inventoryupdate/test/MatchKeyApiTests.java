@@ -6,7 +6,6 @@ import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
-import org.folio.inventoryupdate.MainVerticle;
 import org.folio.inventoryupdate.MatchKey;
 import org.folio.inventoryupdate.UpdatePlanSharedInventory;
 import org.folio.inventoryupdate.test.fakestorage.FakeFolioApis;
@@ -18,6 +17,10 @@ import static org.folio.inventoryupdate.test.fakestorage.FakeFolioApis.*;
 
 @RunWith(VertxUnitRunner.class)
 public class MatchKeyApiTests extends InventoryUpdateTestBase {
+  public static final String SHARED_INVENTORY_BATCH_UPSERT_MATCHKEY_PATH = "/shared-inventory-batch-upsert-matchkey";
+  public static final String SHARED_INVENTORY_UPSERT_MATCHKEY_PATH = "/shared-inventory-upsert-matchkey";
+  public static final String FETCH_SHARED_INVENTORY_RECORD_SETS_ID_PATH = SHARED_INVENTORY_UPSERT_MATCHKEY_PATH+"/fetch/:id";
+
 
   @Test
   public void upsertByMatchKeyWillCreateNewInstance (TestContext testContext) {
@@ -578,7 +581,7 @@ public class MatchKeyApiTests extends InventoryUpdateTestBase {
         .put("oaiIdentifier","oai:"+identifierValue1)
         .put("identifierTypeId", identifierTypeId1);
 
-    JsonObject deleteResponse = delete(MainVerticle.SHARED_INVENTORY_UPSERT_MATCHKEY_PATH,deleteSignal);
+    JsonObject deleteResponse = delete(SHARED_INVENTORY_UPSERT_MATCHKEY_PATH,deleteSignal);
     testContext.assertEquals(getMetric(deleteResponse, HOLDINGS_RECORD, DELETE , COMPLETED), 2,
         "Upsert metrics response should report [2] holdings records successfully deleted " + deleteResponse.encodePrettily());
     testContext.assertEquals(getMetric(deleteResponse, ITEM, DELETE , COMPLETED), 3,
@@ -690,7 +693,7 @@ public class MatchKeyApiTests extends InventoryUpdateTestBase {
         .put("institutionId", INSTITUTION_ID_1)
         .put("localIdentifier",identifierValue1)
         .put("identifierTypeId", identifierTypeId1);
-    JsonObject deleteResponse = delete(MainVerticle.SHARED_INVENTORY_UPSERT_MATCHKEY_PATH,deleteSignal);
+    JsonObject deleteResponse = delete(SHARED_INVENTORY_UPSERT_MATCHKEY_PATH,deleteSignal);
     testContext.assertEquals(getMetric(deleteResponse, HOLDINGS_RECORD, DELETE , COMPLETED), 2,
         "Upsert metrics response should report [2] holdings records successfully deleted " + deleteResponse.encodePrettily());
     testContext.assertEquals(getMetric(deleteResponse, ITEM, DELETE , COMPLETED), 3,
@@ -865,7 +868,7 @@ public class MatchKeyApiTests extends InventoryUpdateTestBase {
 
   @Test
   public void deleteByIdentifiersThatDoNotExistInSharedInventoryWillReturn404 (TestContext testContext) {
-    delete(404, MainVerticle.SHARED_INVENTORY_UPSERT_MATCHKEY_PATH,
+    delete(404, SHARED_INVENTORY_UPSERT_MATCHKEY_PATH,
         new JsonObject()
             .put("institutionId", INSTITUTION_ID_1)
             .put("localIdentifier","DOES_NOT_EXIST")
@@ -981,7 +984,7 @@ public class MatchKeyApiTests extends InventoryUpdateTestBase {
 
     UpdatePlanSharedInventory.locationsToInstitutionsMap.clear();
 
-    delete(200,MainVerticle.SHARED_INVENTORY_UPSERT_MATCHKEY_PATH, deleteSignal);
+    delete(200,SHARED_INVENTORY_UPSERT_MATCHKEY_PATH, deleteSignal);
 
   }
 
@@ -1021,7 +1024,7 @@ public class MatchKeyApiTests extends InventoryUpdateTestBase {
         .put("localIdentifier",identifierValue1)
         .put("identifierTypeId", identifierTypeId1);
 
-    delete(207,MainVerticle.SHARED_INVENTORY_UPSERT_MATCHKEY_PATH, deleteSignal);
+    delete(207,SHARED_INVENTORY_UPSERT_MATCHKEY_PATH, deleteSignal);
 
   }
 
@@ -1056,7 +1059,7 @@ public class MatchKeyApiTests extends InventoryUpdateTestBase {
 
     fetchRecordSetFromUpsertSharedInventory( "1" );
     fetchRecordSetFromUpsertSharedInventory (newInstance.getJsonObject( "instance" ).getString( "id" ));
-    getJsonObjectById( MainVerticle.FETCH_SHARED_INVENTORY_RECORD_SETS_ID_PATH, "2", 404 );
+    getJsonObjectById( FETCH_SHARED_INVENTORY_RECORD_SETS_ID_PATH, "2", 404 );
 
   }
 
@@ -1089,7 +1092,7 @@ public class MatchKeyApiTests extends InventoryUpdateTestBase {
                         .setBarcode("BC-003").getJson())))));
 
 
-    getJsonObjectById( MainVerticle.FETCH_SHARED_INVENTORY_RECORD_SETS_ID_PATH, "1", 400 );
+    getJsonObjectById( FETCH_SHARED_INVENTORY_RECORD_SETS_ID_PATH, "1", 400 );
   }
 
   @Test
@@ -1097,7 +1100,7 @@ public class MatchKeyApiTests extends InventoryUpdateTestBase {
     JsonObject inventoryRecordSet = new JsonObject();
     inventoryRecordSet.put("instance", new InputInstance()
         .setTitle("Initial InputInstance").setInstanceTypeId("12345").getJson());
-    putJsonObject(MainVerticle.SHARED_INVENTORY_UPSERT_MATCHKEY_PATH + "/invalid",inventoryRecordSet,404);
+    putJsonObject(SHARED_INVENTORY_UPSERT_MATCHKEY_PATH + "/invalid",inventoryRecordSet,404);
   }
 
   @Test
@@ -1113,7 +1116,7 @@ public class MatchKeyApiTests extends InventoryUpdateTestBase {
         .body(new JsonObject().toString())
         .header("Content-type","text/plain")
         .header(OKAPI_URL_HEADER)
-        .put(MainVerticle.SHARED_INVENTORY_UPSERT_MATCHKEY_PATH)
+        .put(SHARED_INVENTORY_UPSERT_MATCHKEY_PATH)
         .then()
         .log().ifValidationFails()
         .statusCode(400).extract().response();
@@ -1122,7 +1125,7 @@ public class MatchKeyApiTests extends InventoryUpdateTestBase {
         .body(new JsonObject().toString())
         .header("Content-type","text/plain")
         .header(OKAPI_URL_HEADER)
-        .delete(MainVerticle.SHARED_INVENTORY_UPSERT_MATCHKEY_PATH)
+        .delete(SHARED_INVENTORY_UPSERT_MATCHKEY_PATH)
         .then()
         .log().ifValidationFails()
         .statusCode(400).extract().response();

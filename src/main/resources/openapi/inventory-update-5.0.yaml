@@ -1,0 +1,1079 @@
+openapi: 3.1.0
+info:
+  title: Inventory update API
+  version: v5.0
+
+paths:
+  /inventory-upsert-hrid:
+    parameters:
+      - $ref: "#/components/parameters/okapi_tenant"
+      - $ref: "#/components/parameters/okapi_token"
+      - $ref: "#/components/parameters/okapi_url"
+    put:
+      operationId: singleRecordUpsertByHrid
+      description: >-
+        Create or update instance with holdings and items, based on
+        incoming HRIDs on all three record types.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/inventory-record-set-with-hrids"
+      responses:
+        "200":
+          description: "Inventory recordset successfully created or updated by HRIDs."
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/upsert-response-200-207'
+        "207":
+          description: "Partially successful update of record set. Errors listed in response."
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/upsert-response-200-207"
+        "422":
+          description: "One or more validation errors found in incoming record set. No updates performed."
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/error-response'
+        "400":
+          description: "Bad request, for example: empty request body, non-JSON or invalid JSON in request body or JSON not recognized as an inventory record set"
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/error-response'
+        "500":
+          description: "Internal errors in the module itself or in the modules that it uses."
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/error-response'
+    delete:
+      operationId: deleteInstanceByHrid
+      description: >-
+        Deletes a single record set (instance, holdings, items) by instance HRID.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/hrid-deletion'
+      responses:
+        "200":
+          description: Record set was successfully found by HRID and deleted.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/upsert-response-200-207'
+        "400":
+          description: "Bad request, for example: non-JSON in request body; inventory record set without an instance."
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/error-response'
+        "404":
+          description: "Did not find existing instance (record set) to delete for provided HRID."
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/error-response'
+        "422":
+          description: "One or more validation errors encountered. No deletion performed."
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/error-response'
+        "500":
+          description: "Internal error in the module or in storage during delete by HRID."
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/error-response'
+
+  /inventory-batch-upsert-hrid:
+    description: >-
+      Create or update a batch of instances with holdings and items, based
+      on incoming HRIDs on all three record types.
+    parameters:
+      - $ref: "#/components/parameters/okapi_tenant"
+      - $ref: "#/components/parameters/okapi_token"
+      - $ref: "#/components/parameters/okapi_url"
+    put:
+      operationId: batchUpsertByHrid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/inventory-record-sets-with-hrids"
+      responses:
+        "200":
+          description: "Batch of Inventory record sets successfully created or updated by HRIDs."
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/metrics"
+        "207":
+          description: "Partially successful update of record set. Errors enumerated in response."
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/batch-upsert-response-207'
+        "400":
+          description: "Bad request, for example: empty request body, non-JSON or invalid JSON in request body or JSON does not contain inventory record sets"
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/error-response'
+        "422":
+          description: "One or more validation errors found in the incoming batch of record sets. No updates performed."
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/error-response'
+        "500":
+          description: "Internal error in the module or in storage during batch upsert by HRID"
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/error-response'
+
+  /inventory-upsert-hrid/fetch/{id}:
+    description: >-
+      Retrieve single Inventory record set either by instance UUID or HRID.
+    parameters:
+      - $ref: "#/components/parameters/okapi_tenant"
+      - $ref: "#/components/parameters/okapi_token"
+      - $ref: "#/components/parameters/okapi_url"
+      - in: path
+        name: id
+        required: true
+        description: Instance UUID or HRID.
+        schema:
+          type: string
+    get:
+      operationId: getInventoryRecordSet
+      responses:
+        "200":
+          description: "Inventory record set found"
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/get-recordset-response'
+  # shared-inventory
+  /shared-inventory-upsert-matchkey:
+    description: >-
+      Create, update, "delete" instance, replace its holdings and items,
+      based on instance match key.
+    parameters:
+      - $ref: "#/components/parameters/okapi_tenant"
+      - $ref: "#/components/parameters/okapi_token"
+      - $ref: "#/components/parameters/okapi_url"
+    put:
+      operationId: upsertByMatchkey
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/inventory-record-set'
+      responses:
+        "200":
+          description: "Inventory recordset successfully created or updated by match key"
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/upsert-response-200-207'
+        "207":
+          description: "Partially successful update of record set. Errors listed in response."
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/upsert-response-200-207'
+        "400":
+          description: "Bad request, for example: non-JSON in request body; inventory record set without an instance."
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/error-response'
+        "422":
+          description: "One or more validation errors encountered. No updates performed."
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/error-response'
+        "500":
+          description: "Internal error in the module or in storage module."
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/error-response'
+    delete:
+      operationId: sharedIndexDeletion
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/shared-index-deletion'
+      responses:
+        "200":
+          description: "Record set was successfully found by local ID and cleaned up."
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/upsert-response-200-207'
+        "400":
+          description: "Bad request, for example: non-JSON in request body."
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/error-response'
+        "404":
+          description: "Did not find existing instance (record set) to clean up for given local ID."
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/error-response'
+        "422":
+          description: "One or more validation errors encountered. No deletion performed."
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/error-response'
+        "500":
+          description: "Internal error in the module or in storage during delete by local ID."
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/error-response'
+
+  /shared-inventory-upsert-matchkey/fetch/{id}:
+    description: Retrieve single Inventory record set either by instance UUID or HRID.
+    parameters:
+      - $ref: "#/components/parameters/okapi_tenant"
+      - $ref: "#/components/parameters/okapi_token"
+      - $ref: "#/components/parameters/okapi_url"
+      - in: path
+        name: id
+        required: true
+        description: Instance UUID or HRID.
+        schema:
+          type: string
+    get:
+      operationId: getSharedInstance
+      responses:
+        "200":
+          description: "Inventory record set found"
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/get-recordset-response'
+
+  /shared-inventory-batch-upsert-matchkey:
+    description: >-
+      Create or update a batch of instances with holdings and items, based
+      on the match-key for the incoming instance.
+    parameters:
+      - $ref: "#/components/parameters/okapi_tenant"
+      - $ref: "#/components/parameters/okapi_token"
+      - $ref: "#/components/parameters/okapi_url"
+    put:
+      operationId: batchUpsertByMatchkey
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/inventory-record-sets'
+      responses:
+        "200":
+          description: "Batch of Inventory record sets successfully created or updated by match-key."
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/metrics'
+        "207":
+          description: "Partially successful update of record set. Errors enumerated in response."
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/batch-upsert-response-207"
+        "400":
+          description: "Bad request, for example: empty request body, non-JSON or invalid JSON in request body or JSON does not contain inventory record sets."
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/error-response'
+        "422":
+          description: "One or more problems encountered when creating/updating a batch of Inventory record sets by match-keys."
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/error-response'
+        "500":
+          description: "Internal error in the module or in the storage module."
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/error-response'
+
+components:
+  schemas:
+
+    # Upsert by HRID
+
+    inventory-record-sets-with-hrids:
+      type: object
+      description: "A collection of inventory records sets (instances, holdings and items, etc)"
+      properties:
+        inventoryRecordSets:
+          type: array
+          description: "List of inventory record sets."
+          items:
+            $ref: '#/components/schemas/inventory-record-set-with-hrids'
+      required:
+        - inventoryRecordSets
+
+    inventory-record-set-with-hrids:
+      type: object
+      description: "An instance record and an array of holdings records with embedded items."
+      properties:
+        instance:
+          $ref: '#/components/schemas/instance-with-hrid'
+        holdingsRecords:
+          type: array
+          description: "Collection of holdings of the instance, each holdings record with embedded items."
+          items:
+            $ref: '#/components/schemas/holdings-record-with-hrid'
+        instanceRelations:
+          description: "Different types of instance-to-instance relationships to create or update."
+          properties:
+            parentInstances:
+              type: array
+              description: "Collection of objects with information required for finding and linking to parent instances"
+              items:
+                type: object
+                properties:
+                  instanceIdentifier:
+                    description: "Object with information required for finding the parent instance to link to."
+                    properties:
+                      hrid:
+                        type: string
+                        description: "A unique ID for the parent instance to link to."
+                  provisionalInstance:
+                    type: object
+                    description: "Object with at least the mandatory instance properties required for creating a provisional instance if the parent does not yet exist. Other valid instance properties allowed."
+                    properties:
+                      title:
+                        type: string
+                        description: "The parent record’s title."
+                      source:
+                        type: string
+                        description: "The parent record’s source."
+                      instanceTypeId:
+                        type: string
+                        description: "The parent record’s resource type ID (UUID)."
+                    additionalProperties: true
+                  instanceRelationShipTypeId:
+                    type: string
+                    description: "UUID for the type of relationship to establish to a parent instance (article, volume, multipart, series)."
+            childInstances:
+              type: array
+              description: "Collection of objects with information required for finding and linking to child instances"
+              items:
+                type: object
+                properties:
+                  instanceIdentifier:
+                    type: object
+                    description: "Object with information required for finding the child instance to link to."
+                    properties:
+                      hrid:
+                        type: string
+                        description: "A unique ID for the child instance to link to."
+                  provisionalInstance:
+                    type: object
+                    description: "Object with at least the mandatory instance properties required for creating a provisional instance if the child does not yet exist. Other valid instance properties allowed."
+                    properties:
+                      title:
+                        type: string
+                        description: "The child record’s title."
+                      source:
+                        type: string
+                        description: "The child record’s source."
+                      instanceTypeId:
+                        type: string
+                        description: "The child record’s resource type ID (UUID)."
+                    additionalProperties: true
+                  instanceRelationShipTypeId:
+                    type: string
+                    description: "UUID for the type of relationship to establish to a child instance (article, volume, multipart, series)."
+                required:
+                  - instanceIdentifier
+            precedingTitles:
+              type: array
+              description: "Collection of objects with information required for finding and linking to preceding instances"
+              items:
+                type: object
+                properties:
+                  instanceIdentifier:
+                    type: object
+                    description: "Object with information required for finding the preceding instance to link to."
+                    properties:
+                      hrid:
+                        type: string
+                        description: "A unique ID for the preceding instance to link to."
+                  provisionalInstance:
+                    type: object
+                    description: "Object with at least the mandatory instance properties required for creating a provisional instance if the preceding title does not yet exist. Other valid instance properties allowed."
+                    properties:
+                      title:
+                        type: string
+                        description: "The preceding record’s title."
+                      source:
+                        type: string
+                        description: "The preceding record’s source."
+                      instanceTypeId:
+                        type: string
+                        description: "The preceding record’s resource type ID (UUID)."
+                    additionalProperties: true
+                required:
+                  - instanceIdentifier
+            succeedingTitles:
+              type: array
+              description: "Collection of objects with information required for finding and linking to succeeding instances"
+              items:
+                type: object
+                properties:
+                  instanceIdentifier:
+                    type: object
+                    description: "Object with information required for finding the succeeding instance to link to."
+                    properties:
+                      hrid:
+                        type: string
+                        description: "A unique ID for the succeeding instance to link to."
+                  provisionalInstance:
+                    type: object
+                    description: "Object with at least the mandatory instance properties required for creating a provisional instance if the succeeding title does not yet exist. Other valid instance properties allowed."
+                    properties:
+                      title:
+                        type: string
+                        description: "The succeeding record’s title."
+                      source:
+                        type: string
+                        description: "The succeeding record’s source."
+                      instanceTypeId:
+                        type: string
+                        description: "The succeeding record’s resource type ID (UUID)."
+                    additionalProperties: true
+                required:
+                  - instanceIdentifier
+        processing:
+          $ref: "#/components/schemas/processing-upsert"
+      required:
+        - instance
+
+    instance-with-hrid:
+      type: object
+      description: "An instance record in compliance with the schema of the given version of the underlying `instance-storage` API."
+      properties:
+        hrid:
+          type: string
+          description: "The external identifier of the instance; the client's own unique ID for the updating record."
+      additionalProperties: true
+
+    holdings-record-with-hrid:
+      type: object
+      description: "A holdings record in compliance with the schema of the given version of the underlying `holdings-storage` API, optionally with embedded items."
+      properties:
+        hrid:
+          type: string
+          description: "The external identifier of the holdings record; the client's own unique ID for the updating record."
+        items:
+          type: array
+          description: "Inventory items recorded by this holdings record."
+          items:
+            $ref: '#/components/schemas/item-with-hrid'
+
+    item-with-hrid:
+      type: object
+      description: "An item record in compliance with the schema of the given version of the underlying `item-storage` API."
+      properties:
+        hrid:
+          type: string
+          description: "The external identifier of the item; the client's own unique ID for the updating record."
+      additionalProperties: true
+
+    hrid-deletion:
+      type: object
+      description: "Deletion record for deletion by HRID."
+      properties:
+        hrid:
+          type: string
+          description: "The legacy ID for the bibliographic record, as stored in the HRID of the Instance to be deleted."
+        processing:
+          $ref: '#/components/schemas/processing-deletion'
+
+    # processing instructions
+
+    processing-deletion:
+      type: object
+      description: "An object holding supporting pieces of data and/or processing instructions for instance delete processing."
+      properties:
+        item:
+          type: object
+          description: "Instructions for processing Inventory Items during instance deletion."
+          properties:
+            blockDeletion:
+              $ref: '#/components/schemas/record-retention'
+            status:
+              type: object
+              description: "Instructions for retaining or overwriting status when updating an item."
+              properties:
+                policy:
+                  type: string
+                  description: "Update instruction for item status."
+                  enum:
+                    - retain
+                    - overwrite
+                ifStatusWas:
+                  type: array
+                  description: "List of statuses that the policy applies to."
+                  items:
+                    type: object
+                    properties:
+                      name:
+                        type: string
+                        description: "Status name."
+                        enum:
+                          - Aged to lost
+                          - Available
+                          - Awaiting pickup
+                          - Awaiting delivery
+                          - Checked out
+                          - Claimed returned
+                          - Declared lost
+                          - In process
+                          - In process (non-requestable)
+                          - In transit
+                          - Intellectual item
+                          - Long missing
+                          - Lost and paid
+                          - Missing
+                          - On order
+                          - Paged
+                          - Restricted
+                          - Order closed
+                          - Unavailable
+                          - Unknown
+                          - Withdrawn
+                    required:
+                      - policy
+            statisticalCoding:
+              $ref: '#/components/schemas/statistical-coding'
+        holdingsRecord:
+          type: object
+          description: "Instructions for processing Inventory holdings records during instance deletion."
+          properties:
+            blockDeletion:
+              $ref: "#/components/schemas/record-retention"
+            statisticalCoding:
+              $ref: "#/components/schemas/statistical-coding"
+        instance:
+          type: object
+          description: "Instructions for processing an Inventory instance on instance delete request."
+          properties:
+            blockDeletion:
+              $ref: '#/components/schemas/record-retention'
+            statisticalCoding:
+              $ref: '#/components/schemas/statistical-coding'
+
+    processing-upsert:
+      type: object
+      description: "An object holding supporting pieces of data and/or processing instructions for Inventory update processing."
+      properties:
+        item:
+          type: object
+          description: "Instructions for processing Inventory Items."
+          properties:
+            retainOmittedRecord:
+              $ref: '#/components/schemas/record-retention'
+            retainExistingValues:
+              $ref: '#/components/schemas/properties-retention'
+            status:
+              type: object
+            statisticalCoding:
+              $ref: '#/components/schemas/statistical-coding'
+        holdingsRecord:
+          type: object
+          description: "Instructions for processing Inventory holdings records."
+          properties:
+            retainExistingValues:
+              $ref: '#/components/schemas/properties-retention'
+            statisticalCoding:
+              $ref: '#/components/schemas/statistical-coding'
+        instance:
+          type: object
+          description: "Instructions for processing instance records."
+          properties:
+            retainExistingValues:
+              $ref: '#/components/schemas/properties-retention'
+            statisticalCoding:
+              $ref: '#/components/schemas/statistical-coding'
+
+    properties-retention:
+      type: object
+      description: "Defines retention policies for existing values when updating records."
+      properties:
+        forOmittedProperties:
+          description: 'If set to true/"true" MIU retains existing properties if they are absent from the incoming record. If set to false (default), MIU removes absent properties from the existing record too.'
+        forTheseProperties:
+          type: array
+          description: "List of properties to retain existing values for, whether they are present or not in the incoming record."
+          items:
+            type: string
+
+    record-retention:
+      type: object
+      description: "Prevent deletion of existing record, using pattern matching in select field."
+      properties:
+        ifField:
+          type: string
+          description: "Name of the field to match."
+        matchesPattern:
+          type: string
+          description: "Regex pattern to match the field by."
+      additionalProperties: false
+      required:
+        - ifField
+        - matchesPattern
+
+    statistical-coding:
+      type: array
+      description: "Configures the statistical code(s) to set for the given events."
+      items:
+        type: object
+        properties:
+          if:
+            type: string
+            description: "The event triggering a statistical coding; currently only one supported event."
+            enum:
+              - deleteSkipped
+          becauseOf:
+            type: string
+            description: "The cause of the event."
+            enum:
+              - ITEM_STATUS
+              - ITEM_PATTERN_MATCH
+              - HOLDINGS_RECORD_PATTERN_MATCH
+              - PO_LINE_REFERENCE
+          setCode:
+            type: string
+            description: "The UUID of the statistical code to set on the inventory record."
+
+    # Responses
+
+    error-response:
+      type: object
+      description: "Response on a unsuccessful upsert request for a single record."
+      properties:
+        category:
+          type: string
+          "description": "Type of problem, typically error category STORAGE."
+        statusCode:
+          type: string
+          "description": "The HTTP status code assigned to the error."
+        message:
+          anyOf:
+            - type: string
+            - type: object
+          "description": "Error message returned by Inventory storage."
+        shortMessage:
+          type: string
+          description: "A short error message that might be used by the client to count similar error occurrences."
+        entityType:
+          type: string
+          "description": "The record type for which a problem occurred."
+        transaction:
+          type: string
+          "description": "Type of REST operation for which the problem occurred."
+        entity:
+          type: object
+          "description": "The JSON object that was pushed to Inventory storage when the problem occurred."
+        details:
+          type: object
+          "description": "Any further details, i.e. additional context for the problem."
+
+    batch-upsert-response-207:
+      type: object
+      description: Response on partly successful batch upsert request.
+      properties:
+        metrics:
+          $ref: '#/components/schemas/metrics'
+        errors:
+          type: array
+          description: "List of problems encountered during an inventory update or delete request."
+          items:
+            $ref: '#/components/schemas/error-response'
+
+    upsert-response-200-207:
+      type: object
+      description: Response on a successful or partially successful single record upsert request
+      properties:
+        instance:
+          $ref: '#/components/schemas/instance'
+        holdingsRecords:
+          type: array
+          items:
+            $ref: '#/components/schemas/holdings-record'
+        instanceRelations:
+          type: object
+          description: "Collection of the instance's relations to other instances."
+          properties:
+            parentInstances:
+              type: array
+              description: "The instance's relations to parent instances."
+              items:
+                type: object
+                properties:
+                  subInstanceId:
+                    type: string
+                    description: "UUID of the child instance (= the present instance)."
+                  superInstanceId:
+                    type: string
+                    description: "UUID of the parent instance."
+                  instanceRelationshipTypeId:
+                    type: string
+                    description: "UUID of the type of relation - i.e. a multipart monograph relation."
+                  CREATE_PROVISIONAL_INSTANCE:
+                    $ref: '#/components/schemas/instance'
+            childInstances:
+              type: array
+              description: "The instance's relations to child instances."
+              items:
+                type: object
+                properties:
+                  subInstanceId:
+                    type: string
+                    description: "UUID of the child instance."
+                  superInstanceId:
+                    type: string
+                    description: "UUID of the parent instance (= the present instance)."
+                  instanceRelationshipTypeId:
+                    type: string
+                    description: "UUID of the type of relation - i.e. a multipart monograph relation."
+                  CREATE_PROVISIONAL_INSTANCE:
+                    $ref: '#/components/schemas/instance'
+            precedingTitles:
+              type: array
+              description: "The instance's relations to preceding titles."
+              items:
+                type: object
+                properties:
+                  succeedingInstanceId:
+                    type: string
+                    description: "UUID of the succeeding title (= the present instance)."
+                  precedingInstanceId:
+                    type: string
+                    description: "UUID of the preceding title."
+                  CREATE_PROVISIONAL_INSTANCE:
+                    $ref: '#/components/schemas/instance'
+            succeedingTitles:
+              type: array
+              description: "The instance's relations to succeeding titles."
+              items:
+                type: object
+                properties:
+                  succeedingInstanceId:
+                    type: string
+                    description: "UUID of the succeeding title."
+                  precedingInstanceId:
+                    type: string
+                    description: "UUID of the preceding title (= the present instance)."
+                  CREATE_PROVISIONAL_INSTANCE:
+                    $ref: '#/components/schemas/instance'
+        metrics:
+          $ref: '#/components/schemas/metrics'
+        errors:
+          type: array
+          description: "If status is 207, a list of problems encountered during upsert request"
+          items:
+            $ref: '#/components/schemas/error-response'
+
+    get-recordset-response:
+      type: object
+      description: "Response on a successful get request."
+      properties:
+        instance:
+          $ref: '#/components/schemas/instance'
+        holdingsRecords:
+          type: array
+          description: "Collection of holdings of the Instance, each holdings record with embedded items as it was pushed to Inventory storage."
+          items:
+            $ref: '#/components/schemas/holdings-record'
+        instanceRelations:
+          type: object
+          description: "Collections of the instance's relations to other instances."
+          properties:
+            parentInstances:
+              type: array
+              description: "The instance's relations to parent instances."
+              items:
+                type: object
+                properties:
+                  subInstanceId:
+                    type: string
+                    description: "UUID of the child instance (= this instance)."
+                  superInstanceId:
+                    type: string
+                    "description": "UUID of the parent instance."
+                  instanceRelationshipTypeId:
+                    type: string
+                    description: "UUID of the type of relations - ie a multipart monograph relation."
+            childInstances:
+              type: array
+              description: "The instance's relations to child instances."
+              items:
+                type: object
+                description: "The instance's relation to a child instance."
+                properties:
+                  subInstanceId:
+                    type: string
+                    description: "UUID of the child instance."
+                  superInstanceId:
+                    type: string
+                    "description": "UUID of the parent instance (= this instance)."
+                  instanceRelationshipTypeId:
+                    type: string
+                    description: "UUID of the type of relations - ie a multipart monograph relation."
+            precedingTitles:
+              type: array
+              description: "The instance's relations to preceding titles."
+              items:
+                type: object
+                description: "The instance's relation to a preceding title."
+                properties:
+                  succeedingInstanceId:
+                    type: string
+                    description: "UUID of the succeeding title (= this instance)."
+                  precedingInstanceId:
+                    type: string
+                    description: "UUID of a preceding title of the instance."
+            succeedingTitles:
+              type: array
+              description: "The instance's relations to succeeding title."
+              items:
+                type: object
+                description: "The instance's relations to succeeding titles."
+                properties:
+                  succeedingInstanceId:
+                    type: string
+                    description: "UUID of the succeeding title."
+                  precedingInstanceId:
+                    type: string
+                    description: "UUID of a preceding title (= this instance)."
+    metrics: # in upsert responses
+      type: object
+      description: "Report on the number of operations performed, by record type, transaction type, and outcome."
+      properties:
+        INSTANCE:
+          type: object
+          description: "Reports the number of operations performed on instance records by transaction type and outcome."
+          properties:
+            CREATED:
+              $ref: '#/components/schemas/outcomes'
+            UPDATED:
+              $ref: '#/components/schemas/outcomes'
+            DELETED:
+              $ref: '#/components/schemas/outcomes'
+        HOLDINGS_RECORD:
+          type: object
+          description: "Reports the number of operations performed on holdings records by transaction type and outcome."
+          properties:
+            CREATED:
+              $ref: '#/components/schemas/outcomes'
+            UPDATED:
+              $ref: '#/components/schemas/outcomes'
+            DELETED:
+              $ref: '#/components/schemas/outcomes'
+        ITEM:
+          type: object
+          description: "Reports the number of operations performed on item records by transaction type and outcome."
+          properties:
+            CREATED:
+              $ref: '#/components/schemas/outcomes'
+            UPDATED:
+              $ref: '#/components/schemas/outcomes'
+            DELETED:
+              $ref: '#/components/schemas/outcomes'
+        INSTANCE_RELATION_SHIP:
+          type: object
+          description: "Reports the number of operations performed for the instance's parent-child relationships."
+          properties:
+            CREATED:
+              $ref: '#/components/schemas/outcomes'
+            DELETED:
+              $ref: '#/components/schemas/outcomes'
+            PROVISIONAL_INSTANCE:
+              $ref: '#/components/schemas/outcomes'
+        INSTANCE_TITLE_SUCCESSION:
+          type: object
+          description: "Reports the number of operations performed for the instance's preceding-succeeding relationships."
+          properties:
+            CREATED:
+              $ref: '#/components/schemas/outcomes'
+            DELETED:
+              $ref: '#/components/schemas/outcomes'
+            PROVISIONAL_INSTANCE:
+              $ref: '#/components/schemas/outcomes'
+
+    outcomes:  # in metrics
+      type: object
+      description: "Reports the number of different outcomes of operations of a given type per entity type."
+      properties:
+        COMPLETED:
+          type: integer
+          description: "Number of successfully completed operations of a given type per entity type."
+        FAILED:
+          type: integer
+          description: "Number of failed operations of a given type per entity type."
+        SKIPPED:
+          type: integer
+          description: "Number of skipped operations of a given type per entity type."
+        PENDING:
+          type: integer
+          description: "Number operations of a given type that were unresolved per entity type"
+
+    instance:
+      type: object
+      description: "An instance record in compliance with the schema of the given version of the underlying `instance-storage` API."
+
+    holdings-record:
+      type: object
+      description: "A holdings record in compliance with the schema of the given version of the underlying `holdings-storage` API, optionally with embedded items."
+      properties:
+        items:
+          type: array
+          description: "Inventory items listed by the holdings record"
+          items:
+            $ref: '#/components/schemas/item'
+
+    item:
+      type: object
+      description: "An item record in compliance with the schema of the given version of the underlying `item-storage` API."
+
+
+    # Shared index (obsolete)
+
+    inventory-record-sets:  # obsolete (shared index)
+      type: object
+      description: "A collection of inventory record sets (instances, holdings and items, etc)."
+      properties:
+        inventoryRecordSets:
+          type: array
+          description: "List of inventory record sets"
+          items:
+            $ref: '#/components/schemas/inventory-record-set'
+
+    inventory-record-set: # obsolete (shared index)
+      type: object
+      description: "An instance record and an array of holdings records with embedded items."
+      properties:
+        instance:
+          $ref: '#/components/schemas/instance'
+        holdingsRecords:
+          type: array
+          description: "Collection of holdings of the instance, each holdings record with embedded items."
+          items:
+            $ref: '#/components/schemas/holdings-record'
+        processing:
+          type: object
+          description: "An object holding supporting pieces of data and/or processing instructions for Inventory update processing."
+          properties:
+            institutionId:
+              type: string
+              description: "The FOLIO UUID of the institution that provided the source records for the update; necessary for certain clean-up tasks in a shared inventory."
+            localIdentifier:
+              type: string
+              description: "The source system's unique identifier for the source record of this update request; necessary for certain clean-up tasks in a shared inventory."
+            identifierTypeId:
+              type: string
+              description: "The FOLIO UUID for the identifier type for the local record IDs coming from the given library."
+
+    shared-index-deletion: # obsolete (shared index)
+      type: object
+      description: "Deletion record for deleting a library's contributions to an instance in a shared index."
+      properties:
+        institutionId:
+          type: string
+          description: "UUID representing the institution who's contributions to a shared instance should be removed."
+        localIdentifier:
+          type: string
+          description: "A library's legacy identifier for a bibliographic record that is to be removed from a shared instance"
+        oaiIdentifier:
+          type: string
+          description: "The record identifier of an OAI-PMH feed, for a bibliographic record that is to be removed from a shared instance."
+        identifierTypeId:
+          type: string
+          description: "ID for the identifier type attached to all identifier values from the institution who's contributions to a shared Instance should be removed."
+      oneOf:
+        - required:
+            - institutionId
+            - localIdentifier
+            - identifierTypeId
+        - required:
+            - institutionId
+            - oaiIdentifier
+            - identifierTypeId
+
+  parameters:
+    okapi_tenant:
+      in: header
+      name: X-Okapi-Tenant
+      description: Okapi Tenant
+      required: false
+      schema:
+        type: string
+    okapi_token:
+      in: header
+      name: X-Okapi-Token
+      description: Okapi Token
+      required: false
+      schema:
+        type: string
+    okapi_url:
+      in: header
+      name: X-Okapi-Url
+      description: Okapi URL
+      required: false
+      schema:
+        type: string
+
+  responses:
+    trait_400:
+      description: Bad request
+      content:
+        text/plain:
+          schema:
+            type: string
+            example: Invalid JSON in request
+        application/json:
+          schema:
+            type: object
+            example: {"error":"Invalid JSON in request"}
+    trait_404:
+      description: Bad request
+      content:
+        text/plain:
+          schema:
+            type: string
+            example: Not found
+    trait_500:
+      description: Internal error
+      content:
+        text/plain:
+          schema:
+            type: string
+            example: Internal server error, contact administrator

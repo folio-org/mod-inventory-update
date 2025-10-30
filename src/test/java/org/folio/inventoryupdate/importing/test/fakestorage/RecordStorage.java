@@ -184,7 +184,7 @@ public abstract class RecordStorage {
      */
     protected boolean hasValue (String fkPropertyName, String value) {
         for (FolioApiRecord folioApiRecord : records.values()) {
-            logger.debug("Checking {} for value {}", folioApiRecord.getJson().toString(), value);
+            logger.debug("Checking {} for value {}", folioApiRecord.getJson().encode(), value);
             if (folioApiRecord.getJson().containsKey(fkPropertyName) && folioApiRecord.getJson().getString(fkPropertyName).equals(value)) {
                 return true;
             }

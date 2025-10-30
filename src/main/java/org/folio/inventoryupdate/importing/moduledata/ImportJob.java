@@ -26,6 +26,7 @@ public class ImportJob extends Entity {
 
     public ImportJob() {}
 
+    @SuppressWarnings("java:S107") // too many parameters, ignore for entity constructors
     public ImportJob(UUID id,
                      UUID importConfigId,
                      String importConfigName,

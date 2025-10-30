@@ -15,7 +15,7 @@ public class ImportConfig extends Entity {
 
     public ImportConfig(){}
 
-    @SuppressWarnings("java:S107") // too many parameters
+    @SuppressWarnings("java:S107") // too many parameters, ignore for entity constructors
     public ImportConfig(UUID id, String name, String type, String url, Boolean allowErrors,
                         Integer recordLimit, Integer batchSize, UUID transformationId, UUID storageId) {
         theRecord = new ImportConfigRecord(id, name, type, url, allowErrors, recordLimit, batchSize, transformationId, storageId);

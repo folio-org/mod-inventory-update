@@ -23,6 +23,7 @@ public class Step extends Entity {
 
     public Step() {}
 
+    @SuppressWarnings("java:S107") // too many parameters, ignore for entity constructors
     public Step(UUID id, String name, boolean enabled, String description, String type, String inputFormat,
                 String outputFormat, String script) {
         theRecord = new StepRecord(

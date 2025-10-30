@@ -265,10 +265,9 @@ public class MatchKey {
   }
 
 
-
+  static final Pattern datePattern = Pattern.compile("(\\d\\d\\d\\d)");
   protected String makeDateDigits(String date) {
-    Pattern pattern = Pattern.compile("(\\d\\d\\d\\d)");
-    Matcher matcher = pattern.matcher(date);
+    Matcher matcher = datePattern.matcher(date);
     String latestMatch = null;
     while(matcher.find()) {
       latestMatch = matcher.group(1);

@@ -126,9 +126,9 @@ public class Reporting {
                     batch.getErrors().stream()
                             .map(JsonObject.class::cast)
                             .map(error -> new RecordFailure(UUID.randomUUID(),
-                                    fileProcessor.getImportJob().record().id(),
+                                    fileProcessor.getImportJob().getRecord().id(),
                                     fileProcessor.getImportConfigId(),
-                                    fileProcessor.getImportJob().record().importConfigName(),
+                                    fileProcessor.getImportJob().getRecord().importConfigName(),
                                     getInstanceHridFromErrorResponse(error),
                                     SettableClock.getLocalDateTime().toString(),
                                     getBatchIndexFromErrorResponse(error) == null ? null : batch.get(getBatchIndexFromErrorResponse(error)).getOriginalRecordAsString(),
@@ -170,11 +170,11 @@ public class Reporting {
         List<Entity> lines = new ArrayList<>();
         lines.add(new LogLine(
                 UUID.randomUUID(),
-                fileProcessor.getImportJob().record().id(),
-                fileProcessor.getImportJob().record().importConfigId(),
-                fileProcessor.getImportJob().record().importConfigName(),
+                fileProcessor.getImportJob().getRecord().id(),
+                fileProcessor.getImportJob().getRecord().importConfigId(),
+                fileProcessor.getImportJob().getRecord().importConfigName(),
                 SettableClock.getLocalDateTime().toString(),
-                fileProcessor.getImportJob().record().importConfigName(),
+                fileProcessor.getImportJob().getRecord().importConfigName(),
                 statement));
         return storage.storeEntities(new LogLine(),lines);
     }

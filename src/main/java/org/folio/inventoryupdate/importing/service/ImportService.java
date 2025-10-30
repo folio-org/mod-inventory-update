@@ -590,7 +590,7 @@ public class ImportService implements RouterCreator, TenantInitHooks {
                 .onSuccess(result-> {
                     if (result.rowCount()==1) {
                     if (transformation.containsListOfSteps()) {
-                        new TransformationStep().deleteStepsOfATransformation(request, transformation.record().id())
+                        new TransformationStep().deleteStepsOfATransformation(request, transformation.getRecord().id())
                             .compose(ignore ->
                                 request.moduleStorageAccess()
                                     .storeEntities(new TransformationStep(), transformation.getListOfTransformationSteps())
@@ -631,7 +631,7 @@ public class ImportService implements RouterCreator, TenantInitHooks {
                             if (existingTsa == null) {
                                 responseText(request.routingContext, 404).end("Not found");
                             } else {
-                                Integer positionOfExistingTsa = ((TransformationStep) existingTsa).record().position();
+                                Integer positionOfExistingTsa = ((TransformationStep) existingTsa).getRecord().position();
                                 transformationStep.updateTsaRepositionSteps(request, positionOfExistingTsa)
                                         .onSuccess(result -> responseText(request.routingContext, 204).end());
                             }
@@ -647,7 +647,7 @@ public class ImportService implements RouterCreator, TenantInitHooks {
                 if (existingTsa == null) {
                     responseText(request.routingContext, 404).end("Not found");
                 } else {
-                    Integer positionOfExistingTsa = ((TransformationStep) existingTsa).record().position();
+                    Integer positionOfExistingTsa = ((TransformationStep) existingTsa).getRecord().position();
                     ((TransformationStep) existingTsa).deleteTsaRepositionSteps(db.getTenantPool(), positionOfExistingTsa)
                         .onSuccess(result -> responseText(request.routingContext, 200).end());
                 }

@@ -22,7 +22,7 @@ public class Transformation extends Entity {
 
     public record TransformationRecord(UUID id, String name, boolean enabled, String description, String type) {}
     TransformationRecord theRecord;
-    public TransformationRecord record() {
+    public TransformationRecord getRecord() {
       return theRecord;
     }
 

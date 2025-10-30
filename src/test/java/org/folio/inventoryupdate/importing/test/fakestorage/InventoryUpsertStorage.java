@@ -6,7 +6,8 @@ import org.folio.inventoryupdate.importing.test.fixtures.Files;
 
 import java.util.Collection;
 
-@SuppressWarnings("java:S127")
+
+@SuppressWarnings("java:S2925") // don't use Thread sleep to wait for outcome
 public class InventoryUpsertStorage extends RecordStorage {
     protected void inventoryBatchUpsertHrid (RoutingContext routingContext) {
         JsonObject upsertBody = routingContext.body().asJsonObject();
@@ -15,7 +16,8 @@ public class InventoryUpsertStorage extends RecordStorage {
             upsertInventoryRecords(routingContext);
             Thread.sleep(500); // Fake some response time
         } catch (InterruptedException e) {
-            throw new RuntimeException(e);
+            logger.error("Fake response time interrupted");
+            Thread.currentThread().interrupt();
         }
         if (source.endsWith("200")) {
             respond(routingContext, Files.JSON_SINGLE_RECORD_UPSERT_RESPONSE_200, 200);

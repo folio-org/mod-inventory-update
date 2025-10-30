@@ -29,7 +29,7 @@ public class TransformationStep extends Entity {
     // Transformation/Step association record, the entity data.
     public record TransformationStepRecord(UUID id, UUID transformationId, UUID stepId, Integer position) {}
     TransformationStepRecord theRecord;
-    public TransformationStepRecord record() {
+    public TransformationStepRecord getRecord() {
       return theRecord;
     }
 

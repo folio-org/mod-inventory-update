@@ -70,7 +70,7 @@ public class Step extends Entity {
         return "Step";
     }
 
-    private static final Pattern regex = Pattern.compile("\\r[\\n]?");
+    private static final Pattern regex = Pattern.compile("\\r\\n?");
     public String getLineSeparatedXslt() {
         return regex.matcher(theRecord.script).replaceAll(System.lineSeparator());
     }

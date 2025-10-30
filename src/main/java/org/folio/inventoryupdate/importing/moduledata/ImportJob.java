@@ -41,11 +41,14 @@ public class ImportJob extends Entity {
                      String finished,
                      Integer amountHarvested,
                      String message) {
-        record = new ImportJob.ImportJobRecord(
+        theRecord = new ImportJob.ImportJobRecord(
                 id, importConfigId, importConfigName, importType, url, allowErrors, recordLimit, batchSize, transformation, storage, status, started, finished, amountHarvested, message);
     }
 
-    public ImportJobRecord record;
+    ImportJobRecord theRecord;
+    public ImportJobRecord record() {
+    return theRecord;
+  }
     public record ImportJobRecord(UUID id,
                                    UUID importConfigId,
                                    String importConfigName,
@@ -64,10 +67,21 @@ public class ImportJob extends Entity {
     }
 
     private static final Map<String, Field> FIELDS = new HashMap<>();
-    public static final String ID = "ID", IMPORT_CONFIG_ID = "IMPORT_CONFIG_ID", IMPORT_CONFIG_NAME = "HARVESTABLE_NAME",
-            IMPORT_TYPE = "IMPORT_TYPE", URL = "URL", ALLOW_ERRORS = "ALLOW_ERRORS", RECORD_LIMIT = "RECORD_LIMIT",
-            BATCH_SIZE = "BATCH_SIZE", TRANSFORMATION = "TRANSFORMATION", STORAGE = "STORAGE", STATUS = "STATUS", STARTED = "STARTED",
-            FINISHED = "FINISHED", AMOUNT_HARVESTED = "AMOUNT_HARVESTED", MESSAGE = "MESSAGE";
+    public static final String ID = "ID";
+    public static final String IMPORT_CONFIG_ID = "IMPORT_CONFIG_ID";
+    public static final String IMPORT_CONFIG_NAME = "HARVESTABLE_NAME";
+    public static final String IMPORT_TYPE = "IMPORT_TYPE";
+    public static final String URL = "URL";
+    public static final String ALLOW_ERRORS = "ALLOW_ERRORS";
+    public static final String RECORD_LIMIT = "RECORD_LIMIT";
+    public static final String BATCH_SIZE = "BATCH_SIZE";
+    public static final String TRANSFORMATION = "TRANSFORMATION";
+    public static final String STORAGE = "STORAGE";
+    public static final String STATUS = "STATUS";
+    public static final String STARTED = "STARTED";
+    public static final String FINISHED = "FINISHED";
+    public static final String AMOUNT_HARVESTED = "AMOUNT_HARVESTED";
+    public static final String MESSAGE = "MESSAGE";
 
     static {
         FIELDS.put(ID, new Field("id", "id", PgColumn.Type.UUID, false, true, true));
@@ -94,7 +108,7 @@ public class ImportJob extends Entity {
      */
     @Override
     public Tables table() {
-        return Tables.import_job;
+        return Tables.IMPORT_JOB;
     }
 
     /**
@@ -108,7 +122,7 @@ public class ImportJob extends Entity {
     }
 
     public ImportJob initiate(ImportConfig importConfig) {
-        ImportConfig.ImportConfigRecord cfg = importConfig.record;
+        ImportConfig.ImportConfigRecord cfg = importConfig.theRecord;
         return new ImportJob(UUID.randomUUID(), cfg.id(), cfg.name(), cfg.type(), cfg.URL(),
                 cfg.allowErrors(), cfg.recordLimit(), cfg.batchSize(),
                 cfg.transformationId(), cfg.storageId(),
@@ -152,21 +166,21 @@ public class ImportJob extends Entity {
     @Override
     public JsonObject asJson() {
         JsonObject json = new JsonObject();
-        json.put(jsonPropertyName(ID), record.id);
-        json.put(jsonPropertyName(IMPORT_CONFIG_ID), record.importConfigId);
-        json.put(jsonPropertyName(IMPORT_CONFIG_NAME), record.importConfigName);
-        json.put(jsonPropertyName(IMPORT_TYPE), record.importType);
-        json.put(jsonPropertyName(URL), record.url);
-        json.put(jsonPropertyName(ALLOW_ERRORS), record.allowErrors);
-        json.put(jsonPropertyName(RECORD_LIMIT), record.recordLimit);
-        json.put(jsonPropertyName(BATCH_SIZE), record.batchSize);
-        json.put(jsonPropertyName(TRANSFORMATION), record.transformation);
-        json.put(jsonPropertyName(STORAGE), record.storage);
-        json.put(jsonPropertyName(STATUS), record.status);
-        json.put(jsonPropertyName(STARTED), record.started);
-        json.put(jsonPropertyName(FINISHED), record.finished);
-        json.put(jsonPropertyName(AMOUNT_HARVESTED), record.amountHarvested);
-        json.put(jsonPropertyName(MESSAGE), record.message);
+        json.put(jsonPropertyName(ID), theRecord.id);
+        json.put(jsonPropertyName(IMPORT_CONFIG_ID), theRecord.importConfigId);
+        json.put(jsonPropertyName(IMPORT_CONFIG_NAME), theRecord.importConfigName);
+        json.put(jsonPropertyName(IMPORT_TYPE), theRecord.importType);
+        json.put(jsonPropertyName(URL), theRecord.url);
+        json.put(jsonPropertyName(ALLOW_ERRORS), theRecord.allowErrors);
+        json.put(jsonPropertyName(RECORD_LIMIT), theRecord.recordLimit);
+        json.put(jsonPropertyName(BATCH_SIZE), theRecord.batchSize);
+        json.put(jsonPropertyName(TRANSFORMATION), theRecord.transformation);
+        json.put(jsonPropertyName(STORAGE), theRecord.storage);
+        json.put(jsonPropertyName(STATUS), theRecord.status);
+        json.put(jsonPropertyName(STARTED), theRecord.started);
+        json.put(jsonPropertyName(FINISHED), theRecord.finished);
+        json.put(jsonPropertyName(AMOUNT_HARVESTED), theRecord.amountHarvested);
+        json.put(jsonPropertyName(MESSAGE), theRecord.message);
         return json;
     }
 
@@ -200,7 +214,7 @@ public class ImportJob extends Entity {
     public TupleMapper<Entity> getTupleMapper() {
         return TupleMapper.mapper(
                 entity -> {
-                    ImportJob.ImportJobRecord rec = ((ImportJob) entity).record;
+                    ImportJob.ImportJobRecord rec = ((ImportJob) entity).theRecord;
                     Map<String, Object> parameters = new HashMap<>();
                     parameters.put(dbColumnName(ID), rec.id);
                     parameters.put(dbColumnName(IMPORT_CONFIG_ID), rec.importConfigId);
@@ -252,6 +266,7 @@ public class ImportJob extends Entity {
         return "Import job";
     }
 
+    @Override
     public String makeInsertTemplate(String schema) {
         return "INSERT INTO " + schema + "." + table()
                 + " ("
@@ -304,15 +319,15 @@ public class ImportJob extends Entity {
     }
 
     private void setFinished(LocalDateTime finished, int recordCount) {
-        record = new ImportJobRecord(record.id, record.importConfigId, record.importConfigName, record.importType,
-                record.url, record.allowErrors, record.recordLimit, record.batchSize, record.transformation, record.storage,
-                JobStatus.DONE, record.started, finished.toString(), recordCount, record.message);
+        theRecord = new ImportJobRecord(theRecord.id, theRecord.importConfigId, theRecord.importConfigName, theRecord.importType,
+                theRecord.url, theRecord.allowErrors, theRecord.recordLimit, theRecord.batchSize, theRecord.transformation, theRecord.storage,
+                JobStatus.DONE, theRecord.started, finished.toString(), recordCount, theRecord.message);
     }
 
     public void logStatus(JobStatus status, int recordCount, ModuleStorageAccess configStorage) {
-        record = new ImportJobRecord(record.id, record.importConfigId, record.importConfigName, record.importType,
-                record.url, record.allowErrors, record.recordLimit, record.batchSize, record.transformation, record.storage,
-                status, record.started, record.finished, recordCount, record.message);
+        theRecord = new ImportJobRecord(theRecord.id, theRecord.importConfigId, theRecord.importConfigName, theRecord.importType,
+                theRecord.url, theRecord.allowErrors, theRecord.recordLimit, theRecord.batchSize, theRecord.transformation, theRecord.storage,
+                status, theRecord.started, theRecord.finished, recordCount, theRecord.message);
         configStorage.updateEntity(this,
                 "UPDATE " + configStorage.schema() + "." + table()
                         + " SET "
@@ -330,7 +345,7 @@ public class ImportJob extends Entity {
                 + "("
                 + dbColumnNameAndType(ID) + " PRIMARY KEY, "
                 + dbColumnNameAndType(IMPORT_CONFIG_ID) + " NOT NULL "
-                + " REFERENCES " + pool.getSchema() + "." + Tables.import_config + " (" + new ImportConfig().dbColumnName(ID) + "), "
+                + " REFERENCES " + pool.getSchema() + "." + Tables.IMPORT_CONFIG + " (" + new ImportConfig().dbColumnName(ID) + "), "
                 + dbColumnNameAndType(IMPORT_CONFIG_NAME)  + ", "
                 + dbColumnNameAndType(IMPORT_TYPE) + ", "
                 + dbColumnNameAndType(URL) + ", "

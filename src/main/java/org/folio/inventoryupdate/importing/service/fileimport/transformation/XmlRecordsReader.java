@@ -19,7 +19,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.concurrent.Callable;
 
 public class XmlRecordsReader extends DefaultHandler implements RecordProvider, Callable<Void> {
-    String record=null;
+    StringBuilder theRecord = new StringBuilder();
     RecordReceiver target;
     final String xmlCollectionOfRecords;
     public static final Logger logger = LogManager.getLogger("XmlRecordsFromFile");
@@ -35,7 +35,7 @@ public class XmlRecordsReader extends DefaultHandler implements RecordProvider, 
             InputStream inputStream = new ByteArrayInputStream(xmlCollectionOfRecords.getBytes(StandardCharsets.UTF_8));
             SecureSaxParser.get().parse(inputStream, this);
         } catch (ParserConfigurationException | SAXException pce) {
-            logger.error("SaxParsing, produceRecords, error: " + pce.getMessage());
+            logger.error("SaxParsing, produceRecords, error: {}", pce.getMessage());
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
@@ -45,30 +45,28 @@ public class XmlRecordsReader extends DefaultHandler implements RecordProvider, 
     public void startElement(String uri, String localName, String qName, Attributes attributes) {
 
         if (qName.equalsIgnoreCase("record")) {
-            record="";
+            theRecord = new StringBuilder();
         }
-        if (record!=null) {
-            record += "<" + qName;
-            for (int index = 0; index < attributes.getLength(); index++) {
-                record += " " + attributes.getQName(index) + "=\"" + attributes.getValue(index) + "\"";
-            }
-            record += ">";
+        theRecord.append("<").append(qName);
+        for (int index = 0; index < attributes.getLength(); index++) {
+            theRecord.append(" ").append(attributes.getQName(index)).append("=\"").append(attributes.getValue(index)).append("\"");
         }
+        theRecord.append(">");
     }
 
     @Override
     public void characters(char[] ch, int start, int length) {
         String text = new String(ch, start, length);
-        record += EncodeXmlText.encodeXmlText(text);
+        theRecord.append(EncodeXmlText.encodeXmlText(text));
     }
 
     @Override
     public void endElement(String uri, String localName, String qName) {
-        if (record != null) {
-            record += "</" + qName + ">";
+        if (theRecord != null) {
+            theRecord.append("</").append(qName).append(">");
             if (qName.equals("record")) {
-                target.put(new ProcessingRecord(record));
-                record = "";
+                target.put(new ProcessingRecord(theRecord.toString()));
+                theRecord = new StringBuilder();
             }
         }
     }

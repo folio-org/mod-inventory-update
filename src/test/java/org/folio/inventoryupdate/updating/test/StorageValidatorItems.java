@@ -17,13 +17,13 @@ public class StorageValidatorItems {
     private String existingHoldingsRecordId;
 
     protected void validateStorage(TestContext testContext) {
-        createInstanceAndHoldings(testContext);
+        createInstanceAndHoldings();
         validatePostAndGetById(testContext);
         validateGetByQueryAndPut(testContext);
         validateCanDeleteItemById(testContext);
         validateCannotPostWithBadHoldingsRecordId(testContext);
     }
-    protected void createInstanceAndHoldings(TestContext testContext) {
+    protected void createInstanceAndHoldings() {
         JsonObject responseOnInstancePOST = FakeFolioApis.post(
                 INSTANCE_STORAGE_PATH,
                 new InputInstance().setTitle("Instance for Item test").setInstanceTypeId("123").setSource("test").getJson());
@@ -71,7 +71,7 @@ public class StorageValidatorItems {
     }
 
     protected void validateCannotPostWithBadHoldingsRecordId (TestContext testContext) {
-        JsonObject responseOnPOST = FakeFolioApis.post(
+        FakeFolioApis.post(
                 ITEM_STORAGE_PATH,
                 new InputItem()
                         .setStatus(STATUS_UNKNOWN)

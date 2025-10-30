@@ -43,11 +43,11 @@ public class InventoryUpdateClient {
                     }
                     return Future.succeededFuture(new UpdateResponse(okapiClient.getStatusCode(), responseJson));
                 })
-                .onFailure(e -> logger.error("Could not upsert batch: " + e.getMessage()));
+                .onFailure(e -> logger.error("Could not upsert batch: {}", e.getMessage()));
     }
 
-    public Future<UpdateResponse> inventoryDeletion (JsonObject record) {
-        Buffer buffer = Buffer.buffer(record.encode().getBytes(StandardCharsets.UTF_8));
+    public Future<UpdateResponse> inventoryDeletion (JsonObject theRecord) {
+        Buffer buffer = Buffer.buffer(theRecord.encode().getBytes(StandardCharsets.UTF_8));
 
         return okapiClient
                 .request(HttpMethod.DELETE, INVENTORY_DELETION_PATH, buffer)
@@ -59,7 +59,7 @@ public class InventoryUpdateClient {
                     }
                     return Future.succeededFuture(new UpdateResponse(okapiClient.getStatusCode(), responseJson));
                 })
-                .onFailure(e -> logger.error("Could not delete inventory record set: " + e.getMessage()));
+                .onFailure(e -> logger.error("Could not delete inventory record set: {}", e.getMessage()));
     }
 
     public record UpdateResponse(int statusCode, JsonObject json) {

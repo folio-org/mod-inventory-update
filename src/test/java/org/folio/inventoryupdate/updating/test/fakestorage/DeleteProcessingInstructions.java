@@ -13,10 +13,11 @@ public class DeleteProcessingInstructions {
   JsonObject processingInstructions = new JsonObject();
 
   public DeleteProcessingInstructions() {
+    // Noop constructor
   }
 
   private void setItemInstructions() {
-    processingInstructions.put(ProcessingInstructionsDeletion.ITEM_INSTRUCTIONS_KEY,new JsonObject());
+    processingInstructions.put(ProcessingInstructionsDeletion.ITEM_INSTRUCTIONS_KEY, new JsonObject());
   }
 
   public JsonObject getItemInstructions() {

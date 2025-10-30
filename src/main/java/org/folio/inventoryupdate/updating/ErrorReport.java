@@ -48,8 +48,8 @@ public class ErrorReport {
 
   public ErrorReport(ErrorCategory category, int statusCode, Object message) {
     this.category = category;
-    if (message instanceof JsonObject) {
-      this.messageAsJson = (JsonObject) message;
+    if (message instanceof JsonObject messageJson) {
+      messageAsJson = messageJson;
       if (messageAsJson.containsKey(P_SHORT_MESSAGE)) {
         this.shortMessage = messageAsJson.getString(P_SHORT_MESSAGE);
       } else {

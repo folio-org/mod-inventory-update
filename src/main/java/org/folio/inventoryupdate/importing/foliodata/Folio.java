@@ -8,7 +8,12 @@ import java.util.HashMap;
 import java.util.Map;
 
 public class Folio {
-    public static OkapiClient okapiClient(RoutingContext ctx) {
+
+  private Folio() {
+    throw new IllegalStateException("Utility class");
+  }
+
+  public static OkapiClient okapiClient(RoutingContext ctx) {
         OkapiClient client = new OkapiClient(WebClientFactory.getWebClient(ctx.vertx()), ctx);
         Map<String, String> headers = new HashMap<>();
         headers.put("Content-type", "application/json");

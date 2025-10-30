@@ -8,6 +8,7 @@ public class InputProcessingInstructions {
   JsonObject processingInstructions = new JsonObject();
 
   public InputProcessingInstructions() {
+    // Noop constructor.
   }
 
   private void setItemInstructions() {

@@ -34,11 +34,11 @@ public class InventoryBatchUpdater implements RecordReceiver {
     }
 
     @Override
-    public void put(ProcessingRecord record) {
-        if (record != null) {
-            record.setBatchIndex(records.size());
-            records.add(record);
-            if (records.size() > 99 || record.isDeletion()) {
+    public void put(ProcessingRecord processingRecord) {
+        if (processingRecord != null) {
+            processingRecord.setBatchIndex(records.size());
+            records.add(processingRecord);
+            if (records.size() > 99 || processingRecord.isDeletion()) {
                 ArrayList<ProcessingRecord> copyOfRecords = new ArrayList<>(records);
                 records.clear();
                 releaseBatch(new BatchOfRecords(copyOfRecords, false));
@@ -54,7 +54,7 @@ public class InventoryBatchUpdater implements RecordReceiver {
         if (!fileProcessor.paused()) {
             turnstile.enterBatch(batch);
             persistBatch().onFailure(na -> {
-                logger.error("Fatal error during upsert. Halting job. " + na.getMessage());
+                logger.error("Fatal error during upsert. Halting job. {}", na.getMessage());
                 fileProcessor.reporting.log("Fatal error during upsert. Halting job. " + na.getMessage());
                 fileProcessor.pause();
             }).onComplete(na -> turnstile.exitBatch());
@@ -82,7 +82,7 @@ public class InventoryBatchUpdater implements RecordReceiver {
                     if (upsert.statusCode() == 207) {
                         batch.setResponse(upsert);
                         fileProcessor.reporting.reportErrors(batch)
-                                .onFailure(err -> logger.error("Error logging upsert results " + err.getMessage()));
+                                .onFailure(err -> logger.error("Error logging upsert results {}", err.getMessage()));
                     }
                     fileProcessor.reporting.incrementInventoryMetrics(new InventoryMetrics(upsert.getMetrics()));
                     if (batch.hasDeletingRecord()) {
@@ -145,44 +145,44 @@ public class InventoryBatchUpdater implements RecordReceiver {
      * at a time with no overlap. */
     private static class Turnstile {
 
-        private final BlockingQueue<BatchOfRecords> turnstile = new ArrayBlockingQueue<>(1);
+        private final BlockingQueue<BatchOfRecords> gate = new ArrayBlockingQueue<>(1);
         // Records the number of consecutive checks of whether the queue is idling.
-        private final AtomicInteger turnstileEmptyChecks = new AtomicInteger(0);
+        private final AtomicInteger gateEmptyChecks = new AtomicInteger(0);
 
         /**
          * Puts batch in blocking queue-of-one; process waits if previous batch still in queue.
          */
         private void enterBatch(BatchOfRecords batch) {
             try {
-                turnstile.put(batch);
+                gate.put(batch);
             } catch (InterruptedException ie) {
-                logger.error("Putting next batch in queue-of-one interrupted: ");
-                throw new RuntimeException("Putting next batch in queue-of-one interrupted: " + ie.getMessage());
+                logger.error("Putting next batch in queue-of-one interrupted: {}", ie.getMessage());
+                Thread.currentThread().interrupt();
             }
         }
 
         private void exitBatch() {
             try {
-                turnstile.take();
+                gate.take();
             } catch (InterruptedException ie) {
-                logger.error("Taking batch from queue-of-one interrupted: ");
-                throw new RuntimeException("Taking batch from queue-of-one interrupted: " + ie.getMessage());
+                logger.error("Taking batch from queue-of-one interrupted: {}", ie.getMessage());
+                Thread.currentThread().interrupt();
             }
         }
 
         private BatchOfRecords viewCurrentBatch() {
-            return turnstile.peek();
+            return gate.peek();
         }
 
         private boolean isIdle(int idlingChecksThreshold) {
-            if (turnstile.isEmpty()) {
-                if (turnstileEmptyChecks.incrementAndGet() > idlingChecksThreshold) {
-                    logger.info("Batch turnstile has been idle for " + idlingChecksThreshold + " consecutive checks.");
-                    turnstileEmptyChecks.set(0);
+            if (gate.isEmpty()) {
+                if (gateEmptyChecks.incrementAndGet() > idlingChecksThreshold) {
+                    logger.info("Batch turnstile has been idle for {} consecutive checks.", idlingChecksThreshold);
+                    gateEmptyChecks.set(0);
                     return true;
                 }
             } else {
-                turnstileEmptyChecks.set(0);
+                gateEmptyChecks.set(0);
             }
             return false;
         }

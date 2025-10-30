@@ -4,24 +4,24 @@ import io.vertx.core.json.JsonObject;
 
 public class ProcessingRecord {
     private final String original;
-    private String record;
+    private String theRecord;
     private boolean isDeletion = false;
 
     public ProcessingRecord(String original) {
         this.original = original;
-        record = original;
+        theRecord = original;
     }
 
-    public void update(String record) {
-        this.record = record;
+    public void update(String theRecord) {
+        this.theRecord = theRecord;
     }
 
     public String getRecordAsString() {
-        return record;
+        return theRecord;
     }
 
     public JsonObject getRecordAsJson() {
-        return new JsonObject(record);
+        return new JsonObject(theRecord);
     }
 
     public String getOriginalRecordAsString() {
@@ -29,12 +29,12 @@ public class ProcessingRecord {
     }
 
     public void setBatchIndex(int index) {
-        JsonObject json = new JsonObject(record);
+        JsonObject json = new JsonObject(theRecord);
         if (!json.containsKey("processing")) {
             json.put("processing", new JsonObject());
         }
         json.getJsonObject("processing").put("batchIndex", index);
-        record = json.encode();
+        theRecord = json.encode();
     }
 
     public boolean isDeletion() {

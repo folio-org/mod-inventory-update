@@ -27,16 +27,16 @@ public class Files {
 
   public static final String XSLT_EMPTY = getSampleFile("stylesheets/empty.xslt");
   public static final String XSLT_INVALID = getSampleFile("stylesheets/invalid.xslt");
-  public static String XSLT_COPY_XML_DOC = getSampleFile("stylesheets/copyXmlDoc.xslt");
-  private static final String instanceTypeId = "30fffe0e-e985-4144-b2e2-1e8179bdb41f";
+  public static final String XSLT_COPY_XML_DOC = getSampleFile("stylesheets/copyXmlDoc.xslt");
+  private static final String INSTANCE_TYPE_ID = "30fffe0e-e985-4144-b2e2-1e8179bdb41f";
 
-  public static String XML_INVENTORY_RECORD_SET = getSampleFile("samplesourcefiles/inventoryRecordSet.xml");
-  public static JsonObject JSON_TRANSFORMATION_CONFIG = new JsonObject(Objects.requireNonNull(getSampleFile("configs/transformation.json")));
-  public static JsonObject JSON_IMPORT_CONFIG = new JsonObject(Objects.requireNonNull(getSampleFile("configs/importConfig.json")));
-  public static JsonObject JSON_IMPORT_JOB = new JsonObject(Objects.requireNonNull(getSampleFile("jobs/importJob.json")));
-  public static JsonObject JSON_FAILED_RECORDS = new JsonObject(Objects.requireNonNull(getSampleFile("jobs/failed-records.json")));
-  public static JsonObject JSON_SINGLE_RECORD_UPSERT_RESPONSE_200 = new JsonObject(Objects.requireNonNull(getSampleFile("responses/singleRecordUpsertResponse200.json")));
-  public static JsonObject JSON_SINGLE_RECORD_UPSERT_RESPONSE_207 = new JsonObject(Objects.requireNonNull(getSampleFile("responses/singleRecordUpsertResponse207.json")));
+  public static final String XML_INVENTORY_RECORD_SET = getSampleFile("samplesourcefiles/inventoryRecordSet.xml");
+  public static final JsonObject JSON_TRANSFORMATION_CONFIG = new JsonObject(Objects.requireNonNull(getSampleFile("configs/transformation.json")));
+  public static final JsonObject JSON_IMPORT_CONFIG = new JsonObject(Objects.requireNonNull(getSampleFile("configs/importConfig.json")));
+  public static final JsonObject JSON_IMPORT_JOB = new JsonObject(Objects.requireNonNull(getSampleFile("jobs/importJob.json")));
+  public static final JsonObject JSON_FAILED_RECORDS = new JsonObject(Objects.requireNonNull(getSampleFile("jobs/failed-records.json")));
+  public static final JsonObject JSON_SINGLE_RECORD_UPSERT_RESPONSE_200 = new JsonObject(Objects.requireNonNull(getSampleFile("responses/singleRecordUpsertResponse200.json")));
+  public static final JsonObject JSON_SINGLE_RECORD_UPSERT_RESPONSE_207 = new JsonObject(Objects.requireNonNull(getSampleFile("responses/singleRecordUpsertResponse207.json")));
 
   private static String getSampleFile(String filename) {
     try {
@@ -117,20 +117,20 @@ public class Files {
       }
 
       public void addUpsertRecord(int recNo, String fakedResponseStatus) {
-          Element record = collection.createElement("record");
-          record.appendChild(createInstance(recNo, fakedResponseStatus));
-          records.add(record);
+          Element theRecord = collection.createElement("record");
+          theRecord.appendChild(createInstance(recNo, fakedResponseStatus));
+          records.add(theRecord);
       }
 
       public void addDeleteRecord(int hrid) {
-          Element record = collection.createElement("record");
-          record.appendChild(createDelete(hrid));
-          records.add(record);
+          Element theRecord = collection.createElement("record");
+          theRecord.appendChild(createDelete(hrid));
+          records.add(theRecord);
       }
 
       public Document asDocument() {
-          for (Element record : records) {
-              collection.getDocumentElement().appendChild(record);
+          for (Element theRecord : records) {
+              collection.getDocumentElement().appendChild(theRecord);
           }
           return collection;
       }
@@ -154,7 +154,7 @@ public class Files {
           instance.appendChild(createTextElement("source", "SAMPLES-"+fakedResponseStatus));
           instance.appendChild(createTextElement("hrid", recNo));
           instance.appendChild(createTextElement("title", "Title " + recNo));
-          instance.appendChild(createTextElement("instanceTypeId", instanceTypeId));
+          instance.appendChild(createTextElement("instanceTypeId", INSTANCE_TYPE_ID));
           return instance;
       }
 

@@ -11,8 +11,8 @@ import java.nio.charset.StandardCharsets;
 import java.util.*;
 
 public abstract class RecordStorage {
-    public final static String TOTAL_RECORDS = "totalRecords";
-    public final String STORAGE_NAME = getClass().getSimpleName();
+    public static final String TOTAL_RECORDS = "totalRecords";
+    public final String storageName = getClass().getSimpleName();
     public boolean failOnDelete = false;
     public boolean failOnCreate = false;
     public boolean failOnUpdate = false;
@@ -40,12 +40,12 @@ public abstract class RecordStorage {
     protected abstract String getResultSetName();
 
     // INTERNAL DATABASE OPERATIONS - insert() IS DECLARED PUBLIC SO THE TEST SUITE CAN INITIALIZE DATA OUTSIDE THE API.
-    public StorageResponse insert (FolioApiRecord FolioApiRecord) {
-        Resp validation = validateCreate(FolioApiRecord);
+    public StorageResponse insert (FolioApiRecord folioApiRecord) {
+        Resp validation = validateCreate(folioApiRecord);
 
         if (validation.statusCode == 201) {
-            FolioApiRecord.setFirstVersion();
-            records.put(FolioApiRecord.getId(), FolioApiRecord);
+            folioApiRecord.setFirstVersion();
+            records.put(folioApiRecord.getId(), folioApiRecord);
         }
         return new StorageResponse(validation.statusCode, validation.message);
     }
@@ -59,74 +59,77 @@ public abstract class RecordStorage {
         }
     }
 
-    public Resp validateCreate(FolioApiRecord FolioApiRecord) {
+    public Resp validateCreate(FolioApiRecord folioApiRecord) {
         if (failOnCreate) {
             return new Resp(500, "forced fail");
         }
-        if (!FolioApiRecord.hasId()) {
-            FolioApiRecord.generateId();
+        if (!folioApiRecord.hasId()) {
+            folioApiRecord.generateId();
         }
-        if (records.containsKey(FolioApiRecord.getId())) {
-            logger.error("Fake record storage already contains a record with id " + FolioApiRecord.getId() + ", cannot create " + FolioApiRecord.getJson().encodePrettily());
-            return new Resp(400, "Record storage already contains a record with id " + FolioApiRecord.getId());
+        if (records.containsKey(folioApiRecord.getId())) {
+            logger.error("Fake record storage already contains a record with id {}, cannot create {}",
+                folioApiRecord.getId(), folioApiRecord.getJson().encodePrettily());
+            return new Resp(400, "Record storage already contains a record with id " + folioApiRecord.getId());
         }
         for (FolioApiRecord existingRecord : records.values()) {
             for (String nameOfUniqueProperty : uniqueProperties) {
-                if (FolioApiRecord.getStringValue(nameOfUniqueProperty) != null && existingRecord.getStringValue(nameOfUniqueProperty) != null ) {
-                    if (FolioApiRecord.getStringValue(nameOfUniqueProperty).equals(existingRecord.getStringValue(nameOfUniqueProperty))) {
-                        return new Resp(400,  this.STORAGE_NAME +" already contains a record with " + nameOfUniqueProperty + " = " + FolioApiRecord.getStringValue(nameOfUniqueProperty));
-                    }
+                if (folioApiRecord.getStringValue(nameOfUniqueProperty) != null
+                    && existingRecord.getStringValue(nameOfUniqueProperty) != null
+                    && folioApiRecord.getStringValue(nameOfUniqueProperty).equals(existingRecord.getStringValue(nameOfUniqueProperty))) {
+                        return new Resp(400,  this.storageName +" already contains a record with " + nameOfUniqueProperty + " = " + folioApiRecord.getStringValue(nameOfUniqueProperty));
                 }
             }
         }
         logger.debug("Checking foreign keys");
-        logger.debug("Got " + masterEntities.size() + " foreign keys");
+        logger.debug("Got {} foreign keys", masterEntities.size());
         for (ForeignKey fk : masterEntities) {
-            if (! FolioApiRecord.getJson().containsKey(fk.getDependentPropertyName())) {
-                logger.error("Foreign key violation, record must contain " + fk.getDependentPropertyName());
+            if (! folioApiRecord.getJson().containsKey(fk.getDependentPropertyName())) {
+                logger.error("Foreign key violation, record must contain {}", fk.getDependentPropertyName());
                 return new Resp(422, "{\"errors\":[{\"message\":\"must not be null\",\"type\":\"1\",\"code\":\"-1\",\"parameters\":[{\"key\":\""+fk.getDependentPropertyName()+"\",\"value\":\"null\"}]}]}");
             }
-            if (!fk.getMasterStorage().hasId(FolioApiRecord.getJson().getString(fk.getDependentPropertyName()))) {
-                logger.error("Foreign key violation " + fk.getDependentPropertyName() + " not found in "+ fk.getMasterStorage().getResultSetName() + ", cannot create " + FolioApiRecord.getJson().encodePrettily());
+            if (!fk.getMasterStorage().hasId(folioApiRecord.getJson().getString(fk.getDependentPropertyName()))) {
+                logger.error("Foreign key violation {} not found in {}, cannot create {}",
+                    fk.getDependentPropertyName(), fk.getMasterStorage().getResultSetName(), folioApiRecord.getJson().encodePrettily());
                 logger.error(new JsonObject().encode());
                 return new Resp (500, new JsonObject("{ \"message\": \"insert or update on table \\\"storage_table\\\" violates foreign key constraint \\\"fkey\\\"\", \"severity\": \"ERROR\", \"code\": \"23503\", \"detail\": \"Key (property value)=(the id) is not present in table \\\"a_referenced_table\\\".\", \"file\": \"ri_triggers.c\", \"line\": \"3266\", \"routine\": \"ri_ReportViolation\", \"schema\": \"diku_mod_inventory_storage\", \"table\": \"storage_table\", \"constraint\": \"a_fkey\" }").encodePrettily());
             } else {
-                logger.debug("Found " + FolioApiRecord.getJson().getString(fk.getDependentPropertyName()) + " in " + fk.getMasterStorage().getResultSetName());
+                logger.debug("Found {} in {}",
+                    folioApiRecord.getJson().getString(fk.getDependentPropertyName()), fk.getMasterStorage().getResultSetName());
             }
         }
         for (String mandatory : mandatoryProperties) {
-            if (!FolioApiRecord.getJson().containsKey(mandatory)) {
+            if (!folioApiRecord.getJson().containsKey(mandatory)) {
                 return new Resp(422, new JsonObject("{\"message\" : {\n" + "      \"errors\" : [ {\n" + "        \"message\" : \"must not be null\",\n" + "        \"type\" : \"1\",\n" + "        \"code\" : \"javax.validation.constraints.NotNull.message\",\n" + "        \"parameters\" : [ {\n" + "          \"key\" : \"" + mandatory +"\",\n" + "          \"value\" : \"null\"\n" + "        } ]\n" + "      } ]\n" + "    }}").encodePrettily());
             }
         }
         return new Resp(201,"created");
     }
 
-    protected int update (String id, FolioApiRecord FolioApiRecord) {
+    protected int update (String id, FolioApiRecord folioApiRecord) {
 
-        Resp validation = validateUpdate(id, FolioApiRecord);
+        Resp validation = validateUpdate(id, folioApiRecord);
         if (validation.statusCode == 204) {
-            records.put(id, FolioApiRecord);
+            records.put(id, folioApiRecord);
         }
         return validation.statusCode;
     }
 
-    public Resp validateUpdate (String id, FolioApiRecord FolioApiRecord) {
+    public Resp validateUpdate (String id, FolioApiRecord folioApiRecord) {
         if (failOnUpdate) {
             return new Resp(500, "forced fail on update");
         }
-        if (FolioApiRecord.hasId() && !id.equals(FolioApiRecord.getId())) {
+        if (folioApiRecord.hasId() && !id.equals(folioApiRecord.getId())) {
             return new Resp(400, "Fake record storage received request to update a record at an ID that doesn't match the ID in the record");
         }
         if (! records.containsKey(id)) {
-            return new Resp(404,"Record not found, cannot update " + FolioApiRecord.getJson().encodePrettily());
+            return new Resp(404,"Record not found, cannot update " + folioApiRecord.getJson().encodePrettily());
         }
         for (ForeignKey fk : masterEntities) {
-            if (! FolioApiRecord.getJson().containsKey(fk.getDependentPropertyName())) {
+            if (! folioApiRecord.getJson().containsKey(fk.getDependentPropertyName())) {
                 return new Resp(422, "Foreign key violation, record must contain " + fk.getDependentPropertyName());
             }
-            if (!fk.getMasterStorage().hasId(FolioApiRecord.getJson().getString(fk.getDependentPropertyName()))) {
-                return new Resp(500, "Not found: "+ FolioApiRecord.getJson().getString(fk.getDependentPropertyName()) + " in " + fk.getMasterStorage().getResultSetName());
+            if (!fk.getMasterStorage().hasId(folioApiRecord.getJson().getString(fk.getDependentPropertyName()))) {
+                return new Resp(500, "Not found: "+ folioApiRecord.getJson().getString(fk.getDependentPropertyName()) + " in " + fk.getMasterStorage().getResultSetName());
             }
         }
         return new Resp(204,"");
@@ -135,15 +138,15 @@ public abstract class RecordStorage {
     protected int delete (String id) {
         if (failOnDelete) return 500;
         if (!records.containsKey(id)) {
-            logger.error("Record " + id + " not found, cannot delete");
+            logger.error("Record {} not found, cannot delete", id );
             return 404;
         }
-        logger.debug("Dependent entities: " + dependentEntities.size());
+        logger.debug("Dependent entities: {}", dependentEntities.size());
         for (ForeignKey fk : dependentEntities) {
-            logger.debug("Deleting. Checking dependent " + fk.getDependentStorage().getResultSetName());
-            logger.debug("Looking at property " + fk.getDependentPropertyName());
+            logger.debug("Deleting. Checking dependent {}", fk.getDependentStorage().getResultSetName());
+            logger.debug("Looking at property {}", fk.getDependentPropertyName());
             if (fk.getDependentStorage().hasValue(fk.getDependentPropertyName(), id)) {
-                logger.error("Foreign key violation " + records.get(id).getJson().toString() + " has a dependent record in " + fk.getDependentStorage().getResultSetName());
+                logger.error("Foreign key violation, {} has a dependent record in {}", records.get(id).getJson().toString(), fk.getDependentStorage().getResultSetName());
                 return 400;
             }
         }
@@ -179,9 +182,9 @@ public abstract class RecordStorage {
      * @return true if value exists
      */
     protected boolean hasValue (String fkPropertyName, String value) {
-        for (FolioApiRecord FolioApiRecord : records.values()) {
-            logger.debug("Checking " + FolioApiRecord.getJson().toString() + " for value " + value);
-            if (FolioApiRecord.getJson().containsKey(fkPropertyName) && FolioApiRecord.getJson().getString(fkPropertyName).equals(value)) {
+        for (FolioApiRecord folioApiRecord : records.values()) {
+            logger.debug("Checking {} for value {}", folioApiRecord.getJson().toString(), value);
+            if (folioApiRecord.getJson().containsKey(fkPropertyName) && folioApiRecord.getJson().getString(fkPropertyName).equals(value)) {
                 return true;
             }
         }
@@ -189,7 +192,7 @@ public abstract class RecordStorage {
     }
 
     // USED BY A DEPENDENT ENTITY TO SET UP ITS FOREIGN KEYS BY CALLS to acceptDependant()
-    protected abstract void declareDependencies();
+    protected void declareDependencies() {}
 
     // METHOD ON THE PRIMARY KEY ENTITY TO REGISTER DEPENDENT ENTITIES
     protected void acceptDependant(RecordStorage dependentEntity, String dependentPropertyName) {
@@ -202,7 +205,7 @@ public abstract class RecordStorage {
         masterEntities.add(fk);
     }
 
-    protected abstract void declareMandatoryProperties ();
+    protected void declareMandatoryProperties () {}
 
     protected void declareUniqueProperties () {}
     // API REQUEST HANDLERS
@@ -227,12 +230,12 @@ public abstract class RecordStorage {
      */
     protected void getRecordById(RoutingContext routingContext) {
         final String id = routingContext.pathParam("id");
-        FolioApiRecord FolioApiRecord = getRecord(id);
+        FolioApiRecord folioApiRecord = getRecord(id);
 
-        if (FolioApiRecord != null) {
-            respond(routingContext, FolioApiRecord.getJson(), 200);
+        if (folioApiRecord != null) {
+            respond(routingContext, folioApiRecord.getJson(), 200);
         } else {
-            respondWithMessage(routingContext, (failOnGetRecordById ? "Forced error on get from " : "No record with ID " + id + " in ") + STORAGE_NAME, 404);
+            respondWithMessage(routingContext, (failOnGetRecordById ? "Forced error on get from " : "No record with ID " + id + " in ") + storageName, 404);
         }
     }
 
@@ -246,7 +249,7 @@ public abstract class RecordStorage {
         if (code == 200) {
             respond(routingContext, new JsonObject(), code);
         } else {
-            respondWithMessage(routingContext, (failOnDelete ? "Forced " : "") + "Error deleting from " + STORAGE_NAME, code);
+            respondWithMessage(routingContext, (failOnDelete ? "Forced " : "") + "Error deleting from " + storageName, code);
         }
     }
 
@@ -288,7 +291,7 @@ public abstract class RecordStorage {
         if (code == 204) {
             respond(routingContext, code);
         } else {
-            respondWithMessage(routingContext, (failOnUpdate ? "Forced " : "") + "Error updating record in " + STORAGE_NAME, code);
+            respondWithMessage(routingContext, (failOnUpdate ? "Forced " : "") + "Error updating record in " + storageName, code);
         }
     }
 
@@ -298,9 +301,9 @@ public abstract class RecordStorage {
         if (failOnGetRecords) return null;
         JsonObject response = new JsonObject();
         JsonArray jsonRecords = new JsonArray();
-        getRecords().forEach( FolioApiRecord -> {
-            if (optionalQuery == null || FolioApiRecord.match(optionalQuery)) {
-                jsonRecords.add(FolioApiRecord.getJson());
+        getRecords().forEach( folioApiRecord -> {
+            if (optionalQuery == null || folioApiRecord.match(optionalQuery)) {
+                jsonRecords.add(folioApiRecord.getJson());
             }});
         response.put(getResultSetName(), jsonRecords);
         response.put(TOTAL_RECORDS, jsonRecords.size());

@@ -64,7 +64,7 @@ public class StorageValidatorHoldingsRecords {
     }
 
     protected void validateCannotPostWithBadInstanceId (TestContext testContext) {
-        JsonObject responseOnPOST = FakeFolioApis.post(
+        FakeFolioApis.post(
                 HOLDINGS_STORAGE_PATH,
                 new InputHoldingsRecord().setInstanceId(NON_EXISTING_INSTANCE_ID).setPermanentLocationId(InventoryUpdateTestBase.LOCATION_ID_1).setCallNumber(FIRST_CALL_NUMBER).getJson(),
                 500);
@@ -77,7 +77,7 @@ public class StorageValidatorHoldingsRecords {
     }
 
     protected void validateCannotPostWithBadLocationId (TestContext testContext) {
-        JsonObject responseOnPOST = FakeFolioApis.post(
+        FakeFolioApis.post(
                 HOLDINGS_STORAGE_PATH,
                 new InputHoldingsRecord().setInstanceId(existingInstanceId).setPermanentLocationId("BAD_LOCATION").setCallNumber(FIRST_CALL_NUMBER).getJson(),
                 500);

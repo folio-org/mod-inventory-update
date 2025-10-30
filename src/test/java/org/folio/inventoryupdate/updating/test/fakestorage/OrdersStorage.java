@@ -6,13 +6,4 @@ public class OrdersStorage extends RecordStorage {
     return PO_LINES;
   }
 
-  @Override
-  protected void declareDependencies() {
-
-  }
-
-  @Override
-  protected void declareMandatoryProperties() {
-
-  }
 }

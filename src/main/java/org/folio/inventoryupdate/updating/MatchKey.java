@@ -30,17 +30,12 @@ public class MatchKey {
 
   static {
     typeOfMap = new HashMap<>();
-    // typeOfMap.put("6312d172-f0cf-40f6-b27d-9fa8feaf332f", "a");
-    // typeOfMap.put("497b5090-3da2-486c-b57f-de5bb3c2e26d", "c");
     typeOfMap.put("497b5090-3da2-486c-b57f-de5bb3c2e26d", "d"); // notated music
     typeOfMap.put("526aa04d-9289-4511-8866-349299592c18", "e"); // cartographic image
-    // typeOfMap.put("a2c91e87-6bab-44d6-8adb-1fd02481fc4f", "f");
     typeOfMap.put("535e3160-763a-42f9-b0c0-d8ed7df6e2a2", "g"); // still image
     typeOfMap.put("9bce18bd-45bf-4949-8fa8-63163e4b7d7f", "i"); // sounds
     typeOfMap.put("3be24c14-3551-4180-9292-26a786649c8b", "j"); // performed music
-    // typeOfMap.put("a2c91e87-6bab-44d6-8adb-1fd02481fc4f", "k");
     typeOfMap.put("df5dddff-9c30-4507-8b82-119ff972d4d7", "m"); // computer dataset
-    // typeOfMap.put("a2c91e87-6bab-44d6-8adb-1fd02481fc4f", "o");
     typeOfMap.put("a2c91e87-6bab-44d6-8adb-1fd02481fc4f", "p"); // other
     typeOfMap.put("c1e95c2b-4efc-48cf-9e71-edb622cf0c22", "r"); // three-dimensional form
     typeOfMap.put("6312d172-f0cf-40f6-b27d-9fa8feaf332f", "t"); // text
@@ -102,44 +97,53 @@ public class MatchKey {
     return title;
   }
 
+  private static final Pattern splitEx = Pattern.compile(" +");
   private static String get70chars (String input) {
-    String output = "";
+    StringBuilder output = new StringBuilder();
     if (input != null && input.length()<70) {
-      output = String.format("%-70s", input).replace(" ", "_");
+      output = new StringBuilder(String.format("%-70s", input).replace(" ", "_"));
     } else if (input != null) {
-      output = input.substring(0,45);
-      String[] rest = input.substring(45).split("[ ]+");
+      output = new StringBuilder(input.substring(0,45));
+      String[] rest = input.substring(45).split(splitEx.pattern());
       for (int i=0; i<rest.length; i++) {
         if (output.length()<70) {
-          output = output + (rest[i].length()>0 ? rest[i].substring(0,1) : "");
+          output.append(!rest[i].isEmpty() ? rest[i].substring(0,1) : "");
         }
       }
       if (output.length()<70) {
-        output = String.format("%-70s", output).replace(" ", "_");
+        output = new StringBuilder(String.format("%-70s", output).replace(" ", "_"));
       }
     }
-    return output;
+    return output.toString();
   }
 
 
+  private static final Pattern regA = Pattern.compile("^[aA] +");
+  private static final Pattern regAn = Pattern.compile("^[aA]n +");
+  private static final Pattern regThe = Pattern.compile("^[tT]he +");
+  private static final Pattern regCurly = Pattern.compile("['{}]");
+  private static final Pattern regAnd = Pattern.compile("&");
+  private static final Pattern regSpecials = Pattern.compile("[#*$@<>\\[\\]\"\\\\,.?:()=^~|©;`-]");
   private static String stripTrimLowercase(String input) {
     String output = null;
     if (input != null) {
-      input = input.replaceFirst("^[aA][ ]+", "");
-      input = input.replaceFirst("^[aA]n[ ]+", "");
-      input = input.replaceFirst("^[tT]he[ ]+", "");
-      input = input.replaceAll("['{}]", "");
-      input = input.replace("&", "and");
-      output = input.replaceAll("[#*$@<>\\[\\]\"\\\\,.?:()=^~|©;`-]", " ").trim().toLowerCase();
+      input = input.replaceFirst(regA.pattern(),"");
+      input = input.replaceFirst(regAn.pattern(), "");
+      input = input.replaceFirst(regThe.pattern(), "");
+      input = input.replaceAll(regCurly.pattern(), "");
+      input = input.replace(regAnd.pattern(), "and");
+      output = input.replaceAll(regSpecials.pattern(), " ").trim().toLowerCase();
     }
     return output;
   }
 
+
+  private static final Pattern regAccent = Pattern.compile("[^\\p{ASCII}]");
 
   private static String unaccent(String str) {
     return (str == null ? str :
             Normalizer.normalize(str, Normalizer.Form.NFD)
-                    .replaceAll("[^\\p{ASCII}]", ""));
+                    .replaceAll(regAccent.pattern(), ""));
   }
 
   private static final List<Pattern> CONTIGUOUS_CHARS_REGEXS =
@@ -148,7 +152,7 @@ public class MatchKey {
         Pattern.compile(".*?(\\p{Alnum}{4}).*"),
         Pattern.compile(".*?(\\p{Alnum}{3}).*"),
         Pattern.compile(".*?(\\p{Alnum}{2}).*"),
-        Pattern.compile(".*?(\\p{Alnum}{1}).*")
+        Pattern.compile(".*?(\\p{Alnum}).*")
       );
 
   protected static String get5chars(String input) {
@@ -352,7 +356,7 @@ public class MatchKey {
     String physicalDescription = "";
     JsonArray physicalDescriptions = candidateInstance.getJsonArray("physicalDescriptions");
     if (physicalDescriptions != null && !physicalDescriptions.getList().isEmpty()) {
-      String physicalDescriptionSource = physicalDescriptions.getList().get(0).toString();
+      String physicalDescriptionSource = physicalDescriptions.getList().getFirst().toString();
       physicalDescriptionSource = unaccent(physicalDescriptionSource);
       Matcher m = PAGINATION_REGEX.matcher(physicalDescriptionSource);
       if (m.matches()) {
@@ -370,17 +374,17 @@ public class MatchKey {
       Arrays.asList(
         Pattern.compile(".*?(\\d{3}).*"),
         Pattern.compile(".*?(\\d{2}).*"),
-        Pattern.compile(".*?(\\d{1}).*"),
+        Pattern.compile(".*?(\\d).*"),
         Pattern.compile(".*?(\\p{Alpha}{3}).*"),
         Pattern.compile(".*?(\\p{Alpha}{2}).*"),
-        Pattern.compile(".*?(\\p{Alpha}{1}).*")
+        Pattern.compile(".*?(\\p{Alpha}).*")
       );
 
   public String getEdition() {
     String edition = "";
     JsonArray editions = candidateInstance.getJsonArray("editions");
     if (editions != null && !editions.getList().isEmpty()) {
-      String editionSource = editions.getList().get(0).toString();
+      String editionSource = editions.getList().getFirst().toString();
       editionSource = unaccent(editionSource);
       Matcher m;
       for (Pattern p : EDITION_REGEXS) {

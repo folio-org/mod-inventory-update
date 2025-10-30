@@ -6,6 +6,10 @@ import java.time.temporal.ChronoUnit;
 public class SettableClock {
     private static java.time.Clock clock = java.time.Clock.systemUTC();
 
+    private SettableClock() {
+      throw new IllegalStateException("Utility class");
+    }
+
     /**
      * Set the clock assigned to the clock manager to a given clock.
      */

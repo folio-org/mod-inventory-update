@@ -39,10 +39,10 @@ public class XmlFileListener extends FileListener {
                     new DeploymentOptions().setWorkerPoolSize(1).setMaxWorkerExecuteTime(10).setMaxWorkerExecuteTimeUnit(TimeUnit.MINUTES)).onComplete(
                     started -> {
                         if (started.succeeded()) {
-                            logger.info("Started verticle [" + started.result() + "] for [" + request.tenant() + "] and configuration ID [" + importConfigurationId + "].");
+                            logger.info("Started verticle [{}] for [{}] and configuration ID [{}].", started.result(), request.tenant(), importConfigurationId);
                             promise.complete("Started verticle [" + started.result() + "] for configuration ID [" + importConfigurationId + "].");
                         } else {
-                            logger.error("Couldn't start file processor verticle for tenant [" + request.tenant() + "] and import configuration ID [" + importConfigurationId + "].");
+                            logger.error("Couldn't start file processor verticle for tenant [{}] and import configuration ID [{}].",request.tenant(),importConfigurationId);
                             promise.fail("Couldn't start file processor verticle for import configuration ID [" + importConfigurationId + "].");
                         }
                     });
@@ -54,8 +54,8 @@ public class XmlFileListener extends FileListener {
 
     @Override
     public void start() {
-        logger.info("Listening for files to forward for processing by job configuration ID [" + importConfigurationId + "], tenant [ " + tenant + "] .");
-        vertx.setPeriodic(200, (r) -> {
+        logger.info("Listening for files to forward for processing by job configuration ID [{}}], tenant [{}}].", importConfigurationId, tenant);
+        vertx.setPeriodic(200, r -> {
             if (!importJobPaused()) {
                 File currentFile = getNextFileIfPossible();
                 if (currentFile != null) {  // null if queue is empty or a previous file is still processing
@@ -68,7 +68,7 @@ public class XmlFileListener extends FileListener {
                                     fileQueue.deleteFile(currentFile);
                                 }
                             })
-                            .onFailure(f -> logger.error("Error processing file: " + f.getMessage()));
+                            .onFailure(f -> logger.error("Error processing file: {}", f.getMessage()));
                 }
             }
         });

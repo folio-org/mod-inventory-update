@@ -11,7 +11,7 @@ public class RequestValidation {
     List<ErrorReport> errors = new ArrayList<>();
 
     public boolean hasErrors () {
-        return errors.size()>0;
+        return !errors.isEmpty();
     }
 
     public boolean passed() {
@@ -27,23 +27,23 @@ public class RequestValidation {
     }
 
     public InventoryRecord.Entity firstEntityType () {
-        return (hasErrors() ? errors.get(0).getEntityType() : null);
+        return (hasErrors() ? errors.getFirst().getEntityType() : null);
     }
 
     public String firstMessage() {
-        return (hasErrors() ? errors.get(0).getMessageAsString() : "");
+        return (hasErrors() ? errors.getFirst().getMessageAsString() : "");
     }
 
     public String firstShortMessage() {
-        return (hasErrors() ? errors.get(0).getShortMessage() : "");
+        return (hasErrors() ? errors.getFirst().getShortMessage() : "");
     }
 
     public JsonObject firstEntity () {
-        return (hasErrors() ? errors.get(0).getEntity() : new JsonObject());
+        return (hasErrors() ? errors.getFirst().getEntity() : new JsonObject());
     }
 
     public JsonObject getFirstRequestJson () {
-        return hasErrors() ? errors.get(0).getRequestJson() : new JsonObject();
+        return hasErrors() ? errors.getFirst().getRequestJson() : new JsonObject();
 
     }
 

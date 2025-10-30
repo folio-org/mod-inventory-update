@@ -14,19 +14,25 @@ import java.util.Map;
 import java.util.UUID;
 
 public class LogLine extends Entity {
-    public LogLine.LogLineRecord record;
+    LogLineRecord theRecord;
     public record LogLineRecord(UUID id, UUID importJobId, UUID importConfigId, String importConfigName, String timeStamp, String jobLabel, String line) {}
 
     public LogLine() {}
 
     public LogLine(UUID id, UUID importJobId, UUID importConfigId, String importConfigName, String timeStamp, String jobLabel, String line) {
-        record = new LogLineRecord(id, importJobId, importConfigId, importConfigName, timeStamp, jobLabel, line);
+        theRecord = new LogLineRecord(id, importJobId, importConfigId, importConfigName, timeStamp, jobLabel, line);
     }
 
     // Static map of Entity Fields.
     private static final Map<String, Field> FIELDS = new HashMap<>();
-    public static final String ID="ID", IMPORT_JOB_ID="IMPORT_JOB_ID", VIEW_IMPORT_CONFIG_ID = "IMPORT_CONFIG_ID", VIEW_IMPORT_CONFIG_NAME = "IMPORT_CONFIG_NAME",
-        TIME_STAMP="TIME_STAMP", JOB_LABEL="JOB_LABEL", LOG_STATEMENT="LOG_STATEMENT";
+    public static final String ID = "ID";
+    public static final String IMPORT_JOB_ID="IMPORT_JOB_ID";
+    public static final String VIEW_IMPORT_CONFIG_ID = "IMPORT_CONFIG_ID";
+    public static final String VIEW_IMPORT_CONFIG_NAME = "IMPORT_CONFIG_NAME";
+    public static final String TIME_STAMP="TIME_STAMP";
+    public static final String JOB_LABEL="JOB_LABEL";
+    public static final String LOG_STATEMENT="LOG_STATEMENT";
+
     static {
         FIELDS.put(ID, new Field("id", "id", PgColumn.Type.UUID, false, false, true));
         FIELDS.put(IMPORT_JOB_ID, new Field("importJobId", "import_job_id", PgColumn.Type.UUID, false, true));
@@ -55,7 +61,7 @@ public class LogLine extends Entity {
 
     @Override
     public Tables table() {
-        return Tables.log_statement;
+        return Tables.LOG_STATEMENT;
     }
 
     @Override
@@ -73,6 +79,7 @@ public class LogLine extends Entity {
     /**
      * INSERT INTO statement.
      */
+    @Override
     public String makeInsertTemplate(String schema) {
         return "INSERT INTO " + schema + "." + table()
                 + " ("
@@ -97,7 +104,7 @@ public class LogLine extends Entity {
     public TupleMapper<Entity> getTupleMapper() {
         return TupleMapper.mapper(
                 entity -> {
-                    LogLineRecord rec = ((LogLine) entity).record;
+                    LogLineRecord rec = ((LogLine) entity).theRecord;
                     Map<String, Object> parameters = new HashMap<>();
                     parameters.put(dbColumnName(ID), rec.id);
                     parameters.put(dbColumnName(IMPORT_JOB_ID), rec.importJobId);
@@ -115,7 +122,7 @@ public class LogLine extends Entity {
     }
 
     public String toString() {
-        return String.format("%s %s %s",record.timeStamp, record.jobLabel, record.line);
+        return String.format("%s %s %s", theRecord.timeStamp, theRecord.jobLabel, theRecord.line);
     }
 
     @Override
@@ -136,13 +143,13 @@ public class LogLine extends Entity {
      */
     public JsonObject asJson() {
         JsonObject json = new JsonObject();
-        json.put(jsonPropertyName(ID), record.id);
-        json.put(jsonPropertyName(IMPORT_JOB_ID), record.importJobId);
-        json.put(jsonPropertyName(VIEW_IMPORT_CONFIG_ID), record.importConfigId);
-        json.put(jsonPropertyName(VIEW_IMPORT_CONFIG_NAME), record.importConfigName);
-        json.put(jsonPropertyName(TIME_STAMP), record.timeStamp);
-        json.put(jsonPropertyName(JOB_LABEL), record.jobLabel);
-        json.put(jsonPropertyName(LOG_STATEMENT), record.line);
+        json.put(jsonPropertyName(ID), theRecord.id);
+        json.put(jsonPropertyName(IMPORT_JOB_ID), theRecord.importJobId);
+        json.put(jsonPropertyName(VIEW_IMPORT_CONFIG_ID), theRecord.importConfigId);
+        json.put(jsonPropertyName(VIEW_IMPORT_CONFIG_NAME), theRecord.importConfigName);
+        json.put(jsonPropertyName(TIME_STAMP), theRecord.timeStamp);
+        json.put(jsonPropertyName(JOB_LABEL), theRecord.jobLabel);
+        json.put(jsonPropertyName(LOG_STATEMENT), theRecord.line);
         return json;
     }
 
@@ -154,7 +161,7 @@ public class LogLine extends Entity {
                 + "("
                 + dbColumnName(ID) + " UUID PRIMARY KEY, "
                 + dbColumnName(IMPORT_JOB_ID) + " UUID NOT NULL "
-                + " REFERENCES " + pool.getSchema() + "." + Tables.import_job + " (" + new ImportJob().dbColumnName(ID) + "), "
+                + " REFERENCES " + pool.getSchema() + "." + Tables.IMPORT_JOB + " (" + new ImportJob().dbColumnName(ID) + "), "
                 + dbColumnName(TIME_STAMP) + " TIMESTAMP NOT NULL, "
                 + dbColumnName(JOB_LABEL) + " TEXT NOT NULL, "
                 + dbColumnName(LOG_STATEMENT) + " TEXT NOT NULL"

@@ -31,11 +31,11 @@ public class PgColumn {
     this.name = name;
     this.type = type;
     this.isPrimaryKey = isPrimaryKey;
-    this.nullable = nullable ? "NULL" : "NOT NULL";
+    this.nullable = Boolean.TRUE.equals(nullable) ? "NULL" : "NOT NULL";
   }
 
   public String getColumnDdl() {
-    return name + " " + type + " " + (isPrimaryKey ? " PRIMARY KEY " : nullable);
+    return name + " " + type + " " + (Boolean.TRUE.equals(isPrimaryKey) ? " PRIMARY KEY " : nullable);
   }
 
   /**
@@ -43,8 +43,7 @@ public class PgColumn {
    */
   public PgCqlFieldBase pgCqlField() {
     switch (type) {
-      case INTEGER:
-      case BIGINT:
+      case INTEGER, BIGINT:
         return new PgCqlFieldNumber();
       case UUID:
         return new PgCqlFieldUuid();

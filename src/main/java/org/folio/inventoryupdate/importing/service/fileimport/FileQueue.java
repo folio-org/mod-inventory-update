@@ -25,8 +25,8 @@ public class FileQueue {
         if (!fs.existsBlocking(tenantRootDir)) {
             fs.mkdirBlocking(tenantRootDir);
         }
-        jobPath = tenantRootDir + "/" + jobConfigId;
-        pathToProcessingSlot = jobPath + "/" + HARVEST_JOB_FILE_PROCESSING_DIR;
+        jobPath = new File(tenantRootDir, jobConfigId).getPath();
+        pathToProcessingSlot = new File(jobPath, HARVEST_JOB_FILE_PROCESSING_DIR).getPath();
         if (! fs.existsBlocking(jobPath)) {
             fs.mkdirsBlocking(pathToProcessingSlot).mkdirBlocking(jobPath + "/tmp");
         }

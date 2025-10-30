@@ -13,8 +13,6 @@ import org.folio.tlib.postgres.cqlfield.*;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 public class RecordFailure extends Entity {
 
@@ -22,17 +20,24 @@ public class RecordFailure extends Entity {
 
     public RecordFailure(UUID id, UUID importJobId, UUID importConfigId, String importConfigName, String recordNumber,
                          String timeStamp, String originalRecord, JsonArray recordErrors, JsonObject transformedRecord) {
-        record = new FailedRecord(id, importJobId, importConfigId, importConfigName, recordNumber, timeStamp, originalRecord, recordErrors, transformedRecord);
+        theRecord = new FailedRecord(id, importJobId, importConfigId, importConfigName, recordNumber, timeStamp, originalRecord, recordErrors, transformedRecord);
     }
-    public FailedRecord record;
+    FailedRecord theRecord;
     public record FailedRecord(UUID id, UUID importJobId, UUID importConfigId, String importConfigName, String recordNumber,
                                String timeStamp, String originalRecord, JsonArray recordErrors, JsonObject transformedRecord) {}
 
     private static final Map<String, Field> FIELDS = new HashMap<>();
 
-    public static final String ID = "ID", IMPORT_JOB_ID = "IMPORT_JOB_ID", VIEW_IMPORT_CONFIG_ID = "IMPORT_CONFIG_ID", VIEW_IMPORT_CONFIG_NAME = "IMPORT_CONFIG_NAME",
-    RECORD_NUMBER = "RECORD_NUMBER", TIME_STAMP = "TIME_STAMP", ORIGINAL_RECORD = "ORIGINAL_RECORD", RECORD_ERRORS = "RECORD_ERRORS",
-    TRANSFORMED_RECORD = "TRANSFORMED_RECORD";
+    public static final String ID = "ID";
+    public static final String IMPORT_JOB_ID = "IMPORT_JOB_ID";
+    public static final String VIEW_IMPORT_CONFIG_ID = "IMPORT_CONFIG_ID";
+    public static final String VIEW_IMPORT_CONFIG_NAME = "IMPORT_CONFIG_NAME";
+    public static final String RECORD_NUMBER = "RECORD_NUMBER";
+    public static final String TIME_STAMP = "TIME_STAMP";
+    public static final String ORIGINAL_RECORD = "ORIGINAL_RECORD";
+    public static final String RECORD_ERRORS = "RECORD_ERRORS";
+    public static final String TRANSFORMED_RECORD = "TRANSFORMED_RECORD";
+
     static {
         FIELDS.put(ID, new Field("id", "id", PgColumn.Type.UUID, false, true, true));
         FIELDS.put(IMPORT_JOB_ID, new Field("importJobId", "import_job_id", PgColumn.Type.UUID, false, true));
@@ -52,7 +57,7 @@ public class RecordFailure extends Entity {
      */
     @Override
     public Tables table() {
-        return Tables.record_failure;
+        return Tables.RECORD_FAILURE;
     }
 
     /**
@@ -67,20 +72,6 @@ public class RecordFailure extends Entity {
 
 
     private static final String DATE_FORMAT = "YYYY-MM-DD''T''HH24:MI:SS,MS";
-
-    static Map<String,String> months = Stream.of(new String[][] {
-            {"Jan", "01"},
-            {"Feb", "02"},
-            {"Mar", "03"},
-            {"Apr", "04"},
-            {"May", "05"},
-            {"Jun", "06"},
-            {"Jul", "07"},
-            {"Aug", "08"},
-            {"Sep", "09"},
-            {"Oct", "10"},
-            {"Nov", "11"},
-            {"Dec", "12"}}).collect(Collectors.toMap(month -> month[0], month -> month[1]));
 
     /**
      * Maps rows from RECORD_FAILURE_VIEW to RecordFailure object.
@@ -100,7 +91,7 @@ public class RecordFailure extends Entity {
 
     @Override
     public String makeInsertTemplate(String schema) {
-        return "INSERT INTO " + schema + "." + Tables.record_failure
+        return "INSERT INTO " + schema + "." + Tables.RECORD_FAILURE
                 + " ("
                 + dbColumnName(ID) + ", "
                 + dbColumnName(IMPORT_JOB_ID) + ", "
@@ -125,7 +116,7 @@ public class RecordFailure extends Entity {
     public TupleMapper<Entity> getTupleMapper() {
         return TupleMapper.mapper(
                 entity -> {
-                    RecordFailure.FailedRecord rec = ((RecordFailure) entity).record;
+                    RecordFailure.FailedRecord rec = ((RecordFailure) entity).theRecord;
                     Map<String, Object> parameters = new HashMap<>();
                     parameters.put(dbColumnName(ID), rec.id);
                     parameters.put(dbColumnName(IMPORT_JOB_ID), rec.importJobId);
@@ -196,15 +187,15 @@ public class RecordFailure extends Entity {
      */
     public JsonObject asJson() {
         JsonObject json = new JsonObject();
-        json.put(jsonPropertyName(ID), record.id);
-        json.put(jsonPropertyName(IMPORT_JOB_ID), record.importJobId);
-        json.put(jsonPropertyName(VIEW_IMPORT_CONFIG_ID), record.importConfigId);
-        json.put(jsonPropertyName(VIEW_IMPORT_CONFIG_NAME), record.importConfigName);
-        json.put(jsonPropertyName(RECORD_NUMBER), record.recordNumber);
-        json.put(jsonPropertyName(TIME_STAMP), record.timeStamp);
-        json.put(jsonPropertyName(RECORD_ERRORS), record.recordErrors);
-        json.put(jsonPropertyName(ORIGINAL_RECORD), record.originalRecord);
-        json.put(jsonPropertyName(TRANSFORMED_RECORD), record.transformedRecord);
+        json.put(jsonPropertyName(ID), theRecord.id);
+        json.put(jsonPropertyName(IMPORT_JOB_ID), theRecord.importJobId);
+        json.put(jsonPropertyName(VIEW_IMPORT_CONFIG_ID), theRecord.importConfigId);
+        json.put(jsonPropertyName(VIEW_IMPORT_CONFIG_NAME), theRecord.importConfigName);
+        json.put(jsonPropertyName(RECORD_NUMBER), theRecord.recordNumber);
+        json.put(jsonPropertyName(TIME_STAMP), theRecord.timeStamp);
+        json.put(jsonPropertyName(RECORD_ERRORS), theRecord.recordErrors);
+        json.put(jsonPropertyName(ORIGINAL_RECORD), theRecord.originalRecord);
+        json.put(jsonPropertyName(TRANSFORMED_RECORD), theRecord.transformedRecord);
         return json;
     }
 
@@ -216,7 +207,7 @@ public class RecordFailure extends Entity {
                 + "("
                 + dbColumnNameAndType(ID) + " PRIMARY KEY, "
                 + dbColumnNameAndType(IMPORT_JOB_ID) + " NOT NULL REFERENCES "
-                + pool.getSchema() + "." + Tables.import_job + "(" + new ImportJob().dbColumnName(ID) + "), "
+                + pool.getSchema() + "." + Tables.IMPORT_JOB + "(" + new ImportJob().dbColumnName(ID) + "), "
                 + dbColumnNameAndType(RECORD_NUMBER) + ", "
                 + dbColumnNameAndType(TIME_STAMP) + ", "
                 + dbColumnNameAndType(RECORD_ERRORS) + " NOT NULL, "

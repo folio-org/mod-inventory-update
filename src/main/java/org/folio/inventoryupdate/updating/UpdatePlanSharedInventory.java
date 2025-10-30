@@ -30,11 +30,15 @@ import static org.folio.inventoryupdate.updating.entities.InventoryRecordSet.*;
 
 public class UpdatePlanSharedInventory extends UpdatePlan {
 
-  public static final Map<String, String> locationsToInstitutionsMap = new HashMap<>();
+  static final Map<String, String> LOCATIONS_TO_INSTITUTIONS_MAP = new HashMap<>();
+  public static Map<String, String> locationsToInstitutionsMap () {
+    return LOCATIONS_TO_INSTITUTIONS_MAP;
+  }
 
   public UpdatePlanSharedInventory() {
     repository = new RepositoryByMatchKey();
   }
+
 
   @Override
   public Repository getNewRepository() {
@@ -209,7 +213,7 @@ public class UpdatePlanSharedInventory extends UpdatePlan {
       InventoryRecordSet updatingSet,
       InventoryRecordSet existingSet,
       Instance secondaryInstance) {
-    String institutionId = updatingSet.getInstitutionIdFromArbitraryHoldingsRecord(locationsToInstitutionsMap);
+    String institutionId = updatingSet.getInstitutionIdFromArbitraryHoldingsRecord(LOCATIONS_TO_INSTITUTIONS_MAP);
     List<HoldingsRecord> existingHoldingsRecords = new ArrayList<>();
     if (existingSet != null) {
       existingHoldingsRecords.addAll(existingSet.getHoldingsRecords());
@@ -218,8 +222,8 @@ public class UpdatePlanSharedInventory extends UpdatePlan {
       existingHoldingsRecords.addAll(secondaryInstance.getHoldingsRecords());
     }
     for (HoldingsRecord existingHoldingsRecord : existingHoldingsRecords) {
-      if (existingHoldingsRecord.getInstitutionId(locationsToInstitutionsMap) != null
-          && existingHoldingsRecord.getInstitutionId(locationsToInstitutionsMap)
+      if (existingHoldingsRecord.getInstitutionId(LOCATIONS_TO_INSTITUTIONS_MAP) != null
+          && existingHoldingsRecord.getInstitutionId(LOCATIONS_TO_INSTITUTIONS_MAP)
           .equals(institutionId)) {
         existingHoldingsRecord.setTransition(Transaction.DELETE);
         for (Item item : existingHoldingsRecord.getItems()) {

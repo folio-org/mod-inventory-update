@@ -5,9 +5,9 @@ import io.vertx.core.json.JsonObject;
 
 public class InputItem extends InventoryRecord {
 
-    public static String HRID = "hrid";
-    public static String BARCODE = "barcode";
-    public static String HOLDINGS_RECORD_ID = "holdingsRecordId";
+    public static final String HRID = "hrid";
+    public static final String BARCODE = "barcode";
+    public static final String HOLDINGS_RECORD_ID = "holdingsRecordId";
 
     public InputItem setHrid (String hrid) {
         recordJson.put(HRID,hrid);

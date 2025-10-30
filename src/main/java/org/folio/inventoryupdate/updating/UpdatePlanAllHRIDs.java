@@ -64,7 +64,7 @@ public class UpdatePlanAllHRIDs extends UpdatePlan {
         if (inventoryRecordSet.containsKey(HOLDINGS_RECORDS)) {
             inventoryRecordSet.getJsonArray(HOLDINGS_RECORDS)
                     .stream()
-                    .map( rec -> (JsonObject) rec)
+                    .map(JsonObject.class::cast)
                     .forEach( holdingsRecord -> {
                         if (!holdingsRecord.containsKey(HRID_IDENTIFIER_KEY)) {
                             logger.error("Holdings Records must have a HRID to be processed by this API. Received: {}", holdingsRecord.encodePrettily());
@@ -82,7 +82,7 @@ public class UpdatePlanAllHRIDs extends UpdatePlan {
                         if (holdingsRecord.containsKey(ITEMS)) {
                             holdingsRecord.getJsonArray(ITEMS)
                                     .stream()
-                                    .map(item -> (JsonObject) item)
+                                    .map(JsonObject.class::cast)
                                     .forEach(item -> {
                                         if (!item.containsKey(HRID_IDENTIFIER_KEY)) {
                                             logger.error("Items must have a HRID to be processed by this API. Received: {}", item.encodePrettily());

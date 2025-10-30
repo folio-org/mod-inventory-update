@@ -138,7 +138,7 @@ public class RepositoryByMatchKey extends Repository {
               if (instance.succeeded()) {
                 if (instance.result() != null) {
                     Instance inst = new Instance(instance.result());
-                    secondaryInstancesByLocalIdentifier.put(query.localIdentifier, inst);
+                    secondaryInstancesByLocalIdentifier.put(query.localIdentifier(), inst);
                     existingInstancesByUUID.put(inst.getUUID(),inst);
                 }
                 promise.complete();
@@ -155,7 +155,7 @@ public class RepositoryByMatchKey extends Repository {
     for (PairedRecordSets pair : pairsOfRecordSets) {
       if (pair.hasIncomingRecordSet()) {
         for (HoldingsRecord holdings : pair.getIncomingRecordSet().getHoldingsRecords()) {
-          if (!UpdatePlanSharedInventory.locationsToInstitutionsMap
+          if (!UpdatePlanSharedInventory.locationsToInstitutionsMap()
                   .containsKey(holdings.getPermanentLocationId())) {
             missMappings = true;
             break;
@@ -164,7 +164,7 @@ public class RepositoryByMatchKey extends Repository {
       }
       if (pair.hasExistingRecordSet()) {
         for (HoldingsRecord holdings : pair.getIncomingRecordSet().getHoldingsRecords()) {
-          if (!UpdatePlanSharedInventory.locationsToInstitutionsMap
+          if (!UpdatePlanSharedInventory.locationsToInstitutionsMap()
                   .containsKey(holdings.getPermanentLocationId())) {
             missMappings = true;
             break;
@@ -189,7 +189,7 @@ public class RepositoryByMatchKey extends Repository {
             Iterator<?> locationsIterator = locationsJson.iterator();
             while (locationsIterator.hasNext()) {
               JsonObject location = (JsonObject) locationsIterator.next();
-              UpdatePlanSharedInventory.locationsToInstitutionsMap.put(location.getString("id"), location.getString("institutionId"));
+              UpdatePlanSharedInventory.locationsToInstitutionsMap().put(location.getString("id"), location.getString("institutionId"));
             }
             mapReady.complete();
           }

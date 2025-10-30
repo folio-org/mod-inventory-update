@@ -261,7 +261,8 @@ public abstract class InventoryRecord {
         return this.outcome == Outcome.SKIPPED;
     }
 
-    public abstract void prepareCheckedDeletion ();
+    public void prepareCheckedDeletion () {
+    }
 
     public void logError (String error, int statusCode, ErrorReport.ErrorCategory category, JsonObject originJson) {
         Object message = maybeJson(error);
@@ -292,9 +293,8 @@ public abstract class InventoryRecord {
 
     protected String findShortMessage (Object inventoryMessage) {
         String shortMessage;
-        if (inventoryMessage instanceof JsonObject) {
-            JsonObject jsonFormattedError = (JsonObject)inventoryMessage;
-            if (jsonFormattedError.containsKey(ERRORS) && jsonFormattedError.getValue(ERRORS) instanceof JsonArray) {
+        if (inventoryMessage instanceof JsonObject jsonFormattedError) {
+          if (jsonFormattedError.containsKey(ERRORS) && jsonFormattedError.getValue(ERRORS) instanceof JsonArray) {
                 // Looks like FOLIO json schema validation error
                 shortMessage = getMessageFromFolioSchemaValidationError(jsonFormattedError);
             } else if (jsonFormattedError.containsKey(MESSAGE)) {

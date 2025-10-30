@@ -6,6 +6,10 @@ import java.util.UUID;
 
 public class Util {
 
+    private Util() {
+      throw new IllegalStateException("Utility class");
+    }
+
     public static UUID getUUID (JsonObject json, String propertyName, UUID def) {
         if (json.containsKey(propertyName)) {
             try {

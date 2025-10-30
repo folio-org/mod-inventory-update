@@ -44,8 +44,8 @@ public class BatchOfRecords {
 
     private JsonArray getRecordsAsJsonArray () {
         JsonArray inventoryRecordSets = new JsonArray();
-        for (ProcessingRecord record : batch) {
-            inventoryRecordSets.add(record.getRecordAsJson());
+        for (ProcessingRecord processingRecord : batch) {
+            inventoryRecordSets.add(processingRecord.getRecordAsJson());
         }
         return inventoryRecordSets;
     }

@@ -13,10 +13,10 @@ import java.nio.charset.StandardCharsets;
 import java.util.*;
 
 public abstract class RecordStorage {
-    public final static String TOTAL_RECORDS = "totalRecords";
+    public static final String TOTAL_RECORDS = "totalRecords";
     // Property keys, JSON responses
-    public final static String INSTANCES = "instances";
-    public final static String INSTANCE_SETS = "instanceSets";
+    public static final String INSTANCES = "instances";
+    public static final String INSTANCE_SETS = "instanceSets";
     public static final String HOLDINGS_RECORDS = "holdingsRecords";
     public static final String ITEMS = "items";
     public static final String INSTANCE_RELATIONSHIPS = "instanceRelationships";
@@ -24,7 +24,7 @@ public abstract class RecordStorage {
     public static final String LOCATIONS = "locations";
     public static final String PO_LINES = "poLines";
 
-    public final String STORAGE_NAME = getClass().getSimpleName();
+    public final String storageName = getClass().getSimpleName();
     public boolean failOnDelete = false;
     public boolean failOnCreate = false;
     public boolean failOnUpdate = false;
@@ -83,10 +83,10 @@ public abstract class RecordStorage {
         }
         for (InventoryRecord existingRecord : records.values()) {
           for (String nameOfUniqueProperty : uniqueProperties) {
-            if (inventoryRecord.getStringValue(nameOfUniqueProperty) != null && existingRecord.getStringValue(nameOfUniqueProperty) != null ) {
-              if (inventoryRecord.getStringValue(nameOfUniqueProperty).equals(existingRecord.getStringValue(nameOfUniqueProperty))) {
-                return new Resp(400,  this.STORAGE_NAME +" already contains a record with " + nameOfUniqueProperty + " = " + inventoryRecord.getStringValue(nameOfUniqueProperty));
-              }
+            if (inventoryRecord.getStringValue(nameOfUniqueProperty) != null
+                && existingRecord.getStringValue(nameOfUniqueProperty) != null
+                && inventoryRecord.getStringValue(nameOfUniqueProperty).equals(existingRecord.getStringValue(nameOfUniqueProperty))) {
+                return new Resp(400,  this.storageName +" already contains a record with " + nameOfUniqueProperty + " = " + inventoryRecord.getStringValue(nameOfUniqueProperty));
             }
           }
         }
@@ -200,7 +200,7 @@ public abstract class RecordStorage {
     }
 
        // USED BY A DEPENDENT ENTITY TO SET UP ITS FOREIGN KEYS BY CALLS to acceptDependant()
-    protected abstract void declareDependencies();
+    protected void declareDependencies() {}
 
        // METHOD ON THE PRIMARY KEY ENTITY TO REGISTER DEPENDENT ENTITIES
     protected void acceptDependant(RecordStorage dependentEntity, String dependentPropertyName) {
@@ -213,7 +213,7 @@ public abstract class RecordStorage {
         masterEntities.add(fk);
     }
 
-    protected abstract void declareMandatoryProperties ();
+    protected void declareMandatoryProperties () {}
 
     protected void declareUniqueProperties () {}
     // API REQUEST HANDLERS
@@ -243,7 +243,7 @@ public abstract class RecordStorage {
         if (inventoryRecord != null) {
             respond(routingContext, inventoryRecord.getJson(), 200);
         } else {
-            respondWithMessage(routingContext, (failOnGetRecordById ? "Forced error on get from " : "No record with ID " + id + " in ") + STORAGE_NAME, 404);
+            respondWithMessage(routingContext, (failOnGetRecordById ? "Forced error on get from " : "No record with ID " + id + " in ") + storageName, 404);
         }
     }
 
@@ -257,7 +257,7 @@ public abstract class RecordStorage {
         if (code == 200) {
             respond(routingContext, new JsonObject(), code);
         } else {
-            respondWithMessage(routingContext, (failOnDelete ? "Forced " : "") + "Error deleting from " + STORAGE_NAME, code);
+            respondWithMessage(routingContext, (failOnDelete ? "Forced " : "") + "Error deleting from " + storageName, code);
         }
     }
 
@@ -296,12 +296,11 @@ public abstract class RecordStorage {
         if (code == 204) {
             respond(routingContext, code);
         } else {
-            respondWithMessage(routingContext, (failOnUpdate ? "Forced " : "") + "Error updating record in " + STORAGE_NAME, code);
+            respondWithMessage(routingContext, (failOnUpdate ? "Forced " : "") + "Error updating record in " + storageName, code);
         }
     }
 
     protected void upsertRecords (RoutingContext routingContext) {
-        UUID transaction = UUID.randomUUID();
         JsonObject requestJson = new JsonObject(routingContext.body().asString());
         JsonArray recordsJson = requestJson.getJsonArray(getResultSetName());
         for (Object o : recordsJson) {

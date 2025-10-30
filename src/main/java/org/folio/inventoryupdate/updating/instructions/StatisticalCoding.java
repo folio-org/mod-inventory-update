@@ -10,7 +10,7 @@ public class StatisticalCoding {
     private static final String DELETE_SKIPPED_BECAUSE_OF = "becauseOf";
     private static final String SET_CODE_UUID = "setCode";
 
-    public JsonArray codings = new JsonArray();
+    JsonArray codings = new JsonArray();
     StatisticalCoding(JsonObject processing) {
       if (processing != null) {
         codings = processing.getJsonArray(STATISTICAL_CODING, new JsonArray());

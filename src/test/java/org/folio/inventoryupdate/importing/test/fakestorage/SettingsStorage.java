@@ -7,6 +7,7 @@ public class SettingsStorage extends RecordStorage {
         return SettingsClient.RECORDS;
     }
 
+    @Override
     protected void declareUniqueProperties() {
         mandatoryProperties.add("id");
         mandatoryProperties.add("scope");

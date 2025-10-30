@@ -46,7 +46,7 @@ public class ImportJob extends Entity {
     }
 
     ImportJobRecord theRecord;
-    public ImportJobRecord record() {
+    public ImportJobRecord getRecord() {
     return theRecord;
   }
     public record ImportJobRecord(UUID id,

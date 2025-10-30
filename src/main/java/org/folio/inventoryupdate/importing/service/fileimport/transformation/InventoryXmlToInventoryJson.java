@@ -32,10 +32,8 @@ public class InventoryXmlToInventoryJson {
             XMLToJSONHandler handler = new XMLToJSONHandler();
             SecureSaxParser.get().parse(new InputSource(new StringReader(xmlStr)), handler);
             return new JsonObject(handler.getData());
-        } catch (ParserConfigurationException | SAXException e) {
+        } catch (ParserConfigurationException | SAXException | IOException e) {
             logger.error("Error parsing XML to JSON: {}", e.getMessage());
-        } catch (IOException e) {
-            throw new RuntimeException(e);
         }
         return null;
     }

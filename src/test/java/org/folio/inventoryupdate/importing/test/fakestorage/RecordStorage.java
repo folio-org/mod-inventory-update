@@ -146,7 +146,8 @@ public abstract class RecordStorage {
             logger.debug("Deleting. Checking dependent {}", fk.getDependentStorage().getResultSetName());
             logger.debug("Looking at property {}", fk.getDependentPropertyName());
             if (fk.getDependentStorage().hasValue(fk.getDependentPropertyName(), id)) {
-                logger.error("Foreign key violation, {} has a dependent record in {}", records.get(id).getJson().toString(), fk.getDependentStorage().getResultSetName());
+                logger.error("Foreign key violation, {} has a dependent record in {}",
+                    records.get(id).getJson().encode(), fk.getDependentStorage().getResultSetName());
                 return 400;
             }
         }

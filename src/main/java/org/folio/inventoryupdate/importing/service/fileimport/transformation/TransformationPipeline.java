@@ -89,7 +89,8 @@ public class TransformationPipeline implements RecordReceiver {
             transformer.transform(sourceXml, resultXmlStream);
             return resultXmlStream.getWriter().toString();
         } catch (TransformerException e) {
-            throw new RuntimeException(e);
+          logger.error("Error XSLT transforming the XML: {}, passing on original XML", e.getMessage());
+          return xmlRecord;
         }
     }
 
@@ -109,7 +110,7 @@ public class TransformationPipeline implements RecordReceiver {
                     listOfTemplates.add(transformerFactory.newTemplates(xslt));
                 }
             } catch (Exception e) {
-                throw new RuntimeException(e);
+                logger.error("Failed to parse the XSLT template sources: {}", e.getMessage());
             }
         }
     }

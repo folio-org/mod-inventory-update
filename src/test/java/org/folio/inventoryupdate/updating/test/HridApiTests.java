@@ -1724,7 +1724,7 @@ public class HridApiTests extends InventoryUpdateTestBase {
                             .setSource("MARC")
                             .setInstanceTypeId("12345").getJson()).getJson()))));
 
-    assertEquals(batchUpsertByHrid(200, batch.getJson()).getStatusCode(), 200);
+    assertEquals(200,batchUpsertByHrid(200, batch.getJson()).getStatusCode());
 
   }
 
@@ -2492,7 +2492,7 @@ public class HridApiTests extends InventoryUpdateTestBase {
 
     fetchRecordSetFromUpsertHrid( "1" );
     fetchRecordSetFromUpsertHrid (newInstance.getJsonObject( "instance" ).getString( "id" ));
-    assertEquals(getJsonObjectById( FETCH_INVENTORY_RECORD_SETS_ID_PATH, "2", 404 ).getStatusCode(), 404);
+    assertEquals(404, getJsonObjectById( FETCH_INVENTORY_RECORD_SETS_ID_PATH, "2", 404 ).getStatusCode());
   }
 
 
@@ -2743,7 +2743,7 @@ public class HridApiTests extends InventoryUpdateTestBase {
 
   @Test
   public void upsertByHridWillReturnErrorResponseOnMissingInstanceInRequestBody (TestContext testContext) {
-    assertEquals(upsertByHrid(400, new JsonObject().put("invalid", "No Instance here")).getStatusCode(), 400);
+    assertEquals(400, upsertByHrid(400, new JsonObject().put("invalid", "No Instance here")).getStatusCode());
   }
 
   @Test
@@ -2791,7 +2791,7 @@ public class HridApiTests extends InventoryUpdateTestBase {
 
   @Test
   public void testSendingNonInventoryRecordSetArrayToBatchApi (TestContext testContext) {
-    assertEquals(batchUpsertByHrid(400,new JsonObject().put("unknownProperty", new JsonArray())).getStatusCode(), 400);
+    assertEquals(400, batchUpsertByHrid(400,new JsonObject().put("unknownProperty", new JsonArray())).getStatusCode());
   }
 
   @Test
@@ -3039,7 +3039,7 @@ public class HridApiTests extends InventoryUpdateTestBase {
                         .setStatus(STATUS_UNKNOWN)
                         .setMaterialTypeId(MATERIAL_TYPE_TEXT)
                         .setBarcode("BC-003").getJson()))));
-    assertEquals(upsertByHrid (500,inventoryRecordSet).getStatusCode(),500);
+    assertEquals(500, upsertByHrid (500,inventoryRecordSet).getStatusCode());
 
   }
 
@@ -3066,7 +3066,7 @@ public class HridApiTests extends InventoryUpdateTestBase {
                         .setStatus(STATUS_UNKNOWN)
                         .setMaterialTypeId(MATERIAL_TYPE_TEXT)
                         .setBarcode("BC-003").getJson()))));
-    assertEquals(upsertByHrid (500,inventoryRecordSet).getStatusCode(),500);
+    assertEquals(500,  upsertByHrid (500,inventoryRecordSet).getStatusCode());
 
   }
 
@@ -3093,7 +3093,7 @@ public class HridApiTests extends InventoryUpdateTestBase {
                         .setStatus(STATUS_UNKNOWN)
                         .setMaterialTypeId(MATERIAL_TYPE_TEXT)
                         .setBarcode("BC-003").getJson()))));
-    assertEquals(upsertByHrid (500,inventoryRecordSet).getStatusCode(),500);
+    assertEquals(500, upsertByHrid (500,inventoryRecordSet).getStatusCode());
 
   }
 
@@ -3127,7 +3127,7 @@ public class HridApiTests extends InventoryUpdateTestBase {
             .put("succeedingTitles", new JsonArray())
             .put("precedingTitles", new JsonArray()));
     upsertByHrid (inventoryRecordSet);
-    assertEquals(upsertByHrid (500,inventoryRecordSet).getStatusCode(),500);
+    assertEquals(500, upsertByHrid (500,inventoryRecordSet).getStatusCode());
 
   }
 

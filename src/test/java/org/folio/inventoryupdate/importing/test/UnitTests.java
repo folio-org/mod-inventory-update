@@ -702,7 +702,7 @@ public class UnitTests {
 
     @Test
     public void canDeleteInventoryRecordSet() {
-        int HRID = 123;
+        int hrid = 123;
         configureSamplePipeline();
         String importConfigId = Files.JSON_IMPORT_CONFIG.getString("id");
         String transformationId = Files.JSON_TRANSFORMATION_CONFIG.getString("id");
@@ -711,7 +711,7 @@ public class UnitTests {
 
         // Upsert
         postSourceXml(Service.BASE_PATH_IMPORT_XML + "/" + importConfigId + "/import",
-                Files.createCollectionOfOneInventoryXmlRecord(HRID, "200"));
+                Files.createCollectionOfOneInventoryXmlRecord(hrid, "200"));
         await().until(() ->  getTotalRecords(Service.PATH_IMPORT_JOBS), is(1));
         String jobId = getRecords(Service.PATH_IMPORT_JOBS).extract().path("importJobs[0].id");
         String started = getRecordById(Service.PATH_IMPORT_JOBS, jobId).extract().path("started");
@@ -720,7 +720,7 @@ public class UnitTests {
         assertThat("Instances in storage", fakeFolioApis.upsertStorage.internalGetInstances().size(), is(1));
         // Delete
         postSourceXml(Service.BASE_PATH_IMPORT_XML + "/" + importConfigId + "/import",
-                Files.createCollectionOfOneDeleteRecord(HRID));
+                Files.createCollectionOfOneDeleteRecord(hrid));
         await().until(() ->  getTotalRecords(Service.PATH_IMPORT_JOBS + "/log"), is(8));
         assertThat("Instances in storage", fakeFolioApis.upsertStorage.internalGetInstances().size(), is(0));
     }

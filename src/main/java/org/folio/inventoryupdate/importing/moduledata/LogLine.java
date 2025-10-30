@@ -115,6 +115,7 @@ public class LogLine extends Entity {
                 });
     }
 
+    @Override
     public SqlQuery makeSqlFromCqlQuery(ServiceRequest request, String schemaDotTable) {
         SqlQuery sql = super.makeSqlFromCqlQuery(request, schemaDotTable);
         sql.withAdditionalOrderByField(dbColumnName(TIME_STAMP));

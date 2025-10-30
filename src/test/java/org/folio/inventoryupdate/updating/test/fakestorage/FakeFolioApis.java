@@ -10,9 +10,9 @@ import io.vertx.ext.web.Router;
 import io.vertx.ext.web.handler.BodyHandler;
 
 public class FakeFolioApis {
-    public final static int PORT_OKAPI = 9031;
-    public final static String INSTANCE_STORAGE_PATH = "/instance-storage/instances";
-    public final static String INSTANCE_SET_PATH = "/inventory-view/instance-set";
+    public static final int PORT_OKAPI = 9031;
+    public static final String INSTANCE_STORAGE_PATH = "/instance-storage/instances";
+    public static final String INSTANCE_SET_PATH = "/inventory-view/instance-set";
     public static final String INSTANCE_RELATIONSHIP_STORAGE_PATH = "/instance-storage/instance-relationships";
     public static final String PRECEDING_SUCCEEDING_TITLE_STORAGE_PATH = "/preceding-succeeding-titles";
     public static final String HOLDINGS_STORAGE_PATH = "/holdings-storage/holdings";

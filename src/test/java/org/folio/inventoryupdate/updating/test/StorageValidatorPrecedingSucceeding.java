@@ -12,11 +12,11 @@ public class StorageValidatorPrecedingSucceeding  {
     private String succeedingInstanceId;
     private String precedingInstanceId;
     protected void validateStorage(TestContext testContext) {
-        createTwoTitles(testContext);
+        createTwoTitles();
         validatePostAndGetById(testContext);
     }
 
-    protected void createTwoTitles (TestContext testContext) {
+    protected void createTwoTitles () {
         JsonObject responseOnPOSTSucceeding = FakeFolioApis.post(
                 INSTANCE_STORAGE_PATH,
                 new InputInstance().setTitle("Succeeding title").setInstanceTypeId("12345").setSource("test").getJson(), 201);

@@ -2,14 +2,15 @@ package org.folio.inventoryupdate.updating.test.fakestorage.entitites;
 
 public class InputLocation extends InventoryRecord {
 
-    public static String ID = "id";
-    public static String NAME = "name";
-    public static String INSTITUTION_ID = "institutionId";
+    public static final String ID = "id";
+    public static final String NAME = "name";
+    public static final String INSTITUTION_ID = "institutionId";
 
     public InputLocation () {
         super();
     }
 
+    @Override
     public InputLocation setId (String id) {
         recordJson.put(ID, id);
         return this;

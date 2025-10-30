@@ -176,8 +176,8 @@ public class ImportService implements RouterCreator, TenantInitHooks {
     @Override
     public Future<Void> postInit(Vertx vertx, String tenant, JsonObject tenantAttributes) {
         return new ModuleStorageAccess(vertx, tenant).init(tenantAttributes)
-                .onFailure(x -> logger.error("Database initialization failed: " + x.getMessage()))
-                .onSuccess(x -> logger.info("Tenant '" + tenant + "' database initialized"));
+                .onFailure(x -> logger.error("Database initialization failed: {}", x.getMessage()))
+                .onSuccess(x -> logger.info("Tenant '{}' database initialized", tenant));
     }
 
     private Future<Void> getEntities(ServiceRequest request, Entity entity) {
@@ -304,7 +304,7 @@ public class ImportService implements RouterCreator, TenantInitHooks {
         SqlQuery query;
         try {
             query = new ImportJob()
-                    .makeSqlFromCqlQuery(request, db.schemaDotTable(Tables.import_job))
+                    .makeSqlFromCqlQuery(request, db.schemaDotTable(Tables.IMPORT_JOB))
                     .withAdditionalWhereClause(timeRange);
         } catch (PgCqlException pce) {
             responseText(request.routingContext(), 400)
@@ -362,7 +362,7 @@ public class ImportService implements RouterCreator, TenantInitHooks {
     private Future<Void> getLogStatements(ServiceRequest request) {
         ModuleStorageAccess db = request.moduleStorageAccess();
         SqlQuery queryFromCql = new LogLine().makeSqlFromCqlQuery(
-                request, db.schemaDotTable(Tables.job_log_view))
+                request, db.schemaDotTable(Tables.JOB_LOG_VIEW))
             .withDefaultLimit("100");
         String from = request.queryParam("from");
         String until = request.queryParam("until");
@@ -415,7 +415,7 @@ public class ImportService implements RouterCreator, TenantInitHooks {
 
         ModuleStorageAccess db = request.moduleStorageAccess();
         SqlQuery queryFromCql = new RecordFailure().makeSqlFromCqlQuery(
-                        request, db.schemaDotTable(Tables.record_failure_view))
+                        request, db.schemaDotTable(Tables.RECORD_FAILURE_VIEW))
                 .withDefaultLimit("100");
         String jobId = request.requestParam("id");
         String from = request.queryParam("from");
@@ -502,7 +502,7 @@ public class ImportService implements RouterCreator, TenantInitHooks {
     private void applyPurgeOfPastJobs(ServiceRequest request, String purgeSetting) {
         Period ageForDeletion = Miscellaneous.getPeriod(purgeSetting,3, "MONTHS");
         LocalDateTime untilDate = SettableClock.getLocalDateTime().minus(ageForDeletion).truncatedTo(ChronoUnit.MINUTES);
-        logger.info("Running timer process: purging aged logs from before " + untilDate);
+        logger.info("Running timer process: purging aged logs from before {}", untilDate);
         request.moduleStorageAccess().purgePreviousJobsByAge(untilDate)
                 .onComplete(x -> request.routingContext().response().setStatusCode(204).end()).mapEmpty();
     }
@@ -590,7 +590,7 @@ public class ImportService implements RouterCreator, TenantInitHooks {
                 .onSuccess(result-> {
                     if (result.rowCount()==1) {
                     if (transformation.containsListOfSteps()) {
-                        new TransformationStep().deleteStepsOfATransformation(request, transformation.record.id())
+                        new TransformationStep().deleteStepsOfATransformation(request, transformation.record().id())
                             .compose(ignore ->
                                 request.moduleStorageAccess()
                                     .storeEntities(new TransformationStep(), transformation.getListOfTransformationSteps())
@@ -631,7 +631,7 @@ public class ImportService implements RouterCreator, TenantInitHooks {
                             if (existingTsa == null) {
                                 responseText(request.routingContext, 404).end("Not found");
                             } else {
-                                Integer positionOfExistingTsa = ((TransformationStep) existingTsa).record.position();
+                                Integer positionOfExistingTsa = ((TransformationStep) existingTsa).record().position();
                                 transformationStep.updateTsaRepositionSteps(request, positionOfExistingTsa)
                                         .onSuccess(result -> responseText(request.routingContext, 204).end());
                             }
@@ -647,7 +647,7 @@ public class ImportService implements RouterCreator, TenantInitHooks {
                 if (existingTsa == null) {
                     responseText(request.routingContext, 404).end("Not found");
                 } else {
-                    Integer positionOfExistingTsa = ((TransformationStep) existingTsa).record.position();
+                    Integer positionOfExistingTsa = ((TransformationStep) existingTsa).record().position();
                     ((TransformationStep) existingTsa).deleteTsaRepositionSteps(db.getTenantPool(), positionOfExistingTsa)
                         .onSuccess(result -> responseText(request.routingContext, 200).end());
                 }

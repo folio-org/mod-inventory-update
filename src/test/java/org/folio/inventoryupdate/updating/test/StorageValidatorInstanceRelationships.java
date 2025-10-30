@@ -13,13 +13,11 @@ public class StorageValidatorInstanceRelationships {
     private String childInstanceId;
     private String parentInstanceId;
     protected void validateStorage(TestContext testContext) {
-        createTwoTitles(testContext);
+        createTwoTitles();
         validatePostAndGetById(testContext);
-        //validateCanDeleteSuccessionById(testContext);
-        //validateCannotPostWithBadInstanceId(testContext);
     }
 
-    protected void createTwoTitles (TestContext testContext) {
+    protected void createTwoTitles () {
         JsonObject responseOnPOSTChild = FakeFolioApis.post(
                 INSTANCE_STORAGE_PATH,
                 new InputInstance().setTitle("Child Instance").setInstanceTypeId("12345").setSource("test").getJson(), 201);

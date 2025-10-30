@@ -6,7 +6,6 @@ import io.vertx.sqlclient.templates.RowMapper;
 import io.vertx.sqlclient.templates.TupleMapper;
 import org.folio.inventoryupdate.importing.moduledata.database.Tables;
 import org.folio.inventoryupdate.importing.moduledata.database.ModuleStorageAccess;
-import org.folio.tlib.postgres.TenantPgPool;
 import org.xml.sax.SAXException;
 
 import javax.xml.parsers.DocumentBuilder;
@@ -18,6 +17,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
+import java.util.regex.Pattern;
 
 public class Step extends Entity {
 
@@ -25,19 +25,26 @@ public class Step extends Entity {
 
     public Step(UUID id, String name, boolean enabled, String description, String type, String inputFormat,
                 String outputFormat, String script) {
-        record = new StepRecord(
+        theRecord = new StepRecord(
                 id, name, enabled, description, type, inputFormat, outputFormat, script);
     }
     // Step record, the entity data.
     public record StepRecord(UUID id, String name, boolean enabled, String description, String type, String inputFormat,
                               String outputFormat, String script) {
     }
-    public StepRecord record;
+    StepRecord theRecord;
 
     // Static map of Entity Fields.
     private static final Map<String, Field> FIELDS = new HashMap<>();
-    public static final String ID="ID", NAME="NAME", ENABLED="ENABLED", TYPE="TYPE", DESCRIPTION="DESCRIPTION", INPUT_FORMAT="INPUT_FORMAT",
-            OUTPUT_FORMAT="OUTPUT_FORMAT", SCRIPT = "SCRIPT";
+    public static final String ID="ID";
+    public static final String NAME="NAME";
+    public static final String ENABLED="ENABLED";
+    public static final String TYPE="TYPE";
+    public static final String DESCRIPTION="DESCRIPTION";
+    public static final String INPUT_FORMAT="INPUT_FORMAT";
+    public static final String OUTPUT_FORMAT="OUTPUT_FORMAT";
+    public static final String SCRIPT = "SCRIPT";
+
     static {
         FIELDS.put(ID,new Field("id", "id", PgColumn.Type.UUID, false, true, true));
         FIELDS.put(NAME,new Field("name", "name", PgColumn.Type.TEXT, false, true));
@@ -63,13 +70,14 @@ public class Step extends Entity {
         return "Step";
     }
 
+    private static final Pattern regex = Pattern.compile("\\r[\\n]?");
     public String getLineSeparatedXslt() {
-        return record.script.replaceAll("\\r[\\n]?", System.lineSeparator());
+        return regex.matcher(theRecord.script).replaceAll(System.lineSeparator());
     }
 
     @Override
     public Tables table() {
-        return Tables.step;
+        return Tables.STEP;
     }
 
     /**
@@ -91,14 +99,14 @@ public class Step extends Entity {
 
     public JsonObject asJson() {
         JsonObject json = new JsonObject();
-        json.put(jsonPropertyName(ID), record.id());
-        json.put(jsonPropertyName(NAME), record.name());
-        json.put(jsonPropertyName(TYPE), record.type());
-        json.put(jsonPropertyName(ENABLED), record.enabled());
-        json.put(jsonPropertyName(DESCRIPTION), record.description());
-        json.put(jsonPropertyName(INPUT_FORMAT), record.inputFormat());
-        json.put(jsonPropertyName(OUTPUT_FORMAT), record.outputFormat());
-        json.put(jsonPropertyName(SCRIPT), record.script());
+        json.put(jsonPropertyName(ID), theRecord.id());
+        json.put(jsonPropertyName(NAME), theRecord.name());
+        json.put(jsonPropertyName(TYPE), theRecord.type());
+        json.put(jsonPropertyName(ENABLED), theRecord.enabled());
+        json.put(jsonPropertyName(DESCRIPTION), theRecord.description());
+        json.put(jsonPropertyName(INPUT_FORMAT), theRecord.inputFormat());
+        json.put(jsonPropertyName(OUTPUT_FORMAT), theRecord.outputFormat());
+        json.put(jsonPropertyName(SCRIPT), theRecord.script());
         return json;
     }
 
@@ -127,7 +135,7 @@ public class Step extends Entity {
     public TupleMapper<Entity> getTupleMapper() {
         return TupleMapper.mapper(
                 entity -> {
-                    StepRecord rec = ((Step) entity).record;
+                    StepRecord rec = ((Step) entity).theRecord;
                     Map<String, Object> parameters = new HashMap<>();
                     parameters.put(dbColumnName(ID), rec.id);
                     parameters.put(dbColumnName(NAME), rec.name);
@@ -150,7 +158,7 @@ public class Step extends Entity {
             DocumentBuilderFactory builder = DocumentBuilderFactory.newInstance();
             builder.setFeature("http://apache.org/xml/features/disallow-doctype-decl", true);
             DocumentBuilder parser = builder.newDocumentBuilder();
-            parser.parse(new ByteArrayInputStream(xslt.replaceAll("\\r[\\n]?", System.lineSeparator()).getBytes(StandardCharsets.UTF_8)));
+            parser.parse(new ByteArrayInputStream(regex.matcher(xslt).replaceAll(System.lineSeparator()).getBytes(StandardCharsets.UTF_8)));
         } catch (ParserConfigurationException | IOException | SAXException pe) {
             return "Could not parse [ " + xslt + "] as XML: " + pe.getMessage();
         }
@@ -158,8 +166,8 @@ public class Step extends Entity {
     }
 
     private void setScript(String xslt) {
-        record = new Step.StepRecord(record.id, record.name, record.enabled, record.description, record.type, record.inputFormat,
-                record.outputFormat, xslt);
+        theRecord = new Step.StepRecord(theRecord.id, theRecord.name, theRecord.enabled, theRecord.description, theRecord.type, theRecord.inputFormat,
+                theRecord.outputFormat, xslt);
     }
 
     public Future<Void> updateScript(String xslt, ModuleStorageAccess storage) {
@@ -170,12 +178,6 @@ public class Step extends Entity {
                         + " = #{" + dbColumnName(SCRIPT) + "}".replaceAll(System.lineSeparator(), "\n")
                         + " WHERE id = #{id}")
                 .mapEmpty();
-    }
-
-    @Override
-    public Future<Void> createDatabase(TenantPgPool pool) {
-        // table without indexes or foreign keys.
-        return super.createDatabase(pool);
     }
 
 }

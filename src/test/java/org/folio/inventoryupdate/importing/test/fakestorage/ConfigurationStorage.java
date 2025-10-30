@@ -7,13 +7,4 @@ public class ConfigurationStorage extends RecordStorage {
         return ConfigurationsClient.RECORDS;
     }
 
-    @Override
-    protected void declareDependencies() {
-        // Configurations have none in fake storage
-    }
-
-    @Override
-    protected void declareMandatoryProperties() {}
-
-
 }

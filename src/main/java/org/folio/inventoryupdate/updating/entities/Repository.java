@@ -255,7 +255,7 @@ public abstract class Repository {
     for (PairedRecordSets pair : pairsOfRecordSets) {
       if (pair.hasExistingRecordSet()) {
         for (HoldingsRecord holdingsRecord : pair.getExistingRecordSet().getHoldingsRecords()) {
-          if (holdingsRecord.isDeleting() && holdingsRecord.updateSilently) {
+          if (holdingsRecord.isDeleting() && Boolean.TRUE.equals(holdingsRecord.updateSilently)) {
             list.add(holdingsRecord);
           }
         }
@@ -312,7 +312,7 @@ public abstract class Repository {
     for (PairedRecordSets pair : pairsOfRecordSets) {
       if (pair.hasExistingRecordSet()) {
         for (Item item : pair.getExistingRecordSet().getItems()) {
-          if (item.isDeleting() && item.updateSilently) {
+          if (item.isDeleting() && Boolean.TRUE.equals(item.updateSilently)) {
             list.add(item);
           }
         }

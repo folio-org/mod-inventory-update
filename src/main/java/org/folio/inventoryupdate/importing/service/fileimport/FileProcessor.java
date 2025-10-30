@@ -67,7 +67,7 @@ public class FileProcessor {
 
     private Future<TransformationPipeline> withTransformationPipeline(String tenant, UUID importConfigId, Vertx vertx) {
         return new ModuleStorageAccess(vertx, tenant).getEntity(importConfigId,new ImportConfig())
-                .map(cfg -> ((ImportConfig) cfg).record.transformationId())
+                .map(cfg -> ((ImportConfig) cfg).record().transformationId())
                 .compose(transformationId -> TransformationPipeline.create(vertx, tenant, transformationId))
                 .onComplete(pipelineCreated -> transformationPipeline = pipelineCreated.result());
     }
@@ -115,7 +115,7 @@ public class FileProcessor {
                                 if (processing.succeeded()) {
                                     promise.complete();
                                 } else {
-                                    logger.error("Processing failed with " + processing.cause().getMessage());
+                                    logger.error("Processing failed with {}", processing.cause().getMessage());
                                     promise.complete();
                                 }
                             });

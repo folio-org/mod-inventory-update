@@ -38,10 +38,7 @@ public class Instance extends InventoryRecord {
     }
 
 
-  @Override
-  public void prepareCheckedDeletion() {}
-
-  @Override
+    @Override
     public String generateUUID () {
         String uuid = super.generateUUID();
         setHoldingsRecordsInstanceId(uuid);
@@ -49,10 +46,7 @@ public class Instance extends InventoryRecord {
     }
 
     public String getMatchKey () {
-        if (jsonRecord.getString(MATCH_KEY) == null ) {
-            jsonRecord.put(MATCH_KEY, new MatchKey(jsonRecord).getKey());
-        } else if (jsonRecord.getValue(MATCH_KEY) instanceof JsonObject) {
-            // Received multipart match key object, translating it to match-key string
+        if (jsonRecord.getString(MATCH_KEY) == null || jsonRecord.getValue(MATCH_KEY) instanceof JsonObject) {
             jsonRecord.put(MATCH_KEY, new MatchKey(jsonRecord).getKey());
         }
         return jsonRecord.getString( MATCH_KEY );

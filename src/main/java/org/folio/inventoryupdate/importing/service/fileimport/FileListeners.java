@@ -6,16 +6,20 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
 public class FileListeners {
-    private final static ConcurrentMap<String, ConcurrentMap<String, FileListener>> fileListeners = new ConcurrentHashMap<>();
+    private static final ConcurrentMap<String, ConcurrentMap<String, FileListener>> FILE_LISTENERS = new ConcurrentHashMap<>();
+
+    private FileListeners () {
+      throw new IllegalStateException("Utility class");
+    }
 
     public static FileListener getFileListener(String tenant, String importConfigurationId) {
-        fileListeners.putIfAbsent(tenant, new ConcurrentHashMap<>());
-        return fileListeners.get(tenant).get(importConfigurationId);
+        FILE_LISTENERS.putIfAbsent(tenant, new ConcurrentHashMap<>());
+        return FILE_LISTENERS.get(tenant).get(importConfigurationId);
     }
 
     public static Verticle addFileListener(String tenant, String importConfigurationId, FileListener fileListener) {
-        fileListeners.putIfAbsent(tenant, new ConcurrentHashMap<>());
-        fileListeners.get(tenant).put(importConfigurationId,fileListener);
+        FILE_LISTENERS.putIfAbsent(tenant, new ConcurrentHashMap<>());
+        FILE_LISTENERS.get(tenant).put(importConfigurationId,fileListener);
         return fileListener;
     }
 

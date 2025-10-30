@@ -24,9 +24,9 @@ public class StorageValidatorInstances  {
     validateGetByQueryAndPut(testContext);
     validateGetByIdList(testContext);
     validateCanDeleteInstanceById(testContext);
-    cannotDeleteInstanceWithHoldings(testContext);
-    cannotDeleteInstanceWithInstanceRelations(testContext);
-    cannotDeleteInstanceWithTitleSuccession(testContext);
+    cannotDeleteInstanceWithHoldings();
+    cannotDeleteInstanceWithInstanceRelations();
+    cannotDeleteInstanceWithTitleSuccession();
   }
 
   protected void validatePostAndGetById(TestContext testContext) {
@@ -67,18 +67,18 @@ public class StorageValidatorInstances  {
     FakeFolioApis.delete(INSTANCE_STORAGE_PATH, responseOnPOST.getString("id"),200);
   }
 
-  protected void cannotDeleteInstanceWithHoldings (TestContext testContext) {
+  protected void cannotDeleteInstanceWithHoldings () {
     JsonObject responseOnPOST = FakeFolioApis.post(
             INSTANCE_STORAGE_PATH,
             new InputInstance().setTitle("InputInstance with holdings").setInstanceTypeId("12345").setSource("test").getJson(), 201);
     String instanceId = responseOnPOST.getString("id");
-    JsonObject responseOnHoldingsPOST = FakeFolioApis.post(
+    FakeFolioApis.post(
             HOLDINGS_STORAGE_PATH,
             new InputHoldingsRecord().setCallNumber("Test holdings").setPermanentLocationId(InventoryUpdateTestBase.LOCATION_ID_1).setInstanceId(instanceId).getJson(), 201);
     FakeFolioApis.delete(INSTANCE_STORAGE_PATH, instanceId, 400);
   }
 
-  protected void cannotDeleteInstanceWithInstanceRelations (TestContext testContext) {
+  protected void cannotDeleteInstanceWithInstanceRelations () {
     JsonObject responseOnPOSTChild = FakeFolioApis.post(
             INSTANCE_STORAGE_PATH,
             new InputInstance().setTitle("InputInstance with parent").setInstanceTypeId("12345").setSource("test").getJson(), 201);
@@ -87,7 +87,7 @@ public class StorageValidatorInstances  {
             INSTANCE_STORAGE_PATH,
             new InputInstance().setTitle("InputInstance with child").setInstanceTypeId("12345").setSource("test").getJson(), 201);
     String parentId = responseOnPOSTParent.getString("id");
-    JsonObject responseOnPOSTRelation = FakeFolioApis.post(
+    FakeFolioApis.post(
             INSTANCE_RELATIONSHIP_STORAGE_PATH,
             new InputInstanceRelationship()
                     .setSubInstanceId(childId)
@@ -95,7 +95,7 @@ public class StorageValidatorInstances  {
     FakeFolioApis.delete(INSTANCE_STORAGE_PATH, parentId, 400);
   }
 
-  protected void cannotDeleteInstanceWithTitleSuccession (TestContext testContext) {
+  protected void cannotDeleteInstanceWithTitleSuccession () {
     JsonObject responseOnPOSTSucceeding = FakeFolioApis.post(
             INSTANCE_STORAGE_PATH,
             new InputInstance().setTitle("Succeeding title").setInstanceTypeId("12345").setSource("test").getJson(), 201);
@@ -104,7 +104,7 @@ public class StorageValidatorInstances  {
             INSTANCE_STORAGE_PATH,
             new InputInstance().setTitle("Preceding title").setInstanceTypeId("12345").setSource("test").getJson(), 201);
     String precedingId = responseOnPOSTPreceding.getString("id");
-    JsonObject responseOnPOSTSuccession = FakeFolioApis.post(
+    FakeFolioApis.post(
             PRECEDING_SUCCEEDING_TITLE_STORAGE_PATH,
             new InputInstanceTitleSuccession()
                     .setSucceedingInstanceId(succeedingId)

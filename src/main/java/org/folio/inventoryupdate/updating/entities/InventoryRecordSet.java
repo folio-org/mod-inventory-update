@@ -44,15 +44,15 @@ public class InventoryRecordSet extends JsonRepresentation {
 
 
     // Instance relations properties that the controller access directly
-    public List<InstanceToInstanceRelation> parentRelations = null;
-    public List<InstanceToInstanceRelation> childRelations = null;
-    public List<InstanceToInstanceRelation> succeedingTitles = null;
-    public List<InstanceToInstanceRelation> precedingTitles = null;
+    List<InstanceToInstanceRelation> parentRelations = null;
+    List<InstanceToInstanceRelation> childRelations = null;
+    List<InstanceToInstanceRelation> succeedingTitles = null;
+    List<InstanceToInstanceRelation> precedingTitles = null;
 
     // Incoming, intended relations
-    public JsonObject instanceRelationsJson;
-    public InstanceReferences instanceReferences;
-    public JsonObject processing = new JsonObject();
+    JsonObject instanceRelationsJson;
+    InstanceReferences instanceReferences;
+    JsonObject processingJson = new JsonObject();
 
 
     private InventoryRecordSet (JsonObject inventoryRecordSet) {
@@ -64,7 +64,7 @@ public class InventoryRecordSet extends JsonRepresentation {
             instanceRelationsJson = (sourceJson.containsKey(InstanceReferences.INSTANCE_RELATIONS) ? sourceJson.getJsonObject(
                     InstanceReferences.INSTANCE_RELATIONS) : new JsonObject());
             logger.debug("Caching processing info: {}", inventoryRecordSet.getJsonObject( PROCESSING ));
-            processing = inventoryRecordSet.getJsonObject( PROCESSING );
+            processingJson = inventoryRecordSet.getJsonObject( PROCESSING );
         }
     }
 
@@ -109,7 +109,7 @@ public class InventoryRecordSet extends JsonRepresentation {
     }
 
     public JsonObject getProcessingInfoAsJson () {
-        return processing;
+        return processingJson;
     }
 
     /**
@@ -149,7 +149,7 @@ public class InventoryRecordSet extends JsonRepresentation {
 
     public String getInstitutionIdFromArbitraryHoldingsRecord (Map<String,String> institutionsMap) {
         if (institutionsMap != null && !getHoldingsRecords().isEmpty()) {
-            return getHoldingsRecords().get(0).getInstitutionId(institutionsMap);
+            return getHoldingsRecords().getFirst().getInstitutionId(institutionsMap);
         } else {
             return "";
         }
@@ -200,7 +200,7 @@ public class InventoryRecordSet extends JsonRepresentation {
     public List<HoldingsRecord> getHoldingsRecordsForSilentUpdate () {
       List<HoldingsRecord> records = new ArrayList<>();
       for (HoldingsRecord holdingsRecord : getHoldingsRecords()) {
-        if (holdingsRecord.updateSilently) {
+        if (Boolean.TRUE.equals(holdingsRecord.updateSilently)) {
           records.add(holdingsRecord);
         }
       }
@@ -210,7 +210,7 @@ public class InventoryRecordSet extends JsonRepresentation {
     public List<Item> getItemsForSilentUpdate () {
       List<Item> records = new ArrayList<>();
       for (Item item : getItems()) {
-        if (item.updateSilently) {
+        if (Boolean.TRUE.equals(item.updateSilently)) {
           records.add(item);
         }
       }
@@ -312,7 +312,7 @@ public class InventoryRecordSet extends JsonRepresentation {
                         new ArrayList<InstanceToInstanceRelation>() : precedingTitles,
                 succeedingTitles == null ?
                         new ArrayList<InstanceToInstanceRelation>() : succeedingTitles
-        ).flatMap(Collection::stream).collect(Collectors.toList());
+        ).flatMap(Collection::stream).toList();
     }
 
     public boolean hasThisRelation(InstanceToInstanceRelation relation) {
@@ -451,26 +451,26 @@ public class InventoryRecordSet extends JsonRepresentation {
   }
 
   public void setDeleteInstructions(ProcessingInstructionsUpsert instructions) {
-      getInstance().setDeleteInstructions(instructions.forInstance().recordRetention, instructions.forInstance().statisticalCoding);
+      getInstance().setDeleteInstructions(instructions.forInstance().recordRetention(), instructions.forInstance().statisticalCoding());
     for (HoldingsRecord rec : getHoldingsRecords()) {
-      rec.setDeleteInstructions(instructions.forHoldingsRecord().recordRetention, instructions.forHoldingsRecord().statisticalCoding);
+      rec.setDeleteInstructions(instructions.forHoldingsRecord().recordRetention(), instructions.forHoldingsRecord().statisticalCoding());
     }
     for (Item rec : getItems()) {
-      rec.setDeleteInstructions(instructions.forItem().recordRetention, instructions.forItem().statisticalCoding);
+      rec.setDeleteInstructions(instructions.forItem().recordRetention(), instructions.forItem().statisticalCoding());
     }
   }
 
 
   public String getLocalIdentifierTypeId () {
-        return (processing != null ? processing.getString(IDENTIFIER_TYPE_ID) : null);
+        return (processingJson != null ? processingJson.getString(IDENTIFIER_TYPE_ID) : null);
     }
 
     public String getLocalIdentifier () {
-        if (processing != null && processing.containsKey( OAI_IDENTIFIER )) {
-            String oaiId = processing.getString( OAI_IDENTIFIER );
+        if (processingJson != null && processingJson.containsKey( OAI_IDENTIFIER )) {
+            String oaiId = processingJson.getString( OAI_IDENTIFIER );
             return (oaiId != null ? oaiId.substring(oaiId.lastIndexOf(":")+1) : null);
         } else {
-            return (processing != null ? processing.getString(LOCAL_IDENTIFIER) : null);
+            return (processingJson != null ? processingJson.getString(LOCAL_IDENTIFIER) : null);
         }
     }
 
@@ -532,7 +532,7 @@ public class InventoryRecordSet extends JsonRepresentation {
             }
         }
         recordSetJson.put(InstanceReferences.INSTANCE_RELATIONS, relationsJson);
-        recordSetJson.put(PROCESSING, processing);
+        recordSetJson.put(PROCESSING, processingJson);
         return recordSetJson;
     }
 

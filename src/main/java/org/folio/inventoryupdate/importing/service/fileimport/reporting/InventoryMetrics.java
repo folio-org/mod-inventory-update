@@ -3,7 +3,7 @@ package org.folio.inventoryupdate.importing.service.fileimport.reporting;
 import io.vertx.core.json.JsonObject;
 
 import java.util.Arrays;
-import java.util.HashMap;
+import java.util.EnumMap;
 import java.util.Map;
 
 import static org.folio.inventoryupdate.importing.service.fileimport.reporting.InventoryMetrics.Entity.INSTANCE;
@@ -21,7 +21,7 @@ import static org.folio.inventoryupdate.importing.service.fileimport.reporting.I
 public class InventoryMetrics {
 
 
-    public final Map<Entity,Map<Transaction, Map<Outcome,Integer>>> metrics = new HashMap<>();
+    public final Map<Entity,Map<Transaction, Map<Outcome,Integer>>> metrics = new EnumMap<>(Entity.class);
     public enum Entity {
         INSTANCE,
         HOLDINGS_RECORD,
@@ -46,9 +46,9 @@ public class InventoryMetrics {
 
     public InventoryMetrics() {
         for (Entity entity : Entity.values()) {
-            metrics.put(entity, new HashMap<>());
+            metrics.put(entity, new EnumMap<>(Transaction.class));
             for (Transaction transaction : Transaction.values()) {
-                metrics.get(entity).put(transaction, new HashMap<>());
+                metrics.get(entity).put(transaction, new EnumMap<>(Outcome.class));
                 for (Outcome outcome : Outcome.values()) {
                     metrics.get(entity).get(transaction).put(outcome,0);
                 }
@@ -59,10 +59,10 @@ public class InventoryMetrics {
 
     public InventoryMetrics(JsonObject metricsJson) {
         for (Entity entity : Entity.values()) {
-            metrics.put(entity, new HashMap<>());
+            metrics.put(entity, new EnumMap<>(Transaction.class));
             if (Arrays.asList(INSTANCE, HOLDINGS_RECORD, ITEM). contains(entity)) {
                 for (Transaction transaction : Arrays.asList(CREATE, UPDATE, DELETE))  {
-                    metrics.get(entity).put(transaction, new HashMap<>());
+                    metrics.get(entity).put(transaction, new EnumMap<>(Outcome.class));
                     for (Outcome outcome : Outcome.values()) {
                         int outcomeCount = metricsJson.getJsonObject(entity.name()).getJsonObject(transaction.name())
                                 .getInteger(outcome.name());
@@ -73,7 +73,7 @@ public class InventoryMetrics {
                 if (metricsJson.containsKey(entity.name())) {
                     for (Transaction transaction : Arrays.asList(CREATE, DELETE, PROVISIONAL_INSTANCE)) {
                         if (metricsJson.getJsonObject(entity.name()).containsKey(transaction.name())) {
-                            metrics.get(entity).put(transaction, new HashMap<>());
+                            metrics.get(entity).put(transaction, new EnumMap<>(Outcome.class));
                             for (Outcome outcome : Outcome.values()) {
                                 int outcomeCount = metricsJson.getJsonObject(entity.name()).getJsonObject(transaction.name())
                                         .getInteger(outcome.name());
@@ -87,12 +87,12 @@ public class InventoryMetrics {
     }
 
     public void add(InventoryMetrics delta) {
-        for (Entity entity : delta.metrics.keySet()) {
-            for (Transaction transaction : delta.metrics.get(entity).keySet()) {
-                for (Outcome outcome : delta.metrics.get(entity).get(transaction).keySet()) {
-                    int outcomeCount = this.metrics.get(entity).get(transaction).get(outcome);
-                    int outcomesDelta = delta.metrics.get(entity).get(transaction).get(outcome);
-                    this.metrics.get(entity).get(transaction).put(outcome,outcomeCount+outcomesDelta);
+        for (Map.Entry<Entity,Map<Transaction, Map<Outcome,Integer>>> entity : delta.metrics.entrySet()) {
+            for (Map.Entry<Transaction, Map<Outcome,Integer>> transaction : delta.metrics.get(entity.getKey()).entrySet()) {
+                for (Map.Entry<Outcome, Integer> outcome : delta.metrics.get(entity.getKey()).get(transaction.getKey()).entrySet()) {
+                    int outcomeCount = this.metrics.get(entity.getKey()).get(transaction.getKey()).get(outcome.getKey());
+                    int outcomesDelta = delta.metrics.get(entity.getKey()).get(transaction.getKey()).get(outcome.getKey());
+                    this.metrics.get(entity.getKey()).get(transaction.getKey()).put(outcome.getKey(),outcomeCount+outcomesDelta);
                 }
             }
         }
@@ -100,11 +100,11 @@ public class InventoryMetrics {
 
     public String toString() {
         StringBuilder str = new StringBuilder();
-        for (Entity entity : metrics.keySet()) {
-            str.append(entity).append(": ");
-            for (Transaction transaction : metrics.get(entity).keySet()) {
-                for (Outcome outcome : metrics.get(entity).get(transaction).keySet()) {
-                    int count = this.metrics.get(entity).get(transaction).get(outcome);
+        for (Map.Entry<Entity,Map<Transaction, Map<Outcome,Integer>>> entity : metrics.entrySet()) {
+            str.append(entity.getKey()).append(": ");
+            for (Map.Entry<Transaction, Map<Outcome,Integer>> transaction : metrics.get(entity.getKey()).entrySet()) {
+                for (Map.Entry<Outcome,Integer> outcome : metrics.get(entity.getKey()).get(transaction.getKey()).entrySet()) {
+                    int count = this.metrics.get(entity.getKey()).get(transaction.getKey()).get(outcome.getKey());
                     str.append(outcome).append(" ").append(transaction).append(": ")
                             .append(count).append(".");
                 }

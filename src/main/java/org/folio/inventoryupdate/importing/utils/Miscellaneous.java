@@ -5,6 +5,10 @@ import java.time.Period;
 import static org.folio.inventoryupdate.importing.service.ImportService.logger;
 
 public class Miscellaneous {
+
+    private Miscellaneous() {
+      throw new IllegalStateException("Utility class");
+    }
     /**
      * Takes a period in the form of "3 WEEKS", for example, and turns it into a temporal amount.
      * @param periodAsText a string with an integer followed by DAYS, WEEKS, or MONTHS
@@ -18,20 +22,19 @@ public class Miscellaneous {
                     int amount = Integer.parseInt(periodAsArray[0]);
                     String unit = periodAsArray[1];
                     switch (unit) {
-                        case "DAY":
-                        case "DAYS":
+                        case "DAY", "DAYS":
                             return Period.ofDays(amount);
-                        case "WEEK":
-                        case "WEEKS":
+                        case "WEEK", "WEEKS":
                             return Period.ofWeeks(amount);
-                        case "MONTH":
-                        case "MONTHS":
+                        case "MONTH", "MONTHS":
                             return Period.ofMonths(amount);
+                      default:
+                        return null;
                     }
-                } catch (NumberFormatException ignored) {
+                } catch (NumberFormatException nfe) {
+                  logger.error("Could not resolve period from [{}]. Expected string on the format: <number> DAY(S)|TAG(E)|WEEK(S)|WOCHE(N)|MONTH(S)|MONAT(E)", periodAsText);
                 }
             }
-            logger.error("Could not resolve period from [" + periodAsText + "]. Expected string on the format: <number> DAY(S)|TAG(E)|WEEK(S)|WOCHE(N)|MONTH(S)|MONAT(E)");
         }
         return switch (defaultUnit) {
             case "DAYS" -> Period.ofDays(defaultAmount);

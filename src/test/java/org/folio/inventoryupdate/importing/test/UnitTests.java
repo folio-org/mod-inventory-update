@@ -25,7 +25,6 @@ import org.folio.inventoryupdate.importing.utils.SettableClock;
 import org.folio.okapi.common.XOkapiHeaders;
 import org.folio.tlib.postgres.testing.TenantPgPoolContainer;
 import org.junit.*;
-import org.junit.rules.TestName;
 import org.junit.runner.RunWith;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -42,6 +41,7 @@ import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 
 import static io.restassured.RestAssured.given;
 import static org.awaitility.Awaitility.await;
@@ -60,10 +60,6 @@ public class UnitTests {
 
     @ClassRule
     public static PostgreSQLContainer<?> postgresSQLContainer = TenantPgPoolContainer.create();
-
-
-    @Rule
-    public final TestName name = new TestName();
 
     @BeforeClass
     public static void beforeClass(TestContext context) {
@@ -245,13 +241,13 @@ public class UnitTests {
                 "2b783382-2b64-4311-93b3-aec21fff7f0a",
                 "b6c74236-cf41-4f70-b3dd-fe50e21a69b9",
                 "a2f61369-248f-44a2-88ba-b8889b4d65dd"));
-        String TSA_1 = "17c03639-80ab-43f3-a10a-084a3444a17e";
-        String TSA_2 = "b72ea9c2-f830-4aa5-97d3-7ec49056fdf3";
-        String TSA_3 = "bbf9526e-182a-4ff6-a00f-5a0202c254f1";
-        String TSA_4 = "1c214995-4b7d-4b38-91e1-e393a0dca364";
-        String TSA_5 = "6c08e48e-61e4-4f8c-9773-d3cab225f8f5";
+        String tsaId1 = "17c03639-80ab-43f3-a10a-084a3444a17e";
+        String tsaId2 = "b72ea9c2-f830-4aa5-97d3-7ec49056fdf3";
+        String tsaId3 = "bbf9526e-182a-4ff6-a00f-5a0202c254f1";
+        String tsaId4 = "1c214995-4b7d-4b38-91e1-e393a0dca364";
+        String tsaId5 = "6c08e48e-61e4-4f8c-9773-d3cab225f8f5";
         ArrayList<String> tsaIds = new ArrayList<>(Arrays.asList(
-                TSA_1, TSA_2, TSA_3, TSA_4, TSA_5));
+                tsaId1, tsaId2, tsaId3, tsaId4, tsaId5));
         transformation.put("id", transformationId);
         postJsonObject(Service.PATH_TRANSFORMATIONS, transformation);
 
@@ -273,23 +269,23 @@ public class UnitTests {
             assertThat(getRecordById(Service.PATH_TSAS, tsaIds.get(i)).extract().path("position"), is(i+1));
         }
 
-        JsonObject tsa4 = new JsonObject(getRecordById(Service.PATH_TSAS,TSA_4).extract().asPrettyString());
+        JsonObject tsa4 = new JsonObject(getRecordById(Service.PATH_TSAS,tsaId4).extract().asPrettyString());
         assertThat(tsa4.getString("position"), is("4"));
         tsa4.put("position", "2"); // Move up
-        putJsonObject(Service.PATH_TSAS + "/" + TSA_4, tsa4, 204);
-        assertThat(getRecordById(Service.PATH_TSAS,TSA_4).extract().path("position"), is(2));
-        assertThat(getRecordById(Service.PATH_TSAS,TSA_1).extract().path("position"), is(1));
-        assertThat(getRecordById(Service.PATH_TSAS,TSA_2).extract().path("position"), is(3));
-        assertThat(getRecordById(Service.PATH_TSAS,TSA_3).extract().path("position"), is(4));
-        assertThat(getRecordById(Service.PATH_TSAS,TSA_5).extract().path("position"), is(5));
+        putJsonObject(Service.PATH_TSAS + "/" + tsaId4, tsa4, 204);
+        assertThat(getRecordById(Service.PATH_TSAS,tsaId4).extract().path("position"), is(2));
+        assertThat(getRecordById(Service.PATH_TSAS,tsaId1).extract().path("position"), is(1));
+        assertThat(getRecordById(Service.PATH_TSAS,tsaId2).extract().path("position"), is(3));
+        assertThat(getRecordById(Service.PATH_TSAS,tsaId3).extract().path("position"), is(4));
+        assertThat(getRecordById(Service.PATH_TSAS,tsaId5).extract().path("position"), is(5));
 
         tsa4.put("position", "4"); // Move down
-        putJsonObject(Service.PATH_TSAS + "/" + TSA_4, tsa4, 204);
-        assertThat(getRecordById(Service.PATH_TSAS,TSA_4).extract().path("position"), is(4));
-        assertThat(getRecordById(Service.PATH_TSAS,TSA_1).extract().path("position"), is(1));
-        assertThat(getRecordById(Service.PATH_TSAS,TSA_2).extract().path("position"), is(2));
-        assertThat(getRecordById(Service.PATH_TSAS,TSA_3).extract().path("position"), is(3));
-        assertThat(getRecordById(Service.PATH_TSAS,TSA_5).extract().path("position"), is(5));
+        putJsonObject(Service.PATH_TSAS + "/" + tsaId4, tsa4, 204);
+        assertThat(getRecordById(Service.PATH_TSAS,tsaId4).extract().path("position"), is(4));
+        assertThat(getRecordById(Service.PATH_TSAS,tsaId1).extract().path("position"), is(1));
+        assertThat(getRecordById(Service.PATH_TSAS,tsaId2).extract().path("position"), is(2));
+        assertThat(getRecordById(Service.PATH_TSAS,tsaId3).extract().path("position"), is(3));
+        assertThat(getRecordById(Service.PATH_TSAS,tsaId5).extract().path("position"), is(5));
     }
 
     @Test
@@ -302,13 +298,13 @@ public class UnitTests {
             "2b783382-2b64-4311-93b3-aec21fff7f0a",
             "b6c74236-cf41-4f70-b3dd-fe50e21a69b9",
             "a2f61369-248f-44a2-88ba-b8889b4d65dd"));
-        String TSA_1 = "17c03639-80ab-43f3-a10a-084a3444a17e";
-        String TSA_2 = "b72ea9c2-f830-4aa5-97d3-7ec49056fdf3";
-        String TSA_3 = "bbf9526e-182a-4ff6-a00f-5a0202c254f1";
-        String TSA_4 = "1c214995-4b7d-4b38-91e1-e393a0dca364";
-        String TSA_5 = "6c08e48e-61e4-4f8c-9773-d3cab225f8f5";
+        String tsaId1 = "17c03639-80ab-43f3-a10a-084a3444a17e";
+        String tsaId2 = "b72ea9c2-f830-4aa5-97d3-7ec49056fdf3";
+        String tsaId3 = "bbf9526e-182a-4ff6-a00f-5a0202c254f1";
+        String tsaId4 = "1c214995-4b7d-4b38-91e1-e393a0dca364";
+        String tsaId5 = "6c08e48e-61e4-4f8c-9773-d3cab225f8f5";
         ArrayList<String> tsaIds = new ArrayList<>(Arrays.asList(
-            TSA_1, TSA_2, TSA_3, TSA_4, TSA_5));
+            tsaId1, tsaId2, tsaId3, tsaId4, tsaId5));
         transformation.put("id", transformationId);
         postJsonObject(Service.PATH_TRANSFORMATIONS, transformation);
 
@@ -334,17 +330,17 @@ public class UnitTests {
         }
         // Insert step at position 2
         JsonObject tsa = new JsonObject();
-        tsa.put("id",TSA_5);
+        tsa.put("id",tsaId5);
         tsa.put("step", new JsonObject().put("id", stepIds.get(4)));
         tsa.put("transformation", transformationId);
         tsa.put("position", String.valueOf(2));
         postJsonObject(Service.PATH_TSAS, tsa);
 
-        assertThat(getRecordById(Service.PATH_TSAS, TSA_1).extract().path("position"), is(1));
-        assertThat(getRecordById(Service.PATH_TSAS, TSA_5).extract().path("position"), is(2));
-        assertThat(getRecordById(Service.PATH_TSAS, TSA_2).extract().path("position"), is(3));
-        assertThat(getRecordById(Service.PATH_TSAS, TSA_3).extract().path("position"), is(4));
-        assertThat(getRecordById(Service.PATH_TSAS, TSA_4).extract().path("position"), is(5));
+        assertThat(getRecordById(Service.PATH_TSAS, tsaId1).extract().path("position"), is(1));
+        assertThat(getRecordById(Service.PATH_TSAS, tsaId5).extract().path("position"), is(2));
+        assertThat(getRecordById(Service.PATH_TSAS, tsaId2).extract().path("position"), is(3));
+        assertThat(getRecordById(Service.PATH_TSAS, tsaId3).extract().path("position"), is(4));
+        assertThat(getRecordById(Service.PATH_TSAS, tsaId4).extract().path("position"), is(5));
     }
 
     @Test
@@ -357,13 +353,13 @@ public class UnitTests {
             "2b783382-2b64-4311-93b3-aec21fff7f0a",
             "b6c74236-cf41-4f70-b3dd-fe50e21a69b9",
             "a2f61369-248f-44a2-88ba-b8889b4d65dd"));
-        String TSA_1 = "17c03639-80ab-43f3-a10a-084a3444a17e";
-        String TSA_2 = "b72ea9c2-f830-4aa5-97d3-7ec49056fdf3";
-        String TSA_3 = "bbf9526e-182a-4ff6-a00f-5a0202c254f1";
-        String TSA_4 = "1c214995-4b7d-4b38-91e1-e393a0dca364";
-        String TSA_5 = "6c08e48e-61e4-4f8c-9773-d3cab225f8f5";
+        String tsaId1 = "17c03639-80ab-43f3-a10a-084a3444a17e";
+        String tsaId2 = "b72ea9c2-f830-4aa5-97d3-7ec49056fdf3";
+        String tsaId3 = "bbf9526e-182a-4ff6-a00f-5a0202c254f1";
+        String tsaId4 = "1c214995-4b7d-4b38-91e1-e393a0dca364";
+        String tsaId5 = "6c08e48e-61e4-4f8c-9773-d3cab225f8f5";
         ArrayList<String> tsaIds = new ArrayList<>(Arrays.asList(
-            TSA_1, TSA_2, TSA_3, TSA_4, TSA_5));
+            tsaId1, tsaId2, tsaId3, tsaId4, tsaId5));
         transformation.put("id", transformationId);
         postJsonObject(Service.PATH_TRANSFORMATIONS, transformation);
 
@@ -384,12 +380,12 @@ public class UnitTests {
         for (int i = 0; i<5; i++) {
             assertThat(getRecordById(Service.PATH_TSAS, tsaIds.get(i)).extract().path("position"), is(i+1));
         }
-        deleteRecord(Service.PATH_TSAS, TSA_3, 200);
-        assertThat(getRecordById(Service.PATH_TSAS, TSA_1).extract().path("position"), is(1));
-        assertThat(getRecordById(Service.PATH_TSAS, TSA_2).extract().path("position"), is(2));
-        assertThat(getRecordById(Service.PATH_TSAS, TSA_4).extract().path("position"), is(3));
-        assertThat(getRecordById(Service.PATH_TSAS, TSA_5).extract().path("position"), is(4));
-        deleteRecord(Service.PATH_TSAS, TSA_3, 404);
+        deleteRecord(Service.PATH_TSAS, tsaId3, 200);
+        assertThat(getRecordById(Service.PATH_TSAS, tsaId1).extract().path("position"), is(1));
+        assertThat(getRecordById(Service.PATH_TSAS, tsaId2).extract().path("position"), is(2));
+        assertThat(getRecordById(Service.PATH_TSAS, tsaId4).extract().path("position"), is(3));
+        assertThat(getRecordById(Service.PATH_TSAS, tsaId5).extract().path("position"), is(4));
+        deleteRecord(Service.PATH_TSAS, tsaId3, 404);
 
 
     }
@@ -856,7 +852,7 @@ public class UnitTests {
         String started = getRecordById(Service.PATH_IMPORT_JOBS, jobId).extract().path("started");
         await().until(() -> getRecordById(Service.PATH_IMPORT_JOBS, jobId).extract().path("status"), is("PAUSED"));
         Integer amountHarvested = getRecordById(Service.PATH_IMPORT_JOBS, jobId).extract().path("amountHarvested");
-        try { Thread.sleep(500);} catch (InterruptedException e) {throw new RuntimeException(e);}
+        await().atLeast(500, TimeUnit.MILLISECONDS);
         getRecordById(Service.PATH_IMPORT_JOBS, jobId).body("amountHarvested", is(amountHarvested));
         getRecordById(Service.PATH_IMPORT_JOBS, jobId).body("finished", is(nullValue()));
 

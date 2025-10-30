@@ -19,7 +19,7 @@ public class TransformationStep extends Entity {
     public TransformationStep() {}
 
     public TransformationStep(UUID id, UUID transformationId, UUID stepId, Integer position) {
-        record = new TransformationStepRecord(id, transformationId, stepId, position);
+        theRecord = new TransformationStepRecord(id, transformationId, stepId, position);
     }
 
     private Integer positionOfLastStepOfTransformation = null;
@@ -28,11 +28,18 @@ public class TransformationStep extends Entity {
 
     // Transformation/Step association record, the entity data.
     public record TransformationStepRecord(UUID id, UUID transformationId, UUID stepId, Integer position) {}
-    public TransformationStepRecord record;
+    TransformationStepRecord theRecord;
+    public TransformationStepRecord record() {
+      return theRecord;
+    }
 
     // Static map of Entity Fields.
     private static final Map<String, Field> FIELDS = new HashMap<>();
-    public static final String ID = "ID", TRANSFORMATION_ID = "TRANSFORMATION_ID", STEP_ID = "STEP_ID", POSITION="POSITION";
+    public static final String ID = "ID";
+    public static final String TRANSFORMATION_ID = "TRANSFORMATION_ID";
+    public static final String STEP_ID = "STEP_ID";
+    public static final String  POSITION="POSITION";
+
     static {
         FIELDS.put(ID,new Field("id", "id", PgColumn.Type.UUID, false, true, true));
         FIELDS.put(TRANSFORMATION_ID,new Field("transformationId", "transformation_id", PgColumn.Type.UUID, false, true));
@@ -70,10 +77,10 @@ public class TransformationStep extends Entity {
     @Override
     public JsonObject asJson() {
         JsonObject json = new JsonObject();
-        json.put(jsonPropertyName(ID), record.id);
-        json.put(jsonPropertyName(TRANSFORMATION_ID), record.transformationId);
-        json.put(jsonPropertyName(STEP_ID), record.stepId);
-        json.put(jsonPropertyName(POSITION), record.position);
+        json.put(jsonPropertyName(ID), theRecord.id);
+        json.put(jsonPropertyName(TRANSFORMATION_ID), theRecord.transformationId);
+        json.put(jsonPropertyName(STEP_ID), theRecord.stepId);
+        json.put(jsonPropertyName(POSITION), theRecord.position);
         return json;
     }
 
@@ -90,7 +97,7 @@ public class TransformationStep extends Entity {
     public TupleMapper<Entity> getTupleMapper() {
         return TupleMapper.mapper(
                 entity -> {
-                    TransformationStepRecord rec = ((TransformationStep) entity).record;
+                    TransformationStepRecord rec = ((TransformationStep) entity).theRecord;
                     Map<String, Object> parameters = new HashMap<>();
                     parameters.put(dbColumnName(ID), rec.id);
                     parameters.put(dbColumnName(TRANSFORMATION_ID), rec.transformationId);
@@ -102,7 +109,7 @@ public class TransformationStep extends Entity {
 
     @Override
     public Tables table() {
-        return Tables.transformation_step;
+        return Tables.TRANSFORMATION_STEP;
     }
 
     public Future<Void> createTsaRepositionSteps(ServiceRequest request) {
@@ -111,9 +118,9 @@ public class TransformationStep extends Entity {
                 // Potentially adjust the positions of other steps
                 "UPDATE " + this.table(request.dbSchema())
                     + " SET position = position + 1"
-                    + " WHERE transformation_id = '" + record.transformationId + "'"
-                    + "   AND position >= " + this.record.position
-                    + "   AND id != '" + this.record.id + "'"
+                    + " WHERE transformation_id = '" + theRecord.transformationId + "'"
+                    + "   AND position >= " + this.theRecord.position
+                    + "   AND id != '" + this.theRecord.id + "'"
         )).mapEmpty();
     }
 
@@ -122,9 +129,9 @@ public class TransformationStep extends Entity {
                 compose(maxPosition -> {
                     this.positionOfLastStepOfTransformation = maxPosition;
                     this.positionOfTheExistingStep = positionOfExistingTsa;
-                    if (this.record.position != positionOfExistingTsa) { // new position requested
+                    if (this.theRecord.position != positionOfExistingTsa) { // new position requested
                         // Cannot get new position beyond the last step, assuming this step should just become the last
-                        this.newPosition = Math.min(positionOfLastStepOfTransformation, this.record.position);
+                        this.newPosition = Math.min(positionOfLastStepOfTransformation, this.theRecord.position);
                     } else {
                         this.newPosition = positionOfExistingTsa;
                     }
@@ -137,32 +144,32 @@ public class TransformationStep extends Entity {
                         "SELECT MAX(position) AS last_position "
                                 + "FROM " + table(tenantPool.getSchema()) + " "
                                 + "WHERE transformation_id = #{transformationId}")
-                .execute(Collections.singletonMap("transformationId", record.transformationId))
+                .execute(Collections.singletonMap("transformationId", theRecord.transformationId))
                 .map(rows -> rows.iterator().next().getInteger("last_position"));
     }
 
 
     public Future<Void> executeUpdateAndAdjustPositions(ServiceRequest request) {
 
-        return request.moduleStorageAccess().updateEntity(this.record.id, this).onSuccess(ignore ->
+        return request.moduleStorageAccess().updateEntity(this.theRecord.id, this).onSuccess(ignore ->
             executeSqlStatements(request.moduleStorageAccess().getTenantPool(),
                 // Update the one property that can change besides position.
                 "UPDATE " + table(request.dbSchema())
-                        + " SET step_id = '" + record.stepId + "'"
-                        + " WHERE id = '" + record.id + "'",
+                        + " SET step_id = '" + theRecord.stepId + "'"
+                        + " WHERE id = '" + theRecord.id + "'",
                 // Update position while potentially adjusting the positions of other steps
                 "UPDATE " + table(request.dbSchema())
                         + " SET position = "
                         + "     CASE "
                         // set the new position of the step
-                        + "       WHEN id = '" + this.record.id + "' THEN " + this.newPosition + " "
+                        + "       WHEN id = '" + this.theRecord.id + "' THEN " + this.newPosition + " "
                         // the step is moving towards end of pipeline, move affected steps back
                         + "       WHEN " + this.newPosition + " > " + this.positionOfTheExistingStep + " THEN position - 1 "
                         // the step is moving towards beginning of pipeline, move affected steps forward
                         + "       WHEN " + this.newPosition + " < " + this.positionOfTheExistingStep + " THEN position + 1 "
                         + "       ELSE position  "  // not a move (though we shouldn't get here due to the first WHEN
                         + "     END "
-                        + " WHERE transformation_id = '" + record.transformationId + "'"
+                        + " WHERE transformation_id = '" + theRecord.transformationId + "'"
                         + "   AND position BETWEEN SYMMETRIC " + this.positionOfTheExistingStep + " AND " + this.newPosition
         )).mapEmpty();
     }
@@ -179,11 +186,11 @@ public class TransformationStep extends Entity {
     public Future<Void> executeDeleteAndAdjustPositions(TenantPgPool tenantPool, TransformationStep updatingTsa) {
         return executeSqlStatements(tenantPool,
             "DELETE FROM " + this.table(tenantPool.getSchema())
-                + " WHERE id = '" + record.id + "'",
+                + " WHERE id = '" + theRecord.id + "'",
             // Delete position while potentially adjusting the positions of other steps
             "UPDATE " + this.table(tenantPool.getSchema())
                 + " SET position = position - 1"
-                + " WHERE transformation_id = '" + record.transformationId + "'"
+                + " WHERE transformation_id = '" + theRecord.transformationId + "'"
                 + "   AND position > " + updatingTsa.positionOfTheExistingStep
         ).mapEmpty();
     }
@@ -200,9 +207,9 @@ public class TransformationStep extends Entity {
                 + " ("
                 + dbColumnName(ID) + " UUID PRIMARY KEY, "
                 + dbColumnName(TRANSFORMATION_ID) + " UUID NOT NULL "
-                + " REFERENCES " + pool.getSchema() + "." + Tables.transformation + "(" + new Transformation().dbColumnName(Transformation.ID) + "), "
+                + " REFERENCES " + pool.getSchema() + "." + Tables.TRANSFORMATION + "(" + new Transformation().dbColumnName(Transformation.ID) + "), "
                 + dbColumnName(STEP_ID) + " UUID NOT NULL "
-                + " REFERENCES " + pool.getSchema() + "." + Tables.step + "(" + new Step().dbColumnName(Step.ID) + "), "
+                + " REFERENCES " + pool.getSchema() + "." + Tables.STEP + "(" + new Step().dbColumnName(Step.ID) + "), "
                 + dbColumnName(POSITION) + " INTEGER NOT NULL "
                 + ") "
 

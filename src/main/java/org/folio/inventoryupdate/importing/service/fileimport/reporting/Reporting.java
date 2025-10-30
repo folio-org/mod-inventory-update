@@ -44,7 +44,10 @@ public class Reporting {
     public void nowProcessing(String fileName) {
         try {
             fileStats.put(new FileStats(fileName));
-        } catch (InterruptedException ignore) {}
+        } catch (InterruptedException ie) {
+            logger.error("Initiation of file stats interrupted.");
+            Thread.currentThread().interrupt();
+        }
     }
 
     public void incrementFilesProcessed() {
@@ -95,7 +98,8 @@ public class Reporting {
                 logger.info("reportFileStats(): FileStatus queue was empty");
             }
         } catch (InterruptedException ie) {
-            logger.error("Error reporting file statistics: " + ie.getMessage());
+            logger.error("Error reporting file statistics: {}", ie.getMessage());
+            Thread.currentThread().interrupt();
         }
     }
 
@@ -108,24 +112,23 @@ public class Reporting {
         if (queueDone) {
             fileProcessor.logFinish(recordsProcessed.get());
 
-            logger.info("Done processing queue. " + filesProcessed + " file(s) with " + recordsProcessed.get() +
-                    " records processed in " + processingTimeAsString(processingTime) + " (" +
-                    (recordsProcessed.get() * 1000L / processingTime) + " recs/s.)");
+            logger.info("Done processing queue. {} file(s) with {} records processed in {} ({} recs/s.) ",
+                filesProcessed, recordsProcessed.get(), processingTimeAsString(processingTime), (recordsProcessed.get() * 1000L / processingTime));
         }
     }
 
     public Future<Void> reportErrors(BatchOfRecords batch) {
-        // Perform assert fileStats.peek() != null;
-        // Perform String fileName = fileStats.peek().getFileName();
+        // Perform assert fileStats.peek() not null;
+        // Perform String fileName equals fileStats.peek().getFileName();
         try {
             return storage.storeEntities(
                     new RecordFailure(),
                     batch.getErrors().stream()
-                            .map(error -> ((JsonObject) error))
+                            .map(JsonObject.class::cast)
                             .map(error -> new RecordFailure(UUID.randomUUID(),
-                                    fileProcessor.getImportJob().record.id(),
+                                    fileProcessor.getImportJob().record().id(),
                                     fileProcessor.getImportConfigId(),
-                                    fileProcessor.getImportJob().record.importConfigName(),
+                                    fileProcessor.getImportJob().record().importConfigName(),
                                     getInstanceHridFromErrorResponse(error),
                                     SettableClock.getLocalDateTime().toString(),
                                     getBatchIndexFromErrorResponse(error) == null ? null : batch.get(getBatchIndexFromErrorResponse(error)).getOriginalRecordAsString(),
@@ -133,7 +136,7 @@ public class Reporting {
                                     error.getJsonObject("requestJson"))
                             ).collect(Collectors.toList()));
         } catch (Exception e) {
-            logger.error("Exception storing failed records: " + e.getMessage() + " " + Arrays.toString(e.getStackTrace()));
+            logger.error("Exception storing failed records: {} {}.", e.getMessage(), Arrays.toString(e.getStackTrace()));
             return Future.failedFuture("Exception storing failed records: " + e.getMessage());
         }
     }
@@ -167,11 +170,11 @@ public class Reporting {
         List<Entity> lines = new ArrayList<>();
         lines.add(new LogLine(
                 UUID.randomUUID(),
-                fileProcessor.getImportJob().record.id(),
-                fileProcessor.getImportJob().record.importConfigId(),
-                fileProcessor.getImportJob().record.importConfigName(),
+                fileProcessor.getImportJob().record().id(),
+                fileProcessor.getImportJob().record().importConfigId(),
+                fileProcessor.getImportJob().record().importConfigName(),
                 SettableClock.getLocalDateTime().toString(),
-                fileProcessor.getImportJob().record.importConfigName(),
+                fileProcessor.getImportJob().record().importConfigName(),
                 statement));
         return storage.storeEntities(new LogLine(),lines);
     }

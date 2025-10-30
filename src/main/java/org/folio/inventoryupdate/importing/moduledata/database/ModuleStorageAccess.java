@@ -95,8 +95,8 @@ public class ModuleStorageAccess {
                         entity.makeInsertTemplate(pool.getSchema()))
                 .mapFrom(entity.getTupleMapper())
                 .execute(entity)
-                .onSuccess(res -> logger.info("Created " + entity.entityName().toLowerCase() + ". ID [" + entity.asJson().getString("id") + "]"))
-                .onFailure(res -> logger.error("Couldn't save " + entity.entityName().toLowerCase() + ": " + res.getMessage() + " " + entity.asJson()))
+                .onSuccess(res -> logger.info("Created {}. ID [{}]", entity.entityName().toLowerCase(), entity.asJson().getString("id")))
+                .onFailure(res -> logger.error("Couldn't save {}: {} {}", entity.entityName().toLowerCase(), res.getMessage(),entity.asJson()))
                 .map(UUID.fromString(entity.asJson().getString("id")));
     }
 
@@ -117,8 +117,8 @@ public class ModuleStorageAccess {
                             definition.makeInsertTemplate(pool.getSchema()))
                     .mapFrom(definition.getTupleMapper())
                     .executeBatch(entities)
-                    .onSuccess(res -> logger.info("Saved batch of " + entities.size() + " " + definition.entityName().toLowerCase() + (entities.size()!=1 ? "s." : "." )))
-                    .onFailure(res -> logger.error("Couldn't save batch of " + definition.entityName().toLowerCase() + ": " + res.getMessage()))
+                    .onSuccess(res -> logger.info("Saved batch of {} {}{}",entities.size(),definition.entityName().toLowerCase(), (entities.size()!=1 ? "s." : "." )))
+                    .onFailure(res -> logger.error("Couldn't save batch of {}: {}" ,definition.entityName().toLowerCase(), res.getMessage()))
                     .mapEmpty();
         } else {
             return Future.succeededFuture();
@@ -131,8 +131,8 @@ public class ModuleStorageAccess {
                 .mapTo(definition.getRowMapper())
                 .execute(null)
                 .onSuccess(rows -> {
-                    for (Entity record : rows) {
-                        records.add(record);
+                    for (Entity entity : rows) {
+                        records.add(entity);
                     }
                 }).map(records);
     }
@@ -170,45 +170,45 @@ public class ModuleStorageAccess {
     public Future<SqlResult<Void>> purgePreviousJobsByAge (LocalDateTime untilDate) {
         Promise<Void> promise = Promise.promise();
         return SqlTemplate.forUpdate(pool.getPool(),
-                        "DELETE FROM " + schemaDotTable(Tables.log_statement)
+                        "DELETE FROM " + schemaDotTable(Tables.LOG_STATEMENT)
                                 + " WHERE " +  new LogLine().field(LogLine.IMPORT_JOB_ID).columnName() +
                                 "    IN (SELECT " + new ImportJob().field(ImportJob.ID).columnName() +
-                                "        FROM " + schemaDotTable(Tables.import_job) +
+                                "        FROM " + schemaDotTable(Tables.IMPORT_JOB) +
                                 "        WHERE " + new ImportJob().field(ImportJob.STARTED).columnName() + " < #{untilDate} )")
                 .execute(Collections.singletonMap("untilDate", untilDate))
                 .onComplete(deletedLogs -> {
                     if (deletedLogs.succeeded()) {
                         SqlTemplate.forUpdate(pool.getPool(),
-                                        "DELETE FROM " + schemaDotTable(Tables.record_failure)
+                                        "DELETE FROM " + schemaDotTable(Tables.RECORD_FAILURE)
                                                 + " WHERE " + new RecordFailure().field(LogLine.IMPORT_JOB_ID).columnName() +
                                                 "    IN (SELECT " + new ImportJob().field(ImportJob.ID).columnName() +
-                                                "        FROM " + schemaDotTable(Tables.import_job) +
+                                                "        FROM " + schemaDotTable(Tables.IMPORT_JOB) +
                                                 "        WHERE " + new ImportJob().field(ImportJob.STARTED).columnName() + " < #{untilDate} )")
                                 .execute(Collections.singletonMap("untilDate", untilDate))
                                 .onComplete(deletedFailedRecords -> {
                                     if (deletedFailedRecords.succeeded()) {
                                         SqlTemplate.forUpdate(pool.getPool(),
-                                                        "DELETE FROM " + schemaDotTable(Tables.import_job) +
+                                                        "DELETE FROM " + schemaDotTable(Tables.IMPORT_JOB) +
                                                                 "        WHERE " + new ImportJob().field(ImportJob.STARTED).columnName() + " < #{untilDate} ")
                                                 .execute(Collections.singletonMap("untilDate", untilDate))
                                                 .onSuccess( result -> {
-                                                    logger.info("Timer process purged " + result.rowCount() + " harvest job runs from before " + untilDate);
+                                                    logger.info("Timer process purged {} harvest job runs from before {}", result.rowCount(), untilDate);
                                                     promise.complete();
                                                 })
                                                 .onFailure( result -> {
-                                                    logger.error("Timer process: Purge of previous jobs failed." + result.getCause().getMessage());
-                                                    promise.fail("Could not delete job runs with finish dates before  " + untilDate
-                                                            + result.getCause().getMessage());
+                                                    logger.error("Timer process: Purge of previous jobs failed. {}", result.getCause().getMessage());
+                                                    promise.fail(String.format("Could not delete job runs with finish dates before %s %s", untilDate,
+                                                            result.getCause().getMessage()));
                                                 });
                                     } else {
-                                        logger.error("Purge of failed records failed." + deletedFailedRecords.cause().getMessage());
-                                        promise.fail("Could not delete job runs with finish dates before  " + untilDate
-                                                + " because deletion of its failed records failed: "
-                                                + deletedFailedRecords.cause().getMessage());
+                                        logger.error("Purge of failed records failed. {}", deletedFailedRecords.cause().getMessage());
+                                        promise.fail(String.format("Could not delete job runs with finish dates before  %s "
+                                                + " because deletion of its failed records failed: %s",
+                                                untilDate, deletedFailedRecords.cause().getMessage()));
                                     }
                                 });
                     } else {
-                        logger.error("Purge of log statements failed." + deletedLogs.cause().getMessage());
+                        logger.error("Purge of log statements failed. {}", deletedLogs.cause().getMessage());
                         promise.fail("Could not delete job runs with finish dates before  " + untilDate
                                 + " because deletion of its logs failed: "
                                 + deletedLogs.cause().getMessage());

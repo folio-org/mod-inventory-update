@@ -14,10 +14,10 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 
 import static org.folio.inventoryupdate.updating.test.fakestorage.FakeFolioApis.*;
+import static org.junit.Assert.assertEquals;
 
 @RunWith(VertxUnitRunner.class)
 public class MatchKeyApiTests extends InventoryUpdateTestBase {
-  public static final String SHARED_INVENTORY_BATCH_UPSERT_MATCHKEY_PATH = "/shared-inventory-batch-upsert-matchkey";
   public static final String SHARED_INVENTORY_UPSERT_MATCHKEY_PATH = "/shared-inventory-upsert-matchkey";
   public static final String FETCH_SHARED_INVENTORY_RECORD_SETS_ID_PATH = SHARED_INVENTORY_UPSERT_MATCHKEY_PATH+"/fetch/:id";
 
@@ -396,7 +396,7 @@ public class MatchKeyApiTests extends InventoryUpdateTestBase {
   @Test
   public void upsertByMatchKeyWillFailToCreateItemIfMaterialTypeIsMissing(TestContext testContext) {
     String instanceHrid = "1";
-    upsertByMatchKey(207, new JsonObject()
+    assertEquals(207, upsertByMatchKey(207, new JsonObject()
         .put("instance",
             new InputInstance().setTitle("Initial InputInstance").setInstanceTypeId("12345").setHrid(instanceHrid).setSource("test").getJson())
         .put("holdingsRecords", new JsonArray()
@@ -414,7 +414,7 @@ public class MatchKeyApiTests extends InventoryUpdateTestBase {
                 .put("items", new JsonArray()
                     .add(new InputItem().setHrid("ITM-003")
                         .setStatus(STATUS_UNKNOWN)
-                        .setBarcode("BC-003").getJson())))));
+                        .setBarcode("BC-003").getJson()))))).getStatusCode());
 
   }
 
@@ -868,11 +868,11 @@ public class MatchKeyApiTests extends InventoryUpdateTestBase {
 
   @Test
   public void deleteByIdentifiersThatDoNotExistInSharedInventoryWillReturn404 (TestContext testContext) {
-    delete(404, SHARED_INVENTORY_UPSERT_MATCHKEY_PATH,
+    assertEquals(404, delete(404, SHARED_INVENTORY_UPSERT_MATCHKEY_PATH,
         new JsonObject()
             .put("institutionId", INSTITUTION_ID_1)
             .put("localIdentifier","DOES_NOT_EXIST")
-            .put("identifierTypeId", "DOES_NOT_EXIST"));
+            .put("identifierTypeId", "DOES_NOT_EXIST")).getStatusCode());
   }
 
   @Test
@@ -903,7 +903,7 @@ public class MatchKeyApiTests extends InventoryUpdateTestBase {
             .put("childInstances", new JsonArray())
             .put("succeedingTitles", new JsonArray())
             .put("precedingTitles", new JsonArray()));
-    upsertByMatchKey (500, inventoryRecordSet);
+    assertEquals(500, upsertByMatchKey (500, inventoryRecordSet).getStatusCode());
 
   }
 
@@ -918,7 +918,7 @@ public class MatchKeyApiTests extends InventoryUpdateTestBase {
         .log().ifValidationFails()
         .statusCode(200).extract().response();
 
-    UpdatePlanSharedInventory.locationsToInstitutionsMap.clear();
+    UpdatePlanSharedInventory.locationsToInstitutionsMap().clear();
     JsonObject inventoryRecordSet = new JsonObject()
         .put("instance",
             new InputInstance().setTitle("Test forcedLocationsGetRecordsFailure").setInstanceTypeId("12345").setHrid("001").setSource("test").getJson())
@@ -982,9 +982,9 @@ public class MatchKeyApiTests extends InventoryUpdateTestBase {
         .put("localIdentifier",identifierValue1)
         .put("identifierTypeId", identifierTypeId1);
 
-    UpdatePlanSharedInventory.locationsToInstitutionsMap.clear();
+    UpdatePlanSharedInventory.locationsToInstitutionsMap().clear();
 
-    delete(200,SHARED_INVENTORY_UPSERT_MATCHKEY_PATH, deleteSignal);
+    assertEquals(200, delete(200,SHARED_INVENTORY_UPSERT_MATCHKEY_PATH, deleteSignal).getStatusCode());
 
   }
 
@@ -1024,7 +1024,7 @@ public class MatchKeyApiTests extends InventoryUpdateTestBase {
         .put("localIdentifier",identifierValue1)
         .put("identifierTypeId", identifierTypeId1);
 
-    delete(207,SHARED_INVENTORY_UPSERT_MATCHKEY_PATH, deleteSignal);
+    assertEquals(207, delete(207,SHARED_INVENTORY_UPSERT_MATCHKEY_PATH, deleteSignal).getStatusCode());
 
   }
 
@@ -1059,7 +1059,7 @@ public class MatchKeyApiTests extends InventoryUpdateTestBase {
 
     fetchRecordSetFromUpsertSharedInventory( "1" );
     fetchRecordSetFromUpsertSharedInventory (newInstance.getJsonObject( "instance" ).getString( "id" ));
-    getJsonObjectById( FETCH_SHARED_INVENTORY_RECORD_SETS_ID_PATH, "2", 404 );
+    assertEquals(404, getJsonObjectById( FETCH_SHARED_INVENTORY_RECORD_SETS_ID_PATH, "2", 404 ).getStatusCode());
 
   }
 
@@ -1092,7 +1092,7 @@ public class MatchKeyApiTests extends InventoryUpdateTestBase {
                         .setBarcode("BC-003").getJson())))));
 
 
-    getJsonObjectById( FETCH_SHARED_INVENTORY_RECORD_SETS_ID_PATH, "1", 400 );
+    assertEquals(400, getJsonObjectById( FETCH_SHARED_INVENTORY_RECORD_SETS_ID_PATH, "1", 400 ).getStatusCode());
   }
 
   @Test
@@ -1100,12 +1100,12 @@ public class MatchKeyApiTests extends InventoryUpdateTestBase {
     JsonObject inventoryRecordSet = new JsonObject();
     inventoryRecordSet.put("instance", new InputInstance()
         .setTitle("Initial InputInstance").setInstanceTypeId("12345").getJson());
-    putJsonObject(SHARED_INVENTORY_UPSERT_MATCHKEY_PATH + "/invalid",inventoryRecordSet,404);
+    assertEquals(putJsonObject(SHARED_INVENTORY_UPSERT_MATCHKEY_PATH + "/invalid",inventoryRecordSet,404).getStatusCode(), 404);
   }
 
   @Test
   public void testSendingNonInventoryRecordSetArrayToBatchApi (TestContext testContext) {
-    batchUpsertByMatchKey(400, new JsonObject().put("unknownProperty", new JsonArray()));
+    assertEquals(400, batchUpsertByMatchKey(400, new JsonObject().put("unknownProperty", new JsonArray())).getStatusCode());
   }
 
   @Test

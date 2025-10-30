@@ -64,6 +64,9 @@ public class InventoryStorage {
   private static final String X_OKAPI_TENANT = "X-Okapi-Tenant";
   private static final String X_OKAPI_REQUEST_ID = "X-Okapi-Request-Id";
 
+  private InventoryStorage () {
+    throw new IllegalStateException("Utility class");
+  }
   public static Future<JsonObject> postInventoryRecord (OkapiClient okapiClient, InventoryRecord inventoryRecord) {
     Promise<JsonObject> promise = Promise.promise();
     okapiClient.post(getApi(inventoryRecord.entityType()), inventoryRecord.asJsonString(), postResult -> {
@@ -185,9 +188,9 @@ public class InventoryStorage {
   }
 
   public static Future<JsonObject> lookupInstance(OkapiClient okapiClient, InventoryQuery inventoryQuery) {
-    if (inventoryQuery instanceof QueryByUUID) {
+    if (inventoryQuery instanceof QueryByUUID queryByUUID) {
       // this reduces the lookup response time from 22 ms to 18 ms.
-      return lookupInstance(okapiClient, (QueryByUUID) inventoryQuery);
+      return lookupInstance(okapiClient, queryByUUID);
     }
     return okapiClient.get(queryUri(INSTANCE_STORAGE_PATH, inventoryQuery))
         .map(json -> {

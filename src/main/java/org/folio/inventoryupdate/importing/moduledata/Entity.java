@@ -57,7 +57,7 @@ public abstract class Entity {
             Future<RowSet<Row>> future = Future.succeededFuture();
             for (var sql : statements) {
                 future = future.compose(x -> pool.query(sql).execute()
-                        .onFailure(e -> logger.error("Failed to execute [" + sql + "]: " + e.getMessage() )));
+                        .onFailure(e -> logger.error("Failed to execute [{}]: {}", sql, e.getMessage())));
             }
             return future;
     }
@@ -206,8 +206,8 @@ public abstract class Entity {
     private String jsonPropertiesToColumnNames(String clause) {
         if (clause != null) {
             Map<String, PgColumn> prop2col = getPropertyToColumnMap();
-            for (String property : prop2col.keySet()) {
-                clause = clause.replaceAll(property.toLowerCase(), prop2col.get(property).name);
+            for (Map.Entry<String, PgColumn> property : prop2col.entrySet()) {
+                clause = clause.replaceAll(property.getKey().toLowerCase(), prop2col.get(property.getKey()).name);
             }
         }
         return clause;

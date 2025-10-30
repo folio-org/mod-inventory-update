@@ -6,24 +6,22 @@ import org.folio.inventoryupdate.updating.MatchKey;
 
 public class InputInstance extends InventoryRecord {
 
-  public static String TITLE = "title";
-  public static String INSTANCE_TYPE_ID = "instanceTypeId";
-  public static String MATCH_KEY = "matchKey";
-  public static String HRID = "hrid";
-  public static String SOURCE = "source";
-  public static String IDENTIFIERS = "identifiers";
-  public static String PUBLICATION = "publication";
-  public static String DATE_OF_PUBLICATION = "dateOfPublication";
-  public static String CLASSIFICATIONS = "classifications";
-  public static String CLASSIFICATION_TYPE_ID = "classificationTypeId";
-  public static String CLASSIFICATION_NUMBER = "classificationNumber";
-  public static String CONTRIBUTORS = "contributors";
-  public static String CONTRIBUTOR_NAME_TYPE_ID = "contributorNameTypeId";
-  public static String MEETING_NAME_TYPE = "e8b311a6-3b21-43f2-a269-dd9310cb2d0a";
-  public static String PERSONAL_NAME_TYPE =  "2b94c631-fca9-4892-a730-03ee529ffe2a";
-  public static String CORPORATE_NAME_TYPE = "2e48e713-17f3-4c13-a9f8-23845bb210aa";
-  public static String PHYSICAL_DESCRIPTIONS = "physicalDescriptions";
-  public static String EDITIONS = "editions";
+  public static final String TITLE = "title";
+  public static final String INSTANCE_TYPE_ID = "instanceTypeId";
+  public static final String MATCH_KEY = "matchKey";
+  public static final String HRID = "hrid";
+  public static final String SOURCE = "source";
+  public static final String IDENTIFIERS = "identifiers";
+  public static final String PUBLICATION = "publication";
+  public static final String DATE_OF_PUBLICATION = "dateOfPublication";
+  public static final String CLASSIFICATIONS = "classifications";
+  public static final String CLASSIFICATION_TYPE_ID = "classificationTypeId";
+  public static final String CLASSIFICATION_NUMBER = "classificationNumber";
+  public static final String CONTRIBUTORS = "contributors";
+  public static final String CONTRIBUTOR_NAME_TYPE_ID = "contributorNameTypeId";
+  public static final String PERSONAL_NAME_TYPE =  "2b94c631-fca9-4892-a730-03ee529ffe2a";
+  public static final String PHYSICAL_DESCRIPTIONS = "physicalDescriptions";
+  public static final String EDITIONS = "editions";
 
   public InputInstance() {
     super();

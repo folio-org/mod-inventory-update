@@ -11,11 +11,17 @@ import java.nio.charset.StandardCharsets;
 
 
 public class ConfigurationsClient {
+
     public static final String CONFIGURATIONS_PATH = "/configurations/entries";
     public static final String RECORDS = "configs";
 
     protected static final Logger logger =
             LogManager.getLogger(ConfigurationsClient.class);
+
+    private ConfigurationsClient() {
+      throw new IllegalStateException("Utility class");
+    }
+
 
     public static Future<String> getStringValue(RoutingContext routingContext, String moduleName, String configName) {
         String query = "module==\"" +moduleName+ "\" and configName==\"" +configName+"\" and enabled=true";
@@ -23,8 +29,9 @@ public class ConfigurationsClient {
                         "?query=" + URLEncoder.encode(query, StandardCharsets.UTF_8))
                 .map(response ->
                         new JsonObject(response).getJsonArray(RECORDS).getJsonObject(0).getString("value"))
-                .onFailure(e -> logger.error("Could not obtain settings by module " + moduleName
-                        + " and config " + configName + ": " + e.getMessage()));
+                .onFailure(e -> logger.error(
+                    "Could not obtain settings by module {} and config {}: {}",
+                    moduleName, configName, e.getMessage()));
     }
 
 }

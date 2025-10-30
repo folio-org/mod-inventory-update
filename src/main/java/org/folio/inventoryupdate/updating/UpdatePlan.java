@@ -376,8 +376,8 @@ public abstract class UpdatePlan {
 
     public JsonObject getOneUpdatingRecordSetJsonFromRepository() {
         return (repository.getPairsOfRecordSets().size() == 1
-                && repository.getPairsOfRecordSets().get(0).hasIncomingRecordSet()) ?
-                repository.getPairsOfRecordSets().get(0).getIncomingRecordSet().asJson()
+                && repository.getPairsOfRecordSets().getFirst().hasIncomingRecordSet()) ?
+                repository.getPairsOfRecordSets().getFirst().getIncomingRecordSet().asJson()
                 : new JsonObject();
     }
 
@@ -403,8 +403,8 @@ public abstract class UpdatePlan {
                             } else {
                                 metrics.entity(instanceToInstanceRelation.entityType()).transaction(instanceToInstanceRelation.getTransaction()).outcomes.increment(
                                         instanceToInstanceRelation.getOutcome());
-                              if (repository instanceof RepositoryByHrids) {
-                                Map<String, Instance> provisionalInstances = ((RepositoryByHrids) repository).provisionalInstancesByHrid;
+                              if (repository instanceof RepositoryByHrids repositoryByHrids) {
+                                Map<String, Instance> provisionalInstances = repositoryByHrids.provisionalInstancesByHrid;
                                 if (provisionalInstances.containsKey(instanceToInstanceRelation.getReferenceInstanceHrid()))
                                 {
                                   Instance provisional = provisionalInstances.get(instanceToInstanceRelation.getReferenceInstanceHrid());
@@ -418,9 +418,8 @@ public abstract class UpdatePlan {
                 }
             }
         }
-        if (!repository.getPairsOfRecordSets().isEmpty() && repository.getPairsOfRecordSets().get(
-                0).hasExistingRecordSet()) {
-            InventoryRecordSet existingSet = repository.getPairsOfRecordSets().get(0).getExistingRecordSet();
+        if (!repository.getPairsOfRecordSets().isEmpty() && repository.getPairsOfRecordSets().getFirst().hasExistingRecordSet()) {
+            InventoryRecordSet existingSet = repository.getPairsOfRecordSets().getFirst().getExistingRecordSet();
             List<InventoryRecord> holdingsRecordsAndItemsInExistingSet = Stream.of(existingSet.getHoldingsRecords(),
                     existingSet.getItems()).flatMap(Collection::stream).collect(Collectors.toList());
 
@@ -434,8 +433,8 @@ public abstract class UpdatePlan {
                     if (!instanceToInstanceRelation.getTransaction().equals(InventoryRecord.Transaction.NONE)) {
                         metrics.entity(instanceToInstanceRelation.entityType()).transaction(instanceToInstanceRelation.getTransaction()).outcomes.increment(
                                 instanceToInstanceRelation.getOutcome());
-                        if (repository instanceof RepositoryByHrids) {
-                          Map<String, Instance> provisionalInstances = ((RepositoryByHrids) repository).provisionalInstancesByHrid;
+                        if (repository instanceof RepositoryByHrids repositoryByHrids) {
+                          Map<String, Instance> provisionalInstances = repositoryByHrids.provisionalInstancesByHrid;
                           if (provisionalInstances.containsKey(instanceToInstanceRelation.getReferenceInstanceHrid()))
                           {
                             Instance provisional = provisionalInstances.get(instanceToInstanceRelation.getReferenceInstanceHrid());

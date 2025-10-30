@@ -15,22 +15,32 @@ public class ImportConfig extends Entity {
 
     public ImportConfig(){}
 
-    public ImportConfig(UUID id, String name, String type, String URL, Boolean allowErrors,
+    public ImportConfig(UUID id, String name, String type, String url, Boolean allowErrors,
                         Integer recordLimit, Integer batchSize, UUID transformationId, UUID storageId) {
-        record = new ImportConfigRecord(id, name, type, URL, allowErrors, recordLimit, batchSize, transformationId, storageId);
+        theRecord = new ImportConfigRecord(id, name, type, url, allowErrors, recordLimit, batchSize, transformationId, storageId);
     }
 
     // Import config record, the entity data.
     public record ImportConfigRecord(UUID id, String name, String type, String URL, Boolean allowErrors,
                                       Integer recordLimit, Integer batchSize, UUID transformationId, UUID storageId) {
     }
-    public ImportConfigRecord record;
+    ImportConfigRecord theRecord;
+
+    public ImportConfigRecord record() {
+      return theRecord;
+    }
 
     // Static map of Entity Fields.
     private static final Map<String, Field> IMPORT_CONFIG_FIELDS = new HashMap<>();
-    public static final String ID = "ID", NAME = "NAME", TYPE = "TYPE",
-            URL = "URL", ALLOW_ERRORS = "ALLOW_ERRORS", RECORD_LIMIT = "RECORD_LIMIT", BATCH_SIZE = "BATCH_SIZE",
-            TRANSFORMATION_ID = "TRANSFORMATION_ID", STORAGE_ID = "STORAGE_ID";
+    public static final String ID = "ID";
+    public static final String NAME = "NAME";
+    public static final String TYPE = "TYPE";
+    public static final String URL = "URL";
+    public static final String ALLOW_ERRORS = "ALLOW_ERRORS";
+    public static final String RECORD_LIMIT = "RECORD_LIMIT";
+    public static final String BATCH_SIZE = "BATCH_SIZE";
+    public static final String TRANSFORMATION_ID = "TRANSFORMATION_ID";
+    public static final String STORAGE_ID = "STORAGE_ID";
 
     static {
         IMPORT_CONFIG_FIELDS.put(ID, new Field("id", "id", PgColumn.Type.UUID, false, true, true));
@@ -90,7 +100,7 @@ public class ImportConfig extends Entity {
     public TupleMapper<Entity> getTupleMapper() {
         return TupleMapper.mapper(
                 entity -> {
-                    ImportConfigRecord rec = ((ImportConfig) entity).record;
+                    ImportConfigRecord rec = ((ImportConfig) entity).theRecord;
                     Map<String, Object> parameters = new HashMap<>();
                     parameters.put(dbColumnName(ID), rec.id);
                     parameters.put(dbColumnName(NAME), rec.name);
@@ -114,23 +124,23 @@ public class ImportConfig extends Entity {
      */
     public JsonObject asJson() {
         JsonObject json = new JsonObject();
-        json.put(jsonPropertyName(ID), record.id());
-        json.put(jsonPropertyName(NAME), record.name());
-        json.put(jsonPropertyName(TYPE), record.type());
-        json.put(jsonPropertyName(URL), record.URL());
-        json.put(jsonPropertyName(ALLOW_ERRORS), record.allowErrors());
-        json.put(jsonPropertyName(RECORD_LIMIT), record.recordLimit());
-        json.put(jsonPropertyName(BATCH_SIZE), record.batchSize());
-        json.put(jsonPropertyName(TRANSFORMATION_ID), record.transformationId());
-        if (record.storageId() != null) {
-            json.put(jsonPropertyName(STORAGE_ID), record.storageId().toString());
+        json.put(jsonPropertyName(ID), theRecord.id());
+        json.put(jsonPropertyName(NAME), theRecord.name());
+        json.put(jsonPropertyName(TYPE), theRecord.type());
+        json.put(jsonPropertyName(URL), theRecord.URL());
+        json.put(jsonPropertyName(ALLOW_ERRORS), theRecord.allowErrors());
+        json.put(jsonPropertyName(RECORD_LIMIT), theRecord.recordLimit());
+        json.put(jsonPropertyName(BATCH_SIZE), theRecord.batchSize());
+        json.put(jsonPropertyName(TRANSFORMATION_ID), theRecord.transformationId());
+        if (theRecord.storageId() != null) {
+            json.put(jsonPropertyName(STORAGE_ID), theRecord.storageId().toString());
         }
         return json;
     }
 
     @Override
     public Tables table() {
-        return Tables.import_config;
+        return Tables.IMPORT_CONFIG;
     }
 
     @Override
@@ -146,7 +156,7 @@ public class ImportConfig extends Entity {
                 + field(RECORD_LIMIT).pgColumnDdl() + ", "
                 + field(BATCH_SIZE).pgColumnDdl() + ", "
                 + field(TRANSFORMATION_ID).pgColumnDdl()
-                + " REFERENCES " + pool.getSchema() + "." + Tables.transformation
+                + " REFERENCES " + pool.getSchema() + "." + Tables.TRANSFORMATION
                         + " (" + new Transformation().dbColumnName(Transformation.ID) + "), "
                 + field(STORAGE_ID).pgColumnDdl()
                 + ")"

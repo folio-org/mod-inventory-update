@@ -19,6 +19,9 @@ public class InventoryXmlToInventoryJson {
 
     public static final Logger logger = LogManager.getLogger("InventoryXmlToInventoryJson");
 
+    private InventoryXmlToInventoryJson () {
+      throw new IllegalStateException("Utility class");
+    }
     public static JsonObject convert(String xmlStr)  {
         JsonObject genericJson = parseXmlToJson(xmlStr);
         return genericJson == null ? new JsonObject() : makeInventoryJson(genericJson);
@@ -30,7 +33,7 @@ public class InventoryXmlToInventoryJson {
             SecureSaxParser.get().parse(new InputSource(new StringReader(xmlStr)), handler);
             return new JsonObject(handler.getData());
         } catch (ParserConfigurationException | SAXException e) {
-            logger.error("Error parsing XML to JSON: " + e.getMessage());
+            logger.error("Error parsing XML to JSON: {}", e.getMessage());
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
@@ -39,7 +42,7 @@ public class InventoryXmlToInventoryJson {
 
     // SAX parser, XML-to-JSON.
     public static class XMLToJSONHandler extends DefaultHandler {
-        private final Stack<Map<String, Object>> stack = new Stack<>();
+        private final Deque<Map<String, Object>> stack = new ArrayDeque<>();
         private Map<String, Object> currentData = new HashMap<>();
 
         @Override

@@ -18,11 +18,6 @@ public class InstanceRelationshipStorage extends RecordStorage {
     }
 
     @Override
-    protected void declareMandatoryProperties() {
-
-    }
-
-    @Override
     public void updateRecord(RoutingContext routingContext) {
         // not needed
     }

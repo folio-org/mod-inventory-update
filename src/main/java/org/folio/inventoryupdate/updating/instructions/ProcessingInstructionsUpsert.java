@@ -58,10 +58,16 @@ public class ProcessingInstructionsUpsert {
   public static class EntityInstructions {
     String key;
     ValueRetention valueRetention;
-    public RecordRetention recordRetention;
+    RecordRetention recordRetention;
+    public RecordRetention recordRetention() {
+      return recordRetention;
+    }
     JsonObject processing;
     JsonObject entityInstructionsJson;
-    public StatisticalCoding statisticalCoding;
+    StatisticalCoding statisticalCoding;
+    public StatisticalCoding statisticalCoding () {
+      return statisticalCoding;
+    }
 
 
     EntityInstructions(JsonObject processing, String entityInstructionsKey) {

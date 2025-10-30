@@ -6,6 +6,7 @@ import org.folio.inventoryupdate.importing.test.fixtures.Files;
 
 import java.util.Collection;
 
+@SuppressWarnings("java:S127")
 public class InventoryUpsertStorage extends RecordStorage {
     protected void inventoryBatchUpsertHrid (RoutingContext routingContext) {
         JsonObject upsertBody = routingContext.body().asJsonObject();
@@ -36,15 +37,15 @@ public class InventoryUpsertStorage extends RecordStorage {
         } else if (code == 404) {
             respondWithMessage(routingContext, "Not found", 404);
         } else {
-            respondWithMessage(routingContext, (failOnDelete ? "Forced " : "") + "Error deleting from " + STORAGE_NAME, code);
+            respondWithMessage(routingContext, (failOnDelete ? "Forced " : "") + "Error deleting from " + storageName, code);
         }
     }
 
     protected void upsertInventoryRecords(RoutingContext routingContext) {
         JsonObject recordsJson = new JsonObject(routingContext.body().asString());
         recordsJson.getJsonArray("inventoryRecordSets").stream()
-                .forEach(record -> {
-                    JsonObject instance = ((JsonObject) record).getJsonObject("instance");
+                .forEach(theRecord -> {
+                    JsonObject instance = ((JsonObject) theRecord).getJsonObject("instance");
                     String hrid = instance.getString("hrid");
                     instance.put("id", hrid); // dummy 'id'
                     FolioApiRecord incoming = new FolioApiRecord(instance);
@@ -66,12 +67,5 @@ public class InventoryUpsertStorage extends RecordStorage {
         return null;
     }
 
-    @Override
-    protected void declareDependencies() {
-    }
-
-    @Override
-    protected void declareMandatoryProperties() {
-    }
 }
 

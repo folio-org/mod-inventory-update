@@ -1,12 +1,10 @@
 package org.folio.inventoryupdate.importing.moduledata;
 
-import io.vertx.core.Future;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.sqlclient.templates.RowMapper;
 import io.vertx.sqlclient.templates.TupleMapper;
 import org.folio.inventoryupdate.importing.moduledata.database.Tables;
-import org.folio.tlib.postgres.TenantPgPool;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -19,15 +17,22 @@ public class Transformation extends Entity {
     public Transformation() {}
 
     public Transformation(UUID id, String name, boolean enabled, String description, String type) {
-        record = new TransformationRecord(id, name, enabled, description, type);
+        theRecord = new TransformationRecord(id, name, enabled, description, type);
     }
 
     public record TransformationRecord(UUID id, String name, boolean enabled, String description, String type) {}
-    public TransformationRecord record;
+    TransformationRecord theRecord;
+    public TransformationRecord record() {
+      return theRecord;
+    }
 
     // Static map of Entity Fields.
     private static final Map<String, Field> FIELDS = new HashMap<>();
-    public static final String ID = "ID", NAME = "NAME", TYPE = "TYPE", DESCRIPTION = "DESCRIPTION";
+    public static final String ID = "ID";
+    public static final String NAME = "NAME";
+    public static final String TYPE = "TYPE";
+    public static final String DESCRIPTION = "DESCRIPTION";
+
     static {
         FIELDS.put(ID,new Field("id", "id", PgColumn.Type.UUID, false, true, true));
         FIELDS.put(NAME,new Field("name", "name", PgColumn.Type.TEXT, false, true));
@@ -41,7 +46,7 @@ public class Transformation extends Entity {
 
     @Override
     public Tables table() {
-        return Tables.transformation;
+        return Tables.TRANSFORMATION;
     }
 
     @Override
@@ -78,23 +83,23 @@ public class Transformation extends Entity {
                 JsonObject step = stepsArray.getJsonObject(i);
                     tsas.add(new TransformationStep(
                         UUID.randomUUID(),
-                        this.record.id,
+                        this.theRecord.id,
                         UUID.fromString(step.getString("id")),
                         i+1));
             }
             return tsas;
         } else {
-            return null;
+            return new ArrayList<>();
         }
     }
 
     public JsonObject asJson() {
         JsonObject json = new JsonObject();
-        json.put(jsonPropertyName(ID), record.id);
-        json.put(jsonPropertyName(NAME), record.name);
-        json.put(jsonPropertyName(TYPE), record.type);
-        json.put("enabled", record.enabled);
-        json.put(jsonPropertyName(DESCRIPTION), record.description);
+        json.put(jsonPropertyName(ID), theRecord.id);
+        json.put(jsonPropertyName(NAME), theRecord.name);
+        json.put(jsonPropertyName(TYPE), theRecord.type);
+        json.put("enabled", theRecord.enabled);
+        json.put(jsonPropertyName(DESCRIPTION), theRecord.description);
         return json;
     }
 
@@ -112,7 +117,7 @@ public class Transformation extends Entity {
     public TupleMapper<Entity> getTupleMapper() {
         return TupleMapper.mapper(
                 entity -> {
-                    TransformationRecord rec = ((Transformation) entity).record;
+                    TransformationRecord rec = ((Transformation) entity).theRecord;
                     Map<String, Object> parameters = new HashMap<>();
                     parameters.put(dbColumnName(ID), rec.id);
                     parameters.put(dbColumnName(NAME), rec.name);
@@ -121,12 +126,4 @@ public class Transformation extends Entity {
                     return parameters;
                 });
     }
-
-    @Override
-    public Future<Void> createDatabase(TenantPgPool pool) {
-        // table without indexes or foreign keys.
-        return super.createDatabase(pool);
-    }
-
-
 }

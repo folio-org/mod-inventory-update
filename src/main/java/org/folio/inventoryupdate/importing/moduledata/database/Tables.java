@@ -1,13 +1,13 @@
 package org.folio.inventoryupdate.importing.moduledata.database;
 
 public enum Tables {
-    import_config,
-    import_job,
-    record_failure,
-    record_failure_view,
-    job_log_view,
-    log_statement,
-    step,
-    transformation,
-    transformation_step
+  IMPORT_CONFIG,
+  IMPORT_JOB,
+  RECORD_FAILURE,
+  RECORD_FAILURE_VIEW,
+  JOB_LOG_VIEW,
+  LOG_STATEMENT,
+  STEP,
+  TRANSFORMATION,
+  TRANSFORMATION_STEP
 }

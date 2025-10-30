@@ -28,7 +28,7 @@ import java.util.*;
 public class TransformationPipeline implements RecordReceiver {
 
     private final List<Templates> listOfTemplates = new ArrayList<>();
-    public RecordReceiver inventoryUpdater;
+    private RecordReceiver inventoryUpdater;
     private int records = 0;
     private long transformationTime = 0;
     public static final Logger logger = LogManager.getLogger("TransformationPipeline");
@@ -69,7 +69,7 @@ public class TransformationPipeline implements RecordReceiver {
                     TransformationPipeline pipeline = new TransformationPipeline(json);
                     promise.complete(pipeline);
                 })
-                .onFailure(handler -> logger.error("Problem retrieving steps " + handler.getMessage()));
+                .onFailure(handler -> logger.error("Problem retrieving steps {}", handler.getMessage()));
         return promise.future();
     }
 
@@ -115,15 +115,15 @@ public class TransformationPipeline implements RecordReceiver {
     }
 
     @Override
-    public void put(ProcessingRecord record) {
+    public void put(ProcessingRecord processingRecord) {
         long transformationStarted = System.currentTimeMillis();
         records++;
-        String transformedXmlRecord = transform("<collection>" + record.getRecordAsString() + "</collection>");
+        String transformedXmlRecord = transform("<collection>" + processingRecord.getRecordAsString() + "</collection>");
         JsonObject jsonRecord = convertToJson(transformedXmlRecord);
-        record.setIsDeletion(jsonRecord.containsKey("delete"));
-        record.update(jsonRecord.encodePrettily());
+        processingRecord.setIsDeletion(jsonRecord.containsKey("delete"));
+        processingRecord.update(jsonRecord.encodePrettily());
         transformationTime += (System.currentTimeMillis() - transformationStarted);
-        inventoryUpdater.put(record);
+        inventoryUpdater.put(processingRecord);
     }
 
     @Override

@@ -2,10 +2,10 @@ package org.folio.inventoryupdate.updating.test.fakestorage.entitites;
 
 public class InputHoldingsRecord extends InventoryRecord {
 
-    public static String HRID = "hrid";
-    public static String CALL_NUMBER = "callNumber";
-    public static String INSTANCE_ID = "instanceId";
-    public static String PERMANENT_LOCATION_ID = "permanentLocationId";
+    public static final String HRID = "hrid";
+    public static final String CALL_NUMBER = "callNumber";
+    public static final String INSTANCE_ID = "instanceId";
+    public static final String PERMANENT_LOCATION_ID = "permanentLocationId";
 
     public InputHoldingsRecord setInstanceId (String instanceId) {
         recordJson.put(INSTANCE_ID,instanceId);

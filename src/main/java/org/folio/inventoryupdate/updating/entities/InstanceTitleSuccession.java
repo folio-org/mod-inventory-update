@@ -76,9 +76,8 @@ public class InstanceTitleSuccession extends InstanceToInstanceRelation {
     }
 
     public String toString () {
-        String str = "// Preceding: " + jsonRecord.getString(PRECEDING_INSTANCE_ID) +
+        return "// Preceding: " + jsonRecord.getString(PRECEDING_INSTANCE_ID) +
                 " Succeeding: " + jsonRecord.getString(SUCCEEDING_INSTANCE_ID);
-        return str;
     }
 
 }

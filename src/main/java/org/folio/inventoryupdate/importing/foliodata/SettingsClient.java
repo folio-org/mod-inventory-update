@@ -16,6 +16,11 @@ public class SettingsClient {
     protected static final Logger logger =
             LogManager.getLogger(SettingsClient.class);
 
+    private SettingsClient() {
+      throw new IllegalStateException("Utility class");
+    }
+
+
     public static Future<String> getStringValue(RoutingContext routingContext, String scope, String key) {
         String query = "scope==\"" + scope + "\" and key==\"" + key + "\"";
         return Folio.okapiClient(routingContext).get(SETTINGS_PATH +
@@ -23,8 +28,8 @@ public class SettingsClient {
                 .map(response ->
                         new JsonObject(response).getJsonArray(RECORDS).getJsonObject(0).getString("value"))
                 .onFailure(e ->
-                        logger.error("Could not obtain settings by scope " + scope
-                                + " and key " + key + ": " + e.getMessage()));
+                        logger.error("Could not obtain settings by scope {} and key {}: {}",
+                            scope, key, e.getMessage()));
     }
 
 }

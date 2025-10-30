@@ -1100,7 +1100,7 @@ public class MatchKeyApiTests extends InventoryUpdateTestBase {
     JsonObject inventoryRecordSet = new JsonObject();
     inventoryRecordSet.put("instance", new InputInstance()
         .setTitle("Initial InputInstance").setInstanceTypeId("12345").getJson());
-    assertEquals(putJsonObject(SHARED_INVENTORY_UPSERT_MATCHKEY_PATH + "/invalid",inventoryRecordSet,404).getStatusCode(), 404);
+    assertEquals(404, putJsonObject(SHARED_INVENTORY_UPSERT_MATCHKEY_PATH + "/invalid",inventoryRecordSet,404).getStatusCode());
   }
 
   @Test

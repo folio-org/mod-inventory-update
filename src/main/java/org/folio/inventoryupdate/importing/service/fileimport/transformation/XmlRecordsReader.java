@@ -34,10 +34,8 @@ public class XmlRecordsReader extends DefaultHandler implements RecordProvider, 
         try {
             InputStream inputStream = new ByteArrayInputStream(xmlCollectionOfRecords.getBytes(StandardCharsets.UTF_8));
             SecureSaxParser.get().parse(inputStream, this);
-        } catch (ParserConfigurationException | SAXException pce) {
-            logger.error("SaxParsing, produceRecords, error: {}", pce.getMessage());
-        } catch (IOException e) {
-            throw new RuntimeException(e);
+        } catch (ParserConfigurationException | SAXException | IOException e) {
+            logger.error("SaxParsing, produceRecords, error: {}", e.getMessage());
         }
     }
 

@@ -18,6 +18,7 @@ public class RecordFailure extends Entity {
 
     public RecordFailure() {}
 
+    @SuppressWarnings("java:S107") // too many parameters, ignore for entity constructors
     public RecordFailure(UUID id, UUID importJobId, UUID importConfigId, String importConfigName, String recordNumber,
                          String timeStamp, String originalRecord, JsonArray recordErrors, JsonObject transformedRecord) {
         theRecord = new FailedRecord(id, importJobId, importConfigId, importConfigName, recordNumber, timeStamp, originalRecord, recordErrors, transformedRecord);

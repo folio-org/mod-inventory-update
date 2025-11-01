@@ -125,14 +125,16 @@ public class Reporting {
                     new RecordFailure(),
                     batch.getErrors().stream()
                             .map(JsonObject.class::cast)
+                            // only errors pertaining to individual records
+                            .filter(error -> getBatchIndexFromErrorResponse(error) > -1 )
                             .map(error -> new RecordFailure(UUID.randomUUID(),
                                     fileProcessor.getImportJob().getRecord().id(),
                                     fileProcessor.getImportConfigId(),
                                     fileProcessor.getImportJob().getRecord().importConfigName(),
                                     getInstanceHridFromErrorResponse(error),
                                     SettableClock.getLocalDateTime().toString(),
-                                    getBatchIndexFromErrorResponse(error) == null ? null : batch.get(getBatchIndexFromErrorResponse(error)).getOriginalRecordAsString(),
-                                    error.getJsonObject("message").getJsonArray("errors"),
+                                    batch.get(getBatchIndexFromErrorResponse(error)).getOriginalRecordAsString(),
+                                    error.getJsonObject("message", new JsonObject()).getJsonArray("errors"),
                                     error.getJsonObject("requestJson"))
                             ).collect(Collectors.toList()));
         } catch (Exception e) {
@@ -150,10 +152,10 @@ public class Reporting {
     }
 
     private static Integer getBatchIndexFromErrorResponse(JsonObject errorJson) {
-        if (errorJson != null && errorJson.containsKey("requestJson") && errorJson.getJsonObject("requestJson").containsKey("processing")) {
+        if (errorJson != null && errorJson.getJsonObject("requestJson") != null && errorJson.getJsonObject("requestJson").containsKey("processing")) {
             return errorJson.getJsonObject("requestJson").getJsonObject("processing").getInteger("batchIndex");
         } else {
-            return null;
+            return -1;
         }
     }
 

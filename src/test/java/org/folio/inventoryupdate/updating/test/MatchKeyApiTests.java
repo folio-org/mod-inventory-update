@@ -8,12 +8,12 @@ import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
 import org.folio.inventoryupdate.updating.MatchKey;
 import org.folio.inventoryupdate.updating.UpdatePlanSharedInventory;
-import org.folio.inventoryupdate.updating.test.fakestorage.FakeFolioApis;
+import org.folio.inventoryupdate.updating.test.fakestorage.FakeFolioApisForUpserts;
 import org.folio.inventoryupdate.updating.test.fakestorage.entitites.*;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
-import static org.folio.inventoryupdate.updating.test.fakestorage.FakeFolioApis.*;
+import static org.folio.inventoryupdate.updating.test.fakestorage.FakeFolioApisForUpserts.*;
 import static org.junit.Assert.assertEquals;
 
 @RunWith(VertxUnitRunner.class)
@@ -34,13 +34,13 @@ public class MatchKeyApiTests extends InventoryUpdateTestBase {
     instance.setMatchKeyAsString(matchKey.getKey());
     InventoryRecordSet recordSet = new InventoryRecordSet(instance);
 
-    JsonObject instancesBeforePutJson = getRecordsFromStorage(FakeFolioApis.INSTANCE_STORAGE_PATH, "matchKey==\"" + matchKey.getKey() + "\"");
+    JsonObject instancesBeforePutJson = getRecordsFromStorage(FakeFolioApisForUpserts.INSTANCE_STORAGE_PATH, "matchKey==\"" + matchKey.getKey() + "\"");
     testContext.assertEquals(instancesBeforePutJson.getInteger("totalRecords"), 0,
         "Number of instance records for query by matchKey 'new_title___(etc)' before PUT expected: 0" );
 
     InventoryUpdateTestBase.upsertByMatchKey(recordSet.getJson());
 
-    JsonObject instancesAfterPutJson = getRecordsFromStorage(FakeFolioApis.INSTANCE_STORAGE_PATH, "matchKey==\"" + matchKey.getKey() + "\"");
+    JsonObject instancesAfterPutJson = getRecordsFromStorage(FakeFolioApisForUpserts.INSTANCE_STORAGE_PATH, "matchKey==\"" + matchKey.getKey() + "\"");
     testContext.assertEquals(instancesAfterPutJson.getInteger("totalRecords"), 1,
         "Number of instance records for query by matchKey 'new_title' after PUT expected: 1" );
 
@@ -57,13 +57,13 @@ public class MatchKeyApiTests extends InventoryUpdateTestBase {
     instance.setMatchKeyAsString(matchKey.getKey());
     BatchOfInventoryRecordSets batch = new BatchOfInventoryRecordSets().addRecordSet(new InventoryRecordSet(instance));
 
-    JsonObject instancesBeforePutJson = getRecordsFromStorage(FakeFolioApis.INSTANCE_STORAGE_PATH, "matchKey==\"" + matchKey.getKey() + "\"");
+    JsonObject instancesBeforePutJson = getRecordsFromStorage(FakeFolioApisForUpserts.INSTANCE_STORAGE_PATH, "matchKey==\"" + matchKey.getKey() + "\"");
     testContext.assertEquals(instancesBeforePutJson.getInteger("totalRecords"), 0,
         "Number of instance records for query by matchKey 'new_title___(etc)' before PUT expected: 0" );
 
     batchUpsertByMatchKey(batch.getJson());
 
-    JsonObject instancesAfterPutJson = getRecordsFromStorage(FakeFolioApis.INSTANCE_STORAGE_PATH, "matchKey==\"" + matchKey.getKey() + "\"");
+    JsonObject instancesAfterPutJson = getRecordsFromStorage(FakeFolioApisForUpserts.INSTANCE_STORAGE_PATH, "matchKey==\"" + matchKey.getKey() + "\"");
     testContext.assertEquals(instancesAfterPutJson.getInteger("totalRecords"), 1,
         "Number of instance records for query by matchKey 'new_title' after PUT expected: 1" );
 
@@ -82,11 +82,11 @@ public class MatchKeyApiTests extends InventoryUpdateTestBase {
       instance.setMatchKeyAsString(matchKey.getKey());
       batch.addRecordSet(new InventoryRecordSet(instance));
     }
-    JsonObject instancesBeforePutJson = getRecordsFromStorage(FakeFolioApis.INSTANCE_STORAGE_PATH, null);
+    JsonObject instancesBeforePutJson = getRecordsFromStorage(FakeFolioApisForUpserts.INSTANCE_STORAGE_PATH, null);
     testContext.assertEquals(instancesBeforePutJson.getInteger("totalRecords"), 1,
         "Number of instance records for before PUT expected: 1" );
     batchUpsertByMatchKey(batch.getJson());
-    JsonObject instancesAfterPutJson = getRecordsFromStorage(FakeFolioApis.INSTANCE_STORAGE_PATH, null);
+    JsonObject instancesAfterPutJson = getRecordsFromStorage(FakeFolioApisForUpserts.INSTANCE_STORAGE_PATH, null);
     testContext.assertEquals(instancesAfterPutJson.getInteger("totalRecords"), 201,
         "Number of instance records after PUT expected: 201" );
 
@@ -108,11 +108,11 @@ public class MatchKeyApiTests extends InventoryUpdateTestBase {
           .put("instance", instance.getJson())
           .put("processing", new JsonObject().put("batchIndex",i)));
     }
-    JsonObject instancesBeforePutJson = getRecordsFromStorage(FakeFolioApis.INSTANCE_STORAGE_PATH, null);
+    JsonObject instancesBeforePutJson = getRecordsFromStorage(FakeFolioApisForUpserts.INSTANCE_STORAGE_PATH, null);
     testContext.assertEquals(instancesBeforePutJson.getInteger("totalRecords"), 1,
         "Number of instance records for before PUT expected: 1" );
     batchUpsertByMatchKey(207, batch.getJson());
-    JsonObject instancesAfterPutJson = getRecordsFromStorage(FakeFolioApis.INSTANCE_STORAGE_PATH, null);
+    JsonObject instancesAfterPutJson = getRecordsFromStorage(FakeFolioApisForUpserts.INSTANCE_STORAGE_PATH, null);
     testContext.assertEquals(instancesAfterPutJson.getInteger("totalRecords"), 50,
         "Number of instance records after PUT expected: 100" );
   }
@@ -135,7 +135,7 @@ public class MatchKeyApiTests extends InventoryUpdateTestBase {
         .generateMatchKey();
     batch.addRecordSet(new InventoryRecordSet(instance));
 
-    JsonObject instancesBeforePutJson = getRecordsFromStorage(FakeFolioApis.INSTANCE_STORAGE_PATH, null);
+    JsonObject instancesBeforePutJson = getRecordsFromStorage(FakeFolioApisForUpserts.INSTANCE_STORAGE_PATH, null);
     testContext.assertEquals(instancesBeforePutJson.getInteger("totalRecords"), 1,
         "Number of instance records for before PUT expected: 1" );
     Response response = batchUpsertByMatchKey(200,batch.getJson());
@@ -145,7 +145,7 @@ public class MatchKeyApiTests extends InventoryUpdateTestBase {
         "Number of instance records created after PUT of batch of 29 expected: 29");
     testContext.assertEquals(metrics.getJsonObject("INSTANCE").getJsonObject("UPDATE").getInteger("COMPLETED"), 1,
         "Number of instance records updated after PUT of batch of 29 expected: 1");
-    JsonObject instancesAfterPutJson = getRecordsFromStorage(FakeFolioApis.INSTANCE_STORAGE_PATH, null);
+    JsonObject instancesAfterPutJson = getRecordsFromStorage(FakeFolioApisForUpserts.INSTANCE_STORAGE_PATH, null);
     testContext.assertEquals(instancesAfterPutJson.getInteger("totalRecords"), 30,
         "Number of instance records after PUT expected: 30" );
   }
@@ -169,7 +169,7 @@ public class MatchKeyApiTests extends InventoryUpdateTestBase {
         .generateMatchKey();
     batch.addRecordSet(new InventoryRecordSet(instance).getJson().put(PROCESSING,new JsonObject().put("localIdentifier","id" + 20)));
 
-    JsonObject instancesBeforePutJson = getRecordsFromStorage(FakeFolioApis.INSTANCE_STORAGE_PATH, null);
+    JsonObject instancesBeforePutJson = getRecordsFromStorage(FakeFolioApisForUpserts.INSTANCE_STORAGE_PATH, null);
     testContext.assertEquals(instancesBeforePutJson.getInteger("totalRecords"), 1,
         "Number of instance records for before PUT expected: 1" );
     Response response = batchUpsertByMatchKey(200,batch.getJson());
@@ -180,7 +180,7 @@ public class MatchKeyApiTests extends InventoryUpdateTestBase {
         "Number of instance records created after PUT of batch of 29 expected: 29");
     testContext.assertEquals(metrics.getJsonObject("INSTANCE").getJsonObject("UPDATE").getInteger("COMPLETED"), 1,
         "Number of instance records updated after PUT of batch of 100 expected: 1");
-    JsonObject instancesAfterPutJson = getRecordsFromStorage(FakeFolioApis.INSTANCE_STORAGE_PATH, null);
+    JsonObject instancesAfterPutJson = getRecordsFromStorage(FakeFolioApisForUpserts.INSTANCE_STORAGE_PATH, null);
     testContext.assertEquals(instancesAfterPutJson.getInteger("totalRecords"), 30,
         "Number of instance records after PUT expected: 30" );
   }
@@ -316,13 +316,13 @@ public class MatchKeyApiTests extends InventoryUpdateTestBase {
     InventoryRecordSet recordSet = new InventoryRecordSet(instance);
 
     MatchKey matchKey = new MatchKey( instance.getJson() );
-    JsonObject instancesBeforePutJson = getRecordsFromStorage(FakeFolioApis.INSTANCE_STORAGE_PATH, "matchKey==\"" + matchKey.getKey() + "\"");
+    JsonObject instancesBeforePutJson = getRecordsFromStorage(FakeFolioApisForUpserts.INSTANCE_STORAGE_PATH, "matchKey==\"" + matchKey.getKey() + "\"");
     testContext.assertEquals(instancesBeforePutJson.getInteger("totalRecords"), 0,
         "Number of instance records for query by matchKey 'new_title___(etc)' before PUT expected: 0" );
 
     upsertByMatchKey(recordSet.getJson());
 
-    JsonObject instancesAfterPutJson = getRecordsFromStorage(FakeFolioApis.INSTANCE_STORAGE_PATH, "matchKey==\"" + matchKey.getKey() + "\"");
+    JsonObject instancesAfterPutJson = getRecordsFromStorage(FakeFolioApisForUpserts.INSTANCE_STORAGE_PATH, "matchKey==\"" + matchKey.getKey() + "\"");
     testContext.assertEquals(instancesAfterPutJson.getInteger("totalRecords"), 1,
         "Number of instance records for query by matchKey " + matchKey.getKey() + " after PUT expected: 1" );
 
@@ -335,7 +335,7 @@ public class MatchKeyApiTests extends InventoryUpdateTestBase {
     MatchKey matchKey = new MatchKey(instance.getJson());
     InventoryRecordSet inventoryRecordSet = new InventoryRecordSet(instance);
 
-    JsonObject instancesBeforePutJson = getRecordsFromStorage(FakeFolioApis.INSTANCE_STORAGE_PATH,"matchKey==\"" + matchKey.getKey() + "\"");
+    JsonObject instancesBeforePutJson = getRecordsFromStorage(FakeFolioApisForUpserts.INSTANCE_STORAGE_PATH,"matchKey==\"" + matchKey.getKey() + "\"");
     testContext.assertEquals(instancesBeforePutJson.getInteger("totalRecords"), 1,
         "Number of instance records for query by matchKey 'initial instance' before PUT expected: 1" );
     String instanceTypeIdBefore = instancesBeforePutJson.getJsonArray("instances")
@@ -345,7 +345,7 @@ public class MatchKeyApiTests extends InventoryUpdateTestBase {
 
     upsertByMatchKey(inventoryRecordSet.getJson());
 
-    JsonObject instancesAfterPutJson = getRecordsFromStorage(FakeFolioApis.INSTANCE_STORAGE_PATH,"matchKey==\"" + matchKey.getKey() + "\"");
+    JsonObject instancesAfterPutJson = getRecordsFromStorage(FakeFolioApisForUpserts.INSTANCE_STORAGE_PATH,"matchKey==\"" + matchKey.getKey() + "\"");
     testContext.assertEquals(instancesAfterPutJson.getInteger("totalRecords"), 1,
         "Number of instance records for query by matchKey 'initial instance' after PUT expected: 1" );
     String instanceTypeIdAfter = instancesAfterPutJson.getJsonArray("instances")
@@ -384,10 +384,10 @@ public class MatchKeyApiTests extends InventoryUpdateTestBase {
         "Upsert metrics response should report [2] holdings records successfully created " + upsertResponseJson.encodePrettily());
     testContext.assertEquals(getMetric(upsertResponseJson, ITEM, CREATE , COMPLETED), 3,
         "Upsert metrics response should report [3] items successfully created " + upsertResponseJson.encodePrettily());
-    JsonObject storedHoldings = getRecordsFromStorage(FakeFolioApis.HOLDINGS_STORAGE_PATH, "instanceId==\"" + instanceId + "\"");
+    JsonObject storedHoldings = getRecordsFromStorage(FakeFolioApisForUpserts.HOLDINGS_STORAGE_PATH, "instanceId==\"" + instanceId + "\"");
     testContext.assertEquals(storedHoldings.getInteger("totalRecords"), 2,
         "After upsert the number of holdings records for instance " + instanceId + " should be [2] " + storedHoldings.encodePrettily() );
-    JsonObject storedItems = getRecordsFromStorage(FakeFolioApis.ITEM_STORAGE_PATH, null);
+    JsonObject storedItems = getRecordsFromStorage(FakeFolioApisForUpserts.ITEM_STORAGE_PATH, null);
     testContext.assertEquals(storedItems.getInteger("totalRecords"), 3,
         "After upsert the total number of items should be [3] " + storedHoldings.encodePrettily() );
 
@@ -477,7 +477,7 @@ public class MatchKeyApiTests extends InventoryUpdateTestBase {
     testContext.assertEquals(getMetric(upsertResponseJson, ITEM, CREATE , COMPLETED), 3,
         "Upsert metrics response should report [3] items successfully created " + upsertResponseJson.encodePrettily());
 
-    getRecordsFromStorage(FakeFolioApis.ITEM_STORAGE_PATH,null).getJsonArray("items").stream()
+    getRecordsFromStorage(FakeFolioApisForUpserts.ITEM_STORAGE_PATH,null).getJsonArray("items").stream()
         .forEach(item -> testContext.assertEquals(((JsonObject)item).getString("barcode"), "updated",
         "The barcode of all items should be updated to 'updated' after upsert of existing record set with holdings and items"));
 
@@ -525,14 +525,14 @@ public class MatchKeyApiTests extends InventoryUpdateTestBase {
     testContext.assertEquals(getMetric(upsertResponseJson1, ITEM, CREATE , COMPLETED), 3,
         "Upsert metrics response should report [3] items successfully created " + upsertResponseJson1.encodePrettily());
 
-    JsonObject storedHoldings = getRecordsFromStorage(FakeFolioApis.HOLDINGS_STORAGE_PATH, "instanceId==\"" + instanceId + "\"");
+    JsonObject storedHoldings = getRecordsFromStorage(FakeFolioApisForUpserts.HOLDINGS_STORAGE_PATH, "instanceId==\"" + instanceId + "\"");
     testContext.assertEquals(storedHoldings.getInteger("totalRecords"), 2,
         "After upsert the number of holdings records for instance " + instanceId + " should be [2] " + storedHoldings.encodePrettily() );
-    JsonObject storedItems = getRecordsFromStorage(FakeFolioApis.ITEM_STORAGE_PATH, null);
+    JsonObject storedItems = getRecordsFromStorage(FakeFolioApisForUpserts.ITEM_STORAGE_PATH, null);
     testContext.assertEquals(storedItems.getInteger("totalRecords"), 3,
         "After upsert the total number of items should be [3] " + storedItems.encodePrettily() );
 
-    JsonObject instanceFromStorage = getRecordFromStorageById(FakeFolioApis.INSTANCE_STORAGE_PATH, instanceId);
+    JsonObject instanceFromStorage = getRecordFromStorageById(FakeFolioApisForUpserts.INSTANCE_STORAGE_PATH, instanceId);
     testContext.assertEquals(instanceFromStorage.getJsonArray("identifiers").size(),1,
         "After first upsert of Shared InputInstance there should be [1] identifier on the instance " + instanceFromStorage.encodePrettily());
 
@@ -565,14 +565,14 @@ public class MatchKeyApiTests extends InventoryUpdateTestBase {
     testContext.assertEquals(getMetric(upsertResponseJson2, ITEM, CREATE , COMPLETED), 3,
         "Metrics after second upsert should report additional [3] items successfully created " + upsertResponseJson2.encodePrettily());
 
-    storedHoldings = getRecordsFromStorage(FakeFolioApis.HOLDINGS_STORAGE_PATH, "instanceId==\"" + instanceId + "\"");
+    storedHoldings = getRecordsFromStorage(FakeFolioApisForUpserts.HOLDINGS_STORAGE_PATH, "instanceId==\"" + instanceId + "\"");
     testContext.assertEquals(storedHoldings.getInteger("totalRecords"), 4,
         "After second upsert there should be [4] holdings records for instance " + instanceId + ": " + storedHoldings.encodePrettily() );
-    storedItems = getRecordsFromStorage(FakeFolioApis.ITEM_STORAGE_PATH, null);
+    storedItems = getRecordsFromStorage(FakeFolioApisForUpserts.ITEM_STORAGE_PATH, null);
     testContext.assertEquals(storedItems.getInteger("totalRecords"), 6,
         "After second upsert there should be [6] items " + storedItems.encodePrettily() );
 
-    instanceFromStorage = getRecordFromStorageById(FakeFolioApis.INSTANCE_STORAGE_PATH, instanceId);
+    instanceFromStorage = getRecordFromStorageById(FakeFolioApisForUpserts.INSTANCE_STORAGE_PATH, instanceId);
     testContext.assertEquals(instanceFromStorage.getJsonArray("identifiers").size(),2,
         "After second upsert of Shared InputInstance there should be [2] identifiers on the instance " + instanceFromStorage.encodePrettily());
 
@@ -587,14 +587,14 @@ public class MatchKeyApiTests extends InventoryUpdateTestBase {
     testContext.assertEquals(getMetric(deleteResponse, ITEM, DELETE , COMPLETED), 3,
         "Delete metrics response should report [3] items successfully deleted " + deleteResponse.encodePrettily());
 
-    storedHoldings = getRecordsFromStorage(FakeFolioApis.HOLDINGS_STORAGE_PATH, "instanceId==\"" + instanceId + "\"");
+    storedHoldings = getRecordsFromStorage(FakeFolioApisForUpserts.HOLDINGS_STORAGE_PATH, "instanceId==\"" + instanceId + "\"");
     testContext.assertEquals(storedHoldings.getInteger("totalRecords"), 2,
         "After delete the number of holdings records left for instance " + instanceId + " should be [2] " + storedHoldings.encodePrettily() );
-    storedItems = getRecordsFromStorage(FakeFolioApis.ITEM_STORAGE_PATH, null);
+    storedItems = getRecordsFromStorage(FakeFolioApisForUpserts.ITEM_STORAGE_PATH, null);
     testContext.assertEquals(storedItems.getInteger("totalRecords"), 3,
         "After delete the total number of items left should be [3] " + storedItems.encodePrettily() );
 
-    instanceFromStorage = getRecordFromStorageById(FakeFolioApis.INSTANCE_STORAGE_PATH, instanceId);
+    instanceFromStorage = getRecordFromStorageById(FakeFolioApisForUpserts.INSTANCE_STORAGE_PATH, instanceId);
     testContext.assertEquals(instanceFromStorage.getJsonArray("identifiers").size(), 1,
         "After delete request to Shared InputInstance there should be [1] identifier left on the instance " + instanceFromStorage.encodePrettily());
 
@@ -638,14 +638,14 @@ public class MatchKeyApiTests extends InventoryUpdateTestBase {
     testContext.assertEquals(getMetric(upsertResponseJson1, ITEM, CREATE , COMPLETED), 3,
         "Upsert metrics response should report [3] items successfully created " + upsertResponseJson1.encodePrettily());
 
-    JsonObject storedHoldings = getRecordsFromStorage(FakeFolioApis.HOLDINGS_STORAGE_PATH, "instanceId==\"" + instanceId + "\"");
+    JsonObject storedHoldings = getRecordsFromStorage(FakeFolioApisForUpserts.HOLDINGS_STORAGE_PATH, "instanceId==\"" + instanceId + "\"");
     testContext.assertEquals(storedHoldings.getInteger("totalRecords"), 2,
         "After upsert the number of holdings records for instance " + instanceId + " should be [2] " + storedHoldings.encodePrettily() );
-    JsonObject storedItems = getRecordsFromStorage(FakeFolioApis.ITEM_STORAGE_PATH, null);
+    JsonObject storedItems = getRecordsFromStorage(FakeFolioApisForUpserts.ITEM_STORAGE_PATH, null);
     testContext.assertEquals(storedItems.getInteger("totalRecords"), 3,
         "After upsert the total number of items should be [3] " + storedItems.encodePrettily() );
 
-    JsonObject instanceFromStorage = getRecordFromStorageById(FakeFolioApis.INSTANCE_STORAGE_PATH, instanceId);
+    JsonObject instanceFromStorage = getRecordFromStorageById(FakeFolioApisForUpserts.INSTANCE_STORAGE_PATH, instanceId);
     testContext.assertEquals(instanceFromStorage.getJsonArray("identifiers").size(),1,
         "After first upsert of Shared InputInstance there should be [1] identifier on the instance " + instanceFromStorage.encodePrettily());
 
@@ -678,14 +678,14 @@ public class MatchKeyApiTests extends InventoryUpdateTestBase {
     testContext.assertEquals(getMetric(upsertResponseJson2, ITEM, CREATE , COMPLETED), 3,
         "Metrics after second upsert should report additional [3] items successfully created " + upsertResponseJson2.encodePrettily());
 
-    storedHoldings = getRecordsFromStorage(FakeFolioApis.HOLDINGS_STORAGE_PATH, "instanceId==\"" + instanceId + "\"");
+    storedHoldings = getRecordsFromStorage(FakeFolioApisForUpserts.HOLDINGS_STORAGE_PATH, "instanceId==\"" + instanceId + "\"");
     testContext.assertEquals(storedHoldings.getInteger("totalRecords"), 4,
         "After second upsert there should be [4] holdings records for instance " + instanceId + ": " + storedHoldings.encodePrettily() );
-    storedItems = getRecordsFromStorage(FakeFolioApis.ITEM_STORAGE_PATH, null);
+    storedItems = getRecordsFromStorage(FakeFolioApisForUpserts.ITEM_STORAGE_PATH, null);
     testContext.assertEquals(storedItems.getInteger("totalRecords"), 6,
         "After second upsert there should be [6] items " + storedItems.encodePrettily() );
 
-    instanceFromStorage = getRecordFromStorageById(FakeFolioApis.INSTANCE_STORAGE_PATH, instanceId);
+    instanceFromStorage = getRecordFromStorageById(FakeFolioApisForUpserts.INSTANCE_STORAGE_PATH, instanceId);
     testContext.assertEquals(instanceFromStorage.getJsonArray("identifiers").size(),2,
         "After second upsert of Shared InputInstance there should be [2] identifiers on the instance " + instanceFromStorage.encodePrettily());
 
@@ -699,14 +699,14 @@ public class MatchKeyApiTests extends InventoryUpdateTestBase {
     testContext.assertEquals(getMetric(deleteResponse, ITEM, DELETE , COMPLETED), 3,
         "Delete metrics response should report [3] items successfully deleted " + deleteResponse.encodePrettily());
 
-    storedHoldings = getRecordsFromStorage(FakeFolioApis.HOLDINGS_STORAGE_PATH, "instanceId==\"" + instanceId + "\"");
+    storedHoldings = getRecordsFromStorage(FakeFolioApisForUpserts.HOLDINGS_STORAGE_PATH, "instanceId==\"" + instanceId + "\"");
     testContext.assertEquals(storedHoldings.getInteger("totalRecords"), 2,
         "After delete the number of holdings records left for instance " + instanceId + " should be [2] " + storedHoldings.encodePrettily() );
-    storedItems = getRecordsFromStorage(FakeFolioApis.ITEM_STORAGE_PATH, null);
+    storedItems = getRecordsFromStorage(FakeFolioApisForUpserts.ITEM_STORAGE_PATH, null);
     testContext.assertEquals(storedItems.getInteger("totalRecords"), 3,
         "After delete the total number of items left should be [3] " + storedItems.encodePrettily() );
 
-    instanceFromStorage = getRecordFromStorageById(FakeFolioApis.INSTANCE_STORAGE_PATH, instanceId);
+    instanceFromStorage = getRecordFromStorageById(FakeFolioApisForUpserts.INSTANCE_STORAGE_PATH, instanceId);
     testContext.assertEquals(instanceFromStorage.getJsonArray("identifiers").size(), 1,
         "After delete request to Shared InputInstance there should be [1] identifier left on the instance " + instanceFromStorage.encodePrettily());
   }
@@ -755,14 +755,14 @@ public class MatchKeyApiTests extends InventoryUpdateTestBase {
     testContext.assertEquals(getMetric(upsertResponseJson1, ITEM, CREATE , COMPLETED), 3,
         "Upsert metrics response should report [3] items successfully created " + upsertResponseJson1.encodePrettily());
 
-    JsonObject storedHoldings = getRecordsFromStorage(FakeFolioApis.HOLDINGS_STORAGE_PATH, "instanceId==\"" + instanceId + "\"");
+    JsonObject storedHoldings = getRecordsFromStorage(FakeFolioApisForUpserts.HOLDINGS_STORAGE_PATH, "instanceId==\"" + instanceId + "\"");
     testContext.assertEquals(storedHoldings.getInteger("totalRecords"), 2,
         "After upsert the number of holdings records for instance " + instanceId + " should be [2] " + storedHoldings.encodePrettily() );
-    JsonObject storedItems = getRecordsFromStorage(FakeFolioApis.ITEM_STORAGE_PATH, null);
+    JsonObject storedItems = getRecordsFromStorage(FakeFolioApisForUpserts.ITEM_STORAGE_PATH, null);
     testContext.assertEquals(storedItems.getInteger("totalRecords"), 3,
         "After upsert the total number of items should be [3] " + storedItems.encodePrettily() );
 
-    JsonObject instanceFromStorage = getRecordFromStorageById(FakeFolioApis.INSTANCE_STORAGE_PATH, instanceId);
+    JsonObject instanceFromStorage = getRecordFromStorageById(FakeFolioApisForUpserts.INSTANCE_STORAGE_PATH, instanceId);
     testContext.assertEquals(instanceFromStorage.getJsonArray("identifiers").size(),1,
         "After first upsert of 'Shared InputInstance' there should be [1] identifier on the instance " + instanceFromStorage.encodePrettily());
 
@@ -799,14 +799,14 @@ public class MatchKeyApiTests extends InventoryUpdateTestBase {
     testContext.assertEquals(getMetric(upsertResponseJson2, ITEM, CREATE , COMPLETED), 3,
         "Metrics after second upsert should report additional [3] items successfully created " + upsertResponseJson2.encodePrettily());
 
-    storedHoldings = getRecordsFromStorage(FakeFolioApis.HOLDINGS_STORAGE_PATH, "instanceId==\"" + instanceId + "\"");
+    storedHoldings = getRecordsFromStorage(FakeFolioApisForUpserts.HOLDINGS_STORAGE_PATH, "instanceId==\"" + instanceId + "\"");
     testContext.assertEquals(storedHoldings.getInteger("totalRecords"), 4,
         "After second upsert there should be [4] holdings records for instance " + instanceId + ": " + storedHoldings.encodePrettily() );
-    storedItems = getRecordsFromStorage(FakeFolioApis.ITEM_STORAGE_PATH, null);
+    storedItems = getRecordsFromStorage(FakeFolioApisForUpserts.ITEM_STORAGE_PATH, null);
     testContext.assertEquals(storedItems.getInteger("totalRecords"), 6,
         "After second upsert there should be [6] items " + storedItems.encodePrettily() );
 
-    instanceFromStorage = getRecordFromStorageById(FakeFolioApis.INSTANCE_STORAGE_PATH, instanceId);
+    instanceFromStorage = getRecordFromStorageById(FakeFolioApisForUpserts.INSTANCE_STORAGE_PATH, instanceId);
     testContext.assertEquals(instanceFromStorage.getJsonArray("identifiers").size(),2,
         "After second upsert of 'Shared InputInstance' there should be [2] identifiers on the instance " + instanceFromStorage.encodePrettily());
 
@@ -845,22 +845,22 @@ public class MatchKeyApiTests extends InventoryUpdateTestBase {
     testContext.assertEquals(getMetric(upsertResponseJsonForChangedMatchKey, ITEM, CREATE , COMPLETED), 3,
         "Upsert metrics response should report [3] items successfully created " + upsertResponseJsonForChangedMatchKey.encodePrettily());
 
-    JsonObject storedHoldingsSameRecordNewInstance = getRecordsFromStorage(FakeFolioApis.HOLDINGS_STORAGE_PATH, "instanceId==\"" + instanceIdSameRecordNewMatchKey + "\"");
+    JsonObject storedHoldingsSameRecordNewInstance = getRecordsFromStorage(FakeFolioApisForUpserts.HOLDINGS_STORAGE_PATH, "instanceId==\"" + instanceIdSameRecordNewMatchKey + "\"");
     testContext.assertEquals(storedHoldingsSameRecordNewInstance.getInteger("totalRecords"), 2,
         "After third upsert, with 'Shared Input Instance', the number of holdings records for the new Instance " + instanceIdSameRecordNewMatchKey + " should be [2] " + storedHoldingsSameRecordNewInstance.encodePrettily() );
-    JsonObject allStoredItems = getRecordsFromStorage(FakeFolioApis.ITEM_STORAGE_PATH, null);
+    JsonObject allStoredItems = getRecordsFromStorage(FakeFolioApisForUpserts.ITEM_STORAGE_PATH, null);
     testContext.assertEquals(allStoredItems.getInteger("totalRecords"), 6,
         "After third upsert, with 'Shared Input Instance', the total number of items should be [6] " + allStoredItems.encodePrettily() );
 
-    JsonObject newInstanceFromStorage = getRecordFromStorageById(FakeFolioApis.INSTANCE_STORAGE_PATH, instanceIdSameRecordNewMatchKey);
+    JsonObject newInstanceFromStorage = getRecordFromStorageById(FakeFolioApisForUpserts.INSTANCE_STORAGE_PATH, instanceIdSameRecordNewMatchKey);
     testContext.assertEquals(newInstanceFromStorage.getJsonArray("identifiers").size(),1,
         "After third upsert, with 'Shared Input Instance', there should be [1] identifier on a new instance " + newInstanceFromStorage.encodePrettily());
 
-    JsonObject oldInstanceFromStorage = getRecordFromStorageById( FakeFolioApis.INSTANCE_STORAGE_PATH, instanceId );
+    JsonObject oldInstanceFromStorage = getRecordFromStorageById( FakeFolioApisForUpserts.INSTANCE_STORAGE_PATH, instanceId );
     testContext.assertEquals(oldInstanceFromStorage.getJsonArray("identifiers").size(),1,
         "After third upsert, with 'Shared Input Instance', there should be [1] identifier left on the previous instance " + oldInstanceFromStorage.encodePrettily());
 
-    JsonObject previousInstanceStoredHoldings = getRecordsFromStorage(FakeFolioApis.HOLDINGS_STORAGE_PATH, "instanceId==\"" + instanceId + "\"");
+    JsonObject previousInstanceStoredHoldings = getRecordsFromStorage(FakeFolioApisForUpserts.HOLDINGS_STORAGE_PATH, "instanceId==\"" + instanceId + "\"");
     testContext.assertEquals(previousInstanceStoredHoldings.getInteger("totalRecords"), 2,
         "After third upsert, with 'Shared Input Instance',  there should be [2] holdings records left for the Instance with the previous match key " + instanceId + ": " + previousInstanceStoredHoldings.encodePrettily() );
 
@@ -877,7 +877,7 @@ public class MatchKeyApiTests extends InventoryUpdateTestBase {
 
   @Test
   public void testForcedLocationsGetRecordsFailure (TestContext testContext) {
-    fakeFolioApis.locationStorage.failOnGetRecords = true;
+    fakeFolioApisForUpserts.locationStorage.failOnGetRecords = true;
     JsonObject inventoryRecordSet = new JsonObject()
         .put("instance",
             new InputInstance().setTitle("Test forcedLocationsGetRecordsFailure").setInstanceTypeId("12345").setHrid("001").setSource("test").getJson())
@@ -913,7 +913,7 @@ public class MatchKeyApiTests extends InventoryUpdateTestBase {
         .body("{}")
         .header("Content-type","application/json")
         .header(OKAPI_URL_HEADER)
-        .delete(FakeFolioApis.LOCATION_STORAGE_PATH)
+        .delete(FakeFolioApisForUpserts.LOCATION_STORAGE_PATH)
         .then()
         .log().ifValidationFails()
         .statusCode(200).extract().response();
@@ -1017,7 +1017,7 @@ public class MatchKeyApiTests extends InventoryUpdateTestBase {
                         .setMaterialTypeId(MATERIAL_TYPE_TEXT)
                         .setBarcode("BC-003").getJson())))));
 
-    fakeFolioApis.holdingsStorage.failOnDelete = true;
+    fakeFolioApisForUpserts.holdingsStorage.failOnDelete = true;
 
     JsonObject deleteSignal = new JsonObject()
         .put("institutionId", INSTITUTION_ID_1)

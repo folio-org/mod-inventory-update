@@ -5,11 +5,10 @@ import io.vertx.core.Future;
 import io.vertx.core.Promise;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
-import io.vertx.ext.web.RoutingContext;
 import org.folio.inventoryupdate.updating.ErrorReport;
 import org.folio.inventoryupdate.updating.InventoryStorage;
 import org.folio.inventoryupdate.updating.QueryByListOfIds;
-import org.folio.okapi.common.OkapiClient;
+import org.folio.inventoryupdate.updating.UpdateRequest;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -29,22 +28,22 @@ public class RepositoryByHrids extends Repository {
   public final Map<String,Instance> referencedInstancesByUUID = new HashMap<>();
   public final Map<String,Instance> provisionalInstancesByHrid = new HashMap<>();
 
-  public Future<Void> buildRepositoryFromStorage (RoutingContext routingContext) {
+  public Future<Void> buildRepositoryFromStorage (UpdateRequest request) {
     List<Future<Void>> existingRecordsByHridsFutures = new ArrayList<>();
     for (List<String> idList : getSubListsOfTen(getIncomingInstanceHRIDs())) {
-      existingRecordsByHridsFutures.add(requestInstanceSetsByHRIDs(routingContext, idList));
+      existingRecordsByHridsFutures.add(requestInstanceSetsByHRIDs(request, idList));
     }
     for (List<String> idList : getSubListsOfFifty(getIncomingHoldingsRecordHRIDs())) {
-      existingRecordsByHridsFutures.add(requestHoldingsRecordsByHRIDs(routingContext, idList));
+      existingRecordsByHridsFutures.add(requestHoldingsRecordsByHRIDs(request, idList));
     }
     for (List<String> idList : getSubListsOfFifty(getIncomingItemHRIDs())) {
-      existingRecordsByHridsFutures.add(requestItemsByHRIDs(routingContext, idList));
+      existingRecordsByHridsFutures.add(requestItemsByHRIDs(request, idList));
     }
     for (List<String> idList : getSubListsOfFifty(getIncomingReferencedInstanceHrids())) {
-      existingRecordsByHridsFutures.add(requestReferencedInstancesByHRIDs(routingContext, idList));
+      existingRecordsByHridsFutures.add(requestReferencedInstancesByHRIDs(request, idList));
     }
     for (List<String> idList : getSubListsOfFifty(getIncomingReferencedInstanceIds())) {
-      existingRecordsByHridsFutures.add(requestReferencedInstancesByUUIDs(routingContext, idList));
+      existingRecordsByHridsFutures.add(requestReferencedInstancesByUUIDs(request, idList));
     }
     return Future.join(existingRecordsByHridsFutures)
         .onSuccess(x -> setExistingRecordSets())
@@ -77,10 +76,9 @@ public class RepositoryByHrids extends Repository {
   }
 
 
-  private Future<Void> requestInstanceSetsByHRIDs(RoutingContext routingContext,
+  private Future<Void> requestInstanceSetsByHRIDs(UpdateRequest updateRequest,
                                                   List<String> hrids) {
-    OkapiClient okapiClient = InventoryStorage.getOkapiClient(routingContext);
-    return InventoryStorage.lookupInstanceSets(okapiClient, new QueryByListOfIds("hrid", hrids))
+    return InventoryStorage.lookupInstanceSets(updateRequest.getOkapiClient(), new QueryByListOfIds("hrid", hrids))
         .onSuccess(this::stashInstanceSets)
         .mapEmpty();
   }
@@ -138,11 +136,10 @@ public class RepositoryByHrids extends Repository {
     .put(relationship.getPrecedingInstanceId(), relationship);
   }
 
-  private Future<Void> requestReferencedInstancesByHRIDs(RoutingContext routingContext,
+  private Future<Void> requestReferencedInstancesByHRIDs(UpdateRequest request,
                                                          List<String> hrids) {
     Promise<Void> promise = Promise.promise();
-    OkapiClient okapiClient = InventoryStorage.getOkapiClient(routingContext);
-    InventoryStorage.lookupInstances(okapiClient,
+    InventoryStorage.lookupInstances(request.getOkapiClient(),
                     new QueryByListOfIds("hrid", hrids))
             .onComplete(instances -> {
               if (instances.succeeded()) {
@@ -166,11 +163,10 @@ public class RepositoryByHrids extends Repository {
     }
   }
 
-  private Future<Void> requestReferencedInstancesByUUIDs(RoutingContext routingContext,
+  private Future<Void> requestReferencedInstancesByUUIDs(UpdateRequest request,
                                                          List<String> uuids) {
     Promise<Void> promise = Promise.promise();
-    OkapiClient okapiClient = InventoryStorage.getOkapiClient(routingContext);
-    InventoryStorage.lookupInstances(okapiClient,
+    InventoryStorage.lookupInstances(request.getOkapiClient(),
                     new QueryByListOfIds("id", uuids))
             .onComplete(instances -> {
               if (instances.succeeded()) {
@@ -186,11 +182,10 @@ public class RepositoryByHrids extends Repository {
     return promise.future();
   }
 
-  private Future<Void> requestHoldingsRecordsByHRIDs(RoutingContext routingContext,
+  private Future<Void> requestHoldingsRecordsByHRIDs(UpdateRequest request,
                                                      List<String> hrids) {
     Promise<Void> promise = Promise.promise();
-    OkapiClient okapiClient = InventoryStorage.getOkapiClient(routingContext);
-    InventoryStorage.lookupHoldingsRecords(okapiClient,
+    InventoryStorage.lookupHoldingsRecords(request.getOkapiClient(),
                     new QueryByListOfIds("hrid", hrids))
             .onComplete(records -> {
               if (records.succeeded()) {
@@ -210,10 +205,9 @@ public class RepositoryByHrids extends Repository {
     return promise.future();
   }
 
-  private Future<Void> requestItemsByHRIDs(RoutingContext routingContext, List<String> hrids) {
+  private Future<Void> requestItemsByHRIDs(UpdateRequest request, List<String> hrids) {
     Promise<Void> promise = Promise.promise();
-    OkapiClient okapiClient = InventoryStorage.getOkapiClient(routingContext);
-    InventoryStorage.lookupItems(okapiClient,
+    InventoryStorage.lookupItems(request.getOkapiClient(),
                     new QueryByListOfIds("hrid", hrids))
             .onComplete(records -> {
               if (records.succeeded()) {

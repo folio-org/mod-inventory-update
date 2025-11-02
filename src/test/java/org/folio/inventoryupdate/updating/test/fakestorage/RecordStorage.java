@@ -35,13 +35,13 @@ public abstract class RecordStorage {
     List<String> mandatoryProperties = new ArrayList<>();
     List<String> uniqueProperties = new ArrayList<>();
 
-    protected FakeFolioApis fakeStorage;
+    protected FakeFolioApisForUpserts fakeStorageForUpserts;
 
     protected final Map<String, InventoryRecord> records = new HashMap<>();
     protected final Logger logger = LogManager.getLogger("fake-inventory-storage");
 
-    public void attachToFakeStorage(FakeFolioApis fakeStorage) {
-        this.fakeStorage = fakeStorage;
+    public void attachToFakeStorage(FakeFolioApisForUpserts fakeStorageUpserts) {
+        this.fakeStorageForUpserts = fakeStorageUpserts;
         declareDependencies();
         declareMandatoryProperties();
         declareUniqueProperties();
@@ -236,7 +236,7 @@ public abstract class RecordStorage {
     /**
      * Handles GET by ID
      */
-    protected void getRecordById(RoutingContext routingContext) {
+    public void getRecordById(RoutingContext routingContext) {
         final String id = routingContext.pathParam("id");
         InventoryRecord inventoryRecord = getRecord(id);
 
@@ -250,7 +250,7 @@ public abstract class RecordStorage {
     /**
      * Handles DELETE
      */
-    protected void deleteRecord (RoutingContext routingContext) {
+    public void deleteRecord (RoutingContext routingContext) {
         final String id = routingContext.pathParam("id");
         int code = delete(id);
 
@@ -264,17 +264,20 @@ public abstract class RecordStorage {
     /**
      * Handles DELETE ALL
      */
-    protected void deleteAll (RoutingContext routingContext) {
+    public void deleteAll (RoutingContext routingContext) {
         records.clear();
         respond(routingContext, new JsonObject("{\"message\": \"all records deleted\"}"), 200);
     }
 
+    public void wipeMockRecords() {
+        records.clear();
+    }
 
     /**
      * Handles POST
      *
      */
-    protected void createRecord(RoutingContext routingContext) {
+    public void createRecord(RoutingContext routingContext) {
         JsonObject recordJson = new JsonObject(routingContext.body().asString());
         StorageResponse response = insert(new InventoryRecord(recordJson));
         if (response.statusCode == 201) {
@@ -289,7 +292,7 @@ public abstract class RecordStorage {
      * Handles PUT
      *
      */
-    protected void updateRecord(RoutingContext routingContext) {
+    public void updateRecord(RoutingContext routingContext) {
         JsonObject recordJson = new JsonObject(routingContext.body().asString());
         String id = routingContext.pathParam("id");
         int code = update(id, new InventoryRecord(recordJson));
@@ -300,7 +303,7 @@ public abstract class RecordStorage {
         }
     }
 
-    protected void upsertRecords (RoutingContext routingContext) {
+    public void upsertRecords (RoutingContext routingContext) {
         JsonObject requestJson = new JsonObject(routingContext.body().asString());
         JsonArray recordsJson = requestJson.getJsonArray(getResultSetName());
         for (Object o : recordsJson) {
@@ -331,7 +334,12 @@ public abstract class RecordStorage {
     }
     // HELPERS FOR RESPONSE PROCESSING
 
-    JsonObject buildJsonRecordsResponse(String optionalQuery) {
+  public Collection<InventoryRecord> getRecordsInternally() {
+    return getRecords();
+  }
+
+
+  JsonObject buildJsonRecordsResponse(String optionalQuery) {
         if (failOnGetRecords) return null;
         JsonObject response = new JsonObject();
         JsonArray jsonRecords = new JsonArray();

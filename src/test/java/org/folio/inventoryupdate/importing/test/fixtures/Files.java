@@ -2,7 +2,7 @@ package org.folio.inventoryupdate.importing.test.fixtures;
 
 import io.vertx.core.json.JsonObject;
 import org.apache.commons.io.FileUtils;
-import org.folio.inventoryupdate.importing.test.UnitTests;
+import org.folio.inventoryupdate.importing.test.UnitTestsImporting;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 
@@ -43,7 +43,7 @@ public class Files {
       return FileUtils.readFileToString(
               new File("src/test/resources/fixtures/" + filename), "UTF-8");
     } catch (IOException fnfe) {
-      UnitTests.logger.error(fnfe.getMessage());
+      UnitTestsImporting.logger.error(fnfe.getMessage());
       return null;
     }
   }

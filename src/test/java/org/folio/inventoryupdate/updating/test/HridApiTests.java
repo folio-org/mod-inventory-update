@@ -8,7 +8,7 @@ import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
 import org.folio.inventoryupdate.updating.instructions.ProcessingInstructionsUpsert;
 import org.folio.inventoryupdate.updating.test.fakestorage.DeleteProcessingInstructions;
-import org.folio.inventoryupdate.updating.test.fakestorage.FakeFolioApis;
+import org.folio.inventoryupdate.updating.test.fakestorage.FakeFolioApisForUpserts;
 import org.folio.inventoryupdate.updating.test.fakestorage.InputProcessingInstructions;
 import org.folio.inventoryupdate.updating.test.fakestorage.entitites.*;
 import org.junit.Test;
@@ -16,7 +16,7 @@ import org.junit.runner.RunWith;
 
 import java.util.Arrays;
 
-import static org.folio.inventoryupdate.updating.test.fakestorage.FakeFolioApis.*;
+import static org.folio.inventoryupdate.updating.test.fakestorage.FakeFolioApisForUpserts.*;
 import static org.junit.Assert.assertEquals;
 
 @RunWith(VertxUnitRunner.class)
@@ -41,11 +41,11 @@ public class HridApiTests extends InventoryUpdateTestBase {
           .setSource("test")
           .setInstanceTypeId("12345")));
     }
-    JsonObject instancesBeforePutJson = getRecordsFromStorage(FakeFolioApis.INSTANCE_STORAGE_PATH, null);
+    JsonObject instancesBeforePutJson = getRecordsFromStorage(FakeFolioApisForUpserts.INSTANCE_STORAGE_PATH, null);
     testContext.assertEquals(instancesBeforePutJson.getInteger("totalRecords"), 1,
         "Number of instance records before PUT expected: 1" );
     batchUpsertByHrid(batch.getJson());
-    JsonObject instancesAfterPutJson = getRecordsFromStorage(FakeFolioApis.INSTANCE_STORAGE_PATH, null);
+    JsonObject instancesAfterPutJson = getRecordsFromStorage(FakeFolioApisForUpserts.INSTANCE_STORAGE_PATH, null);
     testContext.assertEquals(instancesAfterPutJson.getInteger("totalRecords"), 201,
         "Number of instance records after PUT expected: 201" );
   }
@@ -64,11 +64,11 @@ public class HridApiTests extends InventoryUpdateTestBase {
       }
       batch.addRecordSet(new InventoryRecordSet(instance));
     }
-    JsonObject instancesBeforePutJson = getRecordsFromStorage(FakeFolioApis.INSTANCE_STORAGE_PATH, null);
+    JsonObject instancesBeforePutJson = getRecordsFromStorage(FakeFolioApisForUpserts.INSTANCE_STORAGE_PATH, null);
     testContext.assertEquals(instancesBeforePutJson.getInteger("totalRecords"), 1,
         "Number of instance records for before PUT expected: 1" );
     batchUpsertByHrid(207,batch.getJson());
-    JsonObject instancesAfterPutJson = getRecordsFromStorage(FakeFolioApis.INSTANCE_STORAGE_PATH, null);
+    JsonObject instancesAfterPutJson = getRecordsFromStorage(FakeFolioApisForUpserts.INSTANCE_STORAGE_PATH, null);
     testContext.assertEquals(instancesAfterPutJson.getInteger("totalRecords"), 100,
         "Number of instance records after PUT expected: 100" );
   }
@@ -87,11 +87,11 @@ public class HridApiTests extends InventoryUpdateTestBase {
       }
       batch.addRecordSet(new InventoryRecordSet(instance));
     }
-    JsonObject instancesBeforePutJson = getRecordsFromStorage(FakeFolioApis.INSTANCE_STORAGE_PATH, null);
+    JsonObject instancesBeforePutJson = getRecordsFromStorage(FakeFolioApisForUpserts.INSTANCE_STORAGE_PATH, null);
     testContext.assertEquals(instancesBeforePutJson.getInteger("totalRecords"), 1,
         "Number of instance records for before PUT expected: 1" );
     batchUpsertByHrid(207,batch.getJson());
-    JsonObject instancesAfterPutJson = getRecordsFromStorage(FakeFolioApis.INSTANCE_STORAGE_PATH, null);
+    JsonObject instancesAfterPutJson = getRecordsFromStorage(FakeFolioApisForUpserts.INSTANCE_STORAGE_PATH, null);
     testContext.assertEquals(instancesAfterPutJson.getInteger("totalRecords"), 100,
         "Number of instance records after PUT expected: 100" );
   }
@@ -115,7 +115,7 @@ public class HridApiTests extends InventoryUpdateTestBase {
         .setInstanceTypeId("12345");
     batch.addRecordSet(new InventoryRecordSet(instance));
 
-    JsonObject instancesBeforePutJson = getRecordsFromStorage(FakeFolioApis.INSTANCE_STORAGE_PATH, null);
+    JsonObject instancesBeforePutJson = getRecordsFromStorage(FakeFolioApisForUpserts.INSTANCE_STORAGE_PATH, null);
     testContext.assertEquals(instancesBeforePutJson.getInteger("totalRecords"), 1,
         "Number of instance records for before PUT expected: 1" );
     Response response = batchUpsertByHrid(200,batch.getJson());
@@ -125,7 +125,7 @@ public class HridApiTests extends InventoryUpdateTestBase {
         "Number of instance records created after PUT of batch of 29 expected: 29");
     testContext.assertEquals(metrics.getJsonObject("INSTANCE").getJsonObject("UPDATE").getInteger("COMPLETED"), 1,
         "Number of instance records updated after PUT of batch of 39 expected: 1");
-    JsonObject instancesAfterPutJson = getRecordsFromStorage(FakeFolioApis.INSTANCE_STORAGE_PATH, null);
+    JsonObject instancesAfterPutJson = getRecordsFromStorage(FakeFolioApisForUpserts.INSTANCE_STORAGE_PATH, null);
     testContext.assertEquals(instancesAfterPutJson.getInteger("totalRecords"), 30,
         "Number of instance records after PUT expected: 30" );
   }
@@ -245,13 +245,13 @@ public class HridApiTests extends InventoryUpdateTestBase {
     InputInstance instance = new InputInstance().setTitle("New title").setInstanceTypeId("12345").setHrid("2").setSource("test");
     InventoryRecordSet inventoryRecordSet = new InventoryRecordSet(instance);
 
-    JsonObject instancesBeforePutJson = getRecordsFromStorage(FakeFolioApis.INSTANCE_STORAGE_PATH, "hrid==\"" + instance.getHrid() + "\"");
+    JsonObject instancesBeforePutJson = getRecordsFromStorage(FakeFolioApisForUpserts.INSTANCE_STORAGE_PATH, "hrid==\"" + instance.getHrid() + "\"");
     testContext.assertEquals(instancesBeforePutJson.getInteger("totalRecords"), 0,
         "Before upserting with new Instance, the number of Instances with that HRID should be [0]" );
 
     upsertByHrid(inventoryRecordSet.getJson());
 
-    JsonObject instancesAfterPutJson = getRecordsFromStorage(FakeFolioApis.INSTANCE_STORAGE_PATH,"hrid==\"" + instance.getHrid() + "\"");
+    JsonObject instancesAfterPutJson = getRecordsFromStorage(FakeFolioApisForUpserts.INSTANCE_STORAGE_PATH,"hrid==\"" + instance.getHrid() + "\"");
     testContext.assertEquals(instancesAfterPutJson.getInteger("totalRecords"), 1,
         "After upserting with new Instance, the number of Instances with that HRID should be [1]" );
   }
@@ -268,7 +268,7 @@ public class HridApiTests extends InventoryUpdateTestBase {
     inventoryRecordSet.put("instance", new InputInstance()
         .setTitle("Initial InputInstance").setInstanceTypeId("12345").setHrid(instanceHrid).setSource("test").getJson());
 
-    JsonObject instancesBeforePutJson = getRecordsFromStorage(FakeFolioApis.INSTANCE_STORAGE_PATH, "hrid==\"" + instanceHrid + "\"");
+    JsonObject instancesBeforePutJson = getRecordsFromStorage(FakeFolioApisForUpserts.INSTANCE_STORAGE_PATH, "hrid==\"" + instanceHrid + "\"");
     testContext.assertEquals(instancesBeforePutJson.getInteger("totalRecords"), 1,
         "Before upsert of existing Instance, the number of Instances with that HRID should be [1]" );
     String instanceTypeIdBefore = instancesBeforePutJson
@@ -278,7 +278,7 @@ public class HridApiTests extends InventoryUpdateTestBase {
 
     upsertByHrid(inventoryRecordSet);
 
-    JsonObject instancesAfterUpsertJson = getRecordsFromStorage(FakeFolioApis.INSTANCE_STORAGE_PATH, "hrid==\"" + instanceHrid + "\"");
+    JsonObject instancesAfterUpsertJson = getRecordsFromStorage(FakeFolioApisForUpserts.INSTANCE_STORAGE_PATH, "hrid==\"" + instanceHrid + "\"");
     testContext.assertEquals(instancesAfterUpsertJson.getInteger("totalRecords"), 1,
         "After upsert of existing Instance, number of Instances with that HRID should still be [1]" + instancesAfterUpsertJson.encodePrettily() );
     JsonObject instanceResponse = instancesAfterUpsertJson.getJsonArray("instances").getJsonObject(0);
@@ -321,10 +321,10 @@ public class HridApiTests extends InventoryUpdateTestBase {
         "Upsert metrics response should report [2] holdings records successfully created " + upsertResponseJson.encodePrettily());
     testContext.assertEquals(getMetric(upsertResponseJson, ITEM, CREATE , COMPLETED), 3,
         "Upsert metrics response should report [3] items successfully created " + upsertResponseJson.encodePrettily());
-    JsonObject storedHoldings = getRecordsFromStorage(FakeFolioApis.HOLDINGS_STORAGE_PATH, "instanceId==\"" + instanceId + "\"");
+    JsonObject storedHoldings = getRecordsFromStorage(FakeFolioApisForUpserts.HOLDINGS_STORAGE_PATH, "instanceId==\"" + instanceId + "\"");
     testContext.assertEquals(storedHoldings.getInteger("totalRecords"), 2,
         "After upsert the number of holdings records for instance " + instanceId + " should be [2] " + storedHoldings.encodePrettily() );
-    JsonObject storedItems = getRecordsFromStorage(FakeFolioApis.ITEM_STORAGE_PATH, null);
+    JsonObject storedItems = getRecordsFromStorage(FakeFolioApisForUpserts.ITEM_STORAGE_PATH, null);
     testContext.assertEquals(storedItems.getInteger("totalRecords"), 3,
         "After upsert the total number of items should be [3] " + storedHoldings.encodePrettily() );
 
@@ -402,7 +402,7 @@ public class HridApiTests extends InventoryUpdateTestBase {
     testContext.assertEquals(getMetric(upsertResponseJson, ITEM, UPDATE , COMPLETED), 3,
         "Upsert metrics response should report [3] items successfully updated " + upsertResponseJson.encodePrettily());
 
-    getRecordsFromStorage(FakeFolioApis.ITEM_STORAGE_PATH,null).getJsonArray("items").stream()
+    getRecordsFromStorage(FakeFolioApisForUpserts.ITEM_STORAGE_PATH,null).getJsonArray("items").stream()
         .forEach(item -> testContext.assertEquals(((JsonObject)item).getString("barcode"), "updated",
         "The barcode of all items should be updated to 'updated' after upsert of existing record set with holdings and items"));
   }
@@ -478,14 +478,14 @@ public class HridApiTests extends InventoryUpdateTestBase {
         .forEach(instance -> testContext.assertEquals(((JsonObject)instance).getJsonArray("editions").getString(0), "retainMe",
         "The editions should be retained as 'retainMe' after upsert of existing record set"));
 
-    getRecordsFromStorage(FakeFolioApis.ITEM_STORAGE_PATH,null).getJsonArray("items").stream().forEach(item -> {
+    getRecordsFromStorage(FakeFolioApisForUpserts.ITEM_STORAGE_PATH,null).getJsonArray("items").stream().forEach(item -> {
       testContext.assertEquals(((JsonObject)item).getString("barcode"), "updated",
           "The barcode of all items should be updated to 'updated' after upsert of existing record set with holdings and items");
       testContext.assertEquals(((JsonObject)item).getJsonArray("yearCaption").getString(0), "retainMe",
           "The yearCaption of all items should be retained as 'retainMe' after upsert of existing record set with holdings and items");
     });
 
-    getRecordsFromStorage(FakeFolioApis.HOLDINGS_STORAGE_PATH,null).getJsonArray("holdingsRecords").stream().forEach(holdingsRecord -> {
+    getRecordsFromStorage(FakeFolioApisForUpserts.HOLDINGS_STORAGE_PATH,null).getJsonArray("holdingsRecords").stream().forEach(holdingsRecord -> {
       testContext.assertEquals(((JsonObject)holdingsRecord).getString("acquisitionFormat"), "updated",
           "The acquisitionFormat of all holdings records should be updated to 'updated' after upsert of existing record set with holdings and items");
       testContext.assertEquals(((JsonObject)holdingsRecord).getString("shelvingTitle"), "retainMe",
@@ -577,14 +577,14 @@ public class HridApiTests extends InventoryUpdateTestBase {
           "The Instance.edition should be retained as 'retainMe' after upsert of existing record set");
     });
 
-    getRecordsFromStorage(FakeFolioApis.ITEM_STORAGE_PATH,null).getJsonArray("items").stream().forEach(item -> {
+    getRecordsFromStorage(FakeFolioApisForUpserts.ITEM_STORAGE_PATH,null).getJsonArray("items").stream().forEach(item -> {
       testContext.assertEquals(((JsonObject)item).getString("barcode"), "updated",
           "The barcode of all items should be updated to 'updated' after upsert of existing record set with holdings and items");
       testContext.assertEquals(((JsonObject)item).getJsonArray("yearCaption").getString(0), "retainMe",
           "The yearCaption of all items should be retained as 'retainMe' after upsert of existing record set with holdings and items");
     });
 
-    getRecordsFromStorage(FakeFolioApis.HOLDINGS_STORAGE_PATH,null).getJsonArray("holdingsRecords").stream().forEach(holdingsRecord -> {
+    getRecordsFromStorage(FakeFolioApisForUpserts.HOLDINGS_STORAGE_PATH,null).getJsonArray("holdingsRecords").stream().forEach(holdingsRecord -> {
       testContext.assertEquals(((JsonObject)holdingsRecord).getString("acquisitionFormat"), "updated",
           "The acquisitionFormat of all holdings records should be updated to 'updated' after upsert of existing record set with holdings and items");
       testContext.assertEquals(((JsonObject)holdingsRecord).getString("shelvingTitle"), "retainMe",
@@ -624,7 +624,7 @@ public class HridApiTests extends InventoryUpdateTestBase {
 
     JsonObject holdingsRecords = getRecordsFromStorage(HOLDINGS_STORAGE_PATH, "hrid==\"HOL-001\"");
     String holdingsRecordId = holdingsRecords.getJsonArray("holdingsRecords").getJsonObject(0).getString("id");
-    fakeFolioApis.itemStorage.insert(new InputItem()
+    fakeFolioApisForUpserts.itemStorage.insert(new InputItem()
         .setHoldingsRecordId(holdingsRecordId)
         .setStatus(STATUS_UNKNOWN)
         .setMaterialTypeId(MATERIAL_TYPE_TEXT)
@@ -849,12 +849,12 @@ public class HridApiTests extends InventoryUpdateTestBase {
     testContext.assertEquals(getMetric(upsertResponseJson, ITEM, UPDATE , COMPLETED), 3,
         "Upsert metrics response should report [3] items successfully updated " + upsertResponseJson.encodePrettily());
 
-    JsonArray item001 = getRecordsFromStorage(FakeFolioApis.ITEM_STORAGE_PATH, "hrid==\"ITM-001\"").getJsonArray("items");
+    JsonArray item001 = getRecordsFromStorage(FakeFolioApisForUpserts.ITEM_STORAGE_PATH, "hrid==\"ITM-001\"").getJsonArray("items");
     testContext.assertEquals(item001.getJsonObject(0).getJsonObject("status").getString("name"),
         "Available",
         "Status for item ITM-001 should have been updated from 'On order' to 'Available");
 
-    JsonArray item002 = getRecordsFromStorage(FakeFolioApis.ITEM_STORAGE_PATH, "hrid==\"ITM-002\"").getJsonArray("items");
+    JsonArray item002 = getRecordsFromStorage(FakeFolioApisForUpserts.ITEM_STORAGE_PATH, "hrid==\"ITM-002\"").getJsonArray("items");
     testContext.assertEquals(item002.getJsonObject(0).getJsonObject("status").getString("name"),
         "Unknown",
         "Status for item ITM-002 should have been retained as 'Unknown'");
@@ -918,17 +918,17 @@ public class HridApiTests extends InventoryUpdateTestBase {
     testContext.assertEquals(getMetric(upsertResponseJson, ITEM, UPDATE , COMPLETED), 3,
         "Upsert metrics response should report [3] items successfully updated " + upsertResponseJson.encodePrettily());
 
-    JsonArray item001 = getRecordsFromStorage(FakeFolioApis.ITEM_STORAGE_PATH, "hrid==\"ITM-001\"").getJsonArray("items");
+    JsonArray item001 = getRecordsFromStorage(FakeFolioApisForUpserts.ITEM_STORAGE_PATH, "hrid==\"ITM-001\"").getJsonArray("items");
     testContext.assertEquals(item001.getJsonObject(0).getJsonObject("status").getString("name"),
         "Available",
         "Status for item ITM-001 should have been updated to 'Available' from 'On order'");
 
-    JsonArray item002 = getRecordsFromStorage(FakeFolioApis.ITEM_STORAGE_PATH, "hrid==\"ITM-002\"").getJsonArray("items");
+    JsonArray item002 = getRecordsFromStorage(FakeFolioApisForUpserts.ITEM_STORAGE_PATH, "hrid==\"ITM-002\"").getJsonArray("items");
     testContext.assertEquals(item002.getJsonObject(0).getJsonObject("status").getString("name"),
         "Available",
         "Status for item ITM-002 should have been updated to 'Available' from 'Unknown'");
 
-    JsonArray item003 = getRecordsFromStorage(FakeFolioApis.ITEM_STORAGE_PATH, "hrid==\"ITM-003\"").getJsonArray("items");
+    JsonArray item003 = getRecordsFromStorage(FakeFolioApisForUpserts.ITEM_STORAGE_PATH, "hrid==\"ITM-003\"").getJsonArray("items");
     testContext.assertEquals(item003.getJsonObject(0).getJsonObject("status").getString("name"),
         "Checked out",
         "Status for item ITM-003 should have been retained as 'Checked out'");
@@ -992,12 +992,12 @@ public class HridApiTests extends InventoryUpdateTestBase {
     testContext.assertEquals(getMetric(upsertResponseJson, ITEM, UPDATE , COMPLETED), 3,
         "Upsert metrics response should report [3] items successfully updated " + upsertResponseJson.encodePrettily());
 
-    JsonArray item001 = getRecordsFromStorage(FakeFolioApis.ITEM_STORAGE_PATH, "hrid==\"ITM-001\"").getJsonArray("items");
+    JsonArray item001 = getRecordsFromStorage(FakeFolioApisForUpserts.ITEM_STORAGE_PATH, "hrid==\"ITM-001\"").getJsonArray("items");
     testContext.assertEquals(item001.getJsonObject(0).getJsonObject("status").getString("name"),
         "On order",
         "Status for item ITM-001 should have been retained as 'On order'");
 
-    JsonArray item002 = getRecordsFromStorage(FakeFolioApis.ITEM_STORAGE_PATH, "hrid==\"ITM-002\"").getJsonArray("items");
+    JsonArray item002 = getRecordsFromStorage(FakeFolioApisForUpserts.ITEM_STORAGE_PATH, "hrid==\"ITM-002\"").getJsonArray("items");
     testContext.assertEquals(item002.getJsonObject(0).getJsonObject("status").getString("name"),
         "Unknown",
         "Status for item ITM-002 should have been retained as 'Unknown'");
@@ -1061,12 +1061,12 @@ public class HridApiTests extends InventoryUpdateTestBase {
     testContext.assertEquals(getMetric(upsertResponseJson, ITEM, UPDATE , COMPLETED), 3,
         "Upsert metrics response should report [3] items successfully updated " + upsertResponseJson.encodePrettily());
 
-    JsonArray item001 = getRecordsFromStorage(FakeFolioApis.ITEM_STORAGE_PATH, "hrid==\"ITM-001\"").getJsonArray("items");
+    JsonArray item001 = getRecordsFromStorage(FakeFolioApisForUpserts.ITEM_STORAGE_PATH, "hrid==\"ITM-001\"").getJsonArray("items");
     testContext.assertEquals(item001.getJsonObject(0).getJsonObject("status").getString("name"),
         "Available",
         "Status for item ITM-001 should have been overwritten to 'Avaliable' from 'On order'");
 
-    JsonArray item002 = getRecordsFromStorage(FakeFolioApis.ITEM_STORAGE_PATH, "hrid==\"ITM-002\"").getJsonArray("items");
+    JsonArray item002 = getRecordsFromStorage(FakeFolioApisForUpserts.ITEM_STORAGE_PATH, "hrid==\"ITM-002\"").getJsonArray("items");
     testContext.assertEquals(item002.getJsonObject(0).getJsonObject("status").getString("name"),
         "Available",
         "Status for item ITM-002 should have been overwritten to 'Available' from 'Unknown'");
@@ -1118,10 +1118,10 @@ public class HridApiTests extends InventoryUpdateTestBase {
         "After upsert with one holdings record removed from set, metrics should report [1] holdings record successfully deleted " + upsertResponseJson.encodePrettily());
     testContext.assertEquals(getMetric(upsertResponseJson, ITEM, DELETE , COMPLETED), 2,
         "After upsert with one holdings record removed from set, metrics should report [2] items successfully deleted " + upsertResponseJson.encodePrettily());
-    JsonObject holdingsAfterUpsertJson = getRecordsFromStorage(FakeFolioApis.HOLDINGS_STORAGE_PATH, "instanceId==\"" + instanceId + "\"");
+    JsonObject holdingsAfterUpsertJson = getRecordsFromStorage(FakeFolioApisForUpserts.HOLDINGS_STORAGE_PATH, "instanceId==\"" + instanceId + "\"");
     testContext.assertEquals(holdingsAfterUpsertJson.getInteger("totalRecords"), 1,
         "After upsert with one holdings record removed from set, number of holdings records left for the Instance should be [1] " + holdingsAfterUpsertJson.encodePrettily());
-    JsonObject itemsAfterUpsertJson = getRecordsFromStorage(FakeFolioApis.ITEM_STORAGE_PATH, null);
+    JsonObject itemsAfterUpsertJson = getRecordsFromStorage(FakeFolioApisForUpserts.ITEM_STORAGE_PATH, null);
     testContext.assertEquals(itemsAfterUpsertJson.getInteger("totalRecords"), 1,
         "After upsert with one holdings record removed from set, the total number of item records should be [1] " + itemsAfterUpsertJson.encodePrettily() );
   }
@@ -1156,10 +1156,10 @@ public class HridApiTests extends InventoryUpdateTestBase {
     testContext.assertEquals(getMetric(upsertResponseJson, ITEM, DELETE, SKIPPED), 1,
         "After upsert with still circulating item omitted, metrics should report [1] item deletion skipped " + upsertResponseJson.encodePrettily());
 
-    JsonObject holdingsAfterUpsertJson = getRecordsFromStorage(FakeFolioApis.HOLDINGS_STORAGE_PATH, "instanceId==\"" + instanceId + "\"");
+    JsonObject holdingsAfterUpsertJson = getRecordsFromStorage(FakeFolioApisForUpserts.HOLDINGS_STORAGE_PATH, "instanceId==\"" + instanceId + "\"");
     testContext.assertEquals(holdingsAfterUpsertJson.getInteger("totalRecords"), 1,
         "After upsert with still circulating item omitted, number of holdings records left for the Instance should still be [1] " + holdingsAfterUpsertJson.encodePrettily());
-    JsonObject itemsAfterUpsertJson = getRecordsFromStorage(FakeFolioApis.ITEM_STORAGE_PATH, null);
+    JsonObject itemsAfterUpsertJson = getRecordsFromStorage(FakeFolioApisForUpserts.ITEM_STORAGE_PATH, null);
     testContext.assertEquals(itemsAfterUpsertJson.getInteger("totalRecords"), 1,
         "After upsert with still circulating item removed, the total number of item records should still be [1] " + itemsAfterUpsertJson.encodePrettily() );
   }
@@ -1189,9 +1189,7 @@ public class HridApiTests extends InventoryUpdateTestBase {
                         .setBarcode("BC-003").getJson()))));
 
     JsonObject upsertResponseJson = upsertByHrid(inventoryRecordSet);
-    System.out.println("Upsert response: " + upsertResponseJson.encodePrettily());
     String instanceId = upsertResponseJson.getJsonObject("instance").getString("id");
-    System.out.println("Got instance " + instanceId);
 
     // Leave out one holdings record
     inventoryRecordSet = new JsonObject()
@@ -1214,10 +1212,10 @@ public class HridApiTests extends InventoryUpdateTestBase {
     testContext.assertEquals(getMetric(upsertResponseJson, ITEM, DELETE, SKIPPED), 1,
         "After upsert with one holdings record removed from set but with a circulating item, metrics should report [1] item deletion skipped " + upsertResponseJson.encodePrettily());
 
-    JsonObject holdingsAfterUpsertJson = getRecordsFromStorage(FakeFolioApis.HOLDINGS_STORAGE_PATH, "instanceId==\"" + instanceId + "\"");
+    JsonObject holdingsAfterUpsertJson = getRecordsFromStorage(FakeFolioApisForUpserts.HOLDINGS_STORAGE_PATH, "instanceId==\"" + instanceId + "\"");
     testContext.assertEquals(holdingsAfterUpsertJson.getInteger("totalRecords"), 2,
         "After upsert with one holdings record removed from set but with a circulating item, number of holdings records left for the Instance should still be [2] " + holdingsAfterUpsertJson.encodePrettily());
-    JsonObject itemsAfterUpsertJson = getRecordsFromStorage(FakeFolioApis.ITEM_STORAGE_PATH, null);
+    JsonObject itemsAfterUpsertJson = getRecordsFromStorage(FakeFolioApisForUpserts.ITEM_STORAGE_PATH, null);
     testContext.assertEquals(itemsAfterUpsertJson.getInteger("totalRecords"), 2,
         "After upsert with one holdings record removed from set but with a circulating item, the total number of item records should be [2] " + itemsAfterUpsertJson.encodePrettily() );
   }
@@ -1249,7 +1247,7 @@ public class HridApiTests extends InventoryUpdateTestBase {
 
     JsonObject upsertResponseJson = upsertByHrid(inventoryRecordSet);
     String instanceId = upsertResponseJson.getJsonObject("instance").getString("id");
-    JsonObject itemsAfterUpsert0Json = getRecordsFromStorage(FakeFolioApis.ITEM_STORAGE_PATH, null);
+    JsonObject itemsAfterUpsert0Json = getRecordsFromStorage(FakeFolioApisForUpserts.ITEM_STORAGE_PATH, null);
 
     // Upsert should not delete holdings/items when there's no holdings array in the request document
     upsertByHrid(
@@ -1257,8 +1255,8 @@ public class HridApiTests extends InventoryUpdateTestBase {
             .put("instance",
                 new InputInstance().setTitle("Updated InputInstance").setInstanceTypeId("12345").setHrid(instanceHrid).setSource("test").getJson()));
 
-    JsonObject holdingsAfterUpsert1Json = getRecordsFromStorage(FakeFolioApis.HOLDINGS_STORAGE_PATH, "instanceId==\"" + instanceId + "\"");
-    getRecordsFromStorage(FakeFolioApis.ITEM_STORAGE_PATH, null);
+    JsonObject holdingsAfterUpsert1Json = getRecordsFromStorage(FakeFolioApisForUpserts.HOLDINGS_STORAGE_PATH, "instanceId==\"" + instanceId + "\"");
+    getRecordsFromStorage(FakeFolioApisForUpserts.ITEM_STORAGE_PATH, null);
 
     // Upsert should delete any attached holdings/items when there's an empty holdings array in the request
     upsertByHrid(
@@ -1267,8 +1265,8 @@ public class HridApiTests extends InventoryUpdateTestBase {
                 new InputInstance().setTitle("2nd Updated InputInstance").setInstanceTypeId("12345").setHrid(instanceHrid).setSource("test").getJson())
             .put("holdingsRecords", new JsonArray()));
 
-    JsonObject holdingsAfterUpsert2Json = getRecordsFromStorage(FakeFolioApis.HOLDINGS_STORAGE_PATH, "instanceId==\"" + instanceId + "\"");
-    getRecordsFromStorage(FakeFolioApis.ITEM_STORAGE_PATH, null);
+    JsonObject holdingsAfterUpsert2Json = getRecordsFromStorage(FakeFolioApisForUpserts.HOLDINGS_STORAGE_PATH, "instanceId==\"" + instanceId + "\"");
+    getRecordsFromStorage(FakeFolioApisForUpserts.ITEM_STORAGE_PATH, null);
 
     testContext.assertEquals(itemsAfterUpsert0Json.getInteger("totalRecords"), 3, "After creating base inventory record set there should be [3] items in it " + itemsAfterUpsert0Json.encodePrettily());
     testContext.assertEquals(holdingsAfterUpsert1Json.getInteger("totalRecords"), 2,
@@ -1299,7 +1297,7 @@ public class HridApiTests extends InventoryUpdateTestBase {
 
     testContext.assertEquals(getMetric(childResponseJson, INSTANCE_RELATIONSHIP, CREATE , COMPLETED), 1,
         "After upsert of new Instance with parent relation, metrics should report [1] instance relationship successfully created " + childResponseJson.encodePrettily());
-    JsonObject relationshipsAfterUpsertJson = getRecordsFromStorage(FakeFolioApis.INSTANCE_RELATIONSHIP_STORAGE_PATH, null);
+    JsonObject relationshipsAfterUpsertJson = getRecordsFromStorage(FakeFolioApisForUpserts.INSTANCE_RELATIONSHIP_STORAGE_PATH, null);
     testContext.assertEquals(relationshipsAfterUpsertJson.getInteger("totalRecords"), 1,
         "After upsert of new Instance with parent relation, the total number of relationship records should be [1] " + relationshipsAfterUpsertJson.encodePrettily() );
 
@@ -1313,7 +1311,7 @@ public class HridApiTests extends InventoryUpdateTestBase {
     testContext.assertEquals(getMetric(grandParentResponseJson, INSTANCE_RELATIONSHIP, CREATE , COMPLETED), 1,
         "After upsert of new Instance with child relation, metrics should report [1] instance relationship successfully created " + grandParentResponseJson.encodePrettily());
 
-    JsonObject relationshipsAfterGrandParent = getRecordsFromStorage(FakeFolioApis.INSTANCE_RELATIONSHIP_STORAGE_PATH, null);
+    JsonObject relationshipsAfterGrandParent = getRecordsFromStorage(FakeFolioApisForUpserts.INSTANCE_RELATIONSHIP_STORAGE_PATH, null);
 
     testContext.assertEquals(relationshipsAfterGrandParent.getInteger("totalRecords"), 2,
         "After upsert of Instance with parent and Instance with child relation, the total number of relationship records should be [2] " + relationshipsAfterGrandParent.encodePrettily() );
@@ -1339,7 +1337,7 @@ public class HridApiTests extends InventoryUpdateTestBase {
 
     testContext.assertEquals(getMetric(childResponseJson, INSTANCE_RELATIONSHIP, CREATE , COMPLETED), 1,
         "After upsert of new Instance with parent relation, metrics should report [1] instance relationship successfully created " + childResponseJson.encodePrettily());
-    JsonObject relationshipsAfterUpsertJson = getRecordsFromStorage(FakeFolioApis.INSTANCE_RELATIONSHIP_STORAGE_PATH, null);
+    JsonObject relationshipsAfterUpsertJson = getRecordsFromStorage(FakeFolioApisForUpserts.INSTANCE_RELATIONSHIP_STORAGE_PATH, null);
     testContext.assertEquals(relationshipsAfterUpsertJson.getInteger("totalRecords"), 1,
         "After upsert of new Instance with parent relation, the total number of relationship records should be [1] " + relationshipsAfterUpsertJson.encodePrettily() );
 
@@ -1353,7 +1351,7 @@ public class HridApiTests extends InventoryUpdateTestBase {
     testContext.assertEquals(getMetric(grandParentResponseJson, INSTANCE_RELATIONSHIP, CREATE , COMPLETED), 1,
         "After upsert of new Instance with child relation, metrics should report [1] instance relationship successfully created " + grandParentResponseJson.encodePrettily());
 
-    JsonObject relationshipsAfterGrandParent = getRecordsFromStorage(FakeFolioApis.INSTANCE_RELATIONSHIP_STORAGE_PATH, null);
+    JsonObject relationshipsAfterGrandParent = getRecordsFromStorage(FakeFolioApisForUpserts.INSTANCE_RELATIONSHIP_STORAGE_PATH, null);
 
     testContext.assertEquals(relationshipsAfterGrandParent.getInteger("totalRecords"), 2,
         "After upsert of Instance with parent and Instance with child relation, the total number of relationship records should be [2] " + relationshipsAfterGrandParent.encodePrettily() );
@@ -1573,7 +1571,7 @@ public class HridApiTests extends InventoryUpdateTestBase {
     testContext.assertEquals(getMetric(upsertResponseJson3, INSTANCE_TITLE_SUCCESSION, CREATE, COMPLETED), 1,
         "After upsert of succeeding title, metrics should report [1] instance title successions successfully created " + upsertResponseJson3.encodePrettily());
 
-    JsonObject titleSuccessions = getRecordsFromStorage(FakeFolioApis.PRECEDING_SUCCEEDING_TITLE_STORAGE_PATH,null);
+    JsonObject titleSuccessions = getRecordsFromStorage(FakeFolioApisForUpserts.PRECEDING_SUCCEEDING_TITLE_STORAGE_PATH,null);
     testContext.assertEquals(titleSuccessions.getInteger("totalRecords"), 2,
         "After two upserts with title successions, the total number of title successions should be [2] " + titleSuccessions.encodePrettily() );
   }
@@ -1617,7 +1615,7 @@ public class HridApiTests extends InventoryUpdateTestBase {
     testContext.assertEquals(getMetric(upsertResponseJson2, INSTANCE_TITLE_SUCCESSION, DELETE, COMPLETED), 1,
         "After upsert with empty succeedingTitles list, metrics should report [1] instance title successions successfully deleted " + upsertResponseJson2.encodePrettily());
 
-    JsonObject titleSuccessions = getRecordsFromStorage(FakeFolioApis.PRECEDING_SUCCEEDING_TITLE_STORAGE_PATH,null);
+    JsonObject titleSuccessions = getRecordsFromStorage(FakeFolioApisForUpserts.PRECEDING_SUCCEEDING_TITLE_STORAGE_PATH,null);
     testContext.assertEquals(titleSuccessions.getInteger("totalRecords"), 0,
         "After two upserts -- with and without title successions -- the number of title successions should be [0] " + titleSuccessions.encodePrettily() );
   }
@@ -1661,7 +1659,7 @@ public class HridApiTests extends InventoryUpdateTestBase {
     testContext.assertEquals(getMetric(upsertResponseJson2, INSTANCE_TITLE_SUCCESSION, DELETE, COMPLETED), 1,
         "After upsert with empty precedingTitles list, metrics should report [1] instance title successions successfully deleted " + upsertResponseJson2.encodePrettily());
 
-    JsonObject titleSuccessions = getRecordsFromStorage(FakeFolioApis.PRECEDING_SUCCEEDING_TITLE_STORAGE_PATH,null);
+    JsonObject titleSuccessions = getRecordsFromStorage(FakeFolioApisForUpserts.PRECEDING_SUCCEEDING_TITLE_STORAGE_PATH,null);
     testContext.assertEquals(titleSuccessions.getInteger("totalRecords"), 0,
         "After two upserts -- with and without title successions -- the number of title successions should be [0] " + titleSuccessions.encodePrettily() );
   }
@@ -1687,7 +1685,7 @@ public class HridApiTests extends InventoryUpdateTestBase {
         "Upsert metrics response should report [1] instance relationship successfully created " + childResponseJson.encodePrettily());
     testContext.assertEquals(getMetric(childResponseJson, INSTANCE_RELATIONSHIP, PROVISIONAL_INSTANCE, COMPLETED), 1,
         "Upsert metrics response should report [1] provisional instance successfully created " + childResponseJson.encodePrettily());
-    JsonObject instancesAfterUpsertJson = getRecordsFromStorage(FakeFolioApis.INSTANCE_STORAGE_PATH, null);
+    JsonObject instancesAfterUpsertJson = getRecordsFromStorage(FakeFolioApisForUpserts.INSTANCE_STORAGE_PATH, null);
     testContext.assertEquals(instancesAfterUpsertJson.getInteger("totalRecords"), 2,
         "After upsert with provisional instance the total number of instances should be [2] " + instancesAfterUpsertJson.encodePrettily() );
   }
@@ -1892,13 +1890,13 @@ public class HridApiTests extends InventoryUpdateTestBase {
     testContext.assertEquals(getMetric(upsertResponseJson, INSTANCE_TITLE_SUCCESSION, CREATE, COMPLETED), 1,
         "Upsert metrics response should report [1] succeeding title relations successfully created " + upsertResponseJson.encodePrettily());
 
-    JsonObject storedHoldings = getRecordsFromStorage(FakeFolioApis.HOLDINGS_STORAGE_PATH, "instanceId==\"" + instanceId + "\"");
+    JsonObject storedHoldings = getRecordsFromStorage(FakeFolioApisForUpserts.HOLDINGS_STORAGE_PATH, "instanceId==\"" + instanceId + "\"");
     testContext.assertEquals(storedHoldings.getInteger("totalRecords"), 2,
         "After upsert the number of holdings records for instance " + instanceId + " should be [2] " + storedHoldings.encodePrettily() );
-    JsonObject storedItems = getRecordsFromStorage(FakeFolioApis.ITEM_STORAGE_PATH, null);
+    JsonObject storedItems = getRecordsFromStorage(FakeFolioApisForUpserts.ITEM_STORAGE_PATH, null);
     testContext.assertEquals(storedItems.getInteger("totalRecords"), 3,
         "After upsert the total number of items should be [3] " + storedItems.encodePrettily() );
-    JsonObject storedRelations = getRecordsFromStorage(FakeFolioApis.PRECEDING_SUCCEEDING_TITLE_STORAGE_PATH, null);
+    JsonObject storedRelations = getRecordsFromStorage(FakeFolioApisForUpserts.PRECEDING_SUCCEEDING_TITLE_STORAGE_PATH, null);
     testContext.assertEquals(storedRelations.getInteger("totalRecords"), 1,
         "After upsert the total number of relations should be [1] " + storedRelations.encodePrettily() );
 
@@ -1913,13 +1911,13 @@ public class HridApiTests extends InventoryUpdateTestBase {
     testContext.assertEquals(getMetric(deleteResponse, INSTANCE_TITLE_SUCCESSION, DELETE , COMPLETED), 1,
         "Delete metrics response should report [1] relation successfully deleted " + deleteResponse.encodePrettily());
 
-    storedHoldings = getRecordsFromStorage(FakeFolioApis.HOLDINGS_STORAGE_PATH, "instanceId==\"" + instanceId + "\"");
+    storedHoldings = getRecordsFromStorage(FakeFolioApisForUpserts.HOLDINGS_STORAGE_PATH, "instanceId==\"" + instanceId + "\"");
     testContext.assertEquals(storedHoldings.getInteger("totalRecords"), 0,
         "After delete the number of holdings records for instance " + instanceId + " should be [0] " + storedHoldings.encodePrettily() );
-    storedItems = getRecordsFromStorage(FakeFolioApis.ITEM_STORAGE_PATH, null);
+    storedItems = getRecordsFromStorage(FakeFolioApisForUpserts.ITEM_STORAGE_PATH, null);
     testContext.assertEquals(storedItems.getInteger("totalRecords"), 0,
         "After delete the total number of items should be [3] " + storedItems.encodePrettily() );
-    storedRelations = getRecordsFromStorage(FakeFolioApis.PRECEDING_SUCCEEDING_TITLE_STORAGE_PATH, null);
+    storedRelations = getRecordsFromStorage(FakeFolioApisForUpserts.PRECEDING_SUCCEEDING_TITLE_STORAGE_PATH, null);
     testContext.assertEquals(storedRelations.getInteger("totalRecords"), 0,
         "After delete the total number of relations should be [0] " + storedRelations.encodePrettily() );
 
@@ -1977,10 +1975,10 @@ public class HridApiTests extends InventoryUpdateTestBase {
     storedInstances = getRecordsFromStorage(INSTANCE_STORAGE_PATH,"hrid==\"" + instanceHrid +"\"");
     testContext.assertEquals(storedInstances.getInteger("totalRecords"), 1,
         "After delete of instance with protected item the number of instance records with HRID " + instanceHrid + " should be [1] " + storedInstances.encodePrettily() );
-    JsonObject storedHoldings = getRecordsFromStorage(FakeFolioApis.HOLDINGS_STORAGE_PATH, "instanceId==\"" + instanceId + "\"");
+    JsonObject storedHoldings = getRecordsFromStorage(FakeFolioApisForUpserts.HOLDINGS_STORAGE_PATH, "instanceId==\"" + instanceId + "\"");
     testContext.assertEquals(storedHoldings.getInteger("totalRecords"), 1,
         "After delete of instance with protected item the number of holdings records for instance " + instanceHrid + " should be [1] " + storedHoldings.encodePrettily() );
-    JsonObject storedItems = getRecordsFromStorage(FakeFolioApis.ITEM_STORAGE_PATH, null);
+    JsonObject storedItems = getRecordsFromStorage(FakeFolioApisForUpserts.ITEM_STORAGE_PATH, null);
     testContext.assertEquals(storedItems.getInteger("totalRecords"), 1,
         "After delete the total number of items should be [2] " + storedItems.encodePrettily() );
   }
@@ -2038,10 +2036,10 @@ public class HridApiTests extends InventoryUpdateTestBase {
     storedInstances = getRecordsFromStorage(INSTANCE_STORAGE_PATH,"hrid==\"" + instanceHrid +"\"");
     testContext.assertEquals(storedInstances.getInteger("totalRecords"), 1,
         "After delete of instance with protected item the number of instance records with HRID " + instanceHrid + " should be [1] " + storedInstances.encodePrettily() );
-    JsonObject storedHoldings = getRecordsFromStorage(FakeFolioApis.HOLDINGS_STORAGE_PATH, "instanceId==\"" + instanceId + "\"");
+    JsonObject storedHoldings = getRecordsFromStorage(FakeFolioApisForUpserts.HOLDINGS_STORAGE_PATH, "instanceId==\"" + instanceId + "\"");
     testContext.assertEquals(storedHoldings.getInteger("totalRecords"), 1,
         "After delete of instance with protected item the number of holdings records for instance " + instanceHrid + " should be [1] " + storedHoldings.encodePrettily() );
-    JsonObject storedItems = getRecordsFromStorage(FakeFolioApis.ITEM_STORAGE_PATH, null);
+    JsonObject storedItems = getRecordsFromStorage(FakeFolioApisForUpserts.ITEM_STORAGE_PATH, null);
     testContext.assertEquals(storedItems.getInteger("totalRecords"), 0,
         "After delete the total number of items should be [0] " + storedItems.encodePrettily() );
 
@@ -2089,7 +2087,6 @@ public class HridApiTests extends InventoryUpdateTestBase {
         "Upsert metrics response should report [2] holdings records deletions completed " + deleteResponse.encodePrettily());
     testContext.assertEquals(getMetric(deleteResponse, ITEM, DELETE , COMPLETED), 3,
         "Delete metrics response should report [3] item deletions completed " + deleteResponse.encodePrettily());
-    System.out.println(getRecordsFromStorage(INSTANCE_STORAGE_PATH,"id=="+instanceId).encodePrettily());
 
   }
 
@@ -2368,7 +2365,7 @@ public class HridApiTests extends InventoryUpdateTestBase {
                         .setBarcode("BC-003").getJson())))));
 
     String instanceId1 = firstResponse.getJsonObject("instance").getString("id");
-    JsonObject storedHoldings = getRecordsFromStorage(FakeFolioApis.HOLDINGS_STORAGE_PATH, "instanceId==\"" + instanceId1 + "\"");
+    JsonObject storedHoldings = getRecordsFromStorage(FakeFolioApisForUpserts.HOLDINGS_STORAGE_PATH, "instanceId==\"" + instanceId1 + "\"");
     testContext.assertEquals(storedHoldings.getInteger("totalRecords"), 2,
         "After upsert the number of holdings records for instance " + instanceId1 + " should be [2] " + storedHoldings.encodePrettily() );
 
@@ -2394,11 +2391,11 @@ public class HridApiTests extends InventoryUpdateTestBase {
                         .setMaterialTypeId(MATERIAL_TYPE_TEXT)
                         .setBarcode("BC-003").getJson())))));
 
-    storedHoldings = getRecordsFromStorage(FakeFolioApis.HOLDINGS_STORAGE_PATH, "instanceId==\"" + instanceId1 + "\"");
+    storedHoldings = getRecordsFromStorage(FakeFolioApisForUpserts.HOLDINGS_STORAGE_PATH, "instanceId==\"" + instanceId1 + "\"");
     testContext.assertEquals(storedHoldings.getInteger("totalRecords"), 0,
         "After move of holdings the number of holdings records for instance " + instanceId1 + " should be [0] " + storedHoldings.encodePrettily() );
 
-    storedHoldings = getRecordsFromStorage(FakeFolioApis.HOLDINGS_STORAGE_PATH, "hrid==\"HOL-001\" or hrid==\"HOL-002\"");
+    storedHoldings = getRecordsFromStorage(FakeFolioApisForUpserts.HOLDINGS_STORAGE_PATH, "hrid==\"HOL-001\" or hrid==\"HOL-002\"");
     testContext.assertEquals(storedHoldings.getInteger("totalRecords"), 2,
         "After move of holdings they should still exist, count should be [2] " + storedHoldings.encodePrettily() );
 
@@ -2418,7 +2415,7 @@ public class HridApiTests extends InventoryUpdateTestBase {
     testContext.assertEquals(getMetric(thirdResponse, ITEM, UPDATE , COMPLETED), 1,
         "Third update should report [1] item successfully updated (moved)   " + thirdResponse.encodePrettily());
 
-    JsonObject storedItems = getRecordsFromStorage(FakeFolioApis.ITEM_STORAGE_PATH, null);
+    JsonObject storedItems = getRecordsFromStorage(FakeFolioApisForUpserts.ITEM_STORAGE_PATH, null);
     testContext.assertEquals(storedItems.getInteger("totalRecords"), 3,
         "After two moves of holdings/items there should still be [3] items total in storage " + storedItems.encodePrettily() );
 
@@ -2437,9 +2434,9 @@ public class HridApiTests extends InventoryUpdateTestBase {
                         .setMaterialTypeId(MATERIAL_TYPE_TEXT)
                         .setBarcode("BC-002").getJson())))));
 
-    JsonObject storedHoldings002 = getRecordsFromStorage(FakeFolioApis.HOLDINGS_STORAGE_PATH, "hrid==\"HOL-002\"");
+    JsonObject storedHoldings002 = getRecordsFromStorage(FakeFolioApisForUpserts.HOLDINGS_STORAGE_PATH, "hrid==\"HOL-002\"");
     JsonObject holdings002 = storedHoldings002.getJsonArray(RESULT_SET_HOLDINGS_RECORDS).getJsonObject(0);
-    JsonObject storedItemsHol002 = getRecordsFromStorage(FakeFolioApis.ITEM_STORAGE_PATH, "holdingsRecordId==\""+holdings002.getString("id")+"\"");
+    JsonObject storedItemsHol002 = getRecordsFromStorage(FakeFolioApisForUpserts.ITEM_STORAGE_PATH, "holdingsRecordId==\""+holdings002.getString("id")+"\"");
     testContext.assertEquals(storedItemsHol002.getInteger("totalRecords"), 2,
         "After moves of items from one holding to the other there should be [2] items on HOL-002 in storage " + storedItemsHol002.encodePrettily() );
 
@@ -2796,7 +2793,7 @@ public class HridApiTests extends InventoryUpdateTestBase {
 
   @Test
   public void testForcedItemCreateFailure (TestContext testContext) {
-    fakeFolioApis.itemStorage.failOnCreate = true;
+    fakeFolioApisForUpserts.itemStorage.failOnCreate = true;
     Response response = upsertByHrid(207,new JsonObject()
         .put("instance",
             new InputInstance().setTitle("Initial InputInstance").setInstanceTypeId("12345").setHrid("001").setSource("test").getJson())
@@ -2826,7 +2823,7 @@ public class HridApiTests extends InventoryUpdateTestBase {
 
   @Test
   public void testForcedHoldingsCreateFailure (TestContext testContext) {
-    fakeFolioApis.holdingsStorage.failOnCreate = true;
+    fakeFolioApisForUpserts.holdingsStorage.failOnCreate = true;
     Response response = upsertByHrid(207,new JsonObject()
         .put("instance",
             new InputInstance().setTitle("Initial InputInstance").setInstanceTypeId("12345").setHrid("001").setSource("test").getJson())
@@ -2860,7 +2857,7 @@ public class HridApiTests extends InventoryUpdateTestBase {
 
   @Test
   public void testForcedItemUpdateFailure (TestContext testContext) {
-    fakeFolioApis.itemStorage.failOnUpdate = true;
+    fakeFolioApisForUpserts.itemStorage.failOnUpdate = true;
     JsonObject inventoryRecordSet = new JsonObject()
         .put("instance",
             new InputInstance().setTitle("Initial InputInstance").setInstanceTypeId("12345").setHrid("001").setSource("test").getJson())
@@ -2892,7 +2889,7 @@ public class HridApiTests extends InventoryUpdateTestBase {
 
   @Test
   public void testForcedHoldingsUpdateFailure (TestContext testContext) {
-    fakeFolioApis.holdingsStorage.failOnUpdate = true;
+    fakeFolioApisForUpserts.holdingsStorage.failOnUpdate = true;
     JsonObject inventoryRecordSet = new JsonObject()
         .put("instance",
             new InputInstance().setTitle("Initial InputInstance").setInstanceTypeId("12345").setHrid("001").setSource("test").getJson())
@@ -2925,7 +2922,7 @@ public class HridApiTests extends InventoryUpdateTestBase {
 
   @Test
   public void testForcedItemDeleteFailure (TestContext testContext) {
-    fakeFolioApis.itemStorage.failOnDelete = true;
+    fakeFolioApisForUpserts.itemStorage.failOnDelete = true;
     upsertByHrid (new JsonObject()
         .put("instance",
             new InputInstance().setTitle("Initial InputInstance").setInstanceTypeId("12345").setHrid("001").setSource("test").getJson())
@@ -2973,7 +2970,7 @@ public class HridApiTests extends InventoryUpdateTestBase {
 
   @Test
   public void testForcedHoldingsDeleteFailure (TestContext testContext) {
-    fakeFolioApis.holdingsStorage.failOnDelete = true;
+    fakeFolioApisForUpserts.holdingsStorage.failOnDelete = true;
     upsertByHrid (new JsonObject()
         .put("instance",
             new InputInstance().setTitle("Initial InputInstance").setInstanceTypeId("12345").setHrid("001").setSource("test").getJson())
@@ -3018,7 +3015,7 @@ public class HridApiTests extends InventoryUpdateTestBase {
 
   @Test
   public void testForcedItemGetRecordsFailure (TestContext testContext) {
-    fakeFolioApis.itemStorage.failOnGetRecords = true;
+    fakeFolioApisForUpserts.itemStorage.failOnGetRecords = true;
     JsonObject inventoryRecordSet = new JsonObject()
         .put("instance",
             new InputInstance().setTitle("Initial InputInstance").setInstanceTypeId("12345").setHrid("001").setSource("test").getJson())
@@ -3045,7 +3042,7 @@ public class HridApiTests extends InventoryUpdateTestBase {
 
   @Test
   public void testForcedHoldingsGetRecordsFailure (TestContext testContext) {
-    fakeFolioApis.holdingsStorage.failOnGetRecords = true;
+    fakeFolioApisForUpserts.holdingsStorage.failOnGetRecords = true;
     JsonObject inventoryRecordSet = new JsonObject()
         .put("instance",
             new InputInstance().setTitle("Initial InputInstance").setInstanceTypeId("12345").setHrid("001").setSource("test").getJson())
@@ -3072,7 +3069,7 @@ public class HridApiTests extends InventoryUpdateTestBase {
 
   @Test
   public void testForcedInstanceGetRecordsFailure (TestContext testContext) {
-    fakeFolioApis.instanceStorage.failOnGetRecords = true;
+    fakeFolioApisForUpserts.instanceStorage.failOnGetRecords = true;
     JsonObject inventoryRecordSet = new JsonObject()
         .put("instance",
             new InputInstance().setTitle("Initial InputInstance").setInstanceTypeId("12345").setHrid("001").setSource("test").getJson())
@@ -3099,8 +3096,8 @@ public class HridApiTests extends InventoryUpdateTestBase {
 
   @Test
   public void testForcedInstanceRelationshipsGetRecordsFailure (TestContext testContext) {
-    fakeFolioApis.instanceRelationshipStorage.failOnGetRecords = true;
-    fakeFolioApis.precedingSucceedingStorage.failOnGetRecords = true;
+    fakeFolioApisForUpserts.instanceRelationshipStorage.failOnGetRecords = true;
+    fakeFolioApisForUpserts.precedingSucceedingStorage.failOnGetRecords = true;
     JsonObject inventoryRecordSet = new JsonObject()
         .put("instance",
             new InputInstance().setTitle("Test forcedInstanceRelationshipGetRecordsFailure").setInstanceTypeId("12345").setHrid("001").setSource("test").getJson())

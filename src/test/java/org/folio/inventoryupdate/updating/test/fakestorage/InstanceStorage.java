@@ -1,5 +1,6 @@
 package org.folio.inventoryupdate.updating.test.fakestorage;
 
+
 public class InstanceStorage extends RecordStorage {
 
     public String getResultSetName() {

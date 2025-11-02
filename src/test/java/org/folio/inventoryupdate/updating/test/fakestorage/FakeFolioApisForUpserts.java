@@ -9,7 +9,7 @@ import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.handler.BodyHandler;
 
-public class FakeFolioApis {
+public class FakeFolioApisForUpserts {
     public static final int PORT_OKAPI = 9031;
     public static final String INSTANCE_STORAGE_PATH = "/instance-storage/instances";
     public static final String INSTANCE_SET_PATH = "/inventory-view/instance-set";
@@ -39,7 +39,7 @@ public class FakeFolioApis {
 
     public OrdersStorage ordersStorage = new OrdersStorage();
 
-    public FakeFolioApis(Vertx vertx, TestContext testContext) {
+    public FakeFolioApisForUpserts(Vertx vertx, TestContext testContext) {
         locationStorage.attachToFakeStorage(this);
         instanceStorage.attachToFakeStorage(this);
         instanceSetview.attachToFakeStorage(this);
@@ -94,7 +94,7 @@ public class FakeFolioApis {
                 .requestHandler(router)
                 .listen(PORT_OKAPI)
                 .onComplete(testContext.asyncAssertSuccess());
-        RestAssured.port = FakeFolioApis.PORT_OKAPI;
+        RestAssured.port = FakeFolioApisForUpserts.PORT_OKAPI;
     }
 
     public static JsonObject getRecordsByQuery(String storagePath, String query) {
@@ -115,7 +115,7 @@ public class FakeFolioApis {
     }
 
     public static JsonObject getRecordById(String storagePath, String id, int expectedResponseCode) {
-      RestAssured.port = FakeFolioApis.PORT_OKAPI;
+      RestAssured.port = FakeFolioApisForUpserts.PORT_OKAPI;
       Response response = RestAssured.given()
                 .get(storagePath + "/" + id)
                 .then()
@@ -129,7 +129,7 @@ public class FakeFolioApis {
     }
 
     public static JsonObject post(String storagePath, JsonObject recordToPOST, int expectedResponseCode) {
-      RestAssured.port = FakeFolioApis.PORT_OKAPI;
+      RestAssured.port = FakeFolioApisForUpserts.PORT_OKAPI;
       Response response = RestAssured.given()
                 .body(recordToPOST.toString())
                 .post(storagePath)

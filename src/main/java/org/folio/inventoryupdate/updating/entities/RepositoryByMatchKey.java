@@ -4,13 +4,12 @@ import io.vertx.core.Future;
 import io.vertx.core.Promise;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
-import io.vertx.ext.web.RoutingContext;
 import org.folio.inventoryupdate.updating.ErrorReport;
 import org.folio.inventoryupdate.updating.InventoryStorage;
 import org.folio.inventoryupdate.updating.QueryByListOfIds;
 import org.folio.inventoryupdate.updating.QueryShiftingMatchKey;
 import org.folio.inventoryupdate.updating.UpdatePlanSharedInventory;
-import org.folio.okapi.common.OkapiClient;
+import org.folio.inventoryupdate.updating.UpdateRequest;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -25,35 +24,35 @@ public class RepositoryByMatchKey extends Repository {
   public final Map<String,Instance> secondaryInstancesByLocalIdentifier = new HashMap<>();
 
   @Override
-  public Future<Void> buildRepositoryFromStorage (RoutingContext routingContext) {
+  public Future<Void> buildRepositoryFromStorage (UpdateRequest request) {
     Promise<Void> promise = Promise.promise();
     List<Future<Void>> existingRecordsByMatchKeyFutures = new ArrayList<>();
     for (List<String> idList : getSubListsOfFive(getIncomingMatchKeys())) {
-      existingRecordsByMatchKeyFutures.add(requestInstancesByMatchKeys(routingContext, idList));
+      existingRecordsByMatchKeyFutures.add(requestInstancesByMatchKeys(request, idList));
     }
     for (PairedRecordSets pair : pairsOfRecordSets) {
       QueryShiftingMatchKey query = new QueryShiftingMatchKey(
               pair.getIncomingRecordSet().getLocalIdentifier(),
               pair.getIncomingRecordSet().getLocalIdentifierTypeId(),
               pair.getIncomingRecordSet().getInstance().getMatchKey());
-      existingRecordsByMatchKeyFutures.add(requestInstanceWithOtherMatchKey(routingContext,query));
+      existingRecordsByMatchKeyFutures.add(requestInstanceWithOtherMatchKey(request,query));
     }
     Future.join(existingRecordsByMatchKeyFutures).onComplete(recordsByMatchKeys -> {
       if (recordsByMatchKeys.succeeded()) {
         List<Future<Void>> holdingsRecordsFutures = new ArrayList<>();
         for (List<String> idList : getSubListsOfFifty(getExistingInstanceIdsIncludingSecondaryInstances())) {
-          holdingsRecordsFutures.add(requestHoldingsRecordsByInstanceIds(routingContext, idList));
+          holdingsRecordsFutures.add(requestHoldingsRecordsByInstanceIds(request, idList));
         }
         Future.join(holdingsRecordsFutures).onComplete(holdingsRecordsByInstanceIds -> {
           if (holdingsRecordsByInstanceIds.succeeded()) {
             List<Future<Void>> itemsFutures = new ArrayList<>();
             for (List<String> idList : getSubListsOfFifty(getExistingHoldingsRecordIds())) {
-              itemsFutures.add(requestItemsByHoldingsRecordIds(routingContext, idList));
+              itemsFutures.add(requestItemsByHoldingsRecordIds(request, idList));
             }
             Future.join(itemsFutures).onComplete(itemsByHoldingsRecordIds -> {
               if (itemsByHoldingsRecordIds.succeeded()) {
                 setExistingRecordSets();
-                mapLocationsToInstitutionIds(routingContext).onComplete(locationMapUpdate -> {
+                mapLocationsToInstitutionIds(request).onComplete(locationMapUpdate -> {
                   if (locationMapUpdate.succeeded()) {
                     promise.complete();
                   } else {
@@ -105,11 +104,10 @@ public class RepositoryByMatchKey extends Repository {
     return matchKeys;
   }
 
-  private Future<Void> requestInstancesByMatchKeys(RoutingContext routingContext,
+  private Future<Void> requestInstancesByMatchKeys(UpdateRequest request,
                                                    List<String> matchKeys) {
     Promise<Void> promise = Promise.promise();
-    OkapiClient okapiClient = InventoryStorage.getOkapiClient(routingContext);
-    InventoryStorage.lookupInstances(okapiClient,
+    InventoryStorage.lookupInstances(request.getOkapiClient(),
                     new QueryByListOfIds("matchKey", matchKeys))
             .onComplete(instances -> {
               if (instances.succeeded()) {
@@ -129,11 +127,10 @@ public class RepositoryByMatchKey extends Repository {
     return promise.future();
   }
 
-  private Future<Void> requestInstanceWithOtherMatchKey(RoutingContext routingContext,
+  private Future<Void> requestInstanceWithOtherMatchKey(UpdateRequest request,
                                                         QueryShiftingMatchKey query) {
     Promise<Void> promise = Promise.promise();
-    OkapiClient okapiClient = InventoryStorage.getOkapiClient(routingContext);
-    InventoryStorage.lookupInstance(okapiClient, query)
+    InventoryStorage.lookupInstance(request.getOkapiClient(), query)
             .onComplete(instance -> {
               if (instance.succeeded()) {
                 if (instance.result() != null) {
@@ -149,7 +146,7 @@ public class RepositoryByMatchKey extends Repository {
     return promise.future();
   }
 
-  private Future<Void> mapLocationsToInstitutionIds (RoutingContext routingContext) {
+  private Future<Void> mapLocationsToInstitutionIds (UpdateRequest request) {
     Promise<Void> mapReady = Promise.promise();
     boolean missMappings = false;
     for (PairedRecordSets pair : pairsOfRecordSets) {
@@ -173,7 +170,7 @@ public class RepositoryByMatchKey extends Repository {
       }
     }
     if (missMappings) {
-      InventoryStorage.getLocations(InventoryStorage.getOkapiClient(routingContext)).onComplete(gotLocations -> {
+      InventoryStorage.getLocations(request.getOkapiClient()).onComplete(gotLocations -> {
         if (gotLocations.succeeded()) {
           JsonArray locationsJson = gotLocations.result();
           if (locationsJson == null || locationsJson.isEmpty()) {

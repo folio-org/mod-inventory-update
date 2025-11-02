@@ -19,6 +19,7 @@ public class RequestValidated extends UpdateRequest {
     this.requestPath = request.path();
   }
 
+  @Override
   public String queryParam(String paramName) {
     if (validatedRequest.getQuery().get(paramName) != null) {
       return validatedRequest.getQuery().get(paramName).getString();
@@ -27,6 +28,7 @@ public class RequestValidated extends UpdateRequest {
     }
   }
 
+  @Override
   public JsonObject bodyAsJson() {
     if (validatedRequest.getBody() != null && validatedRequest.getBody().getJsonObject() != null) {
         return validatedRequest.getBody().getJsonObject();
@@ -34,6 +36,7 @@ public class RequestValidated extends UpdateRequest {
     return new JsonObject();
   }
 
+  @Override
   public String bodyAsString() {
     if (validatedRequest.getBody() != null && validatedRequest.getBody().getString() != null) {
         return validatedRequest.getBody().getString();

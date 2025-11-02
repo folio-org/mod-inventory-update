@@ -19,6 +19,10 @@ public class FolioApiRecord {
         recordJson = folioApiRecord;
     }
 
+    public FolioApiRecord() {
+      recordJson = new JsonObject();
+    }
+
 
     public String getStringValue (String propertyName) {
         return recordJson.containsKey(propertyName) ? recordJson.getValue(propertyName).toString() : null;

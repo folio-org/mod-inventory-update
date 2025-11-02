@@ -1,7 +1,8 @@
-package org.folio.inventoryupdate.updating.test;
+package org.folio.inventoryupdate.updating.test.fakestorage.validators;
 
 import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
+import org.folio.inventoryupdate.updating.test.InventoryUpdateTestBase;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 

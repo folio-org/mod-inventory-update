@@ -1,12 +1,12 @@
-package org.folio.inventoryupdate.updating.test;
+package org.folio.inventoryupdate.updating.test.fakestorage.validators;
 
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.unit.TestContext;
-import org.folio.inventoryupdate.updating.test.fakestorage.FakeFolioApis;
+import org.folio.inventoryupdate.updating.test.fakestorage.FakeFolioApisForUpserts;
 import org.folio.inventoryupdate.updating.test.fakestorage.entitites.InputInstance;
 import org.folio.inventoryupdate.updating.test.fakestorage.entitites.InputInstanceRelationship;
 
-import static org.folio.inventoryupdate.updating.test.fakestorage.FakeFolioApis.*;
+import static org.folio.inventoryupdate.updating.test.fakestorage.FakeFolioApisForUpserts.*;
 import static org.folio.inventoryupdate.updating.test.fakestorage.entitites.InputInstanceRelationship.*;
 
 public class StorageValidatorInstanceRelationships {
@@ -18,22 +18,22 @@ public class StorageValidatorInstanceRelationships {
     }
 
     protected void createTwoTitles () {
-        JsonObject responseOnPOSTChild = FakeFolioApis.post(
+        JsonObject responseOnPOSTChild = FakeFolioApisForUpserts.post(
                 INSTANCE_STORAGE_PATH,
                 new InputInstance().setTitle("Child Instance").setInstanceTypeId("12345").setSource("test").getJson(), 201);
         childInstanceId = responseOnPOSTChild.getString("id");
-        JsonObject responseOnPOSTParent = FakeFolioApis.post(
+        JsonObject responseOnPOSTParent = FakeFolioApisForUpserts.post(
                 INSTANCE_STORAGE_PATH,
                 new InputInstance().setTitle("Parent Instance").setInstanceTypeId("12345").setSource("test").getJson(), 201);
         parentInstanceId = responseOnPOSTParent.getString("id");
     }
 
     protected void validatePostAndGetById(TestContext testContext) {
-        JsonObject responseOnPOST = FakeFolioApis.post(
+        JsonObject responseOnPOST = FakeFolioApisForUpserts.post(
                 INSTANCE_RELATIONSHIP_STORAGE_PATH,
                 new InputInstanceRelationship().setSubInstanceId(childInstanceId).setSuperInstanceId(parentInstanceId).getJson());
         testContext.assertEquals(responseOnPOST.getString(SUB_INSTANCE_ID), childInstanceId);
-        JsonObject responseOnGET = FakeFolioApis.getRecordById(INSTANCE_RELATIONSHIP_STORAGE_PATH, responseOnPOST.getString("id"));
+        JsonObject responseOnGET = FakeFolioApisForUpserts.getRecordById(INSTANCE_RELATIONSHIP_STORAGE_PATH, responseOnPOST.getString("id"));
         testContext.assertEquals(responseOnGET.getString(SUPER_INSTANCE_ID), parentInstanceId);
     }
 

@@ -1,10 +1,10 @@
-package org.folio.inventoryupdate.updating.test;
+package org.folio.inventoryupdate.updating.test.fakestorage.validators;
 
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.unit.TestContext;
-import org.folio.inventoryupdate.updating.test.fakestorage.FakeFolioApis;
+import org.folio.inventoryupdate.updating.test.fakestorage.FakeFolioApisForUpserts;
 
-import static org.folio.inventoryupdate.updating.test.fakestorage.FakeFolioApis.*;
+import static org.folio.inventoryupdate.updating.test.fakestorage.FakeFolioApisForUpserts.*;
 
 public class StorageValidatorPoLines {
   protected void validateStorage(TestContext testContext) {
@@ -12,12 +12,12 @@ public class StorageValidatorPoLines {
   }
 
   protected void validatePostAndGetById(TestContext testContext) {
-    JsonObject responseOnPOST = FakeFolioApis.post(
+    JsonObject responseOnPOST = FakeFolioApisForUpserts.post(
         ORDER_LINES_STORAGE_PATH,
         new JsonObject("{\"purchaseOrderId\": \"3b198b70-cf8e-4075-9e93-ebf2c76e60c2\", " +
             "\"instanceId\": \"ff8702a1-c562-48f0-a3fe-00421ce3c6d3\", \"orderFormat\": \"Other\", \"source\": \"User\", \"titleOrPackage\": \"New InputInstance\" }"));
     testContext.assertEquals(responseOnPOST.getString("titleOrPackage"), "New InputInstance");
-    JsonObject responseOnGET = FakeFolioApis.getRecordById(ORDER_LINES_STORAGE_PATH, responseOnPOST.getString("id"));
+    JsonObject responseOnGET = FakeFolioApisForUpserts.getRecordById(ORDER_LINES_STORAGE_PATH, responseOnPOST.getString("id"));
     testContext.assertEquals(responseOnGET.getString("titleOrPackage"), "New InputInstance");
   }
 

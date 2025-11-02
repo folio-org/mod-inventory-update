@@ -12,6 +12,14 @@ import java.util.*;
 
 public abstract class RecordStorage {
     public static final String TOTAL_RECORDS = "totalRecords";
+    public static final String INSTANCES = "instances";
+    public static final String INSTANCE_SETS = "instanceSets";
+    public static final String HOLDINGS_RECORDS = "holdingsRecords";
+    public static final String ITEMS = "items";
+    public static final String INSTANCE_RELATIONSHIPS = "instanceRelationships";
+    public static final String PRECEDING_SUCCEEDING_TITLES = "precedingSucceedingTitles";
+    public static final String LOCATIONS = "locations";
+    public static final String PO_LINES = "poLines";
     public final String storageName = getClass().getSimpleName();
     public boolean failOnDelete = false;
     public boolean failOnCreate = false;
@@ -23,14 +31,14 @@ public abstract class RecordStorage {
     final List<String> mandatoryProperties = new ArrayList<>();
     final List<String> uniqueProperties = new ArrayList<>();
 
-    protected FakeFolioApis fakeStorage;
+    protected FakeFolioApisForImporting fakeStorageForImporting;
 
     protected final Map<String, FolioApiRecord> records = new HashMap<>();
 
     public static final Logger logger = LogManager.getLogger("fake-folio-storage");
 
-    public void attachToFakeStorage(FakeFolioApis fakeStorage) {
-        this.fakeStorage = fakeStorage;
+    public void attachToFakeStorage(FakeFolioApisForImporting fakeStorage) {
+        this.fakeStorageForImporting = fakeStorage;
         declareDependencies();
         declareMandatoryProperties();
         declareUniqueProperties();
@@ -42,7 +50,6 @@ public abstract class RecordStorage {
     // INTERNAL DATABASE OPERATIONS - insert() IS DECLARED PUBLIC SO THE TEST SUITE CAN INITIALIZE DATA OUTSIDE THE API.
     public StorageResponse insert (FolioApiRecord folioApiRecord) {
         Resp validation = validateCreate(folioApiRecord);
-
         if (validation.statusCode == 201) {
             folioApiRecord.setFirstVersion();
             records.put(folioApiRecord.getId(), folioApiRecord);
@@ -155,7 +162,7 @@ public abstract class RecordStorage {
         return 200;
     }
 
-    protected Collection<FolioApiRecord> getRecords () {
+    public Collection<FolioApiRecord> getRecords () {
         return records.values();
     }
 
@@ -296,7 +303,38 @@ public abstract class RecordStorage {
         }
     }
 
-    // HELPERS FOR RESPONSE PROCESSING
+  public void upsertRecords (RoutingContext routingContext) {
+    JsonObject requestJson = new JsonObject(routingContext.body().asString());
+    JsonArray recordsJson = requestJson.getJsonArray(getResultSetName());
+    for (Object o : recordsJson) {
+      FolioApiRecord folioApiRecord = new FolioApiRecord((JsonObject) o);
+      if (hasId(folioApiRecord.getId())) {
+        RecordStorage.Resp validation = validateUpdate(folioApiRecord.getId(), folioApiRecord);
+        if (validation.statusCode != 204 ) {
+          respondWithMessage(routingContext, validation.message, validation.statusCode);
+          return;
+        }
+      } else {
+        RecordStorage.Resp validation = validateCreate(folioApiRecord);
+        if (validation.statusCode != 201 ) {
+          respondWithMessage(routingContext, validation.message, validation.statusCode);
+          return;
+        }
+      }
+    }
+    for (Object o : recordsJson) {
+      FolioApiRecord folioApiRecord = new FolioApiRecord((JsonObject) o);
+      if (hasId(folioApiRecord.getId())) {
+        update(folioApiRecord.getId(), folioApiRecord);
+      } else {
+        insert(folioApiRecord);
+      }
+    }
+    respond(routingContext, requestJson, 201);
+  }
+
+
+  // HELPERS FOR RESPONSE PROCESSING
 
     JsonObject buildJsonRecordsResponse(String optionalQuery) {
         if (failOnGetRecords) return null;
@@ -349,6 +387,9 @@ public abstract class RecordStorage {
         routingContext.response().end(message);
 
     }
+  public Collection<FolioApiRecord> getRecordsInternally() {
+    return getRecords();
+  }
 
 
     // UTILS

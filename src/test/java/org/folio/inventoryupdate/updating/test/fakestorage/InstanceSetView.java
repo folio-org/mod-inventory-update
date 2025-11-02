@@ -30,7 +30,7 @@ public class InstanceSetView extends RecordStorage {
           return;
         }
         var query = decode(routingContext.request().getParam("query"));
-        var instancesObject = fakeStorage.instanceStorage.buildJsonRecordsResponse(query);
+        var instancesObject = fakeStorageForUpserts.instanceStorage.buildJsonRecordsResponse(query);
         var instances = instancesObject.getJsonArray(INSTANCES);
         var instanceSets = new JsonArray();
         for (var instance : instances) {
@@ -44,21 +44,21 @@ public class InstanceSetView extends RecordStorage {
     }
 
     private JsonObject getInstanceSet(JsonObject instance) {
-        if (fakeStorage.precedingSucceedingStorage.failOnGetRecords) {
+        if (fakeStorageForUpserts.precedingSucceedingStorage.failOnGetRecords) {
             throw new RuntimeException("fakeStorage.precedingSucceedingStorage.failOnGetRecords");
         }
 
         var instanceId = instance.getString("id");
         var holdings = new JsonArray();
         var holdingsIds = new HashSet<String>();
-        fakeStorage.holdingsStorage.records.forEach((holdingId, holdingRecord) -> {
+        fakeStorageForUpserts.holdingsStorage.records.forEach((holdingId, holdingRecord) -> {
             if (holdingRecord.getJson().getString("instanceId").equals(instanceId)) {
                 holdings.add(holdingRecord.getJson());
                 holdingsIds.add(holdingId);
             }
         });
         var items = new JsonArray();
-        fakeStorage.itemStorage.records.forEach((itemId, itemRecord) -> {
+        fakeStorageForUpserts.itemStorage.records.forEach((itemId, itemRecord) -> {
             var holdingId = itemRecord.getJson().getString("holdingsRecordId");
             if (holdingsIds.contains(holdingId)) {
                 items.add(itemRecord.getJson());
@@ -66,7 +66,7 @@ public class InstanceSetView extends RecordStorage {
         });
         var precedingTitles = new JsonArray();
         var succeedingTitles = new JsonArray();
-        fakeStorage.precedingSucceedingStorage.records.forEach((id, inventoryRecord) -> {
+        fakeStorageForUpserts.precedingSucceedingStorage.records.forEach((id, inventoryRecord) -> {
             var json = inventoryRecord.getJson();
             if (instanceId.equals(json.getString("precedingInstanceId"))) {
                 succeedingTitles.add(json);
@@ -77,7 +77,7 @@ public class InstanceSetView extends RecordStorage {
         });
         var superInstanceRelationships = new JsonArray();
         var subInstanceRelationships = new JsonArray();
-        fakeStorage.instanceRelationshipStorage.records.forEach((id, inventoryRecord) -> {
+        fakeStorageForUpserts.instanceRelationshipStorage.records.forEach((id, inventoryRecord) -> {
             var json = inventoryRecord.getJson();
             if (instanceId.equals(json.getString("superInstanceId"))) {
                 subInstanceRelationships.add(json);

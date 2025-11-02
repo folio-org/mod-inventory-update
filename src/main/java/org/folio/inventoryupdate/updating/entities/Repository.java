@@ -5,10 +5,9 @@ import io.vertx.core.Future;
 import io.vertx.core.Promise;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
-import io.vertx.ext.web.RoutingContext;
 import org.folio.inventoryupdate.updating.InventoryStorage;
 import org.folio.inventoryupdate.updating.QueryByListOfIds;
-import org.folio.okapi.common.OkapiClient;
+import org.folio.inventoryupdate.updating.UpdateRequest;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -45,15 +44,14 @@ public abstract class Repository {
     }
   }
 
-  public abstract Future<Void> buildRepositoryFromStorage(RoutingContext routingContext);
+  public abstract Future<Void> buildRepositoryFromStorage(UpdateRequest request);
 
   protected abstract void setExistingRecordSets();
 
-  protected Future<Void> requestHoldingsRecordsByInstanceIds(RoutingContext routingContext,
-                                                           List<String> instanceIds) {
+  protected Future<Void> requestHoldingsRecordsByInstanceIds(UpdateRequest request,
+                                                             List<String> instanceIds) {
     Promise<Void> promise = Promise.promise();
-    OkapiClient okapiClient = InventoryStorage.getOkapiClient(routingContext);
-    InventoryStorage.lookupHoldingsRecords(okapiClient,
+    InventoryStorage.lookupHoldingsRecords(request.getOkapiClient(),
                     new QueryByListOfIds("instanceId", instanceIds))
             .onComplete(records -> {
               if (records.succeeded()) {
@@ -129,11 +127,10 @@ public abstract class Repository {
   }
 
 
-  protected Future<Void> requestItemsByHoldingsRecordIds(RoutingContext routingContext,
+  protected Future<Void> requestItemsByHoldingsRecordIds(UpdateRequest request,
                                                        List<String> holdingsRecordIds) {
     Promise<Void> promise = Promise.promise();
-    OkapiClient okapiClient = InventoryStorage.getOkapiClient(routingContext);
-    InventoryStorage.lookupItems(okapiClient,
+    InventoryStorage.lookupItems(request.getOkapiClient(),
                     new QueryByListOfIds("holdingsRecordId", holdingsRecordIds))
             .onComplete(records -> {
               if (records.succeeded()) {

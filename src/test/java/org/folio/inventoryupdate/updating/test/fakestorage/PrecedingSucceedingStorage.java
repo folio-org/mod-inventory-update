@@ -7,7 +7,7 @@ public class PrecedingSucceedingStorage extends RecordStorage {
 
 
     @Override
-    protected void updateRecord(RoutingContext routingContext) {
+    public void updateRecord(RoutingContext routingContext) {
         // not needed
     }
 
@@ -17,8 +17,8 @@ public class PrecedingSucceedingStorage extends RecordStorage {
 
     @Override
     protected void declareDependencies() {
-        fakeStorage.instanceStorage.acceptDependant(this, InputInstanceTitleSuccession.SUCCEEDING_INSTANCE_ID);
-        fakeStorage.instanceStorage.acceptDependant(this, InputInstanceTitleSuccession.PRECEDING_INSTANCE_ID);
+        fakeStorageForUpserts.instanceStorage.acceptDependant(this, InputInstanceTitleSuccession.SUCCEEDING_INSTANCE_ID);
+        fakeStorageForUpserts.instanceStorage.acceptDependant(this, InputInstanceTitleSuccession.PRECEDING_INSTANCE_ID);
     }
 
 }

@@ -4,7 +4,6 @@ import io.vertx.core.Future;
 import io.vertx.core.Promise;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
-import io.vertx.ext.web.RoutingContext;
 import org.folio.inventoryupdate.updating.InventoryQuery;
 import org.folio.inventoryupdate.updating.InventoryStorage;
 import org.folio.inventoryupdate.updating.QueryByHrid;
@@ -44,14 +43,14 @@ public class HandlersFetching {
   public void handleInventoryRecordSetFetchHrid( UpdateRequest request) {
     String id = request.requestParam("id");
     InventoryQuery instanceQuery = getInstanceQuery( id );
-    InventoryStorage.lookupSingleInventoryRecordSet( InventoryStorage.getOkapiClient(request.routingContext()), instanceQuery )
+    InventoryStorage.lookupSingleInventoryRecordSet( request.getOkapiClient(), instanceQuery )
         .onComplete( lookup -> {
           if (lookup.succeeded()) {
             if (lookup.result() == null) {
               responseJson(request.routingContext(), 404).end("Instance with ID " + id + " not found.");
             } else {
               JsonObject inventoryRecordSet = lookup.result();
-              transformInstanceRelations (inventoryRecordSet, request.routingContext()).onComplete(  transform -> {
+              transformInstanceRelations (inventoryRecordSet, request).onComplete(  transform -> {
                 if (transform.succeeded())
                 {
                   trimPkFk( inventoryRecordSet );
@@ -86,7 +85,7 @@ public class HandlersFetching {
     String id = request.requestParam( "id" );
     InventoryQuery instanceQuery = getInstanceQuery( id );
 
-    InventoryStorage.lookupSingleInventoryRecordSet( InventoryStorage.getOkapiClient(request.routingContext()), instanceQuery )
+    InventoryStorage.lookupSingleInventoryRecordSet(request.getOkapiClient(), instanceQuery )
         .onComplete( lookup -> {
           if (lookup.succeeded()) {
             if (lookup.result() == null) {
@@ -163,9 +162,8 @@ public class HandlersFetching {
    * Transform instance relations retrieved from Inventory storage into a format that can be used for a PUT request
    * to the inventory-upsert-hrid API
    * @param inventoryRecordSet the record set being mutated
-   * @param routingContext context for looking up instance HRIDs with instance UUIDs
    */
-  private Future<Void> transformInstanceRelations (JsonObject inventoryRecordSet, RoutingContext routingContext) {
+  private Future<Void> transformInstanceRelations (JsonObject inventoryRecordSet, UpdateRequest request) {
     Promise<Void> promise = Promise.promise();
     String instanceId = inventoryRecordSet.getJsonObject(INSTANCE).getString("id");
     JsonObject instanceRelations = inventoryRecordSet.getJsonObject( InstanceReferences.INSTANCE_RELATIONS );
@@ -174,7 +172,7 @@ public class HandlersFetching {
     if (existingParentChildRelations.size() + existingPrecedingSucceedingTitles.size() == 0) {
       promise.complete();
     } else {
-      createInstanceUuidToHridMap( inventoryRecordSet, routingContext ).onComplete( idToHridMap -> {
+      createInstanceUuidToHridMap( inventoryRecordSet, request ).onComplete( idToHridMap -> {
         if (idToHridMap.succeeded())
         {
           Map<String,String> uuidToHrid = idToHridMap.result();
@@ -241,12 +239,11 @@ public class HandlersFetching {
   /**
    * Creates a map of instance HRIDs by instance UUIDs
    * @param inventoryRecordSet the record set containing the UUIDs to map if any
-   * @param routingContext context used for looking up instances by UUID
    * @return map of instance HRIDs by instance UUIDs
    */
-  private Future<Map<String,String>>  createInstanceUuidToHridMap (JsonObject inventoryRecordSet, RoutingContext routingContext) {
+  private Future<Map<String,String>>  createInstanceUuidToHridMap (JsonObject inventoryRecordSet, UpdateRequest request) {
     Promise<Map<String,String>> promise = Promise.promise();
-    OkapiClient client = InventoryStorage.getOkapiClient( routingContext );
+    OkapiClient client = request.getOkapiClient();
     List<String> relatedIds = new ArrayList<>();
     JsonObject instanceRelations = inventoryRecordSet.getJsonObject( INSTANCE_RELATIONS );
     String instanceId = inventoryRecordSet.getJsonObject( INSTANCE ).getString( PK );

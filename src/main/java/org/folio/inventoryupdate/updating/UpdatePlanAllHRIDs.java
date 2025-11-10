@@ -7,7 +7,6 @@ import java.util.Set;
 
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
-import io.vertx.ext.web.RoutingContext;
 import org.folio.inventoryupdate.updating.entities.*;
 import org.folio.inventoryupdate.updating.entities.InventoryRecord.Transaction;
 import org.folio.inventoryupdate.updating.instructions.ProcessingInstructionsUpsert;
@@ -35,13 +34,13 @@ public class UpdatePlanAllHRIDs extends UpdatePlan {
     }
 
     @Override
-    public Future<List<InventoryUpdateOutcome>> multipleSingleRecordUpserts(RoutingContext routingContext, JsonArray inventoryRecordSets) {
+    public Future<List<InventoryUpdateOutcome>> multipleSingleRecordUpserts(UpdateRequest request, JsonArray inventoryRecordSets) {
         List<JsonArray> arraysOfOneRecordSet = new ArrayList<>();
         for (Object o : inventoryRecordSets) {
             JsonArray batchOfOne = new JsonArray().add(o);
             arraysOfOneRecordSet.add(batchOfOne);
         }
-        return chainSingleRecordUpserts(routingContext, arraysOfOneRecordSet, new UpdatePlanAllHRIDs()::upsertBatch);
+        return chainSingleRecordUpserts(request, arraysOfOneRecordSet, new UpdatePlanAllHRIDs()::upsertBatch);
     }
 
     @Override

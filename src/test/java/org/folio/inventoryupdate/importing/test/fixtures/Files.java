@@ -2,7 +2,7 @@ package org.folio.inventoryupdate.importing.test.fixtures;
 
 import io.vertx.core.json.JsonObject;
 import org.apache.commons.io.FileUtils;
-import org.folio.inventoryupdate.importing.test.UnitTests;
+import org.folio.inventoryupdate.importing.test.ImportUnitTests;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 
@@ -31,6 +31,7 @@ public class Files {
   private static final String INSTANCE_TYPE_ID = "30fffe0e-e985-4144-b2e2-1e8179bdb41f";
 
   public static final String XML_INVENTORY_RECORD_SET = getSampleFile("samplesourcefiles/inventoryRecordSet.xml");
+  public static final String TWO_XML_INVENTOR_RECORD_SETS = getSampleFile("samplesourcefiles/twoInventoryRecordSets.xml");
   public static final JsonObject JSON_TRANSFORMATION_CONFIG = new JsonObject(Objects.requireNonNull(getSampleFile("configs/transformation.json")));
   public static final JsonObject JSON_IMPORT_CONFIG = new JsonObject(Objects.requireNonNull(getSampleFile("configs/importConfig.json")));
   public static final JsonObject JSON_IMPORT_JOB = new JsonObject(Objects.requireNonNull(getSampleFile("jobs/importJob.json")));
@@ -43,7 +44,7 @@ public class Files {
       return FileUtils.readFileToString(
               new File("src/test/resources/fixtures/" + filename), "UTF-8");
     } catch (IOException fnfe) {
-      UnitTests.logger.error(fnfe.getMessage());
+      ImportUnitTests.logger.error(fnfe.getMessage());
       return null;
     }
   }

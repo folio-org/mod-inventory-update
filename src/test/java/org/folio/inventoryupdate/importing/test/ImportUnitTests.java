@@ -19,7 +19,7 @@ import org.folio.inventoryupdate.MainVerticle;
 import org.folio.inventoryupdate.importing.test.fixtures.Service;
 import org.folio.inventoryupdate.importing.service.fileimport.FileQueue;
 import org.folio.inventoryupdate.importing.service.fileimport.transformation.InventoryXmlToInventoryJson;
-import org.folio.inventoryupdate.importing.test.fakestorage.FakeFolioApis;
+import org.folio.inventoryupdate.importing.test.fakestorage.FakeFolioApisForImporting;
 import org.folio.inventoryupdate.importing.test.fixtures.Files;
 import org.folio.inventoryupdate.importing.utils.SettableClock;
 import org.folio.okapi.common.XOkapiHeaders;
@@ -49,10 +49,10 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
 
 @RunWith(VertxUnitRunner.class)
-public class UnitTests {
-    public static final Logger logger = LoggerFactory.getLogger(UnitTests.class);
+public class ImportUnitTests {
+    public static final Logger logger = LoggerFactory.getLogger(ImportUnitTests.class);
     static Vertx vertx;
-    private static FakeFolioApis fakeFolioApis;
+    private static FakeFolioApisForImporting fakeFolioApisForImporting;
     public static final Header CONTENT_TYPE_XML = new Header("Content-Type", "application/xml");
     public static final Header CONTENT_TYPE_JSON = new Header("Content-Type", "application/json");
     public static final Header ACCEPT_TEXT = new Header("Accept", "text/plain");
@@ -72,13 +72,14 @@ public class UnitTests {
         deploymentOptions.setConfig(new JsonObject().put("port", Integer.toString(Service.PORT_INVENTORY_UPDATE)));
         vertx.deployVerticle(new MainVerticle(), deploymentOptions)
                 .onComplete(context.asyncAssertSuccess(x ->
-                        fakeFolioApis = new FakeFolioApis(vertx, context)));
+                        fakeFolioApisForImporting = new FakeFolioApisForImporting(vertx, context)));
         vertx.fileSystem().deleteRecursive(FileQueue.SOURCE_FILES_ROOT_DIR);
     }
 
     @AfterClass
     public static void afterClass(TestContext context) {
         vertx.close().onComplete(context.asyncAssertSuccess());
+        vertx.fileSystem().deleteRecursive(FileQueue.SOURCE_FILES_ROOT_DIR);
     }
 
     @Before
@@ -93,9 +94,13 @@ public class UnitTests {
         tenantOp(Service.TENANT, new JsonObject()
                 .put("module_from", "mod-inventory-update-1.0.0")
                 .put("purge", true), null);
-        fakeFolioApis.configurationStorage.wipeMockRecords();
-        fakeFolioApis.settingsStorage.wipeMockRecords();
-        fakeFolioApis.upsertStorage.wipeMockRecords();
+        fakeFolioApisForImporting.configurationStorage.wipeMockRecords();
+        fakeFolioApisForImporting.settingsStorage.wipeMockRecords();
+        fakeFolioApisForImporting.itemStorage.wipeMockRecords();
+        fakeFolioApisForImporting.holdingsStorage.wipeMockRecords();
+        fakeFolioApisForImporting.precedingSucceedingStorage.wipeMockRecords();
+        fakeFolioApisForImporting.instanceRelationshipStorage.wipeMockRecords();
+        fakeFolioApisForImporting.instanceStorage.wipeMockRecords();
     }
 
     void tenantOp(String tenant, JsonObject tenantAttributes, String expectedError) {
@@ -691,8 +696,9 @@ public class UnitTests {
 
         getRecordById(Service.PATH_IMPORT_CONFIGS, importConfigId);
         getRecordById(Service.PATH_TRANSFORMATIONS, transformationId);
-        Files.filesOfInventoryXmlRecords(1,1, "200")
-                .forEach(xml -> postSourceXml(Service.BASE_PATH_IMPORT_XML + "/" + importConfigId + "/import", xml));
+        postSourceXml(Service.BASE_PATH_IMPORT_XML + "/" + importConfigId + "/import", Files.XML_INVENTORY_RECORD_SET);
+        getRecordById(Service.PATH_TRANSFORMATIONS, transformationId);
+
         await().until(() ->  getTotalRecords(Service.PATH_IMPORT_JOBS), is(1));
         String jobId = getRecords(Service.PATH_IMPORT_JOBS).extract().path("importJobs[0].id");
         String started = getRecordById(Service.PATH_IMPORT_JOBS, jobId).extract().path("started");
@@ -709,20 +715,22 @@ public class UnitTests {
         getRecordById(Service.PATH_IMPORT_CONFIGS, importConfigId);
         getRecordById(Service.PATH_TRANSFORMATIONS, transformationId);
 
+
         // Upsert
-        postSourceXml(Service.BASE_PATH_IMPORT_XML + "/" + importConfigId + "/import",
-                Files.createCollectionOfOneInventoryXmlRecord(hrid, "200"));
+        postSourceXml(Service.BASE_PATH_IMPORT_XML + "/" + importConfigId + "/import", Files.XML_INVENTORY_RECORD_SET);
+
         await().until(() ->  getTotalRecords(Service.PATH_IMPORT_JOBS), is(1));
         String jobId = getRecords(Service.PATH_IMPORT_JOBS).extract().path("importJobs[0].id");
         String started = getRecordById(Service.PATH_IMPORT_JOBS, jobId).extract().path("started");
         await().until(() -> getRecordById(Service.PATH_IMPORT_JOBS, jobId).extract().path("finished"), greaterThan(started));
         await().until(() ->  getTotalRecords(Service.PATH_IMPORT_JOBS + "/log"), is(4));
-        assertThat("Instances in storage", fakeFolioApis.upsertStorage.internalGetInstances().size(), is(1));
+        assertThat("Instances in storage", fakeFolioApisForImporting.instanceStorage.getRecords().size(), is(1));
+
         // Delete
         postSourceXml(Service.BASE_PATH_IMPORT_XML + "/" + importConfigId + "/import",
-                Files.createCollectionOfOneDeleteRecord(hrid));
+            Files.createCollectionOfOneDeleteRecord(hrid));
         await().until(() ->  getTotalRecords(Service.PATH_IMPORT_JOBS + "/log"), is(8));
-        assertThat("Instances in storage", fakeFolioApis.upsertStorage.internalGetInstances().size(), is(0));
+        assertThat("Instances in storage", fakeFolioApisForImporting.instanceStorage.getRecords().size(), is(0));
     }
 
     @Test
@@ -743,8 +751,7 @@ public class UnitTests {
         String jobId = getRecords(Service.PATH_IMPORT_JOBS).extract().path("importJobs[0].id");
         String started = getRecordById(Service.PATH_IMPORT_JOBS, jobId).extract().path("started");
         await().until(() -> getRecordById(Service.PATH_IMPORT_JOBS, jobId).extract().path("finished"), greaterThan(started));
-        assertThat("Instances in storage", fakeFolioApis.upsertStorage.internalGetInstances().size(), is(99));
-
+        assertThat("Instances in storage", fakeFolioApisForImporting.instanceStorage.getRecords().size(), is(99));
         // Ensure 100 records
         Files.filesOfInventoryXmlRecords(1,100, "200")
                 .forEach(xml -> postSourceXml(Service.BASE_PATH_IMPORT_XML + "/" + importConfigId + "/import", xml));
@@ -755,7 +762,7 @@ public class UnitTests {
         String jobId2 = getRecords(Service.PATH_IMPORT_JOBS).extract().path("importJobs[1].id");
         String started2 = getRecordById(Service.PATH_IMPORT_JOBS, jobId2).extract().path("started");
         await().until(() -> getRecordById(Service.PATH_IMPORT_JOBS, jobId2).extract().path("finished"), greaterThan(started2));
-        assertThat("Instances in storage", fakeFolioApis.upsertStorage.internalGetInstances().size(), is(98));
+        assertThat("Instances in storage", fakeFolioApisForImporting.instanceStorage.getRecords().size(), is(98));
 
         // Ensure 100 records
         Files.filesOfInventoryXmlRecords(1,100, "200")
@@ -767,7 +774,7 @@ public class UnitTests {
         String jobId3 = getRecords(Service.PATH_IMPORT_JOBS).extract().path("importJobs[2].id");
         String started3 = getRecordById(Service.PATH_IMPORT_JOBS, jobId3).extract().path("started");
         await().until(() -> getRecordById(Service.PATH_IMPORT_JOBS, jobId3).extract().path("finished"), greaterThan(started3));
-        assertThat("Instances in storage", fakeFolioApis.upsertStorage.internalGetInstances().size(), is(98));
+        assertThat("Instances in storage", fakeFolioApisForImporting.instanceStorage.getRecords().size(), is(98));
 
         // Ensure 100 records
         Files.filesOfInventoryXmlRecords(1,100, "200")
@@ -781,7 +788,7 @@ public class UnitTests {
         String jobId4 = getRecords(Service.PATH_IMPORT_JOBS).extract().path("importJobs[3].id");
         String started4 = getRecordById(Service.PATH_IMPORT_JOBS, jobId4).extract().path("started");
         await().until(() -> getRecordById(Service.PATH_IMPORT_JOBS, jobId4).extract().path("finished"), greaterThan(started4));
-        assertThat("Instances in storage", fakeFolioApis.upsertStorage.internalGetInstances().size(), is(198));
+        assertThat("Instances in storage", fakeFolioApisForImporting.instanceStorage.getRecords().size(), is(198));
     }
 
     @Test
@@ -822,7 +829,7 @@ public class UnitTests {
         String started = getRecordById(Service.PATH_IMPORT_JOBS, jobId).extract().path("started");
         await().until(() -> getRecordById(Service.PATH_IMPORT_JOBS, jobId).extract().path("finished"), greaterThan(started));
         getRecordById(Service.PATH_IMPORT_JOBS, jobId).body("amountHarvested", is(500));
-        assertThat("Instances in storage",fakeFolioApis.upsertStorage.internalGetInstances().size(), is(500));
+        assertThat("Instances in storage", fakeFolioApisForImporting.instanceStorage.getRecords().size(), is(500));
     }
 
     @Test
@@ -868,7 +875,8 @@ public class UnitTests {
         await().until(() -> getRecordById(Service.PATH_IMPORT_JOBS, jobId).extract().path("status"), is("RUNNING"));
         await().until(() -> getRecordById(Service.PATH_IMPORT_JOBS, jobId).extract().path("finished"), greaterThan(started));
         getRecordById(Service.PATH_IMPORT_JOBS, jobId).body("amountHarvested", greaterThan(499));
-        assertThat("Instances in storage", fakeFolioApis.upsertStorage.internalGetInstances().size(), is(500));
+        assertThat("Records stored", fakeFolioApisForImporting.instanceStorage.getRecordsInternally().size(), is(500));
+
     }
 
     @Test
@@ -907,14 +915,13 @@ public class UnitTests {
 
         getRecordById(Service.PATH_IMPORT_CONFIGS, importConfigId);
         getRecordById(Service.PATH_TRANSFORMATIONS, transformationId);
-        Files.filesOfInventoryXmlRecords(1,1, "207")
-                .forEach(xml -> postSourceXml(Service.BASE_PATH_IMPORT_XML + "/" + importConfigId + "/import", xml));
+                postSourceXml(Service.BASE_PATH_IMPORT_XML + "/" + importConfigId + "/import", Files.TWO_XML_INVENTOR_RECORD_SETS);
         await().until(() ->  getTotalRecords(Service.PATH_IMPORT_JOBS), is(1));
         String jobId = getRecords(Service.PATH_IMPORT_JOBS).extract().path("importJobs[0].id");
         String started = getRecordById(Service.PATH_IMPORT_JOBS, jobId).extract().path("started");
         await().until(() -> getRecordById(Service.PATH_IMPORT_JOBS, jobId).extract().path("finished"), greaterThan(started));
         await().until(() ->  getTotalRecords(Service.PATH_IMPORT_JOBS + "/log"), is(4));
-        await().until(() -> getTotalRecords(Service.PATH_IMPORT_JOBS + "/" + jobId + "/failed-records"), is(1));
+        await().until(() -> getTotalRecords(Service.PATH_IMPORT_JOBS + "/" + jobId + "/failed-records"), is(2));
     }
 
     @Test
@@ -964,7 +971,7 @@ public class UnitTests {
 
         createThreeImportJobReportsMonthsApart();
 
-        logger.info(FakeFolioApis.post("/settings/entries",
+        logger.info(FakeFolioApisForImporting.post("/settings/entries",
                 new JsonObject()
                         .put("id", UUID.randomUUID().toString())
                         .put("scope", "mod-inventory-import")
@@ -1002,7 +1009,7 @@ public class UnitTests {
 
         createThreeImportJobReportsMonthsApart();
 
-        FakeFolioApis.post("/configurations/entries",
+        FakeFolioApisForImporting.post("/configurations/entries",
                 new JsonObject()
                         .put("module", "mod-harvester-admin")
                         .put("configName", "PURGE_LOGS_AFTER")

@@ -4,6 +4,7 @@ import io.vertx.core.Vertx;
 import io.vertx.core.http.HttpServerRequest;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.RoutingContext;
+import org.folio.okapi.common.OkapiClient;
 
 public abstract class UpdateRequest {
   protected Vertx vertx;
@@ -26,9 +27,11 @@ public abstract class UpdateRequest {
 
   public abstract String queryParam(String paramName);
 
+  public OkapiClient getOkapiClient() {
+    return InventoryStorage.getOkapiClient(routingContext);
+  }
   public String queryParam(String paramName, String defaultValue) {
-    String val = queryParam(paramName);
-    return val == null ? defaultValue : val;
+    return queryParam(paramName) == null ? defaultValue : queryParam(paramName);
   }
   public String getHeader(String headerName) {
     return request.getHeader(headerName);

@@ -10,7 +10,6 @@ import java.util.stream.Stream;
 
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.LogManager;
-import io.vertx.ext.web.RoutingContext;
 import org.folio.inventoryupdate.updating.entities.*;
 import org.folio.inventoryupdate.updating.entities.InventoryRecord.Entity;
 import org.folio.inventoryupdate.updating.entities.InventoryRecord.Transaction;
@@ -22,7 +21,6 @@ import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 
 import static org.folio.inventoryupdate.updating.ErrorReport.UNPROCESSABLE_ENTITY;
-import static org.folio.inventoryupdate.updating.InventoryStorage.getOkapiClient;
 import static org.folio.inventoryupdate.updating.InventoryUpdateOutcome.MULTI_STATUS;
 import static org.folio.inventoryupdate.updating.InventoryUpdateOutcome.OK;
 
@@ -58,7 +56,7 @@ public abstract class UpdatePlan {
     public abstract Repository getNewRepository ();
 
     public abstract Future<List<InventoryUpdateOutcome>> multipleSingleRecordUpserts(
-            RoutingContext routingContext, JsonArray inventoryRecordSets);
+            UpdateRequest request, JsonArray inventoryRecordSets);
 
     public abstract UpdatePlan planInventoryUpdates();
 
@@ -66,19 +64,19 @@ public abstract class UpdatePlan {
 
     public abstract Future<Void> doCreateInstanceRelations (OkapiClient okapiClient);
 
-    public Future<InventoryUpdateOutcome> upsertBatch(RoutingContext routingContext, JsonArray inventoryRecordSets) {
+    public Future<InventoryUpdateOutcome> upsertBatch(UpdateRequest request, JsonArray inventoryRecordSets) {
         repository = getNewRepository();
         Promise<InventoryUpdateOutcome> promise = Promise.promise();
         RequestValidation validations = validateIncomingRecordSets (inventoryRecordSets);
         final boolean batchOfOne = (inventoryRecordSets.size() == 1);
         if (validations.passed()) {
             setIncomingRecordSets(inventoryRecordSets)
-                    .buildRepositoryFromStorage(routingContext).onComplete(
+                    .buildRepositoryFromStorage(request).onComplete(
                             result -> {
                                 if (result.succeeded()) {
                                     planInventoryUpdates()
                                             .doInventoryUpdates(
-                                                    getOkapiClient(routingContext)).onComplete(inventoryUpdated -> {
+                                                    request.getOkapiClient()).onComplete(inventoryUpdated -> {
 
                                                 JsonObject response = (batchOfOne ?
                                                         getOneUpdatingRecordSetJsonFromRepository() :
@@ -176,10 +174,10 @@ public abstract class UpdatePlan {
         return validations;
     }
 
-    public Future<Void> buildRepositoryFromStorage (RoutingContext routingContext) {
+    public Future<Void> buildRepositoryFromStorage (UpdateRequest request) {
         long buildRepoStart = System.currentTimeMillis();
         Promise<Void> promise = Promise.promise();
-        repository.buildRepositoryFromStorage(routingContext).onComplete(repositoryBuilt -> {
+        repository.buildRepositoryFromStorage(request).onComplete(repositoryBuilt -> {
             if (repositoryBuilt.succeeded()) {
                 long builtMs = System.currentTimeMillis() - buildRepoStart;
                 logger.debug("Repo built in {} ms.", builtMs);
@@ -191,7 +189,7 @@ public abstract class UpdatePlan {
         return promise.future();
     }
 
-    protected Future<List<InventoryUpdateOutcome>> chainSingleRecordUpserts(RoutingContext routingContext, List<JsonArray> arraysOfOneRecordSet, BiFunction<RoutingContext, JsonArray, Future<InventoryUpdateOutcome>> upsertMethod) {
+    protected Future<List<InventoryUpdateOutcome>> chainSingleRecordUpserts(UpdateRequest request, List<JsonArray> arraysOfOneRecordSet, BiFunction<UpdateRequest, JsonArray, Future<InventoryUpdateOutcome>> upsertMethod) {
         Promise<List<InventoryUpdateOutcome>> promise = Promise.promise();
         List<InventoryUpdateOutcome> outcomes = new ArrayList<>();
         Future<InventoryUpdateOutcome> fut = Future.succeededFuture();
@@ -201,7 +199,7 @@ public abstract class UpdatePlan {
                 if (v != null) {
                     outcomes.add(v);
                 }
-                return upsertMethod.apply(routingContext, arrayOfOneRecordSet);
+                return upsertMethod.apply(request, arrayOfOneRecordSet);
             });
         }
         fut.onComplete( result -> {

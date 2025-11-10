@@ -7,7 +7,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import io.vertx.ext.web.RoutingContext;
 import org.folio.inventoryupdate.updating.entities.Instance;
 import org.folio.inventoryupdate.updating.entities.InventoryRecord;
 import org.folio.inventoryupdate.updating.entities.PairedRecordSets;
@@ -175,13 +174,13 @@ public class UpdatePlanSharedInventory extends UpdatePlan {
   }
 
   @Override
-  public Future<List<InventoryUpdateOutcome>> multipleSingleRecordUpserts(RoutingContext routingContext, JsonArray inventoryRecordSets) {
+  public Future<List<InventoryUpdateOutcome>> multipleSingleRecordUpserts(UpdateRequest request, JsonArray inventoryRecordSets) {
     List<JsonArray> arraysOfOneRecordSet = new ArrayList<>();
     for (Object o : inventoryRecordSets) {
       JsonArray batchOfOne = new JsonArray().add(o);
       arraysOfOneRecordSet.add(batchOfOne);
     }
-    return chainSingleRecordUpserts(routingContext, arraysOfOneRecordSet, new UpdatePlanSharedInventory()::upsertBatch);
+    return chainSingleRecordUpserts(request, arraysOfOneRecordSet, new UpdatePlanSharedInventory()::upsertBatch);
   }
 
   protected static void flagAndIdRecordsForInventoryUpdating(

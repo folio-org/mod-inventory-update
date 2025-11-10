@@ -2,9 +2,11 @@ package org.folio.inventoryupdate.importing.service.fileimport;
 
 import io.vertx.core.Future;
 import io.vertx.core.Promise;
+import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.RoutingContext;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.folio.inventoryupdate.importing.foliodata.InternalInventoryUpdateClient;
 import org.folio.inventoryupdate.importing.foliodata.InventoryUpdateClient;
 import org.folio.inventoryupdate.importing.service.fileimport.reporting.InventoryMetrics;
 
@@ -22,7 +24,7 @@ public class InventoryBatchUpdater implements RecordReceiver {
     public static final Logger logger = LogManager.getLogger("InventoryBatchUpdater");
 
     public InventoryBatchUpdater(RoutingContext routingContext) {
-        updateClient = InventoryUpdateClient.getClient(routingContext);
+        updateClient = new InternalInventoryUpdateClient(routingContext.vertx(), routingContext);
     }
 
     /**
@@ -56,6 +58,7 @@ public class InventoryBatchUpdater implements RecordReceiver {
             persistBatch().onFailure(na -> {
                 logger.error("Fatal error during upsert. Halting job. {}", na.getMessage());
                 fileProcessor.reporting.log("Fatal error during upsert. Halting job. " + na.getMessage());
+                // Set job status to paused until resumed.
                 fileProcessor.pause();
             }).onComplete(na -> turnstile.exitBatch());
         }
@@ -78,21 +81,26 @@ public class InventoryBatchUpdater implements RecordReceiver {
         if (batch != null) {
             if (batch.size() > 0) {
                 updateClient.inventoryUpsert(batch.getUpsertRequestBody()).onSuccess(upsert -> {
-                    fileProcessor.reporting.incrementRecordsProcessed(batch.size());
-                    if (upsert.statusCode() == 207) {
+                    if (upsert.statusCode() >= 400) {
+                      logger.error("Fatal error when updating inventory, status code: {}", upsert.statusCode());
+                      promise.fail("Inventory update failed with status code " + upsert.statusCode());
+                    } else {
+                      fileProcessor.reporting.incrementRecordsProcessed(batch.size());
+                      if (upsert.statusCode() == 207) {
                         batch.setResponse(upsert);
                         fileProcessor.reporting.reportErrors(batch)
-                                .onFailure(err -> logger.error("Error logging upsert results {}", err.getMessage()));
-                    }
-                    fileProcessor.reporting.incrementInventoryMetrics(new InventoryMetrics(upsert.getMetrics()));
-                    if (batch.hasDeletingRecord()) {
+                            .onFailure(err -> logger.error("Error logging upsert results {}", err.getMessage()));
+                      }
+                      fileProcessor.reporting.incrementInventoryMetrics(new InventoryMetrics(upsert.getMetrics()));
+                      if (batch.hasDeletingRecord()) {
                         // Delete and complete the promise
                         persistDeletion(batch, promise);
-                    } else {
+                      } else {
                         if (batch.isLastBatchOfFile()) {
-                            reportEndOfFile();
+                          reportEndOfFile();
                         }
                         promise.complete();
+                      }
                     }
                 }).onFailure(handler -> promise.fail("Fatal error: " + handler.getMessage()));
             } else if (batch.hasDeletingRecord()) {
@@ -114,18 +122,23 @@ public class InventoryBatchUpdater implements RecordReceiver {
      * @param promise The promise of persistBatch
      */
     private void persistDeletion(BatchOfRecords batch, Promise<Void> promise) {
-        updateClient.inventoryDeletion(batch.getDeletingRecord().getRecordAsJson().getJsonObject("delete"))
-                .onComplete(deletion -> {
-                    if (deletion.succeeded()) {
+        JsonObject deletionRecord = batch.getDeletingRecord().getRecordAsJson().getJsonObject("delete");
+        updateClient.inventoryDeletion(deletionRecord)
+                .onSuccess(deletion -> {
                         fileProcessor.reporting.incrementRecordsProcessed(1);
-                        fileProcessor.reporting.incrementInventoryMetrics(new InventoryMetrics(deletion.result().getMetrics()));
-                    } else if (deletion.cause().getMessage().startsWith("404")) {
-                        fileProcessor.reporting.log("404 error deleting inventory records, record set not found.");
-                    } else{
-                        fileProcessor.reporting.log("Error making delete request to inventory: "+ deletion.cause().getMessage());
-                    }
-                    promise.complete();
-                });
+                        if (deletion.statusCode() != 200) {
+                          logger.warn("No deletion performed with request {}, status code: {} due to {}", deletionRecord.encode(), deletion.statusCode(), deletion.getErrors());
+                          fileProcessor.reporting.log("No deletion performed with request " + deletionRecord.encode() + ", status code: " + deletion.statusCode() + " due to " + deletion.getErrors());
+                        } else {
+                          fileProcessor.reporting.incrementInventoryMetrics(new InventoryMetrics(deletion.getMetrics()));
+                        }
+                        promise.succeed();
+                    })
+                .onFailure(
+                    f -> {
+                      fileProcessor.reporting.log("Error deleting inventory instance: " + f.getMessage());
+                      promise.succeed();
+                    });
     }
 
     private void reportEndOfFile() {

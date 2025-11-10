@@ -1,7 +1,7 @@
 package org.folio.inventoryupdate.updating.test;
 
 import org.folio.inventoryupdate.MainVerticle;
-import org.folio.inventoryupdate.updating.test.fakestorage.FakeFolioApis;
+import org.folio.inventoryupdate.updating.test.fakestorage.FakeFolioApisForUpserts;
 import org.folio.inventoryupdate.updating.test.fakestorage.RecordStorage;
 import org.folio.inventoryupdate.updating.test.fakestorage.entitites.*;
 import org.folio.okapi.common.XOkapiHeaders;
@@ -37,13 +37,13 @@ public abstract class InventoryUpdateTestBase {
   public static final String FETCH_SHARED_INVENTORY_RECORD_SETS_ID_PATH = SHARED_INVENTORY_UPSERT_MATCHKEY_PATH+"/fetch/:id";
 
   protected static final Header OKAPI_URL_HEADER = new Header("X-Okapi-Url", "http://localhost:"
-          + FakeFolioApis.PORT_OKAPI);
+          + FakeFolioApisForUpserts.PORT_OKAPI);
 
   public static final String TENANT = "test";
   public static final Header OKAPI_TENANT_HEADER = new Header(XOkapiHeaders.TENANT, TENANT);
   public static final Header OKAPI_TOKEN_HEADER = new Header(XOkapiHeaders.TOKEN,"eyJhbGciOiJIUzUxMiJ9eyJzdWIiOiJhZG1pbiIsInVzZXJfaWQiOiI3OWZmMmE4Yi1kOWMzLTViMzktYWQ0YS0wYTg0MDI1YWIwODUiLCJ0ZW5hbnQiOiJ0ZXN0X3RlbmFudCJ9BShwfHcNClt5ZXJ8ImQTMQtAM1sQEnhsfWNmXGsYVDpuaDN3RVQ9");
 
-  protected static FakeFolioApis fakeFolioApis;
+  protected static FakeFolioApisForUpserts fakeFolioApisForUpserts;
   public static final String LOCATION_ID_1 = "LOC1";
   public static final String INSTITUTION_ID_1 = "INST1";
   public static final String LOCATION_ID_2 = "LOC2";
@@ -89,15 +89,15 @@ public abstract class InventoryUpdateTestBase {
     System.setProperty("port", String.valueOf(PORT_INVENTORY_UPDATE));
     vertx.deployVerticle(MainVerticle.class.getName(), new DeploymentOptions())
     .onComplete(testContext.asyncAssertSuccess(x -> {
-      fakeFolioApis = new FakeFolioApis(vertx, testContext);
+      fakeFolioApisForUpserts = new FakeFolioApisForUpserts(vertx, testContext);
       createReferenceRecords();
     }));
   }
 
   public void createReferenceRecords () {
-    fakeFolioApis.locationStorage.insert(
+    fakeFolioApisForUpserts.locationStorage.insert(
             new InputLocation().setId(LOCATION_ID_1).setInstitutionId(INSTITUTION_ID_1));
-    fakeFolioApis.locationStorage.insert(
+    fakeFolioApisForUpserts.locationStorage.insert(
             new InputLocation().setId(LOCATION_ID_2).setInstitutionId(INSTITUTION_ID_2));
   }
 
@@ -119,12 +119,12 @@ public abstract class InventoryUpdateTestBase {
             .setHrid("1")
             .setSource("test")
             .generateMatchKey();
-    fakeFolioApis.instanceStorage.insert(instance);
+    fakeFolioApisForUpserts.instanceStorage.insert(instance);
   }
 
   public void createInitialInstanceWithHrid1() {
     InputInstance instance = new InputInstance().setInstanceTypeId("123").setTitle("Initial InputInstance").setHrid("1").setSource("test");
-    fakeFolioApis.instanceStorage.insert(instance);
+    fakeFolioApisForUpserts.instanceStorage.insert(instance);
   }
 
   @After
@@ -225,7 +225,7 @@ public abstract class InventoryUpdateTestBase {
   }
 
   protected JsonObject getRecordsFromStorage(String apiPath, String query) {
-    RestAssured.port = FakeFolioApis.PORT_OKAPI;
+    RestAssured.port = FakeFolioApisForUpserts.PORT_OKAPI;
     Response response =
             RestAssured.given()
                     .get(apiPath + (query == null ? "" : "?query=" + RecordStorage.encode(query)))
@@ -236,7 +236,7 @@ public abstract class InventoryUpdateTestBase {
   }
 
   protected JsonObject getRecordFromStorageById(String apiPath, String id) {
-    RestAssured.port = FakeFolioApis.PORT_OKAPI;
+    RestAssured.port = FakeFolioApisForUpserts.PORT_OKAPI;
     Response response =
             RestAssured.given()
                     .get(apiPath + "/"+id)

@@ -1,4 +1,4 @@
-package org.folio.inventoryupdate.updating.test.fakestorage;
+package org.folio.inventoryupdate.importing.test.fakestorage;
 
 import io.vertx.core.json.JsonObject;
 import io.restassured.RestAssured;
@@ -8,27 +8,27 @@ import io.vertx.core.http.HttpServerOptions;
 import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.handler.BodyHandler;
+import org.folio.inventoryupdate.importing.test.fixtures.Service;
+import org.folio.inventoryupdate.importing.foliodata.ConfigurationsClient;
+import org.folio.inventoryupdate.importing.foliodata.SettingsClient;
 
-public class FakeFolioApis {
-    public static final int PORT_OKAPI = 9031;
-    public static final String INSTANCE_STORAGE_PATH = "/instance-storage/instances";
-    public static final String INSTANCE_SET_PATH = "/inventory-view/instance-set";
-    public static final String INSTANCE_RELATIONSHIP_STORAGE_PATH = "/instance-storage/instance-relationships";
-    public static final String PRECEDING_SUCCEEDING_TITLE_STORAGE_PATH = "/preceding-succeeding-titles";
-    public static final String HOLDINGS_STORAGE_PATH = "/holdings-storage/holdings";
-    public static final String ITEM_STORAGE_PATH = "/item-storage/items";
-    public static final String LOCATION_STORAGE_PATH = "/locations";
+import static org.folio.inventoryupdate.updating.test.fakestorage.FakeFolioApisForUpserts.HOLDINGS_STORAGE_BATCH_PATH;
+import static org.folio.inventoryupdate.updating.test.fakestorage.FakeFolioApisForUpserts.HOLDINGS_STORAGE_PATH;
+import static org.folio.inventoryupdate.updating.test.fakestorage.FakeFolioApisForUpserts.INSTANCE_RELATIONSHIP_STORAGE_PATH;
+import static org.folio.inventoryupdate.updating.test.fakestorage.FakeFolioApisForUpserts.INSTANCE_SET_PATH;
+import static org.folio.inventoryupdate.updating.test.fakestorage.FakeFolioApisForUpserts.INSTANCE_STORAGE_BATCH_PATH;
+import static org.folio.inventoryupdate.updating.test.fakestorage.FakeFolioApisForUpserts.INSTANCE_STORAGE_PATH;
+import static org.folio.inventoryupdate.updating.test.fakestorage.FakeFolioApisForUpserts.ITEM_STORAGE_BATCH_PATH;
+import static org.folio.inventoryupdate.updating.test.fakestorage.FakeFolioApisForUpserts.ITEM_STORAGE_PATH;
+import static org.folio.inventoryupdate.updating.test.fakestorage.FakeFolioApisForUpserts.LOCATION_STORAGE_PATH;
+import static org.folio.inventoryupdate.updating.test.fakestorage.FakeFolioApisForUpserts.ORDER_LINES_STORAGE_PATH;
+import static org.folio.inventoryupdate.updating.test.fakestorage.FakeFolioApisForUpserts.PRECEDING_SUCCEEDING_TITLE_STORAGE_PATH;
 
-    public static final String INSTANCE_STORAGE_BATCH_PATH = "/instance-storage/batch/synchronous";
-    public static final String HOLDINGS_STORAGE_BATCH_PATH = "/holdings-storage/batch/synchronous";
-    public static final String ITEM_STORAGE_BATCH_PATH = "/item-storage/batch/synchronous";
 
-    public static final String ORDER_LINES_STORAGE_PATH = "/orders-storage/po-lines";
+public class FakeFolioApisForImporting {
 
-    public static final String RESULT_SET_INSTANCES = "instances";
-    public static final String RESULT_SET_HOLDINGS_RECORDS = "holdingsRecords";
-    public static final String RESULT_SET_ITEMS = "items";
-
+    public final ConfigurationStorage configurationStorage = new ConfigurationStorage();
+    public final SettingsStorage settingsStorage = new SettingsStorage();
     public LocationStorage locationStorage = new LocationStorage();
     public InstanceStorage instanceStorage = new InstanceStorage();
     public InstanceSetView instanceSetview = new InstanceSetView();
@@ -39,7 +39,9 @@ public class FakeFolioApis {
 
     public OrdersStorage ordersStorage = new OrdersStorage();
 
-    public FakeFolioApis(Vertx vertx, TestContext testContext) {
+
+    public FakeFolioApisForImporting(Vertx vertx, TestContext testContext) {
+        configurationStorage.attachToFakeStorage(this);
         locationStorage.attachToFakeStorage(this);
         instanceStorage.attachToFakeStorage(this);
         instanceSetview.attachToFakeStorage(this);
@@ -50,8 +52,21 @@ public class FakeFolioApis {
         ordersStorage.attachToFakeStorage(this);
 
         Router router = Router.router(vertx);
+        router.get(ConfigurationsClient.CONFIGURATIONS_PATH).handler(configurationStorage::getRecords);
+        router.get(ConfigurationsClient.CONFIGURATIONS_PATH + "/:id").handler(configurationStorage::getRecordById);
+        router.get(SettingsClient.SETTINGS_PATH).handler(settingsStorage::getRecords);
+        router.get(SettingsClient.SETTINGS_PATH + "/:id").handler(settingsStorage::getRecordById);
+        router.post("/*").handler(BodyHandler.create());
+        router.post(ConfigurationsClient.CONFIGURATIONS_PATH).handler(configurationStorage::createRecord);
+        router.post(SettingsClient.SETTINGS_PATH).handler(settingsStorage::createRecord);
+        router.put("/*").handler(BodyHandler.create());
+        router.put(ConfigurationsClient.CONFIGURATIONS_PATH + "/:id").handler(configurationStorage::updateRecord);
+        router.delete(ConfigurationsClient.CONFIGURATIONS_PATH + "/:id").handler(configurationStorage::deleteRecord);
+        router.put(SettingsClient.SETTINGS_PATH + "/:id").handler(settingsStorage::updateRecord);
+        router.delete(SettingsClient.SETTINGS_PATH + "/:id").handler(settingsStorage::deleteRecord);
         router.get(LOCATION_STORAGE_PATH).handler(locationStorage::getRecords);
         router.get(LOCATION_STORAGE_PATH + "/:id").handler(locationStorage::getRecordById);
+        router.post(INSTANCE_STORAGE_PATH).handler(instanceStorage::createRecord);
         router.get(INSTANCE_STORAGE_PATH).handler(instanceStorage::getRecords);
         router.get(INSTANCE_STORAGE_PATH + "/:id").handler(instanceStorage::getRecordById);
         router.get(INSTANCE_SET_PATH).handler(instanceSetview::getRecords);
@@ -88,13 +103,12 @@ public class FakeFolioApis {
         router.delete(INSTANCE_RELATIONSHIP_STORAGE_PATH + "/:id").handler(instanceRelationshipStorage::deleteRecord);
         router.delete(PRECEDING_SUCCEEDING_TITLE_STORAGE_PATH + "/:id").handler(precedingSucceedingStorage::deleteRecord);
         router.delete(LOCATION_STORAGE_PATH).handler(locationStorage::deleteAll);
-
         HttpServerOptions so = new HttpServerOptions().setHandle100ContinueAutomatically(true);
         vertx.createHttpServer(so)
                 .requestHandler(router)
-                .listen(PORT_OKAPI)
+                .listen(Service.PORT_OKAPI)
                 .onComplete(testContext.asyncAssertSuccess());
-        RestAssured.port = FakeFolioApis.PORT_OKAPI;
+        RestAssured.port = Service.PORT_OKAPI;
     }
 
     public static JsonObject getRecordsByQuery(String storagePath, String query) {
@@ -103,6 +117,7 @@ public class FakeFolioApis {
 
     public static JsonObject getRecordsByQuery(String storagePath, String query, int expectedResponseCode) {
         Response response = RestAssured.given()
+                .baseUri(Service.BASE_URI_OKAPI)
                 .get(storagePath + "?" + query)
                 .then()
                 .log().ifValidationFails()
@@ -110,13 +125,10 @@ public class FakeFolioApis {
         return new JsonObject(response.getBody().asString());
     }
 
-    public static JsonObject getRecordById(String storagePath, String id) {
-        return getRecordById(storagePath, id, 200);
-    }
 
     public static JsonObject getRecordById(String storagePath, String id, int expectedResponseCode) {
-      RestAssured.port = FakeFolioApis.PORT_OKAPI;
-      Response response = RestAssured.given()
+        Response response =  RestAssured.given()
+                .baseUri(Service.BASE_URI_OKAPI)
                 .get(storagePath + "/" + id)
                 .then()
                 .log().ifValidationFails()
@@ -129,8 +141,8 @@ public class FakeFolioApis {
     }
 
     public static JsonObject post(String storagePath, JsonObject recordToPOST, int expectedResponseCode) {
-      RestAssured.port = FakeFolioApis.PORT_OKAPI;
-      Response response = RestAssured.given()
+        Response response = RestAssured.given()
+                .baseUri(Service.BASE_URI_OKAPI)
                 .body(recordToPOST.toString())
                 .post(storagePath)
                 .then()
@@ -149,6 +161,7 @@ public class FakeFolioApis {
 
     public static void put(String storagePath, JsonObject recordToPUT, int expectedResponseCode) {
         RestAssured.given()
+                .baseUri(Service.BASE_URI_OKAPI)
                 .body(recordToPUT.toString())
                 .put(storagePath + "/" + recordToPUT.getString("id"))
                 .then()
@@ -162,6 +175,7 @@ public class FakeFolioApis {
 
     public static void delete(String storagePath, String id, int expectedResponseCode) {
         RestAssured.given()
+                .baseUri(Service.BASE_URI_OKAPI)
                 .delete(storagePath + "/" + id)
                 .then()
                 .log().ifValidationFails()

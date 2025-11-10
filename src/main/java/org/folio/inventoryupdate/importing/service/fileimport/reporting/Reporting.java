@@ -2,6 +2,7 @@ package org.folio.inventoryupdate.importing.service.fileimport.reporting;
 
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
+import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -132,7 +133,9 @@ public class Reporting {
                                     getInstanceHridFromErrorResponse(error),
                                     SettableClock.getLocalDateTime().toString(),
                                     getBatchIndexFromErrorResponse(error) == null ? null : batch.get(getBatchIndexFromErrorResponse(error)).getOriginalRecordAsString(),
-                                    error.getJsonObject("message").getJsonArray("errors"),
+                                    error.getJsonObject("message", new JsonObject())
+                                        .getJsonArray("errors",
+                                            new JsonArray().add(new JsonObject().put("message","Error message from storage missing or format unrecognized."))),
                                     error.getJsonObject("requestJson"))
                             ).collect(Collectors.toList()));
         } catch (Exception e) {
@@ -150,10 +153,10 @@ public class Reporting {
     }
 
     private static Integer getBatchIndexFromErrorResponse(JsonObject errorJson) {
-        if (errorJson != null && errorJson.containsKey("requestJson") && errorJson.getJsonObject("requestJson").containsKey("processing")) {
+        if (errorJson != null && errorJson.getJsonObject("requestJson") != null && errorJson.getJsonObject("requestJson").containsKey("processing")) {
             return errorJson.getJsonObject("requestJson").getJsonObject("processing").getInteger("batchIndex");
         } else {
-            return null;
+            return -1;
         }
     }
 

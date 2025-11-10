@@ -49,8 +49,8 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
 
 @RunWith(VertxUnitRunner.class)
-public class UnitTestsImporting {
-    public static final Logger logger = LoggerFactory.getLogger(UnitTestsImporting.class);
+public class ImportUnitTests {
+    public static final Logger logger = LoggerFactory.getLogger(ImportUnitTests.class);
     static Vertx vertx;
     private static FakeFolioApisForImporting fakeFolioApisForImporting;
     public static final Header CONTENT_TYPE_XML = new Header("Content-Type", "application/xml");

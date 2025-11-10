@@ -24,7 +24,6 @@ public class InventoryBatchUpdater implements RecordReceiver {
     public static final Logger logger = LogManager.getLogger("InventoryBatchUpdater");
 
     public InventoryBatchUpdater(RoutingContext routingContext) {
-        //updateClient = InventoryUpdateOverOkapiClient.getClient(routingContext);
         updateClient = new InternalInventoryUpdateClient(routingContext.vertx(), routingContext);
     }
 

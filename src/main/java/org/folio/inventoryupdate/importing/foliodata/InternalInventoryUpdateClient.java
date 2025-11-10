@@ -54,7 +54,7 @@ public class InternalInventoryUpdateClient extends InventoryUpdateClient {
     return upsertMethods.doBatchUpsert(req, new UpdatePlanAllHRIDs()).compose(
         outcome -> {
           if (outcome.getStatusCode() == 207) {
-            logger.warn("Upsert issue: " + (outcome.getErrorResponse() != null ? outcome.getErrorResponse().getShortMessage() : ""));
+            logger.warn("Upsert issue: {}", (outcome.getErrorResponse() != null ? outcome.getErrorResponse().getShortMessage() : ""));
           }
           return Future.succeededFuture(new UpdateResponse(outcome.getStatusCode(), outcome.getJson()));
         })

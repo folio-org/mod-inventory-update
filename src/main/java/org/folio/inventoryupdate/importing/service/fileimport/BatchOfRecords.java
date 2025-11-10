@@ -2,7 +2,7 @@ package org.folio.inventoryupdate.importing.service.fileimport;
 
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
-import org.folio.inventoryupdate.importing.foliodata.InternalInventoryUpdateClient;
+import org.folio.inventoryupdate.importing.foliodata.InventoryUpdateClient.UpdateResponse;
 import org.folio.inventoryupdate.importing.foliodata.InventoryUpdateClient;
 
 import java.util.ArrayList;
@@ -13,7 +13,7 @@ public class BatchOfRecords {
     private final ArrayList<ProcessingRecord> batch;
 
     private ProcessingRecord deletingRecord;
-    private InternalInventoryUpdateClient.UpdateResponse updateResponse;
+    private UpdateResponse updateResponse;
 
     public BatchOfRecords(ArrayList<ProcessingRecord> processingRecords, boolean lastBatchOfFile) {
         if (!processingRecords.isEmpty() && processingRecords.getLast().isDeletion()) {

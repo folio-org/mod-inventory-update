@@ -1,13 +1,12 @@
 package org.folio.inventoryupdate.updating.service;
 
+import io.vertx.core.Future;
+import io.vertx.core.Promise;
 import io.vertx.core.json.JsonArray;
-import io.vertx.core.json.JsonObject;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.folio.inventoryupdate.updating.DeletePlan;
 import org.folio.inventoryupdate.updating.DeletePlanAllHRIDs;
 import org.folio.inventoryupdate.updating.DeletePlanSharedInventory;
-import org.folio.inventoryupdate.updating.ErrorReport;
 import org.folio.inventoryupdate.updating.InventoryQuery;
 import org.folio.inventoryupdate.updating.InventoryUpdateOutcome;
 import org.folio.inventoryupdate.updating.QueryByHrid;
@@ -17,12 +16,11 @@ import org.folio.inventoryupdate.updating.UpdatePlanAllHRIDs;
 import org.folio.inventoryupdate.updating.UpdatePlanSharedInventory;
 import org.folio.inventoryupdate.updating.UpdateRequest;
 import org.folio.inventoryupdate.updating.entities.RecordIdentifiers;
-import org.folio.inventoryupdate.updating.instructions.ProcessingInstructionsDeletion;
+import org.folio.okapi.common.ErrorType;
 
-import static org.folio.inventoryupdate.updating.ErrorReport.INTERNAL_SERVER_ERROR;
-import static org.folio.inventoryupdate.updating.ErrorReport.NOT_FOUND;
 import static org.folio.inventoryupdate.updating.InventoryUpdateOutcome.MULTI_STATUS;
 import static org.folio.inventoryupdate.updating.InventoryUpdateOutcome.OK;
+import static org.folio.okapi.common.HttpResponse.responseError;
 import static org.folio.okapi.common.HttpResponse.responseJson;
 
 
@@ -37,7 +35,9 @@ public class HandlersUpdating {
 
   public void handleInventoryUpsertByHRIDBatch(UpdateRequest request) {
     UpdatePlan plan = new UpdatePlanAllHRIDs();
-    doBatchUpsert(request, plan);
+    doBatchUpsert(request, plan)
+        .onSuccess(outcome -> outcome.respond(request.routingContext()))
+        .onFailure(e -> responseError(request.routingContext(), ErrorType.ANY, e.getCause()));
   }
 
   public void handleSharedInventoryUpsertByMatchKey(UpdateRequest request) {
@@ -47,7 +47,9 @@ public class HandlersUpdating {
 
   public void handleSharedInventoryUpsertByMatchKeyBatch(UpdateRequest request) {
     UpdatePlan plan = new UpdatePlanSharedInventory();
-    doBatchUpsert(request, plan);
+    doBatchUpsert(request, plan)
+        .onSuccess(outcome -> outcome.respond(request.routingContext()))
+        .onFailure(e -> responseError(request.routingContext(), ErrorType.ANY, e.getCause()));
   }
 
 
@@ -73,13 +75,14 @@ public class HandlersUpdating {
    * Validates a batch of incoming record sets and performs a batch-upsert
    * @param plan a shared-inventory/matchKey, or an inventory/hrid upsert plan.
    */
-  private void doBatchUpsert(UpdateRequest updateRequest, UpdatePlan plan) {
+  public Future<InventoryUpdateOutcome> doBatchUpsert(UpdateRequest updateRequest, UpdatePlan plan) {
+    Promise<InventoryUpdateOutcome> promise = Promise.promise();
     JsonArray inventoryRecordSets = updateRequest.bodyAsJson().getJsonArray("inventoryRecordSets");
     plan.upsertBatch(updateRequest, inventoryRecordSets).onComplete(update -> {
       // The upsert could succeed, but with an error report, if it was a batch of one
       // Only if a true batch upsert (of more than one) failed, will the promise fail.
       if (update.succeeded()) {
-        update.result().respond(updateRequest.routingContext());
+        promise.complete(update.result());
       } else {
         logger.error("A batch upsert failed, bringing down all records of the batch. Switching to record-by-record updates");
         UpdateMetrics accumulatedStats = new UpdateMetrics();
@@ -98,75 +101,28 @@ public class HandlersUpdating {
               compositeOutcome.setMetrics(accumulatedStats);
               compositeOutcome.setErrors(accumulatedErrorReport);
               compositeOutcome.setResponseStatusCode(accumulatedErrorReport.isEmpty() ? OK : MULTI_STATUS);
-              compositeOutcome.respond(updateRequest.routingContext());
+              promise.complete(compositeOutcome);
             });
       }
     });
+    return promise.future();
   }
 
   // DELETE REQUESTS
   public void handleInventoryRecordSetDeleteByHRID(UpdateRequest request) {
-    ProcessingInstructionsDeletion deleteInstructions =  new ProcessingInstructionsDeletion(request.bodyAsJson().getJsonObject("processing"));
 
     InventoryQuery queryByInstanceHrid = new QueryByHrid(request.bodyAsJson().getString("hrid"));
-    DeletePlan deletePlan = DeletePlanAllHRIDs.getDeletionPlan(queryByInstanceHrid);
-    runDeletionPlan(deletePlan, deleteInstructions, request);
+    DeletePlanAllHRIDs.getDeletionPlan(queryByInstanceHrid).runDeletionPlan(request)
+        .onSuccess(outcome -> outcome.respond(request.routingContext()))
+        .onFailure(outcome -> responseError(request.routingContext(), ErrorType.ANY, outcome.getCause()));
   }
 
   public void handleSharedInventoryRecordSetDeleteByIdentifiers(UpdateRequest request) {
 
-    JsonObject processing = request.bodyAsJson().getJsonObject( "processing" );
-    ProcessingInstructionsDeletion deleteInstructions =  new ProcessingInstructionsDeletion(processing);
-
     RecordIdentifiers deletionIdentifiers = RecordIdentifiers.identifiersFromDeleteRequestJson(request.bodyAsJson());
-    DeletePlan deletePlan = DeletePlanSharedInventory.getDeletionPlan(deletionIdentifiers);
-    runDeletionPlan(deletePlan, deleteInstructions, request);
+    DeletePlanSharedInventory.getDeletionPlan(deletionIdentifiers).runDeletionPlan(request)
+        .onSuccess(outcome -> outcome.respond(request.routingContext()))
+        .onFailure(outcome -> responseError(request.routingContext(), ErrorType.ANY, outcome.getCause()));
   }
 
-  private void runDeletionPlan(DeletePlan deletePlan, ProcessingInstructionsDeletion deleteInstructions, UpdateRequest request) {
-
-
-    deletePlan.planInventoryDelete(request.getOkapiClient(), deleteInstructions).onComplete(planDone -> {
-      if (planDone.succeeded()) {
-        deletePlan.doInventoryDelete(request.getOkapiClient()).onComplete(deletionsDone -> {
-          JsonObject response = new JsonObject();
-          response.put("metrics", deletePlan.getUpdateStats());
-          if (deletionsDone.succeeded()) {
-            respondWithOK(request,response);
-          } else {
-            response.put("errors", deletePlan.getErrors());
-            response.getJsonArray("errors")
-                .add(new ErrorReport(
-                    ErrorReport.ErrorCategory.STORAGE,
-                    INTERNAL_SERVER_ERROR,
-                    deletionsDone.cause().getMessage())
-                    .asJson());
-            respondWithMultiStatus(request,response);
-          }
-        });
-      } else {
-        if (!deletePlan.foundExistingRecordSet()) {
-          new ErrorReport(
-              ErrorReport.ErrorCategory.STORAGE,
-              NOT_FOUND,
-              "Error processing delete request: "+ planDone.cause().getMessage())
-              .respond(request.routingContext());
-        } else {
-          new ErrorReport(
-              ErrorReport.ErrorCategory.STORAGE,
-              INTERNAL_SERVER_ERROR,
-              planDone.cause().getMessage())
-              .respond(request.routingContext());
-        }
-
-      }
-    });
-  }
-  public void respondWithOK(UpdateRequest request, JsonObject message) {
-    responseJson(request.routingContext(), OK).end(message.encodePrettily());
-  }
-
-  public void respondWithMultiStatus(UpdateRequest request, JsonObject message) {
-    responseJson(request.routingContext(), MULTI_STATUS).end(message.encodePrettily());
-  }
 }

@@ -16,6 +16,11 @@ import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import static org.folio.inventoryupdate.updating.ErrorReport.INTERNAL_SERVER_ERROR;
+import static org.folio.inventoryupdate.updating.ErrorReport.NOT_FOUND;
+import static org.folio.inventoryupdate.updating.InventoryUpdateOutcome.MULTI_STATUS;
+import static org.folio.inventoryupdate.updating.InventoryUpdateOutcome.OK;
+
 public abstract class DeletePlan {
   protected InventoryQuery instanceQuery;
   // Existing Inventory records matching either an incoming record set or a set of deletion identifiers
@@ -168,5 +173,50 @@ public abstract class DeletePlan {
     return getExistingRecordSet().getErrors();
   }
 
+  public Future<InventoryUpdateOutcome> runDeletionPlan(UpdateRequest request) {
+    Promise<InventoryUpdateOutcome> promise = Promise.promise();
+    ProcessingInstructionsDeletion deleteInstructions =
+        new ProcessingInstructionsDeletion(request.bodyAsJson().getJsonObject("processing"));
+
+    planInventoryDelete(request.getOkapiClient(), deleteInstructions).onComplete(planDone -> {
+      InventoryUpdateOutcome outcome = new InventoryUpdateOutcome();
+      if (planDone.succeeded()) {
+        doInventoryDelete(request.getOkapiClient()).onComplete(deletionsDone -> {
+          outcome.setMetrics(UpdateMetrics.makeMetricsFromJson(getUpdateStats())).setResponseStatusCode(OK);
+          if (deletionsDone.succeeded()) {
+            promise.complete(outcome);
+          } else {
+            outcome.setErrors(new JsonArray()
+                    .add(new ErrorReport(
+                        ErrorReport.ErrorCategory.STORAGE,
+                        INTERNAL_SERVER_ERROR,
+                        deletionsDone.cause().getMessage())
+                        .asJson()))
+                .setResponseStatusCode(MULTI_STATUS);
+            promise.complete(outcome);
+          }
+        });
+      } else {
+        if (!foundExistingRecordSet()) {
+          promise.complete(
+              new InventoryUpdateOutcome(
+                  new ErrorReport(
+                      ErrorReport.ErrorCategory.STORAGE,
+                      NOT_FOUND,
+                      "Error processing delete request: " + planDone.cause().getMessage()))
+                  .setResponseStatusCode(404));
+        } else {
+          promise.complete(
+              new InventoryUpdateOutcome(
+                  new ErrorReport(
+                      ErrorReport.ErrorCategory.STORAGE,
+                      INTERNAL_SERVER_ERROR,
+                      planDone.cause().getMessage()))
+                  .setResponseStatusCode(400));
+        }
+      }
+    });
+    return promise.future();
+  }
 
 }

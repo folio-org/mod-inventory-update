@@ -96,9 +96,8 @@ public abstract class RecordStorage {
             }
             if (!fk.getMasterStorage().hasId(folioApiRecord.getJson().getString(fk.getDependentPropertyName()))) {
                 logger.error("Foreign key violation {} not found in {}, cannot create {}",
-                    fk.getDependentPropertyName(), fk.getMasterStorage().getResultSetName(), folioApiRecord.getJson().encodePrettily());
-                logger.error(new JsonObject().encode());
-                return new Resp (500, new JsonObject("{ \"message\": \"insert or update on table \\\"storage_table\\\" violates foreign key constraint \\\"fkey\\\"\", \"severity\": \"ERROR\", \"code\": \"23503\", \"detail\": \"Key (property value)=(the id) is not present in table \\\"a_referenced_table\\\".\", \"file\": \"ri_triggers.c\", \"line\": \"3266\", \"routine\": \"ri_ReportViolation\", \"schema\": \"diku_mod_inventory_storage\", \"table\": \"storage_table\", \"constraint\": \"a_fkey\" }").encodePrettily());
+                fk.getDependentPropertyName(), fk.getMasterStorage().getResultSetName(), folioApiRecord.getJson().encodePrettily());
+                return new Resp(500, new JsonObject("{\"errors\":[{ \"message\": \"insert or update on table \\\"storage_table\\\" violates foreign key constraint \\\"fkey\\\"\", \"severity\": \"ERROR\", \"code\": \"23503\", \"detail\": \"Key (property value)=(the id) is not present in table \\\"a_referenced_table\\\".\", \"file\": \"ri_triggers.c\", \"line\": \"3266\", \"routine\": \"ri_ReportViolation\", \"schema\": \"diku_mod_inventory_storage\", \"table\": \"storage_table\", \"constraint\": \"a_fkey\" }]}").encodePrettily());
             } else {
                 logger.debug("Found {} in {}",
                     folioApiRecord.getJson().getString(fk.getDependentPropertyName()), fk.getMasterStorage().getResultSetName());

@@ -2,6 +2,7 @@ package org.folio.inventoryupdate.importing.service.fileimport.reporting;
 
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
+import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -125,16 +126,16 @@ public class Reporting {
                     new RecordFailure(),
                     batch.getErrors().stream()
                             .map(JsonObject.class::cast)
-                            // only errors pertaining to individual records
-                            .filter(error -> getBatchIndexFromErrorResponse(error) > -1 )
                             .map(error -> new RecordFailure(UUID.randomUUID(),
                                     fileProcessor.getImportJob().getRecord().id(),
                                     fileProcessor.getImportConfigId(),
                                     fileProcessor.getImportJob().getRecord().importConfigName(),
                                     getInstanceHridFromErrorResponse(error),
                                     SettableClock.getLocalDateTime().toString(),
-                                    batch.get(getBatchIndexFromErrorResponse(error)).getOriginalRecordAsString(),
-                                    error.getJsonObject("message", new JsonObject()).getJsonArray("errors"),
+                                    getBatchIndexFromErrorResponse(error) == null ? null : batch.get(getBatchIndexFromErrorResponse(error)).getOriginalRecordAsString(),
+                                    error.getJsonObject("message", new JsonObject())
+                                        .getJsonArray("errors",
+                                            new JsonArray().add(new JsonObject().put("message","Error message from storage missing or format unrecognized."))),
                                     error.getJsonObject("requestJson"))
                             ).collect(Collectors.toList()));
         } catch (Exception e) {

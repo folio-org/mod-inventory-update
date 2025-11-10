@@ -124,7 +124,7 @@ public abstract class RecordStorage {
 
     public Resp validateUpdate (String id, InventoryRecord inventoryRecord) {
         if (failOnUpdate) {
-            return new Resp(500, "forced faile on update");
+            return new Resp(500, "forced fail on update");
         }
         if (inventoryRecord.hasId() && !id.equals(inventoryRecord.getId())) {
             return new Resp(400, "Fake record storage received request to update a record at an ID that doesn't match the ID in the record");

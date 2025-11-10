@@ -7,8 +7,12 @@ import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.RoutingContext;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.folio.inventoryupdate.updating.UpdatePlan;
+import org.folio.inventoryupdate.updating.DeletePlan;
+import org.folio.inventoryupdate.updating.DeletePlanAllHRIDs;
+import org.folio.inventoryupdate.updating.InventoryQuery;
+import org.folio.inventoryupdate.updating.QueryByHrid;
 import org.folio.inventoryupdate.updating.UpdatePlanAllHRIDs;
+import org.folio.inventoryupdate.updating.service.HandlersUpdating;
 
 public class InternalInventoryUpdateClient extends InventoryUpdateClient {
 
@@ -24,22 +28,36 @@ public class InternalInventoryUpdateClient extends InventoryUpdateClient {
 
   @Override
   public Future<UpdateResponse> inventoryDeletion(JsonObject theRecord) {
-    return null;
+    InventoryQuery queryByInstanceHrid = new QueryByHrid(theRecord.getString("hrid"));
+    DeletePlan deletePlan = DeletePlanAllHRIDs.getDeletionPlan(queryByInstanceHrid);
+    InternalInventoryDeleteRequest deleteRequest = new InternalInventoryDeleteRequest(vertx, routingContext, theRecord);
+    return deletePlan.runDeletionPlan(deleteRequest).compose(outcome -> {
+      JsonObject outcomeJson = outcome.getJson();
+      if (outcome.getStatusCode() == 404) {
+        if (outcome.getError() != null) {
+          outcomeJson.put("errors", new JsonArray().add(new JsonObject().put("message", outcome.getError().getMessageAsString())));
+        } else {
+          outcomeJson.put("errors", new JsonArray().add(new JsonObject().put("message", "No message to provide")));
+        }
+      }
+      return Future.succeededFuture(
+              new UpdateResponse(outcome.getStatusCode(), outcomeJson));
+
+        })
+        .onFailure(e -> logger.error("Could not perform delete request {}", e.getMessage()));
   }
 
   @Override
   public Future<UpdateResponse> inventoryUpsert(JsonObject recordSets) {
-    JsonArray inventoryRecordSets = recordSets.getJsonArray("inventoryRecordSets");
     InternalInventoryUpdateRequest req = new InternalInventoryUpdateRequest(vertx, routingContext, recordSets);
-    UpdatePlan plan = new UpdatePlanAllHRIDs();
-    return plan.upsertBatch(req, inventoryRecordSets).compose(
+    HandlersUpdating upsertMethods = new HandlersUpdating();
+    return upsertMethods.doBatchUpsert(req, new UpdatePlanAllHRIDs()).compose(
         outcome -> {
           if (outcome.getStatusCode() == 207) {
-            logger.error(outcome.getError().getShortMessage());
+            logger.warn("Upsert issue: " + (outcome.getErrorResponse() != null ? outcome.getErrorResponse().getShortMessage() : ""));
           }
           return Future.succeededFuture(new UpdateResponse(outcome.getStatusCode(), outcome.getJson()));
         })
         .onFailure(e -> logger.error("Could not upsert batch: {}", e.getMessage()));
   }
-
 }

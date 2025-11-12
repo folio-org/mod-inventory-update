@@ -24,7 +24,6 @@ import io.vertx.core.Vertx;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
-import org.testcontainers.containers.PostgreSQLContainer;
 
 import static org.folio.inventoryupdate.importing.test.fixtures.Service.BASE_URI_INVENTORY_UPDATE;
 import static org.folio.inventoryupdate.importing.test.fixtures.Service.BASE_URI_OKAPI;

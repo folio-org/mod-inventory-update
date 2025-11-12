@@ -14,13 +14,19 @@ public class BatchOfRecords {
 
     private ProcessingRecord deletingRecord;
     private UpdateResponse updateResponse;
+    private final long batchNumber;
 
-    public BatchOfRecords(ArrayList<ProcessingRecord> processingRecords, boolean lastBatchOfFile) {
+    public BatchOfRecords(ArrayList<ProcessingRecord> processingRecords, boolean lastBatchOfFile, long batchNumber) {
         if (!processingRecords.isEmpty() && processingRecords.getLast().isDeletion()) {
             deletingRecord = processingRecords.removeLast();
         }
         this.batch = processingRecords;
         this.lastBatchOfFile = lastBatchOfFile;
+        this.batchNumber = batchNumber;
+    }
+
+    public long getBatchNumber() {
+      return batchNumber;
     }
 
     public boolean hasDeletingRecord () {

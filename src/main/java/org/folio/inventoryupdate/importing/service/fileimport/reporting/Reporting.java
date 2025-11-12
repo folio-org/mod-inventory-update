@@ -44,6 +44,7 @@ public class Reporting {
 
     public void nowProcessing(String fileName) {
         try {
+            logger.info("Processing file " + fileName);
             fileStats.put(new FileStats(fileName));
         } catch (InterruptedException ie) {
             logger.error("Initiation of file stats interrupted.");
@@ -119,8 +120,8 @@ public class Reporting {
     }
 
     public Future<Void> reportErrors(BatchOfRecords batch) {
-        // Perform assert fileStats.peek() not null;
-        // Perform String fileName equals fileStats.peek().getFileName();
+        logger.error("Reporting errors for file [{}]",
+            fileStats.peek() == null ? "file name missing" : fileStats.peek().getFileName());
         try {
             return storage.storeEntities(
                     new RecordFailure(),
@@ -132,7 +133,7 @@ public class Reporting {
                                     fileProcessor.getImportJob().getRecord().importConfigName(),
                                     getInstanceHridFromErrorResponse(error),
                                     SettableClock.getLocalDateTime().toString(),
-                                    getBatchIndexFromErrorResponse(error) == null ? null : batch.get(getBatchIndexFromErrorResponse(error)).getOriginalRecordAsString(),
+                                    getBatchIndexFromErrorResponse(error) == -1 ? null : batch.get(getBatchIndexFromErrorResponse(error)).getOriginalRecordAsString(),
                                     error.getJsonObject("message", new JsonObject())
                                         .getJsonArray("errors",
                                             new JsonArray().add(new JsonObject().put("message","Error message from storage missing or format unrecognized."))),
@@ -156,7 +157,7 @@ public class Reporting {
         if (errorJson != null && errorJson.getJsonObject("requestJson") != null && errorJson.getJsonObject("requestJson").containsKey("processing")) {
             return errorJson.getJsonObject("requestJson").getJsonObject("processing").getInteger("batchIndex");
         } else {
-            return -1;
+          return -1;
         }
     }
 

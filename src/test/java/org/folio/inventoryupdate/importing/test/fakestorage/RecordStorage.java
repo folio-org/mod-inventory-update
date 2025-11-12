@@ -7,6 +7,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import java.net.URLDecoder;
+import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
 
@@ -28,12 +29,12 @@ public abstract class RecordStorage {
     public boolean failOnGetRecords = false;
     final List<ForeignKey> dependentEntities = new ArrayList<>();
     final List<ForeignKey> masterEntities = new ArrayList<>();
-    final List<String> mandatoryProperties = new ArrayList<>();
-    final List<String> uniqueProperties = new ArrayList<>();
+    public final List<String> mandatoryProperties = new ArrayList<>();
+    public final List<String> uniqueProperties = new ArrayList<>();
 
     protected FakeFolioApisForImporting fakeStorageForImporting;
 
-    protected final Map<String, FolioApiRecord> records = new HashMap<>();
+    public final Map<String, FakeRecord> records = new HashMap<>();
 
     public static final Logger logger = LogManager.getLogger("fake-folio-storage");
 
@@ -48,7 +49,7 @@ public abstract class RecordStorage {
     protected abstract String getResultSetName();
 
     // INTERNAL DATABASE OPERATIONS - insert() IS DECLARED PUBLIC SO THE TEST SUITE CAN INITIALIZE DATA OUTSIDE THE API.
-    public StorageResponse insert (FolioApiRecord folioApiRecord) {
+    public StorageResponse insert (FakeRecord folioApiRecord) {
         Resp validation = validateCreate(folioApiRecord);
         if (validation.statusCode == 201) {
             folioApiRecord.setFirstVersion();
@@ -66,7 +67,7 @@ public abstract class RecordStorage {
         }
     }
 
-    public Resp validateCreate(FolioApiRecord folioApiRecord) {
+    public Resp validateCreate(FakeRecord folioApiRecord) {
         if (failOnCreate) {
             return new Resp(500, "forced fail");
         }
@@ -78,7 +79,7 @@ public abstract class RecordStorage {
                 folioApiRecord.getId(), folioApiRecord.getJson().encodePrettily());
             return new Resp(400, "Record storage already contains a record with id " + folioApiRecord.getId());
         }
-        for (FolioApiRecord existingRecord : records.values()) {
+        for (FakeRecord existingRecord : records.values()) {
             for (String nameOfUniqueProperty : uniqueProperties) {
                 if (folioApiRecord.getStringValue(nameOfUniqueProperty) != null
                     && existingRecord.getStringValue(nameOfUniqueProperty) != null
@@ -161,15 +162,15 @@ public abstract class RecordStorage {
         return 200;
     }
 
-    public Collection<FolioApiRecord> getRecords () {
+    public Collection<FakeRecord> getRecords () {
         return records.values();
     }
 
-    protected FolioApiRecord getRecord (String id) {
+    protected FakeRecord getRecord (String id) {
         if (failOnGetRecordById) {
             return null;
         } else {
-            FolioApiRecord folioApiRecord = records.get( id );
+            FakeRecord folioApiRecord = records.get( id );
             if (folioApiRecord != null) {
                 folioApiRecord.setVersion(folioApiRecord.getVersion() + 1);
             }
@@ -178,7 +179,7 @@ public abstract class RecordStorage {
     }
 
     // FOREIGN KEY HANDLING
-    protected boolean hasId (String id) {
+    public boolean hasId (String id) {
         return records.containsKey(id);
     }
 
@@ -189,7 +190,7 @@ public abstract class RecordStorage {
      * @return true if value exists
      */
     protected boolean hasValue (String fkPropertyName, String value) {
-        for (FolioApiRecord folioApiRecord : records.values()) {
+        for (FakeRecord folioApiRecord : records.values()) {
             logger.debug("Checking {} for value {}", folioApiRecord.getJson().encode(), value);
             if (folioApiRecord.getJson().containsKey(fkPropertyName) && folioApiRecord.getJson().getString(fkPropertyName).equals(value)) {
                 return true;
@@ -202,13 +203,13 @@ public abstract class RecordStorage {
     protected void declareDependencies() {}
 
     // METHOD ON THE PRIMARY KEY ENTITY TO REGISTER DEPENDENT ENTITIES
-    protected void acceptDependant(RecordStorage dependentEntity, String dependentPropertyName) {
+    public void acceptDependant(RecordStorage dependentEntity, String dependentPropertyName) {
         ForeignKey fk = new ForeignKey(dependentEntity, dependentPropertyName, this);
         dependentEntities.add(fk);
         dependentEntity.setMasterEntity(fk);
     }
 
-    protected void setMasterEntity (ForeignKey fk) {
+    public void setMasterEntity (ForeignKey fk) {
         masterEntities.add(fk);
     }
 
@@ -237,7 +238,7 @@ public abstract class RecordStorage {
      */
     protected void getRecordById(RoutingContext routingContext) {
         final String id = routingContext.pathParam("id");
-        FolioApiRecord folioApiRecord = getRecord(id);
+        FakeRecord folioApiRecord = getRecord(id);
 
         if (folioApiRecord != null) {
             respond(routingContext, folioApiRecord.getJson(), 200);
@@ -272,7 +273,15 @@ public abstract class RecordStorage {
         records.clear();
     }
 
-    /**
+  public void clearEnforcedFailures() {
+    failOnDelete = false;
+    failOnGetRecordById = false;
+    failOnGetRecords = false;
+    failOnUpdate = false;
+    failOnCreate = false;
+  }
+
+  /**
      * Handles POST
      *
      */
@@ -291,7 +300,7 @@ public abstract class RecordStorage {
      * Handles PUT
      *
      */
-    protected void updateRecord(RoutingContext routingContext) {
+    public void updateRecord(RoutingContext routingContext) {
         JsonObject recordJson = new JsonObject(routingContext.body().asString());
         String id = routingContext.pathParam("id");
         int code = update(id, new FolioApiRecord(recordJson));
@@ -335,7 +344,7 @@ public abstract class RecordStorage {
 
   // HELPERS FOR RESPONSE PROCESSING
 
-    JsonObject buildJsonRecordsResponse(String optionalQuery) {
+    public JsonObject buildJsonRecordsResponse(String optionalQuery) {
         if (failOnGetRecords) return null;
         JsonObject response = new JsonObject();
         JsonArray jsonRecords = new JsonArray();
@@ -386,7 +395,7 @@ public abstract class RecordStorage {
         routingContext.response().end(message);
 
     }
-  public Collection<FolioApiRecord> getRecordsInternally() {
+  public Collection<FakeRecord> getRecordsInternally() {
     return getRecords();
   }
 
@@ -397,7 +406,12 @@ public abstract class RecordStorage {
         return URLDecoder.decode(string, StandardCharsets.UTF_8);
     }
 
-    public static class ForeignKey {
+    public static String encode (String string) {
+      return URLEncoder.encode(string, StandardCharsets.UTF_8);
+    }
+
+
+  public static class ForeignKey {
 
         private final RecordStorage dependentStorage;
         private final String dependentPropertyName;

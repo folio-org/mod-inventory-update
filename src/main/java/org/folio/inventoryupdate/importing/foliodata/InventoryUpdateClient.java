@@ -25,5 +25,10 @@ public abstract class InventoryUpdateClient {
         return new JsonArray();
       }
     }
+
+    public boolean hasErrorObjects() {
+      return !getErrors().isEmpty() && getErrors().getJsonObject(0).getValue("message") instanceof JsonObject;
+    }
+
   }
 }

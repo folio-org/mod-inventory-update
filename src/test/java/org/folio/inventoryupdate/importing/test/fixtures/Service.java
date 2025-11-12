@@ -6,7 +6,7 @@ import org.folio.okapi.common.XOkapiHeaders;
 public class Service {
 
     public static final int PORT_INVENTORY_UPDATE = 9230;
-    public static final String BASE_URI_INVENTORY_IMPORT = "http://localhost:" + PORT_INVENTORY_UPDATE;
+    public static final String BASE_URI_INVENTORY_UPDATE = "http://localhost:" + PORT_INVENTORY_UPDATE;
     public static final int PORT_OKAPI = 9031;
     public static final String BASE_URI_OKAPI = "http://localhost:" + PORT_OKAPI;
     public static final Header OKAPI_URL = new Header (XOkapiHeaders.URL, BASE_URI_OKAPI);

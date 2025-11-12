@@ -2,7 +2,6 @@ package org.folio.inventoryupdate.importing.test.fakestorage;
 
 import io.vertx.core.json.JsonObject;
 import io.restassured.RestAssured;
-import io.restassured.response.Response;
 import io.vertx.core.Vertx;
 import io.vertx.core.http.HttpServerOptions;
 import io.vertx.ext.unit.TestContext;
@@ -12,35 +11,28 @@ import org.folio.inventoryupdate.importing.test.fixtures.Service;
 import org.folio.inventoryupdate.importing.foliodata.ConfigurationsClient;
 import org.folio.inventoryupdate.importing.foliodata.SettingsClient;
 
-import static org.folio.inventoryupdate.updating.test.fakestorage.FakeFolioApisForUpserts.HOLDINGS_STORAGE_BATCH_PATH;
-import static org.folio.inventoryupdate.updating.test.fakestorage.FakeFolioApisForUpserts.HOLDINGS_STORAGE_PATH;
-import static org.folio.inventoryupdate.updating.test.fakestorage.FakeFolioApisForUpserts.INSTANCE_RELATIONSHIP_STORAGE_PATH;
-import static org.folio.inventoryupdate.updating.test.fakestorage.FakeFolioApisForUpserts.INSTANCE_SET_PATH;
-import static org.folio.inventoryupdate.updating.test.fakestorage.FakeFolioApisForUpserts.INSTANCE_STORAGE_BATCH_PATH;
-import static org.folio.inventoryupdate.updating.test.fakestorage.FakeFolioApisForUpserts.INSTANCE_STORAGE_PATH;
-import static org.folio.inventoryupdate.updating.test.fakestorage.FakeFolioApisForUpserts.ITEM_STORAGE_BATCH_PATH;
-import static org.folio.inventoryupdate.updating.test.fakestorage.FakeFolioApisForUpserts.ITEM_STORAGE_PATH;
-import static org.folio.inventoryupdate.updating.test.fakestorage.FakeFolioApisForUpserts.LOCATION_STORAGE_PATH;
-import static org.folio.inventoryupdate.updating.test.fakestorage.FakeFolioApisForUpserts.ORDER_LINES_STORAGE_PATH;
-import static org.folio.inventoryupdate.updating.test.fakestorage.FakeFolioApisForUpserts.PRECEDING_SUCCEEDING_TITLE_STORAGE_PATH;
+public class FakeFolioApisForImporting extends FakeApis {
+  public static final int PORT_OKAPI = 9031;
+  public static final String INSTANCE_STORAGE_PATH = "/instance-storage/instances";
+  public static final String INSTANCE_SET_PATH = "/inventory-view/instance-set";
+  public static final String INSTANCE_RELATIONSHIP_STORAGE_PATH = "/instance-storage/instance-relationships";
+  public static final String PRECEDING_SUCCEEDING_TITLE_STORAGE_PATH = "/preceding-succeeding-titles";
+  public static final String HOLDINGS_STORAGE_PATH = "/holdings-storage/holdings";
+  public static final String ITEM_STORAGE_PATH = "/item-storage/items";
+  public static final String LOCATION_STORAGE_PATH = "/locations";
+
+  public static final String INSTANCE_STORAGE_BATCH_PATH = "/instance-storage/batch/synchronous";
+  public static final String HOLDINGS_STORAGE_BATCH_PATH = "/holdings-storage/batch/synchronous";
+  public static final String ITEM_STORAGE_BATCH_PATH = "/item-storage/batch/synchronous";
+
+  public static final String ORDER_LINES_STORAGE_PATH = "/orders-storage/po-lines";
+
+  public static final String RESULT_SET_INSTANCES = "instances";
+  public static final String RESULT_SET_HOLDINGS_RECORDS = "holdingsRecords";
+  public static final String RESULT_SET_ITEMS = "items";
 
 
-public class FakeFolioApisForImporting {
-
-    public final ConfigurationStorage configurationStorage = new ConfigurationStorage();
-    public final SettingsStorage settingsStorage = new SettingsStorage();
-    public LocationStorage locationStorage = new LocationStorage();
-    public InstanceStorage instanceStorage = new InstanceStorage();
-    public InstanceSetView instanceSetview = new InstanceSetView();
-    public HoldingsStorage holdingsStorage = new HoldingsStorage();
-    public ItemStorage itemStorage = new ItemStorage();
-    public InstanceRelationshipStorage instanceRelationshipStorage = new InstanceRelationshipStorage();
-    public PrecedingSucceedingStorage precedingSucceedingStorage = new PrecedingSucceedingStorage();
-
-    public OrdersStorage ordersStorage = new OrdersStorage();
-
-
-    public FakeFolioApisForImporting(Vertx vertx, TestContext testContext) {
+  public FakeFolioApisForImporting(Vertx vertx, TestContext testContext) {
         configurationStorage.attachToFakeStorage(this);
         locationStorage.attachToFakeStorage(this);
         instanceStorage.attachToFakeStorage(this);
@@ -109,50 +101,6 @@ public class FakeFolioApisForImporting {
                 .listen(Service.PORT_OKAPI)
                 .onComplete(testContext.asyncAssertSuccess());
         RestAssured.port = Service.PORT_OKAPI;
-    }
-
-    public static JsonObject getRecordsByQuery(String storagePath, String query) {
-        return getRecordsByQuery(storagePath, query, 200);
-    }
-
-    public static JsonObject getRecordsByQuery(String storagePath, String query, int expectedResponseCode) {
-        Response response = RestAssured.given()
-                .baseUri(Service.BASE_URI_OKAPI)
-                .get(storagePath + "?" + query)
-                .then()
-                .log().ifValidationFails()
-                .statusCode(expectedResponseCode).extract().response();
-        return new JsonObject(response.getBody().asString());
-    }
-
-
-    public static JsonObject getRecordById(String storagePath, String id, int expectedResponseCode) {
-        Response response =  RestAssured.given()
-                .baseUri(Service.BASE_URI_OKAPI)
-                .get(storagePath + "/" + id)
-                .then()
-                .log().ifValidationFails()
-                .statusCode(expectedResponseCode).extract().response();
-        return new JsonObject(response.getBody().asString());
-    }
-
-    public static JsonObject post(String storagePath, JsonObject recordToPOST) {
-        return post(storagePath, recordToPOST, 201);
-    }
-
-    public static JsonObject post(String storagePath, JsonObject recordToPOST, int expectedResponseCode) {
-        Response response = RestAssured.given()
-                .baseUri(Service.BASE_URI_OKAPI)
-                .body(recordToPOST.toString())
-                .post(storagePath)
-                .then()
-                .log().ifValidationFails()
-                .statusCode(expectedResponseCode).extract().response();
-        if (response.getContentType().equals("application/json")) {
-            return new JsonObject(response.getBody().asString());
-        } else {
-            return new JsonObject().put("response", response.asString());
-        }
     }
 
     public static void put(String storagePath, JsonObject recordToPUT) {

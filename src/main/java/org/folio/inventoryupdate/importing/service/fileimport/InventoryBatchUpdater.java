@@ -22,9 +22,11 @@ public class InventoryBatchUpdater implements RecordReceiver {
     private final InventoryUpdateClient updateClient;
     private final Turnstile turnstile = new Turnstile();
     public static final Logger logger = LogManager.getLogger("InventoryBatchUpdater");
+    private long batchNumber;
 
     public InventoryBatchUpdater(RoutingContext routingContext) {
         updateClient = new InternalInventoryUpdateClient(routingContext.vertx(), routingContext);
+        batchNumber=1;
     }
 
     /**
@@ -43,12 +45,12 @@ public class InventoryBatchUpdater implements RecordReceiver {
             if (records.size() > 99 || processingRecord.isDeletion()) {
                 ArrayList<ProcessingRecord> copyOfRecords = new ArrayList<>(records);
                 records.clear();
-                releaseBatch(new BatchOfRecords(copyOfRecords, false));
+                releaseBatch(new BatchOfRecords(copyOfRecords, false, batchNumber++));
             }
         } else { // a null record is the end-of-file signal, forward remaining records if any
             ArrayList<ProcessingRecord> copyOfRecords = new ArrayList<>(records);
             records.clear();
-            releaseBatch(new BatchOfRecords(copyOfRecords, true));
+            releaseBatch(new BatchOfRecords(copyOfRecords, true, batchNumber++));
         }
     }
 
@@ -79,17 +81,19 @@ public class InventoryBatchUpdater implements RecordReceiver {
         Promise<Void> promise = Promise.promise();
         BatchOfRecords batch = turnstile.viewCurrentBatch();
         if (batch != null) {
-            if (batch.size() > 0) {
-                updateClient.inventoryUpsert(batch.getUpsertRequestBody()).onSuccess(upsert -> {
+          if (batch.size() > 0) {
+            logger.info("Persisting batch #{}, size {}", batch.getBatchNumber(), batch.size());
+            updateClient.inventoryUpsert(batch.getUpsertRequestBody()).onSuccess(upsert -> {
                     if (upsert.statusCode() >= 400) {
                       logger.error("Fatal error when updating inventory, status code: {}", upsert.statusCode());
                       promise.fail("Inventory update failed with status code " + upsert.statusCode());
                     } else {
                       fileProcessor.reporting.incrementRecordsProcessed(batch.size());
-                      if (upsert.statusCode() == 207) {
+                      // In scenario with recurring HRIDs in batch, status will be 207 but no failed record to create.
+                      if (upsert.statusCode() == 207 && upsert.hasErrorObjects()) {
                         batch.setResponse(upsert);
-                        fileProcessor.reporting.reportErrors(batch)
-                            .onFailure(err -> logger.error("Error logging upsert results {}", err.getMessage()));
+                          fileProcessor.reporting.reportErrors(batch)
+                              .onFailure(err -> logger.error("Error logging upsert results for batch #{}, {}", batch.getBatchNumber(), err.getMessage()));
                       }
                       fileProcessor.reporting.incrementInventoryMetrics(new InventoryMetrics(upsert.getMetrics()));
                       if (batch.hasDeletingRecord()) {

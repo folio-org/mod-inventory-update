@@ -2,7 +2,7 @@ package org.folio.inventoryupdate.importing.test.fixtures;
 
 import io.vertx.core.json.JsonObject;
 import org.apache.commons.io.FileUtils;
-import org.folio.inventoryupdate.importing.test.ImportUnitTests;
+import org.folio.inventoryupdate.importing.test.ImportTests;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 
@@ -36,15 +36,13 @@ public class Files {
   public static final JsonObject JSON_IMPORT_CONFIG = new JsonObject(Objects.requireNonNull(getSampleFile("configs/importConfig.json")));
   public static final JsonObject JSON_IMPORT_JOB = new JsonObject(Objects.requireNonNull(getSampleFile("jobs/importJob.json")));
   public static final JsonObject JSON_FAILED_RECORDS = new JsonObject(Objects.requireNonNull(getSampleFile("jobs/failed-records.json")));
-  public static final JsonObject JSON_SINGLE_RECORD_UPSERT_RESPONSE_200 = new JsonObject(Objects.requireNonNull(getSampleFile("responses/singleRecordUpsertResponse200.json")));
-  public static final JsonObject JSON_SINGLE_RECORD_UPSERT_RESPONSE_207 = new JsonObject(Objects.requireNonNull(getSampleFile("responses/singleRecordUpsertResponse207.json")));
 
   private static String getSampleFile(String filename) {
     try {
       return FileUtils.readFileToString(
               new File("src/test/resources/fixtures/" + filename), "UTF-8");
     } catch (IOException fnfe) {
-      ImportUnitTests.logger.error(fnfe.getMessage());
+      ImportTests.logger.error(fnfe.getMessage());
       return null;
     }
   }
@@ -87,12 +85,6 @@ public class Files {
 
   public static boolean arrayHasInt (int[] arr, int i) {
       return Arrays.stream(arr).anyMatch(v -> v == i);
-  }
-
-  public static String createCollectionOfOneInventoryXmlRecord(int hrid, String fakedResponseStatus) {
-      CollectionOfXmlRecords collection = new CollectionOfXmlRecords();
-      collection.addUpsertRecord(hrid, fakedResponseStatus);
-      return collection.asXmlString();
   }
 
   public static String createCollectionOfOneDeleteRecord(int hrid) {

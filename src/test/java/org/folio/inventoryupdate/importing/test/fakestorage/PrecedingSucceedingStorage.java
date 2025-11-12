@@ -1,7 +1,7 @@
 package org.folio.inventoryupdate.importing.test.fakestorage;
 
 import io.vertx.ext.web.RoutingContext;
-import org.folio.inventoryupdate.updating.test.fakestorage.entitites.InputInstanceTitleSuccession;
+import org.folio.inventoryupdate.importing.test.fakestorage.entities.InputInstanceTitleSuccession;
 
 public class PrecedingSucceedingStorage extends RecordStorage {
 

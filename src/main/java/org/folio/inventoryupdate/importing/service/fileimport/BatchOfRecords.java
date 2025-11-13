@@ -2,8 +2,8 @@ package org.folio.inventoryupdate.importing.service.fileimport;
 
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
-import org.folio.inventoryupdate.importing.foliodata.InventoryUpdateClient.UpdateResponse;
-import org.folio.inventoryupdate.importing.foliodata.InventoryUpdateClient;
+import org.folio.inventoryupdate.importing.service.fileimport.upsertclient.InventoryUpdateClient.UpdateResponse;
+import org.folio.inventoryupdate.importing.service.fileimport.upsertclient.InventoryUpdateClient;
 
 import java.util.ArrayList;
 

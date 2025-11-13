@@ -6,8 +6,8 @@ import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.RoutingContext;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.folio.inventoryupdate.importing.foliodata.InternalInventoryUpdateClient;
-import org.folio.inventoryupdate.importing.foliodata.InventoryUpdateClient;
+import org.folio.inventoryupdate.importing.service.fileimport.upsertclient.InternalInventoryUpdateClient;
+import org.folio.inventoryupdate.importing.service.fileimport.upsertclient.InventoryUpdateClient;
 import org.folio.inventoryupdate.importing.service.fileimport.reporting.InventoryMetrics;
 
 import java.util.ArrayList;

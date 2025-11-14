@@ -58,18 +58,14 @@ public class ImportTests extends InventoryUpdateTestBase {
   }
 
     @After
+    @Override
     public void cleanUp() {
       tenantOp(Service.TENANT, new JsonObject()
           .put("module_from", "mod-inventory-update-1.0.0")
           .put("purge", true), null);
       fakeFolioApis.configurationStorage.wipeMockRecords();
       fakeFolioApis.settingsStorage.wipeMockRecords();
-      fakeFolioApis.itemStorage.wipeMockRecords();
-      fakeFolioApis.holdingsStorage.wipeMockRecords();
-      fakeFolioApis.precedingSucceedingStorage.wipeMockRecords();
-      fakeFolioApis.instanceRelationshipStorage.wipeMockRecords();
-      fakeFolioApis.instanceStorage.wipeMockRecords();
-      fakeFolioApis.locationStorage.wipeMockRecords();
+      super.cleanUp();
     }
 
     void tenantOp(String tenant, JsonObject tenantAttributes, String expectedError) {

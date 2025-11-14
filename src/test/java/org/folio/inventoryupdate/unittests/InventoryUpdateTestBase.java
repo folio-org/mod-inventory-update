@@ -130,20 +130,16 @@ public abstract class InventoryUpdateTestBase {
 
   @After
   public void cleanUp() {
-    fakeFolioApis.configurationStorage.wipeMockRecords();
-    fakeFolioApis.settingsStorage.wipeMockRecords();
     fakeFolioApis.itemStorage.wipeMockRecords();
     fakeFolioApis.holdingsStorage.wipeMockRecords();
     fakeFolioApis.precedingSucceedingStorage.wipeMockRecords();
     fakeFolioApis.instanceRelationshipStorage.wipeMockRecords();
     fakeFolioApis.instanceStorage.wipeMockRecords();
     fakeFolioApis.locationStorage.wipeMockRecords();
-
   }
 
   @Test
   public void testHealthCheck() {
-    //RestAssured.port = PORT_INVENTORY_UPDATE;
     RestAssured.given()
         .baseUri(BASE_URI_INVENTORY_UPDATE)
         .header(OKAPI_URL_HEADER)

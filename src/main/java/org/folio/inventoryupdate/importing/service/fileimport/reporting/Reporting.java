@@ -44,7 +44,7 @@ public class Reporting {
 
     public void nowProcessing(String fileName) {
         try {
-            logger.info("Processing file " + fileName);
+            logger.info("Processing file {}", fileName);
             fileStats.put(new FileStats(fileName));
         } catch (InterruptedException ie) {
             logger.error("Initiation of file stats interrupted.");

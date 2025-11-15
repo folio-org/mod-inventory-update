@@ -79,7 +79,7 @@ public class XmlFileListener extends FileListener {
     }
 
     public File getNextFileIfPossible () {
-        if (fileProcessor != null && fileProcessor.resumeHaltedProcessing()) {
+        if (resumePromotedFile()) {
             return fileQueue.currentlyPromotedFile();
         } else {
             return fileQueue.nextFileIfPossible();

@@ -19,6 +19,7 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * File processing is made up of following components, listed in the order of processing
@@ -39,6 +40,7 @@ public class FileProcessor {
     final ModuleStorageAccess configStorage;
 
     private boolean paused = false;
+    private final AtomicBoolean resuming = new AtomicBoolean(false);
 
     public static final Logger logger = LogManager.getLogger("ImportJob");
 
@@ -126,18 +128,12 @@ public class FileProcessor {
         return promise.future();
     }
 
-    /**
-     * If there's a file in the processing slot but no activity in the inventory updater, the current job
-     * is assumed to be in a paused state, which could for example be due to a module restart.
-     * @return true if there's a file ostensibly processing but no activity detected in inventory updater
-     * for `idlingChecksThreshold` consecutive checks
-     */
-    public boolean resumeHaltedProcessing() {
-        return fileListener.processingSlotIsOccupied() && transformationPipeline.getUpdater().noPendingBatches(10);
-    }
-
     public boolean paused() {
         return paused;
+    }
+
+    public boolean isResuming(boolean newValue) {
+      return resuming.getAndSet(newValue);
     }
 
     public void pause() {
@@ -147,9 +143,18 @@ public class FileProcessor {
         reporting.reportFileStats();
     }
 
+    public void halt(String errorMessage) {
+        paused = true;
+        reporting.log(errorMessage);
+        importJob.logHalted(SettableClock.getLocalDateTime(), reporting.getRecordsProcessed(), configStorage);
+        reporting.reportFileStats();
+        reporting.reportFileQueueStats(true);
+    }
+
     public void resume() {
         importJob.logStatus(ImportJob.JobStatus.RUNNING,reporting.getRecordsProcessed(),configStorage);
         paused = false;
+        isResuming(true);
     }
 
     public ImportJob getImportJob() {

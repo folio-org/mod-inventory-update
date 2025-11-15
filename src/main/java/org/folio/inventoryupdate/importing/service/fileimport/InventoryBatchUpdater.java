@@ -13,7 +13,7 @@ import org.folio.inventoryupdate.importing.service.fileimport.reporting.Inventor
 import java.util.ArrayList;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.TimeUnit;
 
 public class InventoryBatchUpdater implements RecordReceiver {
 
@@ -26,7 +26,7 @@ public class InventoryBatchUpdater implements RecordReceiver {
 
     public InventoryBatchUpdater(RoutingContext routingContext) {
         updateClient = new InternalInventoryUpdateClient(routingContext.vertx(), routingContext);
-        batchNumber=1;
+        batchNumber=0L;
     }
 
     /**
@@ -43,26 +43,44 @@ public class InventoryBatchUpdater implements RecordReceiver {
             processingRecord.setBatchIndex(records.size());
             records.add(processingRecord);
             if (records.size() > 99 || processingRecord.isDeletion()) {
-                ArrayList<ProcessingRecord> copyOfRecords = new ArrayList<>(records);
-                records.clear();
-                releaseBatch(new BatchOfRecords(copyOfRecords, false, batchNumber++));
+              ArrayList<ProcessingRecord> copyOfRecords = new ArrayList<>(records);
+              records.clear();
+              if (!copyOfRecords.isEmpty()) batchNumber++;
+              if (fileProcessor.paused()) {
+                logger.info("Not releasing pending batch #{} because processing has been halted", batchNumber);
+              } else {
+                releaseBatch(new BatchOfRecords(copyOfRecords, false, batchNumber));
+              }
             }
         } else { // a null record is the end-of-file signal, forward remaining records if any
             ArrayList<ProcessingRecord> copyOfRecords = new ArrayList<>(records);
             records.clear();
-            releaseBatch(new BatchOfRecords(copyOfRecords, true, batchNumber++));
+            if (!copyOfRecords.isEmpty()) batchNumber++;
+            if (fileProcessor.paused()) {
+              logger.info("Skipping remaining pending batch ({} records) because processing has been halted", copyOfRecords.size());
+            } else {
+              releaseBatch(new BatchOfRecords(copyOfRecords, true, batchNumber));
+            }
         }
     }
 
     private void releaseBatch(BatchOfRecords batch) {
         if (!fileProcessor.paused()) {
-            turnstile.enterBatch(batch);
-            persistBatch().onFailure(na -> {
-                logger.error("Fatal error during upsert. Halting job. {}", na.getMessage());
-                fileProcessor.reporting.log("Fatal error during upsert. Halting job. " + na.getMessage());
+            if (turnstile.enterBatch(batch)) {
+              persistBatch().onFailure(na -> {
+                logger.error("Fatal error during upsert. Pausing file processor, skipping pending batches. {}", na.getMessage());
                 // Set job status to paused until resumed.
-                fileProcessor.pause();
-            }).onComplete(na -> turnstile.exitBatch());
+                fileProcessor.halt("Fatal error during upsert. Halting processing, skipping pending batches. " + na.getMessage());
+                turnstile.exitBatch();
+              }).onComplete(na -> turnstile.exitBatch());
+            } else {
+              turnstile.exitBatch();
+              logger.error("Something is blocking the process? Could not forward batch for upsert in 60 seconds.");
+            }
+        } else {
+          logger.info("Skipping through batch #{} because processing is halted.", batch.getBatchNumber());
+          turnstile.exitBatch();
+
         }
     }
 
@@ -80,9 +98,13 @@ public class InventoryBatchUpdater implements RecordReceiver {
     private Future<Void> persistBatch() {
         Promise<Void> promise = Promise.promise();
         BatchOfRecords batch = turnstile.viewCurrentBatch();
-        if (batch != null) {
+        if (fileProcessor.paused()) {
+          logger.info("The file processor is paused, skipping batch {}{}.",
+              (batch==null ? "null" : batch.getBatchNumber()),
+              (batch!=null && batch.size()==0 ? "+" : ""));
+          turnstile.exitBatch();
+        } else if (batch != null) {
           if (batch.size() > 0) {
-            logger.info("Persisting batch #{}, size {}", batch.getBatchNumber(), batch.size());
             updateClient.inventoryUpsert(batch.getUpsertRequestBody()).onSuccess(upsert -> {
                     if (upsert.statusCode() >= 400) {
                       logger.error("Fatal error when updating inventory, status code: {}", upsert.statusCode());
@@ -110,7 +132,7 @@ public class InventoryBatchUpdater implements RecordReceiver {
             } else if (batch.hasDeletingRecord()) {
                 // Delete and complete the promise
                 persistDeletion(batch, promise);
-            } else { // we get here when the last set of records has exactly 100. We just need to report
+            } else { // we get here when the last set of records had exactly 100. We just need to report
                 if (batch.isLastBatchOfFile()) {
                     reportEndOfFile();
                 }
@@ -153,34 +175,28 @@ public class InventoryBatchUpdater implements RecordReceiver {
         }
     }
 
-    public boolean noPendingBatches(int idlingChecksThreshold) {
-        return turnstile.isIdle(idlingChecksThreshold);
-    }
-
-
     /** Class wrapping a blocking queue of one, acting as a turnstile for batches in order to persist them one
      * at a time with no overlap. */
     private static class Turnstile {
 
         private final BlockingQueue<BatchOfRecords> gate = new ArrayBlockingQueue<>(1);
-        // Records the number of consecutive checks of whether the queue is idling.
-        private final AtomicInteger gateEmptyChecks = new AtomicInteger(0);
 
         /**
          * Puts batch in blocking queue-of-one; process waits if previous batch still in queue.
          */
-        private void enterBatch(BatchOfRecords batch) {
+        private boolean enterBatch(BatchOfRecords batch) {
             try {
-                gate.put(batch);
+                return gate.offer(batch,60, TimeUnit.SECONDS);
             } catch (InterruptedException ie) {
                 logger.error("Putting next batch in queue-of-one interrupted: {}", ie.getMessage());
                 Thread.currentThread().interrupt();
             }
+            return false;
         }
 
         private void exitBatch() {
             try {
-                gate.take();
+                gate.poll(10, TimeUnit.SECONDS);
             } catch (InterruptedException ie) {
                 logger.error("Taking batch from queue-of-one interrupted: {}", ie.getMessage());
                 Thread.currentThread().interrupt();
@@ -189,19 +205,6 @@ public class InventoryBatchUpdater implements RecordReceiver {
 
         private BatchOfRecords viewCurrentBatch() {
             return gate.peek();
-        }
-
-        private boolean isIdle(int idlingChecksThreshold) {
-            if (gate.isEmpty()) {
-                if (gateEmptyChecks.incrementAndGet() > idlingChecksThreshold) {
-                    logger.info("Batch turnstile has been idle for {} consecutive checks.", idlingChecksThreshold);
-                    gateEmptyChecks.set(0);
-                    return true;
-                }
-            } else {
-                gateEmptyChecks.set(0);
-            }
-            return false;
         }
 
     }

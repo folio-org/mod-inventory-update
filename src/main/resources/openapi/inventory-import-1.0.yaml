@@ -859,7 +859,7 @@ components:
             $ref: "#/components/schemas/transformation"
     transformation:
       type: object
-      description: >- 
+      description: >-
         A transformation pipeline configuration header that steps can be
         assigned to
       properties:
@@ -1187,7 +1187,7 @@ components:
           description: Then name for the transformation pipeline used for the job.
         status:
           type: string
-          description: The intermittent state of final outcome of the job.
+          description: The intermittent state or final outcome of the job.
         started:
           type: string
           description: Timestamp when the job started.

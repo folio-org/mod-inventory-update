@@ -21,7 +21,8 @@ public class ImportJob extends Entity {
     public enum JobStatus {
         RUNNING,
         DONE,
-        PAUSED
+        PAUSED,
+        HALTED
     }
 
     public ImportJob() {}
@@ -319,10 +320,31 @@ public class ImportJob extends Entity {
                         + " WHERE id = #{id}");
     }
 
+    public void logHalted(LocalDateTime halted, int recordCount, ModuleStorageAccess configStorage) {
+        setHalted(halted, recordCount);
+        configStorage.updateEntity(this,
+            "UPDATE " + configStorage.schema() + "." + table()
+                + " SET "
+                + dbColumnName(FINISHED) + " = TO_TIMESTAMP(#{" + dbColumnName(FINISHED) + "}, '" + DATE_FORMAT + "') "
+                + ", "
+                + dbColumnName(STATUS) + " = #{" + dbColumnName(STATUS) + "} "
+                + ", "
+                + dbColumnName(AMOUNT_HARVESTED) + " = #{" + dbColumnName(AMOUNT_HARVESTED) + "}"
+                + " WHERE id = #{id}");
+
+    }
+
     private void setFinished(LocalDateTime finished, int recordCount) {
         theRecord = new ImportJobRecord(theRecord.id, theRecord.importConfigId, theRecord.importConfigName, theRecord.importType,
                 theRecord.url, theRecord.allowErrors, theRecord.recordLimit, theRecord.batchSize, theRecord.transformation, theRecord.storage,
                 JobStatus.DONE, theRecord.started, finished.toString(), recordCount, theRecord.message);
+    }
+
+    private void setHalted(LocalDateTime finished, int recordCount) {
+      theRecord = new ImportJobRecord(theRecord.id, theRecord.importConfigId, theRecord.importConfigName, theRecord.importType,
+          theRecord.url, theRecord.allowErrors, theRecord.recordLimit, theRecord.batchSize, theRecord.transformation, theRecord.storage,
+          JobStatus.HALTED, theRecord.started, finished.toString(), recordCount, theRecord.message);
+
     }
 
     public void logStatus(JobStatus status, int recordCount, ModuleStorageAccess configStorage) {

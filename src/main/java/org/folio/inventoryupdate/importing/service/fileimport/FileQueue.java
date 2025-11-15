@@ -87,7 +87,12 @@ public class FileQueue {
         fs.deleteBlocking(file.getPath());
     }
 
-    public File nextFileIfPossible() {
+  /**
+   * Used for waiting for the current file to process before getting the next file (if any).
+   * @return null if there is already a file from the queue processing or if there are no more files in queue,
+   * otherwise returns the next file for processing.
+   */
+  public File nextFileIfPossible() {
          if (promoteNextFileIfPossible()) {
             return currentlyPromotedFile();
         }

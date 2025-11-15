@@ -31,8 +31,17 @@ public abstract class FileListener extends AbstractVerticle {
         return !fileQueue.hasNextFile();
     }
 
-    public boolean processingSlotIsOccupied() {
-        return fileQueue.processingSlotTaken();
+  /**
+   * If there is a file in the processing slot, then it would normally be a currently processing file that should be
+   * waited for to finish.
+   * However, if the process is newly activated or is a resumption of a paused job, then it is assumed that this file
+   * is from a past, interrupted run and that it should be re-processed.
+   * @return true if there is file from a past run that was promoted for processing but didn't finish, false if the file is
+   * already being processed by the currently running job and should be waited for, as is normally the case.
+   */
+  public boolean resumePromotedFile() {
+      return (fileQueue.processingSlotTaken() &&
+        fileQueueIsPassive() || (fileProcessor != null && fileProcessor.isResuming(false)));
     }
 
 }

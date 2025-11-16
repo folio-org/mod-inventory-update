@@ -362,21 +362,14 @@ paths:
         "500":
           $ref: "#/components/responses/trait_500"
 
-  /inventory-import/import-jobs/{id}/failed-records:
+  /inventory-import/failed-records:
     parameters:
       - $ref: "#/components/parameters/okapi_tenant"
       - $ref: "#/components/parameters/okapi_token"
       - $ref: "#/components/parameters/okapi_url"
-      - in: path
-        name: id
-        required: true
-        description: Import job identifier
-        schema:
-          type: string
-          format: uuid
     get:
-      operationId: getFailedRecordsForJob
-      description: Retrieves the failed records of an import job
+      operationId: getFailedRecords
+      description: Retrieves failed records for import jobs
       parameters:
         - in: query
           name: from
@@ -419,7 +412,7 @@ paths:
 
     post:
       description: Create failed record samples without running a job, for example to import from another FOLIO instance.
-      operationId: postFailedRecordsForJob
+      operationId: postFailedRecords
       requestBody:
         content:
           application/json:
@@ -449,7 +442,7 @@ paths:
             type: string
             format: uuid
       operationId: deleteRecordFailure
-      description: Delete a past import job with all its logs
+      description: Delete a failed record entry
       responses:
         "200":
           description: Record failure deleted

@@ -17,6 +17,7 @@ public class Service {
     public static final String PATH_TSAS = "inventory-import/tsas";
     public static final String PATH_IMPORT_CONFIGS = "inventory-import/import-configs";
     public static final String PATH_IMPORT_JOBS = "inventory-import/import-jobs";
+    public static final String PATH_FAILED_RECORDS = "inventory-import/failed-records";
     public static final String BASE_PATH_IMPORT_XML = "inventory-import/import-configs/xml-bulk";
     public static final Header OKAPI_TOKEN = new Header(XOkapiHeaders.TOKEN,"eyJhbGciOiJIUzUxMiJ9eyJzdWIiOiJhZG1pbiIsInVzZXJfaWQiOiI3OWZmMmE4Yi1kOWMzLTViMzktYWQ0YS0wYTg0MDI1YWIwODUiLCJ0ZW5hbnQiOiJ0ZXN0X3RlbmFudCJ9BShwfHcNClt5ZXJ8ImQTMQtAM1sQEnhsfWNmXGsYVDpuaDN3RVQ9");
 }

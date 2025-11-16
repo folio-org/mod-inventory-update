@@ -644,9 +644,8 @@ public class ImportTests extends InventoryUpdateTestBase {
         postJsonObject(Service.PATH_TRANSFORMATIONS, Files.JSON_TRANSFORMATION_CONFIG);
         postJsonObject(Service.PATH_IMPORT_CONFIGS, Files.JSON_IMPORT_CONFIG);
         postJsonObject(Service.PATH_IMPORT_JOBS, Files.JSON_IMPORT_JOB);
-        postJsonObject(Service.PATH_IMPORT_JOBS + "/" + Files.JSON_IMPORT_JOB.getString("id") + "/failed-records", Files.JSON_FAILED_RECORDS);
-        getRecords(Service.PATH_IMPORT_JOBS + "/" + Files.JSON_IMPORT_JOB.getString("id") + "/failed-records")
-                .body("totalRecords", is(5));
+        postJsonObject(Service.PATH_FAILED_RECORDS, Files.JSON_FAILED_RECORDS);
+        getRecords(Service.PATH_FAILED_RECORDS).body("totalRecords", is(5));
     }
 
     @Test
@@ -889,7 +888,7 @@ public class ImportTests extends InventoryUpdateTestBase {
         String started = getRecordById(Service.PATH_IMPORT_JOBS, jobId).extract().path("started");
         await().until(() -> getRecordById(Service.PATH_IMPORT_JOBS, jobId).extract().path("finished"), greaterThan(started));
         await().until(() ->  getTotalRecords(Service.PATH_IMPORT_JOBS + "/log"), is(4));
-        await().until(() -> getTotalRecords(Service.PATH_IMPORT_JOBS + "/" + jobId + "/failed-records"), is(2));
+        await().until(() -> getTotalRecords(Service.PATH_FAILED_RECORDS), is(2));
     }
 
     @Test

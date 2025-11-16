@@ -96,8 +96,8 @@ public class ImportService implements RouterCreator, TenantInitHooks {
         validatingHandler(vertx, routerBuilder, "deleteImportJob", this::deleteImportJob);
         nonValidatingHandler(vertx, routerBuilder, "postImportJobLogLines", this::postLogStatements);
         nonValidatingHandler(vertx, routerBuilder, "getImportJobLogLines", this::getLogStatements);
-        validatingHandler(vertx, routerBuilder, "getFailedRecordsForJob", this::getFailedRecords);
-        validatingHandler(vertx, routerBuilder, "postFailedRecordsForJob", this::postFailedRecordsForJob);
+        validatingHandler(vertx, routerBuilder, "getFailedRecords", this::getFailedRecords);
+        validatingHandler(vertx, routerBuilder, "postFailedRecords", this::postFailedRecords);
         validatingHandler(vertx, routerBuilder, "deleteRecordFailure", this::deleteRecordFailure);
         // Processing
         validatingHandler(vertx, routerBuilder, "purgeAgedLogs", this::purgeAgedLogs);
@@ -460,7 +460,7 @@ public class ImportService implements RouterCreator, TenantInitHooks {
     }
 
 
-    private Future<Void> postFailedRecordsForJob(ServiceRequest request) {
+    private Future<Void> postFailedRecords(ServiceRequest request) {
         JsonArray recs = request.bodyAsJson().getJsonArray(new RecordFailure().jsonCollectionName());
         List<Entity> failedRecs = new ArrayList<>();
         for (Object o : recs) {

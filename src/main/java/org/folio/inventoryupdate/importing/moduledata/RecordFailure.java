@@ -135,6 +135,7 @@ public class RecordFailure extends Entity {
         PgCqlDefinition pgCqlDefinition = PgCqlDefinition.create();
         pgCqlDefinition.addField("cql.allRecords", new PgCqlFieldAlwaysMatches());
         pgCqlDefinition.addField("recordNumber", new PgCqlFieldText().withExact().withLikeOps());
+        pgCqlDefinition.addField("importJobId", new PgCqlFieldUuid());
         pgCqlDefinition.addField("importConfigId", new PgCqlFieldUuid());
         pgCqlDefinition.addField(
                 "importConfigName", new PgCqlFieldText().withExact().withLikeOps().withFullText());

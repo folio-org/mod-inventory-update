@@ -347,12 +347,12 @@
           "permissionsRequired": ["inventory-import.import-jobs.item.delete"]
         },{
           "methods": ["GET"],
-          "pathPattern": "/inventory-import/import-jobs/{id}/log",
-          "permissionsRequired": ["inventory-import.import-jobs.log.get"]
+          "pathPattern": "/inventory-import/job-logs",
+          "permissionsRequired": ["inventory-import.job-logs.collection.get"]
         },{
           "methods": ["POST"],
-          "pathPattern": "/inventory-import/import-jobs/{id}/log",
-          "permissionsRequired": ["inventory-import.import-jobs.log.post"]
+          "pathPattern": "/inventory-import/job-logs",
+          "permissionsRequired": ["inventory-import.job-logs.collection.post"]
         },{
           "methods": ["GET"],
           "pathPattern": "/inventory-import/failed-records",
@@ -438,33 +438,21 @@
           "permissionsRequired": []
         }, {
           "methods": ["POST"],
-          "pathPattern": "/inventory-import/import-configs/xml-bulk/{id}/import",
-          "permissionsRequired": [],
-          "modulePermissions": [
-            "inventory-update.batch-by-hrid.collection.put"
-          ]
+          "pathPattern": "/inventory-import/import-configs/{id}/import",
+          "permissionsRequired": []
         },  {
           "methods": ["GET"],
-          "pathPattern": "/inventory-import/import-configs/xml-bulk/{id}/activate",
-          "permissionsRequired": [],
-          "modulePermissions": [
-            "inventory-update.batch-by-hrid.collection.put"
-          ]
+          "pathPattern": "/inventory-import/import-configs/{id}/activate",
+          "permissionsRequired": []
         }, {
           "methods": ["GET"],
-          "pathPattern": "/inventory-import/import-configs/xml-bulk/{id}/pause",
-          "permissionsRequired": [],
-          "modulePermissions": [
-            "inventory-update.batch-by-hrid.collection.put"
-          ]
+          "pathPattern": "/inventory-import/import-configs/{id}/pause",
+          "permissionsRequired": []
         },
         {
           "methods": ["GET"],
-          "pathPattern": "/inventory-import/import-configs/xml-bulk/{id}/resume",
-          "permissionsRequired": [],
-          "modulePermissions": [
-            "inventory-update.batch-by-hrid.collection.put"
-          ]
+          "pathPattern": "/inventory-import/import-configs/{id}/resume",
+          "permissionsRequired": []
         }, {
           "methods": ["GET"],
           "pathPattern": "/inventory-import/tsas",
@@ -662,10 +650,10 @@
       "permissionName": "inventory-import.import-jobs.item.delete"
     },
     {
-      "permissionName": "inventory-import.import-jobs.log.get"
+      "permissionName": "inventory-import.job-logs.collection.get"
     },
     {
-      "permissionName": "inventory-import.import-jobs.log.post"
+      "permissionName": "inventory-import.job-logs.collection.post"
     },
     {
       "permissionName": "inventory-import.failed-records.collection.get"
@@ -752,16 +740,14 @@
         "inventory-import.transformations-steps.item.delete",
         "inventory-import.run-jobs",
         "inventory-import.stop-jobs",
-        "inventory-import.import-configs.log.get",
-        "inventory-import.import-jobs.log.store",
+        "inventory-import.job-logs.collection.get",
         "inventory-import.failed-records.collection.get",
         "inventory-import.failed-records.item.get",
         "inventory-import.import-jobs.collection.get",
         "inventory-import.import-jobs.item.get",
         "inventory-import.import-jobs.item.post",
         "inventory-import.import-jobs.item.delete",
-        "inventory-import.import-jobs.log.get",
-        "inventory-import.import-jobs.log.post",
+        "inventory-import.job-logs.collection.post",
         "inventory-import.failed-records.collection.post",
         "mod-settings.global.read.mod-inventory-update",
         "mod-settings.global.write.mod-inventory-update"

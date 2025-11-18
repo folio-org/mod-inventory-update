@@ -439,11 +439,17 @@
         }, {
           "methods": ["POST"],
           "pathPattern": "/inventory-import/import-configs/{id}/import",
-          "permissionsRequired": []
+          "permissionsRequired": [],
+          "modulePermissions": [
+            "modperms.inventory-update.import"
+          ]
         },  {
           "methods": ["GET"],
           "pathPattern": "/inventory-import/import-configs/{id}/activate",
-          "permissionsRequired": []
+          "permissionsRequired": [],
+          "modulePermissions": [
+            "modperms.inventory-update.import"
+          ]
         }, {
           "methods": ["GET"],
           "pathPattern": "/inventory-import/import-configs/{id}/pause",
@@ -452,7 +458,11 @@
         {
           "methods": ["GET"],
           "pathPattern": "/inventory-import/import-configs/{id}/resume",
-          "permissionsRequired": []
+          "permissionsRequired": [],
+          "modulePermissions": [
+            "modperms.inventory-update.import"
+          ]
+
         }, {
           "methods": ["GET"],
           "pathPattern": "/inventory-import/tsas",
@@ -662,21 +672,10 @@
       "permissionName": "inventory-import.failed-records.collection.post"
     },
     {
-      "permissionName": "inventory-import.run-jobs",
-      "displayName": "import admin - run import jobs",
-      "description": "start individual harvesting jobs"
-    },
-    {
-      "permissionName": "inventory-import.stop-jobs",
-      "displayName": "import admin - stop import jobs",
-      "description": "stop individual harvesting jobs"
-    },
-    {
       "permissionName": "mod-settings.global.read.mod-inventory-update",
       "displayName": "import admin settings - Read configuration",
       "description": "To read the configuration from mod settings."
     },
-
     {
       "permissionName": "inventory-import.delete-all",
       "displayName": "import admin - delete all configurations of given types",
@@ -699,7 +698,45 @@
       "displayName": "Settings (import admin): write import admin settings",
       "visible": false
     },
-
+    {
+      "permissionName": "modperms.inventory-update.import",
+      "displayName" : "module permissions for import operations",
+      "description" : "to reduce X-Okapi-Token size",
+      "subPermissions": [
+        "inventory-storage.items.collection.get",
+        "inventory-storage.items.item.get",
+        "inventory-storage.items.item.post",
+        "inventory-storage.items.item.put",
+        "inventory-storage.items.item.delete",
+        "inventory-storage.items.batch.post",
+        "inventory-storage.holdings.collection.get",
+        "inventory-storage.holdings.item.get",
+        "inventory-storage.holdings.item.post",
+        "inventory-storage.holdings.item.put",
+        "inventory-storage.holdings.item.delete",
+        "inventory-storage.holdings.batch.post",
+        "inventory-storage.instances.collection.get",
+        "inventory-storage.instances.item.get",
+        "inventory-storage.instances.item.post",
+        "inventory-storage.instances.item.put",
+        "inventory-storage.instances.item.delete",
+        "inventory-storage.instances.batch.post",
+        "inventory-storage.locations.collection.get",
+        "inventory-storage.locations.item.get",
+        "inventory-storage.preceding-succeeding-titles.collection.get",
+        "inventory-storage.preceding-succeeding-titles.item.get",
+        "inventory-storage.preceding-succeeding-titles.item.post",
+        "inventory-storage.preceding-succeeding-titles.item.put",
+        "inventory-storage.preceding-succeeding-titles.item.delete",
+        "inventory-storage.instances.preceding-succeeding-titles.collection.put",
+        "inventory-storage.instance-relationships.collection.get",
+        "inventory-storage.instance-relationships.item.post",
+        "inventory-storage.instance-relationships.item.get",
+        "inventory-storage.instance-relationships.item.put",
+        "inventory-storage.instance-relationships.item.delete",
+        "inventory-storage.inventory-view.instance-set.get"
+      ]
+    },
     {
       "permissionName": "inventory-update.all",
       "displayName": "inventory Update module - all permissions",

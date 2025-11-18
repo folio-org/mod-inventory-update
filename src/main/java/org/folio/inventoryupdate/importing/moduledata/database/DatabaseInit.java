@@ -74,7 +74,8 @@ public class DatabaseInit {
                 + "          rf.time_stamp AS time_stamp, "
                 + "          rf.record_errors AS record_errors, "
                 + "          rf.original_record AS original_record, "
-                + "          rf.transformed_record AS transformed_record "
+                + "          rf.transformed_record AS transformed_record, "
+                + "          rf.source_file_name as source_file_name "
                 + "  FROM " + schema + "." + Tables.RECORD_FAILURE + " AS rf, "
                 + "       " + schema + "." + Tables.IMPORT_JOB + " as ij "
                 + "  WHERE rf.import_job_id = ij.id";

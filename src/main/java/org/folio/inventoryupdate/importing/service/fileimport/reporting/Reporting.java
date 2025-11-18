@@ -137,8 +137,9 @@ public class Reporting {
                                     error.getJsonObject("message", new JsonObject())
                                         .getJsonArray("errors",
                                             new JsonArray().add(new JsonObject().put("message","Error message from storage missing or format unrecognized."))),
-                                    error.getJsonObject("requestJson"))
-                            ).collect(Collectors.toList()));
+                                    error.getJsonObject("requestJson"),
+                                    fileStats.peek() == null ? null : fileStats.peek().getFileName()
+                            )).collect(Collectors.toList()));
         } catch (Exception e) {
             logger.error("Exception storing failed records: {} {}.", e.getMessage(), Arrays.toString(e.getStackTrace()));
             return Future.failedFuture("Exception storing failed records: " + e.getMessage());

@@ -20,12 +20,15 @@ public class RecordFailure extends Entity {
 
     @SuppressWarnings("java:S107") // too many parameters, ignore for entity constructors
     public RecordFailure(UUID id, UUID importJobId, UUID importConfigId, String importConfigName, String recordNumber,
-                         String timeStamp, String originalRecord, JsonArray recordErrors, JsonObject transformedRecord) {
-        theRecord = new FailedRecord(id, importJobId, importConfigId, importConfigName, recordNumber, timeStamp, originalRecord, recordErrors, transformedRecord);
+                         String timeStamp, String originalRecord, JsonArray recordErrors, JsonObject transformedRecord,
+                         String sourceFileName) {
+        theRecord = new FailedRecord(id, importJobId, importConfigId, importConfigName, recordNumber, timeStamp,
+            originalRecord, recordErrors, transformedRecord, sourceFileName);
     }
     FailedRecord theRecord;
     public record FailedRecord(UUID id, UUID importJobId, UUID importConfigId, String importConfigName, String recordNumber,
-                               String timeStamp, String originalRecord, JsonArray recordErrors, JsonObject transformedRecord) {}
+                               String timeStamp, String originalRecord, JsonArray recordErrors, JsonObject transformedRecord,
+                               String sourceFileName) {}
 
     private static final Map<String, Field> FIELDS = new HashMap<>();
 
@@ -38,6 +41,7 @@ public class RecordFailure extends Entity {
     public static final String ORIGINAL_RECORD = "ORIGINAL_RECORD";
     public static final String RECORD_ERRORS = "RECORD_ERRORS";
     public static final String TRANSFORMED_RECORD = "TRANSFORMED_RECORD";
+    public static final String SOURCE_FILE_NAME = "SOURCE_FILE_NAME";
 
     static {
         FIELDS.put(ID, new Field("id", "id", PgColumn.Type.UUID, false, true, true));
@@ -49,6 +53,7 @@ public class RecordFailure extends Entity {
         FIELDS.put(ORIGINAL_RECORD, new Field("originalRecord", "original_record", PgColumn.Type.TEXT, false, false));
         FIELDS.put(RECORD_ERRORS, new Field("recordErrors", "record_errors", PgColumn.Type.JSONB, false, false));
         FIELDS.put(TRANSFORMED_RECORD, new Field("transformedRecord", "transformed_record", PgColumn.Type.JSONB, false, false));
+        FIELDS.put(SOURCE_FILE_NAME, new Field("sourceFileName", "source_file_name", PgColumn.Type.TEXT, true, true));
     }
 
     /**
@@ -87,7 +92,8 @@ public class RecordFailure extends Entity {
                 row.getLocalDateTime(dbColumnName(TIME_STAMP)).toString(),
                 row.getString(dbColumnName(ORIGINAL_RECORD)),
                 row.getJsonArray(dbColumnName(RECORD_ERRORS)),
-                row.getJsonObject(dbColumnName(TRANSFORMED_RECORD)));
+                row.getJsonObject(dbColumnName(TRANSFORMED_RECORD)),
+                row.getString(dbColumnName(SOURCE_FILE_NAME)));
     }
 
     @Override
@@ -100,7 +106,8 @@ public class RecordFailure extends Entity {
                 + dbColumnName(TIME_STAMP) + ", "
                 + dbColumnName(RECORD_ERRORS) + ", "
                 + dbColumnName(ORIGINAL_RECORD) + ", "
-                + dbColumnName(TRANSFORMED_RECORD)
+                + dbColumnName(TRANSFORMED_RECORD) + ", "
+                + dbColumnName(SOURCE_FILE_NAME)
                 + ")"
                 + " VALUES ("
                 + "#{" + dbColumnName(ID) + "}, "
@@ -109,7 +116,8 @@ public class RecordFailure extends Entity {
                 + "TO_TIMESTAMP(#{" + dbColumnName(TIME_STAMP) + "},'" + DATE_FORMAT + "'), "
                 + "#{" + dbColumnName(RECORD_ERRORS) + "}, "
                 + "#{" + dbColumnName(ORIGINAL_RECORD) + "}, "
-                + "#{" + dbColumnName(TRANSFORMED_RECORD) + "}"
+                + "#{" + dbColumnName(TRANSFORMED_RECORD) + "}, "
+                + "#{" + dbColumnName(SOURCE_FILE_NAME) + "}"
                 + ")";
     }
 
@@ -126,6 +134,7 @@ public class RecordFailure extends Entity {
                     parameters.put(dbColumnName(ORIGINAL_RECORD), rec.originalRecord);
                     parameters.put(dbColumnName(TRANSFORMED_RECORD), rec.transformedRecord);
                     parameters.put(dbColumnName(RECORD_ERRORS), rec.recordErrors);
+                    parameters.put(dbColumnName(SOURCE_FILE_NAME), rec.sourceFileName);
                     return parameters;
                 });
     }
@@ -140,6 +149,7 @@ public class RecordFailure extends Entity {
         pgCqlDefinition.addField(
                 "importConfigName", new PgCqlFieldText().withExact().withLikeOps().withFullText());
         pgCqlDefinition.addField("timeStamp", new PgCqlFieldTimestamp());
+        pgCqlDefinition.addField("sourceFileName", new PgCqlFieldText().withExact().withLikeOps().withFullText());
         return pgCqlDefinition;
     }
 
@@ -180,7 +190,8 @@ public class RecordFailure extends Entity {
                 json.getString(jsonPropertyName(TIME_STAMP)),
                 json.getString(jsonPropertyName(ORIGINAL_RECORD)),
                 json.getJsonArray(jsonPropertyName(RECORD_ERRORS)),
-                json.getJsonObject(jsonPropertyName(TRANSFORMED_RECORD))
+                json.getJsonObject(jsonPropertyName(TRANSFORMED_RECORD)),
+                json.getString(jsonPropertyName(SOURCE_FILE_NAME))
         );
     }
 
@@ -195,6 +206,7 @@ public class RecordFailure extends Entity {
         json.put(jsonPropertyName(VIEW_IMPORT_CONFIG_NAME), theRecord.importConfigName);
         json.put(jsonPropertyName(RECORD_NUMBER), theRecord.recordNumber);
         json.put(jsonPropertyName(TIME_STAMP), theRecord.timeStamp);
+        json.put(jsonPropertyName(SOURCE_FILE_NAME), theRecord.sourceFileName);
         json.put(jsonPropertyName(RECORD_ERRORS), theRecord.recordErrors);
         json.put(jsonPropertyName(ORIGINAL_RECORD), theRecord.originalRecord);
         json.put(jsonPropertyName(TRANSFORMED_RECORD), theRecord.transformedRecord);
@@ -212,9 +224,10 @@ public class RecordFailure extends Entity {
                 + pool.getSchema() + "." + Tables.IMPORT_JOB + "(" + new ImportJob().dbColumnName(ID) + "), "
                 + dbColumnNameAndType(RECORD_NUMBER) + ", "
                 + dbColumnNameAndType(TIME_STAMP) + ", "
+                + dbColumnNameAndType(SOURCE_FILE_NAME) + ", "
                 + dbColumnNameAndType(RECORD_ERRORS) + " NOT NULL, "
                 + dbColumnNameAndType(ORIGINAL_RECORD) + " NOT NULL, "
-                + dbColumnNameAndType(TRANSFORMED_RECORD) + " NOT NULL"
+                + dbColumnNameAndType(TRANSFORMED_RECORD) + " NOT NULL "
                 + ")",
 
                 "CREATE INDEX IF NOT EXISTS record_failure_import_job_id_idx "

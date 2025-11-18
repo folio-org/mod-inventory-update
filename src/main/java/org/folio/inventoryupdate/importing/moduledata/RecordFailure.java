@@ -206,10 +206,10 @@ public class RecordFailure extends Entity {
         json.put(jsonPropertyName(VIEW_IMPORT_CONFIG_NAME), theRecord.importConfigName);
         json.put(jsonPropertyName(RECORD_NUMBER), theRecord.recordNumber);
         json.put(jsonPropertyName(TIME_STAMP), theRecord.timeStamp);
+        json.put(jsonPropertyName(SOURCE_FILE_NAME), theRecord.sourceFileName);
         json.put(jsonPropertyName(RECORD_ERRORS), theRecord.recordErrors);
         json.put(jsonPropertyName(ORIGINAL_RECORD), theRecord.originalRecord);
         json.put(jsonPropertyName(TRANSFORMED_RECORD), theRecord.transformedRecord);
-        json.put(jsonPropertyName(SOURCE_FILE_NAME), theRecord.sourceFileName);
         return json;
     }
 
@@ -224,10 +224,10 @@ public class RecordFailure extends Entity {
                 + pool.getSchema() + "." + Tables.IMPORT_JOB + "(" + new ImportJob().dbColumnName(ID) + "), "
                 + dbColumnNameAndType(RECORD_NUMBER) + ", "
                 + dbColumnNameAndType(TIME_STAMP) + ", "
+                + dbColumnNameAndType(SOURCE_FILE_NAME) + ", "
                 + dbColumnNameAndType(RECORD_ERRORS) + " NOT NULL, "
                 + dbColumnNameAndType(ORIGINAL_RECORD) + " NOT NULL, "
-                + dbColumnNameAndType(TRANSFORMED_RECORD) + " NOT NULL, "
-                + dbColumnNameAndType(SOURCE_FILE_NAME) + " "
+                + dbColumnNameAndType(TRANSFORMED_RECORD) + " NOT NULL "
                 + ")",
 
                 "CREATE INDEX IF NOT EXISTS record_failure_import_job_id_idx "

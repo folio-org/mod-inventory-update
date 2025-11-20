@@ -1,6 +1,7 @@
 package org.folio.inventoryupdate.importing.service.fileimport;
 
 import io.vertx.core.buffer.Buffer;
+import io.vertx.core.file.CopyOptions;
 import io.vertx.core.file.FileSystem;
 import org.folio.inventoryupdate.importing.service.ServiceRequest;
 
@@ -33,13 +34,15 @@ public class FileQueue {
     }
 
     /**
-     * Creates a new file in the staging directory for the given job configuration.
+     * Creates a new file in the staging directory for the given job configuration. If a file with the same name
+     * already exists in staging, the existing file is replaced with the new one.
      * @param fileName The name of the file to stage.
      * @param file The file contents.
      */
     public void addNewFile(String fileName, Buffer file) {
         fs.writeFileBlocking(jobPath + "/tmp/" + fileName, file)
-                .moveBlocking(jobPath+"/tmp/"+fileName, jobPath+"/"+fileName);
+            .move(jobPath+"/tmp/"+fileName, jobPath+"/"+fileName,
+                new CopyOptions().setReplaceExisting(true));
     }
 
     /**

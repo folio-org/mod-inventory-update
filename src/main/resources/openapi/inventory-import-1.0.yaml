@@ -121,6 +121,12 @@ paths:
         description: Import configuration identifier (UUID)
         schema:
           type: string
+      - in: query
+        name: filename
+        required: false
+        description: Name of the file to be shown in log statements or failed records. If not provided, a random file name is assigned.
+        schema:
+          type: string
     post:
       operationId: importXmlRecords
       description: Load XML document using given import configuration

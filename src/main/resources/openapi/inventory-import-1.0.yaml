@@ -217,6 +217,29 @@ paths:
         "500":
           $ref: "#/components/responses/trait_500"
 
+  /inventory-import/import-configs/{id}/init-queue:
+    parameters:
+      - $ref: "#/components/parameters/okapi_tenant"
+      - $ref: "#/components/parameters/okapi_token"
+      - $ref: "#/components/parameters/okapi_url"
+      - in: path
+        name: id
+        required: true
+        description: Import configuration identifier (UUID)
+        schema:
+          type: string
+    get:
+      operationId: initFileSystemQueue
+      description: create new file system queue or delete all sources files from an existing queue for the given import configuration
+      responses:
+        "200":
+          description: All files deleted from the queue
+        "400":
+          $ref: "#/components/responses/trait_400"
+        "404":
+          $ref: "#/components/responses/trait_404"
+        "500":
+          $ref: "#/components/responses/trait_500"
 
   /inventory-import/import-jobs:
     parameters:
@@ -948,20 +971,6 @@ components:
       type: object
       description: 'Transformation step script (xslt as plain text)'
       additionalProperties: true
-    sourceRecords:
-      type: object
-      description: A collection of XML source records
-      properties:
-        collection:
-          type: object
-          description: A batch of XML records
-          properties:
-            record:
-              type: array
-              items:
-                description: XML records to be transformed
-                type: object
-              additionalProperties: true
     transformationStepAssociations:
       type: object
       description: Transformation/step associations

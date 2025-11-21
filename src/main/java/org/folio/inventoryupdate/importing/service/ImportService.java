@@ -105,6 +105,7 @@ public class ImportService implements RouterCreator, TenantInitHooks {
         validatingHandler(vertx, routerBuilder, "startFileListener", this::activateFileListener);
         validatingHandler(vertx, routerBuilder, "pauseImport", this::pauseImportJob);
         validatingHandler(vertx, routerBuilder, "resumeImport", this::resumeImportJob);
+        validatingHandler(vertx, routerBuilder, "initFileSystemQueue", this::initFileSystemQueue);
     }
 
     private void validatingHandler(Vertx vertx, RouterBuilder routerBuilder, String operation,
@@ -722,6 +723,21 @@ public class ImportService implements RouterCreator, TenantInitHooks {
         }
         return Future.succeededFuture();
 
+    }
+
+    private Future<Void> initFileSystemQueue(ServiceRequest request) {
+      Promise<String> promise = Promise.promise();
+      String importConfigId = request.requestParam("id");
+      request.moduleStorageAccess().getEntity(UUID.fromString(importConfigId), new ImportConfig())
+          .onSuccess(cfg -> {
+            if (cfg != null) {
+              String initMessage = new FileQueue(request, importConfigId).initializeQueue();
+              responseText(request.routingContext(), 200).end(initMessage);
+            } else {
+              promise.fail("Could not find import config with id [" + importConfigId + "].");
+            }
+          }).mapEmpty();
+      return Future.succeededFuture();
     }
 
 

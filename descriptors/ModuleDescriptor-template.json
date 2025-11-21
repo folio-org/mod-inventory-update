@@ -462,8 +462,13 @@
           "modulePermissions": [
             "modperms.inventory-update.import"
           ]
-
-        }, {
+        },
+        {
+          "pathPattern": "/inventory-import/import-configs/{id}/init-queue",
+          "methods": ["GET"],
+          "permissionsRequired": []
+        },
+        {
           "methods": ["GET"],
           "pathPattern": "/inventory-import/tsas",
           "permissionsRequired": ["inventory-import.transformations-steps.collection.get"]

@@ -10,8 +10,9 @@ import java.util.*;
 
 public class FileQueue {
 
-    public static final String SOURCE_FILES_ROOT_DIR = "source-files";
-    public static final String HARVEST_JOB_FILE_PROCESSING_DIR = "processing";
+    public static final String SOURCE_FILES_ROOT_DIR = "FS_QUEUE";
+    public static final String HARVEST_JOB_FILE_PROCESSING_DIR = ".processing";
+    public static final String TMP_DIR = ".tmp";
     private final String jobPath;
     private final String pathToProcessingSlot;
     private final FileSystem fs;
@@ -19,18 +20,40 @@ public class FileQueue {
     public FileQueue(ServiceRequest request, String jobConfigId) {
         this.fs = request.vertx().fileSystem();
         String sourceFilesRootDir = SOURCE_FILES_ROOT_DIR;
-        String tenantRootDir = sourceFilesRootDir + "/" + request.tenant();
+        String tenantRootDir = sourceFilesRootDir + "/TENANT_" + request.tenant();
         if (!fs.existsBlocking(sourceFilesRootDir)) {
             fs.mkdirBlocking(sourceFilesRootDir);
         }
         if (!fs.existsBlocking(tenantRootDir)) {
             fs.mkdirBlocking(tenantRootDir);
         }
-        jobPath = new File(tenantRootDir, jobConfigId).getPath();
+        jobPath = new File(tenantRootDir, "IMPORT_"+jobConfigId).getPath();
         pathToProcessingSlot = new File(jobPath, HARVEST_JOB_FILE_PROCESSING_DIR).getPath();
-        if (! fs.existsBlocking(jobPath)) {
-            fs.mkdirsBlocking(pathToProcessingSlot).mkdirBlocking(jobPath + "/tmp");
-        }
+        createImportConfigDirectories();
+    }
+
+    private void createImportConfigDirectories () {
+      if (! fs.existsBlocking(jobPath)) {
+        fs.mkdirsBlocking(pathToProcessingSlot).mkdirBlocking(jobPath + "/" + TMP_DIR);
+      }
+    }
+
+  /**
+   * Create system directories for a source file queue for this import configuration. If the directories
+   * already exist with source files in them, initializing the queue will remove all the source files, thereby
+   * resetting the queue to empty.
+   * @return Message describing the action taken.
+   */
+  public String initializeQueue() {
+      int filesInQueueBefore = fs.readDirBlocking(jobPath).size();
+      fs.deleteRecursiveBlocking(jobPath);
+      createImportConfigDirectories();
+      int filesInQueueAfter = fs.readDirBlocking(jobPath).size();
+      if (filesInQueueBefore>filesInQueueAfter) {
+        return "Deleted " + (filesInQueueBefore-filesInQueueAfter) + " source files from the queue at " + jobPath;
+      } else {
+        return "Initialized file system queue at " + jobPath;
+      }
     }
 
     /**
@@ -40,8 +63,8 @@ public class FileQueue {
      * @param file The file contents.
      */
     public void addNewFile(String fileName, Buffer file) {
-        fs.writeFileBlocking(jobPath + "/tmp/" + fileName, file)
-            .move(jobPath+"/tmp/"+fileName, jobPath+"/"+fileName,
+        fs.writeFileBlocking(jobPath + "/"+ TMP_DIR + "/" + fileName, file)
+            .move(jobPath+"/"+ TMP_DIR + "/"+fileName, jobPath+"/"+fileName,
                 new CopyOptions().setReplaceExisting(true));
     }
 

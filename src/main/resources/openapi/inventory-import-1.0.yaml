@@ -156,7 +156,7 @@ paths:
         description: Import configuration identifier (UUID)
         schema:
           type: string
-    get:
+    post:
       operationId: startFileListener
       description: start verticle for given config ID that listens for incoming source records
       responses:
@@ -180,7 +180,7 @@ paths:
         description: Import configuration identifier (UUID)
         schema:
           type: string
-    get:
+    post:
       operationId: pauseImport
       description: stop file listening for given config ID
       responses:
@@ -204,7 +204,7 @@ paths:
         description: Import configuration identifier (UUID)
         schema:
           type: string
-    get:
+    post:
       operationId: resumeImport
       description: resume file listening for given config ID
       responses:
@@ -228,7 +228,7 @@ paths:
         description: Import configuration identifier (UUID)
         schema:
           type: string
-    get:
+    post:
       operationId: initFileSystemQueue
       description: create new file system queue or delete all sources files from an existing queue for the given import configuration
       responses:

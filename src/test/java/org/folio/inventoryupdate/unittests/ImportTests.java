@@ -819,7 +819,7 @@ public class ImportTests extends InventoryUpdateTestBase {
                 .header(Service.OKAPI_TENANT)
                 .header(Service.OKAPI_URL)
                 .header(Service.OKAPI_TOKEN)
-                .get(Service.PATH_IMPORT_CONFIGS + "/" + importConfigId + "/pause")
+                .post(Service.PATH_IMPORT_CONFIGS + "/" + importConfigId + "/pause")
                 .then().statusCode(200)
                 .extract().response();
 
@@ -835,7 +835,7 @@ public class ImportTests extends InventoryUpdateTestBase {
                 .header(Service.OKAPI_TENANT)
                 .header(Service.OKAPI_URL)
                 .header(Service.OKAPI_TOKEN)
-                .get(Service.PATH_IMPORT_CONFIGS + "/" + importConfigId + "/resume")
+                .post(Service.PATH_IMPORT_CONFIGS + "/" + importConfigId + "/resume")
                 .then().statusCode(200)
                 .extract().response();
 
@@ -855,7 +855,7 @@ public class ImportTests extends InventoryUpdateTestBase {
                 .header(Service.OKAPI_TENANT)
                 .header(Service.OKAPI_URL)
                 .header(Service.OKAPI_TOKEN)
-                .get(Service.PATH_IMPORT_CONFIGS + "/" + importConfigId + "/activate")
+                .post(Service.PATH_IMPORT_CONFIGS + "/" + importConfigId + "/activate")
                 .then().statusCode(200)
                 .extract().response();
     }

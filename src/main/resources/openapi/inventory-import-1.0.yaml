@@ -895,13 +895,6 @@ components:
         description:
           type: string
           description: "Free-text details about the pipeline."
-        enabled:
-          type: string
-          description: >-
-           "Indicates if the transformation pipeline can be used by import jobs."
-          enum:
-            - "true"
-            - "false"
         steps:
           type: array
           description: The transformation steps making up this pipeline, in order of execution.
@@ -937,11 +930,6 @@ components:
         name:
           type: string
           description: A name assigned to the transformation step.
-        enabled:
-          type: boolean
-          description: >-
-            Indicates if this step is available to be used in a transformation pipeline.
-          default: false
         description:
           type: string
           description: >-
@@ -951,15 +939,6 @@ components:
           description: The type of transformation step.
           enum:
             - XmlTransformStep
-            - CustomTransformStep
-        inputFormat:
-          type: string
-          description: >-
-            Free-text indication of the format of input data to the step.
-        outputFormat:
-          type: string
-          description: >-
-            Free-text indication of the format of the resulting output from the step.
         script:
           type: string
           description: >-
@@ -1022,7 +1001,7 @@ components:
           - transformation
           - position
     logLines:
-      description: Harvest job log statements as JSON.
+      description: Job log statements as JSON.
       type: object
       properties:
         logLines:
@@ -1052,7 +1031,7 @@ components:
           type: string
           description: Date and time the log statement was created.
         jobLabel:
-          description: Harvester's identification of the job that created the log line.
+          description: Name of the job that created the log line.
           type: string
         line:
           description: The logged statement.
@@ -1146,22 +1125,10 @@ components:
           description: A name for the configuration.
         type:
           type: string
-          description: DEPRECATED They type of import job, only bulk XML supported.
-        url:
-          type: string
-          description: OBSOLETE, IGNORED The URL(s) used for retrieving the source records.
-        allowErrors:
-          type: boolean
-          description: OBSOLETE, IGNORED.
-        recordLimit:
-          type: integer
-          description: NOT IMPLEMENTED.
+          description: Type of import job, only bulk XML, 'XML', supported.
         transformationId:
           type: string
           description: UUID referencing the transformation pipeline to use.
-        storageId:
-          type: string
-          description: OBSOLETE, IGNORED. Storage is always present FOLIO inventory.
     importJobs:
       type: object
       description: Collection of import job execution records.
@@ -1187,9 +1154,6 @@ components:
         importType:
           type: string
           description: 'Type of import job (obsolete, always bulk XML).'
-        recordLimit:
-          type: integer
-          description: 'Not supported. Would indicates the limit -- if any -- on the maximum number of records to load according to the configuration.'
         transformation:
           type: string
           description: Then name for the transformation pipeline used for the job.
@@ -1202,7 +1166,7 @@ components:
         finished:
           type: string
           description: Timestamp when the job ended.
-        amountHarvested:
+        amountImported:
           type: integer
           description: The number of incoming records processed.
         message:

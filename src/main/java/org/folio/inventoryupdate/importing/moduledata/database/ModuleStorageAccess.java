@@ -191,7 +191,7 @@ public class ModuleStorageAccess {
                                                                 "        WHERE " + new ImportJob().field(ImportJob.STARTED).columnName() + " < #{untilDate} ")
                                                 .execute(Collections.singletonMap("untilDate", untilDate))
                                                 .onSuccess( result -> {
-                                                    logger.info("Timer process purged {} harvest job runs from before {}", result.rowCount(), untilDate);
+                                                    logger.info("Timer process purged {} import jobs from before {}", result.rowCount(), untilDate);
                                                     promise.complete();
                                                 })
                                                 .onFailure( result -> {

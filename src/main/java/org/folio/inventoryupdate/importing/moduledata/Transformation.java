@@ -16,11 +16,11 @@ public class Transformation extends Entity {
 
     public Transformation() {}
 
-    public Transformation(UUID id, String name, boolean enabled, String description, String type) {
-        theRecord = new TransformationRecord(id, name, enabled, description, type);
+    public Transformation(UUID id, String name, String description) {
+        theRecord = new TransformationRecord(id, name, description);
     }
 
-    public record TransformationRecord(UUID id, String name, boolean enabled, String description, String type) {}
+    public record TransformationRecord(UUID id, String name, String description) {}
     TransformationRecord theRecord;
     public TransformationRecord getRecord() {
       return theRecord;
@@ -30,14 +30,12 @@ public class Transformation extends Entity {
     private static final Map<String, Field> FIELDS = new HashMap<>();
     public static final String ID = "ID";
     public static final String NAME = "NAME";
-    public static final String TYPE = "TYPE";
     public static final String DESCRIPTION = "DESCRIPTION";
 
     static {
         FIELDS.put(ID,new Field("id", "id", PgColumn.Type.UUID, false, true, true));
         FIELDS.put(NAME,new Field("name", "name", PgColumn.Type.TEXT, false, true));
         FIELDS.put(DESCRIPTION, new Field("description", "description", PgColumn.Type.TEXT, true, true));
-        FIELDS.put(TYPE, new Field("type", "type", PgColumn.Type.TEXT, true, true));
     }
     @Override
     public Map<String, Field> fields() {
@@ -64,8 +62,6 @@ public class Transformation extends Entity {
         return new Transformation(
                 getUuidOrGenerate(json.getString(jsonPropertyName(ID))),
                 json.getString(jsonPropertyName(NAME)),
-                true,
-                json.getString(jsonPropertyName(TYPE)),
                 json.getString(jsonPropertyName(DESCRIPTION)))
             .setStepsArray(json.getJsonArray("steps"));
     }
@@ -97,8 +93,6 @@ public class Transformation extends Entity {
         JsonObject json = new JsonObject();
         json.put(jsonPropertyName(ID), theRecord.id);
         json.put(jsonPropertyName(NAME), theRecord.name);
-        json.put(jsonPropertyName(TYPE), theRecord.type);
-        json.put("enabled", theRecord.enabled);
         json.put(jsonPropertyName(DESCRIPTION), theRecord.description);
         return json;
     }
@@ -108,8 +102,6 @@ public class Transformation extends Entity {
             return row -> new Transformation(
                     row.getUUID(dbColumnName(ID)),
                     row.getString(dbColumnName(NAME)),
-                    true,
-                    row.getString(dbColumnName(TYPE)),
                     row.getString(dbColumnName(DESCRIPTION)));
     }
 
@@ -121,7 +113,6 @@ public class Transformation extends Entity {
                     Map<String, Object> parameters = new HashMap<>();
                     parameters.put(dbColumnName(ID), rec.id);
                     parameters.put(dbColumnName(NAME), rec.name);
-                    parameters.put(dbColumnName(TYPE), rec.type);
                     parameters.put(dbColumnName(DESCRIPTION), rec.description);
                     return parameters;
                 });

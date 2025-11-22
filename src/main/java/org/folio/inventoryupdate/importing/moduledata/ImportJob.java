@@ -32,19 +32,14 @@ public class ImportJob extends Entity {
                      UUID importConfigId,
                      String importConfigName,
                      String importType,
-                     String url,
-                     Boolean allowErrors,
-                     Integer recordLimit,
-                     Integer batchSize,
                      UUID transformation,
-                     UUID storage,
                      JobStatus status,
                      String started,
                      String finished,
-                     Integer amountHarvested,
+                     Integer amountImported,
                      String message) {
         theRecord = new ImportJob.ImportJobRecord(
-                id, importConfigId, importConfigName, importType, url, allowErrors, recordLimit, batchSize, transformation, storage, status, started, finished, amountHarvested, message);
+                id, importConfigId, importConfigName, importType, transformation, status, started, finished, amountImported, message);
     }
 
     ImportJobRecord theRecord;
@@ -55,34 +50,24 @@ public class ImportJob extends Entity {
                                    UUID importConfigId,
                                    String importConfigName,
                                    String importType,
-                                   String url,
-                                   Boolean allowErrors,
-                                   Integer recordLimit,
-                                   Integer batchSize,
                                    UUID transformation,
-                                   UUID storage,
                                    JobStatus status,
                                    String started,
                                    String finished,
-                                   Integer amountHarvested,
+                                   Integer amountImported,
                                    String message) {
     }
 
     private static final Map<String, Field> FIELDS = new HashMap<>();
     public static final String ID = "ID";
     public static final String IMPORT_CONFIG_ID = "IMPORT_CONFIG_ID";
-    public static final String IMPORT_CONFIG_NAME = "HARVESTABLE_NAME";
+    public static final String IMPORT_CONFIG_NAME = "IMPORT_CONFIG_NAME";
     public static final String IMPORT_TYPE = "IMPORT_TYPE";
-    public static final String URL = "URL";
-    public static final String ALLOW_ERRORS = "ALLOW_ERRORS";
-    public static final String RECORD_LIMIT = "RECORD_LIMIT";
-    public static final String BATCH_SIZE = "BATCH_SIZE";
     public static final String TRANSFORMATION = "TRANSFORMATION";
-    public static final String STORAGE = "STORAGE";
     public static final String STATUS = "STATUS";
     public static final String STARTED = "STARTED";
     public static final String FINISHED = "FINISHED";
-    public static final String AMOUNT_HARVESTED = "AMOUNT_HARVESTED";
+    public static final String AMOUNT_IMPORTED = "AMOUNT_IMPORTED";
     public static final String MESSAGE = "MESSAGE";
 
     static {
@@ -90,16 +75,11 @@ public class ImportJob extends Entity {
         FIELDS.put(IMPORT_CONFIG_ID, new Field("importConfigId", "import_config_id", PgColumn.Type.UUID, false, true));
         FIELDS.put(IMPORT_CONFIG_NAME, new Field("importConfigName", "import_config_name", PgColumn.Type.TEXT, false, true));
         FIELDS.put(IMPORT_TYPE, new Field("importType", "import_type", PgColumn.Type.TEXT, false, true));
-        FIELDS.put(URL, new Field("url", "url", PgColumn.Type.TEXT, false, false));
-        FIELDS.put(ALLOW_ERRORS, new Field("allowErrors", "allow_errors", PgColumn.Type.BOOLEAN, false, false));
-        FIELDS.put(RECORD_LIMIT, new Field("recordLimit", "record_limit", PgColumn.Type.INTEGER, true, false));
-        FIELDS.put(BATCH_SIZE, new Field("batchSize", "batch_size", PgColumn.Type.INTEGER, true, false));
         FIELDS.put(TRANSFORMATION, new Field("transformation", "transformation_id", PgColumn.Type.UUID, false, true));
-        FIELDS.put(STORAGE, new Field("storage", "storage_id", PgColumn.Type.UUID, false, true));
         FIELDS.put(STATUS, new Field("status", "status", PgColumn.Type.TEXT, true, true));
         FIELDS.put(STARTED, new Field("started", "started", PgColumn.Type.TIMESTAMP, false, true));
         FIELDS.put(FINISHED, new Field("finished", "finished", PgColumn.Type.TIMESTAMP, true, true));
-        FIELDS.put(AMOUNT_HARVESTED, new Field("amountHarvested", "amount_harvested", PgColumn.Type.INTEGER, true, true));
+        FIELDS.put(AMOUNT_IMPORTED, new Field("amountImported", "amount_imported", PgColumn.Type.INTEGER, true, true));
         FIELDS.put(MESSAGE, new Field("message", "message", PgColumn.Type.TEXT, true, true));
     }
 
@@ -125,9 +105,8 @@ public class ImportJob extends Entity {
 
     public ImportJob initiate(ImportConfig importConfig) {
         ImportConfig.ImportConfigRecord cfg = importConfig.theRecord;
-        return new ImportJob(UUID.randomUUID(), cfg.id(), cfg.name(), cfg.type(), cfg.URL(),
-                cfg.allowErrors(), cfg.recordLimit(), cfg.batchSize(),
-                cfg.transformationId(), cfg.storageId(),
+        return new ImportJob(UUID.randomUUID(), cfg.id(), cfg.name(), cfg.type(),
+                cfg.transformationId(),
                 JobStatus.RUNNING, SettableClock.getLocalDateTime().toString(), "", 0, "");
     }
 
@@ -146,17 +125,12 @@ public class ImportJob extends Entity {
                 UUID.fromString(json.getString(jsonPropertyName(IMPORT_CONFIG_ID))),
                 json.getString(jsonPropertyName(IMPORT_CONFIG_NAME)),
                 json.getString(jsonPropertyName(IMPORT_TYPE)),
-                json.getString(jsonPropertyName(URL)),
-                json.getBoolean(jsonPropertyName(ALLOW_ERRORS)),
-                json.getInteger(jsonPropertyName(RECORD_LIMIT)),
-                json.getInteger(jsonPropertyName(BATCH_SIZE)),
                 Util.getUUID(json, jsonPropertyName(TRANSFORMATION), null),
-                Util.getUUID(json, jsonPropertyName(STORAGE), null),
                 JobStatus.valueOf(json.getString(jsonPropertyName(STATUS))),
                 json.getString(jsonPropertyName(STARTED)),
                 finished != null && started != null && started.compareTo(finished) < 0 ?
                         json.getString(jsonPropertyName(FINISHED)) : null,
-                json.getInteger(jsonPropertyName(AMOUNT_HARVESTED)),
+                json.getInteger(jsonPropertyName(AMOUNT_IMPORTED)),
                 json.getString(jsonPropertyName(MESSAGE)));
     }
 
@@ -172,16 +146,11 @@ public class ImportJob extends Entity {
         json.put(jsonPropertyName(IMPORT_CONFIG_ID), theRecord.importConfigId);
         json.put(jsonPropertyName(IMPORT_CONFIG_NAME), theRecord.importConfigName);
         json.put(jsonPropertyName(IMPORT_TYPE), theRecord.importType);
-        json.put(jsonPropertyName(URL), theRecord.url);
-        json.put(jsonPropertyName(ALLOW_ERRORS), theRecord.allowErrors);
-        json.put(jsonPropertyName(RECORD_LIMIT), theRecord.recordLimit);
-        json.put(jsonPropertyName(BATCH_SIZE), theRecord.batchSize);
         json.put(jsonPropertyName(TRANSFORMATION), theRecord.transformation);
-        json.put(jsonPropertyName(STORAGE), theRecord.storage);
         json.put(jsonPropertyName(STATUS), theRecord.status);
         json.put(jsonPropertyName(STARTED), theRecord.started);
         json.put(jsonPropertyName(FINISHED), theRecord.finished);
-        json.put(jsonPropertyName(AMOUNT_HARVESTED), theRecord.amountHarvested);
+        json.put(jsonPropertyName(AMOUNT_IMPORTED), theRecord.amountImported);
         json.put(jsonPropertyName(MESSAGE), theRecord.message);
         return json;
     }
@@ -196,16 +165,11 @@ public class ImportJob extends Entity {
                 row.getUUID(dbColumnName(IMPORT_CONFIG_ID)),
                 row.getString(dbColumnName(IMPORT_CONFIG_NAME)),
                 row.getString(dbColumnName(IMPORT_TYPE)),
-                row.getString(dbColumnName(URL)),
-                row.getBoolean(dbColumnName(ALLOW_ERRORS)),
-                (row.getValue(dbColumnName(RECORD_LIMIT)) != null ? row.getInteger(dbColumnName(RECORD_LIMIT)) : null),
-                row.getInteger(dbColumnName(BATCH_SIZE)),
                 row.getUUID(dbColumnName(TRANSFORMATION)),
-                row.getUUID(dbColumnName(STORAGE)),
                 JobStatus.valueOf(row.getString(dbColumnName(STATUS))),
                 row.getLocalDateTime(dbColumnName(STARTED)).toString(),
                 (row.getValue(dbColumnName(FINISHED)) != null ? row.getLocalDateTime(dbColumnName(FINISHED)).toString() : null),
-                (row.getValue(dbColumnName(AMOUNT_HARVESTED)) != null ? row.getInteger(dbColumnName(AMOUNT_HARVESTED)) : null),
+                (row.getValue(dbColumnName(AMOUNT_IMPORTED)) != null ? row.getInteger(dbColumnName(AMOUNT_IMPORTED)) : null),
                 row.getString(dbColumnName(MESSAGE)));
     }
 
@@ -222,16 +186,7 @@ public class ImportJob extends Entity {
                     parameters.put(dbColumnName(IMPORT_CONFIG_ID), rec.importConfigId);
                     parameters.put(dbColumnName(IMPORT_CONFIG_NAME), rec.importConfigName);
                     parameters.put(dbColumnName(IMPORT_TYPE), rec.importType);
-                    parameters.put(dbColumnName(URL), rec.url());
-                    parameters.put(dbColumnName(ALLOW_ERRORS), rec.allowErrors);
-                    if (rec.recordLimit() != null) {
-                        parameters.put(dbColumnName(RECORD_LIMIT), rec.recordLimit);
-                    }
-                    if (rec.batchSize() != null) {
-                        parameters.put(dbColumnName(BATCH_SIZE), rec.batchSize);
-                    }
                     parameters.put(dbColumnName(TRANSFORMATION), rec.transformation);
-                    parameters.put(dbColumnName(STORAGE), rec.storage);
                     parameters.put(dbColumnName(STATUS), rec.status);
                     if (rec.started != null) {
                         parameters.put(dbColumnName(STARTED), rec.started);
@@ -239,9 +194,9 @@ public class ImportJob extends Entity {
                     if (rec.finished != null) {
                         parameters.put(dbColumnName(FINISHED), rec.finished);
                     }
-                    if (rec.amountHarvested != null) {
+                    if (rec.amountImported != null) {
                         parameters.put(
-                                dbColumnName(AMOUNT_HARVESTED), rec.amountHarvested);
+                                dbColumnName(AMOUNT_IMPORTED), rec.amountImported);
                     }
                     parameters.put(dbColumnName(MESSAGE), rec.message);
                     return parameters;
@@ -276,16 +231,11 @@ public class ImportJob extends Entity {
                 + dbColumnName(IMPORT_CONFIG_ID) + ", "
                 + dbColumnName(IMPORT_CONFIG_NAME) + ", "
                 + dbColumnName(IMPORT_TYPE) + ", "
-                + dbColumnName(URL) + ", "
-                + dbColumnName(ALLOW_ERRORS) + ", "
-                + dbColumnName(RECORD_LIMIT) + ", "
-                + dbColumnName(BATCH_SIZE) + ", "
                 + dbColumnName(TRANSFORMATION) + ", "
-                + dbColumnName(STORAGE) + ", "
                 + dbColumnName(STATUS) + ", "
                 + dbColumnName(STARTED) + ", "
                 //+ dbColumnName(FINISHED) + ", "
-                + dbColumnName(AMOUNT_HARVESTED) + ", "
+                + dbColumnName(AMOUNT_IMPORTED) + ", "
                 + dbColumnName(MESSAGE)
                 + ")"
                 + " VALUES ("
@@ -293,16 +243,11 @@ public class ImportJob extends Entity {
                 + "#{" + dbColumnName(IMPORT_CONFIG_ID) + "}, "
                 + "#{" + dbColumnName(IMPORT_CONFIG_NAME) + "}, "
                 + "#{" + dbColumnName(IMPORT_TYPE) + "}, "
-                + "#{" + dbColumnName(URL) + "}, "
-                + "#{" + dbColumnName(ALLOW_ERRORS) + "}, "
-                + "#{" + dbColumnName(RECORD_LIMIT) + "}, "
-                + "#{" + dbColumnName(BATCH_SIZE) + "}, "
                 + "#{" + dbColumnName(TRANSFORMATION) + "}, "
-                + "#{" + dbColumnName(STORAGE) + "}, "
                 + "#{" + dbColumnName(STATUS) + "}, "
                 + "TO_TIMESTAMP(#{" + dbColumnName(STARTED) + "},'" + DATE_FORMAT + "'), "
                 //+ "TO_TIMESTAMP(#{" + dbColumnName(FINISHED) + "}, '" + DATE_FORMAT + "'), "
-                + "#{" + dbColumnName(AMOUNT_HARVESTED) + "}, "
+                + "#{" + dbColumnName(AMOUNT_IMPORTED) + "}, "
                 + "#{" + dbColumnName(MESSAGE) + "}"
                 + ")";
     }
@@ -316,7 +261,7 @@ public class ImportJob extends Entity {
                         + ", "
                         + dbColumnName(STATUS) + " = #{" + dbColumnName(STATUS) + "} "
                         + ", "
-                        + dbColumnName(AMOUNT_HARVESTED) + " = #{" + dbColumnName(AMOUNT_HARVESTED) + "}"
+                        + dbColumnName(AMOUNT_IMPORTED) + " = #{" + dbColumnName(AMOUNT_IMPORTED) + "}"
                         + " WHERE id = #{id}");
     }
 
@@ -329,34 +274,34 @@ public class ImportJob extends Entity {
                 + ", "
                 + dbColumnName(STATUS) + " = #{" + dbColumnName(STATUS) + "} "
                 + ", "
-                + dbColumnName(AMOUNT_HARVESTED) + " = #{" + dbColumnName(AMOUNT_HARVESTED) + "}"
+                + dbColumnName(AMOUNT_IMPORTED) + " = #{" + dbColumnName(AMOUNT_IMPORTED) + "}"
                 + " WHERE id = #{id}");
 
     }
 
     private void setFinished(LocalDateTime finished, int recordCount) {
         theRecord = new ImportJobRecord(theRecord.id, theRecord.importConfigId, theRecord.importConfigName, theRecord.importType,
-                theRecord.url, theRecord.allowErrors, theRecord.recordLimit, theRecord.batchSize, theRecord.transformation, theRecord.storage,
+                theRecord.transformation,
                 JobStatus.DONE, theRecord.started, finished.toString(), recordCount, theRecord.message);
     }
 
     private void setHalted(LocalDateTime finished, int recordCount) {
       theRecord = new ImportJobRecord(theRecord.id, theRecord.importConfigId, theRecord.importConfigName, theRecord.importType,
-          theRecord.url, theRecord.allowErrors, theRecord.recordLimit, theRecord.batchSize, theRecord.transformation, theRecord.storage,
+          theRecord.transformation,
           JobStatus.HALTED, theRecord.started, finished.toString(), recordCount, theRecord.message);
 
     }
 
     public void logStatus(JobStatus status, int recordCount, ModuleStorageAccess configStorage) {
         theRecord = new ImportJobRecord(theRecord.id, theRecord.importConfigId, theRecord.importConfigName, theRecord.importType,
-                theRecord.url, theRecord.allowErrors, theRecord.recordLimit, theRecord.batchSize, theRecord.transformation, theRecord.storage,
+                theRecord.transformation,
                 status, theRecord.started, theRecord.finished, recordCount, theRecord.message);
         configStorage.updateEntity(this,
                 "UPDATE " + configStorage.schema() + "." + table()
                         + " SET "
                         + dbColumnName(STATUS) + " = #{" + dbColumnName(STATUS) + "} "
                         + ", "
-                        + dbColumnName(AMOUNT_HARVESTED) + " = #{" + dbColumnName(AMOUNT_HARVESTED) + "}"
+                        + dbColumnName(AMOUNT_IMPORTED) + " = #{" + dbColumnName(AMOUNT_IMPORTED) + "}"
                         + " WHERE id = #{id}");
     }
 
@@ -371,16 +316,11 @@ public class ImportJob extends Entity {
                 + " REFERENCES " + pool.getSchema() + "." + Tables.IMPORT_CONFIG + " (" + new ImportConfig().dbColumnName(ID) + "), "
                 + dbColumnNameAndType(IMPORT_CONFIG_NAME)  + ", "
                 + dbColumnNameAndType(IMPORT_TYPE) + ", "
-                + dbColumnNameAndType(URL) + ", "
-                + dbColumnNameAndType(ALLOW_ERRORS) + ", "
-                + dbColumnNameAndType(RECORD_LIMIT) + ", "
-                + dbColumnNameAndType(BATCH_SIZE) + ", "
                 + dbColumnNameAndType(TRANSFORMATION) + ", "
-                + dbColumnNameAndType(STORAGE) + ", "
                 + dbColumnNameAndType(STATUS) + ", "
                 + dbColumnNameAndType(STARTED) + " NOT NULL, "
                 + dbColumnNameAndType(FINISHED) + ", "
-                + dbColumnNameAndType(AMOUNT_HARVESTED) + ", "
+                + dbColumnNameAndType(AMOUNT_IMPORTED) + ", "
                 + dbColumnNameAndType(MESSAGE) + ")",
 
                 "CREATE INDEX IF NOT EXISTS import_job_import_config_id_idx "

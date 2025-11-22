@@ -117,7 +117,6 @@ public class ImportTests extends InventoryUpdateTestBase {
         JsonObject step = new JsonObject();
         step.put("id", STEP_ID)
                 .put("name", "test step")
-                .put("enabled", true)
                 .put("script", Files.XSLT_COPY_XML_DOC);
         postJsonObject(Service.PATH_STEPS, step);
         JsonObject tsa = new JsonObject();
@@ -177,7 +176,6 @@ public class ImportTests extends InventoryUpdateTestBase {
         JsonObject step = new JsonObject();
         step.put("id", stepId)
                 .put("name", "test step")
-                .put("enabled", true)
                 .put("script", Files.XSLT_COPY_XML_DOC);
 
         postJsonObject(Service.PATH_STEPS, step);
@@ -226,9 +224,8 @@ public class ImportTests extends InventoryUpdateTestBase {
         for (int i=0; i<5; i++) {
             JsonObject step = new JsonObject();
             step.put("id", stepIds.get(i))
-                    .put("name", "test step " + i+1)
-                    .put("enabled", true)
-                    .put("script", Files.XSLT_COPY_XML_DOC);
+                .put("name", "test step " + i+1)
+                .put("script", Files.XSLT_COPY_XML_DOC);
             postJsonObject(Service.PATH_STEPS, step);
             JsonObject tsa = new JsonObject();
             tsa.put("id",tsaIds.get(i));
@@ -284,7 +281,6 @@ public class ImportTests extends InventoryUpdateTestBase {
             JsonObject step = new JsonObject();
             step.put("id", stepIds.get(i))
                 .put("name", "test step " + i + 1)
-                .put("enabled", true)
                 .put("script", Files.XSLT_COPY_XML_DOC);
             postJsonObject(Service.PATH_STEPS, step);
         }
@@ -339,7 +335,6 @@ public class ImportTests extends InventoryUpdateTestBase {
             JsonObject step = new JsonObject();
             step.put("id", stepIds.get(i))
                 .put("name", "test step " + i+1)
-                .put("enabled", true)
                 .put("script", Files.XSLT_COPY_XML_DOC);
             postJsonObject(Service.PATH_STEPS, step);
             JsonObject tsa = new JsonObject();
@@ -367,7 +362,6 @@ public class ImportTests extends InventoryUpdateTestBase {
         JsonObject step = new JsonObject();
         step.put("id", STEP_ID)
                 .put("name", "test step")
-                .put("enabled", true)
                 .put("script", Files.XSLT_COPY_XML_DOC);
 
         postJsonObject(Service.PATH_STEPS, step);
@@ -384,7 +378,6 @@ public class ImportTests extends InventoryUpdateTestBase {
         JsonObject step = new JsonObject();
         step.put("id", STEP_ID)
                 .put("name", "test step")
-                .put("enabled", true)
                 .put("script", Files.XSLT_INVALID);
 
         given()
@@ -403,7 +396,6 @@ public class ImportTests extends InventoryUpdateTestBase {
         JsonObject step = new JsonObject();
         step.put("id", STEP_ID)
                 .put("name", "test step")
-                .put("enabled", true)
                 .put("script", Files.XSLT_EMPTY);
         postJsonObject(Service.PATH_STEPS, step);
         await().until(() -> getRecords(Service.PATH_STEPS + "/" + STEP_ID + "/script").extract().asPrettyString(), equalTo(Files.XSLT_EMPTY));
@@ -416,7 +408,6 @@ public class ImportTests extends InventoryUpdateTestBase {
         JsonObject step = new JsonObject();
         step.put("id", STEP_ID)
                 .put("name", "test step")
-                .put("enabled", true)
                 .put("script", Files.XSLT_EMPTY);
 
         given()
@@ -460,7 +451,6 @@ public class ImportTests extends InventoryUpdateTestBase {
         JsonObject step = new JsonObject();
         step.put("id", STEP_ID)
                 .put("name", "test step")
-                .put("enabled", true)
                 .put("script", Files.XSLT_COPY_XML_DOC);
         postJsonObject(Service.PATH_STEPS, step);
 
@@ -485,13 +475,12 @@ public class ImportTests extends InventoryUpdateTestBase {
         JsonObject step = new JsonObject();
         step.put("id", STEP_ID)
             .put("name", "test step 1")
-            .put("enabled", true)
             .put("script", Files.XSLT_COPY_XML_DOC);
         postJsonObject(Service.PATH_STEPS, step);
         JsonObject step2 = new JsonObject();
         step2.put("id", STEP_ID_2)
             .put("name", "test step 2")
-            .put("enabled", true)
+
             .put("script", Files.XSLT_COPY_XML_DOC);
         postJsonObject(Service.PATH_STEPS, step2);
         JsonObject transformation = Files.JSON_TRANSFORMATION_CONFIG.copy();
@@ -508,17 +497,17 @@ public class ImportTests extends InventoryUpdateTestBase {
         postJsonObject(Service.PATH_STEPS,
             new JsonObject().put("id", STEP_ID)
                 .put("name", "test step 1")
-                .put("enabled", true)
+
                 .put("script", Files.XSLT_COPY_XML_DOC));
         postJsonObject(Service.PATH_STEPS,
             new JsonObject().put("id", STEP_ID_2)
                 .put("name", "test step 2")
-                .put("enabled", true)
+
                 .put("script", Files.XSLT_COPY_XML_DOC));
         postJsonObject(Service.PATH_STEPS,
             new JsonObject().put("id", STEP_ID_3)
                 .put("name", "test step 3")
-                .put("enabled", true)
+
                 .put("script", Files.XSLT_COPY_XML_DOC));
         JsonObject transformationV1 = Files.JSON_TRANSFORMATION_CONFIG.copy().put("steps",
             new JsonArray()
@@ -530,7 +519,7 @@ public class ImportTests extends InventoryUpdateTestBase {
         postJsonObject(Service.PATH_STEPS,
             new JsonObject().put("id", STEP_ID_4)
                 .put("name", "test step 4")
-                .put("enabled", true)
+
                 .put("script", Files.XSLT_COPY_XML_DOC));
 
         JsonObject transformationV2 = Files.JSON_TRANSFORMATION_CONFIG.copy().put("steps",
@@ -549,17 +538,17 @@ public class ImportTests extends InventoryUpdateTestBase {
         postJsonObject(Service.PATH_STEPS,
             new JsonObject().put("id", STEP_ID)
                 .put("name", "test step 1")
-                .put("enabled", true)
+
                 .put("script", Files.XSLT_COPY_XML_DOC));
         postJsonObject(Service.PATH_STEPS,
             new JsonObject().put("id", STEP_ID_2)
                 .put("name", "test step 2")
-                .put("enabled", true)
+
                 .put("script", Files.XSLT_COPY_XML_DOC));
         postJsonObject(Service.PATH_STEPS,
             new JsonObject().put("id", STEP_ID_3)
                 .put("name", "test step 3")
-                .put("enabled", true)
+
                 .put("script", Files.XSLT_COPY_XML_DOC));
         JsonObject transformationV1 = Files.JSON_TRANSFORMATION_CONFIG.copy().put("steps",
             new JsonArray()
@@ -795,7 +784,7 @@ public class ImportTests extends InventoryUpdateTestBase {
         String jobId = getRecords(Service.PATH_IMPORT_JOBS).extract().path("importJobs[0].id");
         String started = getRecordById(Service.PATH_IMPORT_JOBS, jobId).extract().path("started");
         await().until(() -> getRecordById(Service.PATH_IMPORT_JOBS, jobId).extract().path("finished"), greaterThan(started));
-        getRecordById(Service.PATH_IMPORT_JOBS, jobId).body("amountHarvested", is(500));
+        getRecordById(Service.PATH_IMPORT_JOBS, jobId).body("amountImported", is(500));
         assertThat("Instances in storage", fakeFolioApis.instanceStorage.getRecords().size(), is(500));
     }
 
@@ -825,9 +814,9 @@ public class ImportTests extends InventoryUpdateTestBase {
 
         String started = getRecordById(Service.PATH_IMPORT_JOBS, jobId).extract().path("started");
         await().until(() -> getRecordById(Service.PATH_IMPORT_JOBS, jobId).extract().path("status"), is("PAUSED"));
-        Integer amountHarvested = getRecordById(Service.PATH_IMPORT_JOBS, jobId).extract().path("amountHarvested");
+        Integer amountImported = getRecordById(Service.PATH_IMPORT_JOBS, jobId).extract().path("amountImported");
         await().atLeast(500, TimeUnit.MILLISECONDS);
-        getRecordById(Service.PATH_IMPORT_JOBS, jobId).body("amountHarvested", is(amountHarvested));
+        getRecordById(Service.PATH_IMPORT_JOBS, jobId).body("amountImported", is(amountImported));
         getRecordById(Service.PATH_IMPORT_JOBS, jobId).body("finished", is(nullValue()));
 
         given()
@@ -841,7 +830,7 @@ public class ImportTests extends InventoryUpdateTestBase {
 
         await().until(() -> getRecordById(Service.PATH_IMPORT_JOBS, jobId).extract().path("status"), is("RUNNING"));
         await().until(() -> getRecordById(Service.PATH_IMPORT_JOBS, jobId).extract().path("finished"), greaterThan(started));
-        getRecordById(Service.PATH_IMPORT_JOBS, jobId).body("amountHarvested", greaterThan(499));
+        getRecordById(Service.PATH_IMPORT_JOBS, jobId).body("amountImported", greaterThan(499));
         assertThat("Records stored", fakeFolioApis.instanceStorage.getRecordsInternally().size(), is(500));
 
     }
@@ -867,7 +856,6 @@ public class ImportTests extends InventoryUpdateTestBase {
         JsonObject step = new JsonObject();
         step.put("id", STEP_ID)
                 .put("name", "test step")
-                .put("enabled", true)
                 .put("script", Files.XSLT_COPY_XML_DOC);
         postJsonObject(Service.PATH_STEPS, step);
         JsonObject tsa = new JsonObject();

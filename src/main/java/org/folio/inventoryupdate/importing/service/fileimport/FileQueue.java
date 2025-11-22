@@ -10,8 +10,8 @@ import java.util.*;
 
 public class FileQueue {
 
-    public static final String SOURCE_FILES_ROOT_DIR = "FS_QUEUE";
-    public static final String HARVEST_JOB_FILE_PROCESSING_DIR = ".processing";
+    public static final String SOURCE_FILES_ROOT_DIR = "MIU_QUEUE";
+    public static final String DIRECTORY_OF_CURRENTLY_PROCESSING_FILE = ".processing";
     public static final String TMP_DIR = ".tmp";
     private final String jobPath;
     private final String pathToProcessingSlot;
@@ -28,7 +28,7 @@ public class FileQueue {
             fs.mkdirBlocking(tenantRootDir);
         }
         jobPath = new File(tenantRootDir, "IMPORT_"+jobConfigId).getPath();
-        pathToProcessingSlot = new File(jobPath, HARVEST_JOB_FILE_PROCESSING_DIR).getPath();
+        pathToProcessingSlot = new File(jobPath, DIRECTORY_OF_CURRENTLY_PROCESSING_FILE).getPath();
         createImportConfigDirectories();
     }
 

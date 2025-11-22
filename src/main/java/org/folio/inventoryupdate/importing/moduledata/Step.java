@@ -24,14 +24,12 @@ public class Step extends Entity {
     public Step() {}
 
     @SuppressWarnings("java:S107") // too many parameters, ignore for entity constructors
-    public Step(UUID id, String name, boolean enabled, String description, String type, String inputFormat,
-                String outputFormat, String script) {
+    public Step(UUID id, String name, String description, String type, String script) {
         theRecord = new StepRecord(
-                id, name, enabled, description, type, inputFormat, outputFormat, script);
+                id, name, description, type, script);
     }
     // Step record, the entity data.
-    public record StepRecord(UUID id, String name, boolean enabled, String description, String type, String inputFormat,
-                              String outputFormat, String script) {
+    public record StepRecord(UUID id, String name, String description, String type, String script) {
     }
     StepRecord theRecord;
 
@@ -90,11 +88,8 @@ public class Step extends Entity {
         return new Step(
                 getUuidOrGenerate(stepJson.getString(jsonPropertyName(ID))),
                 stepJson.getString(jsonPropertyName(NAME)),
-                stepJson.getBoolean(jsonPropertyName(ENABLED)),
                 stepJson.getString(jsonPropertyName(TYPE)),
                 stepJson.getString(jsonPropertyName(DESCRIPTION)),
-                stepJson.getString(jsonPropertyName(INPUT_FORMAT)),
-                stepJson.getString(jsonPropertyName(OUTPUT_FORMAT)),
                 stepJson.getString(jsonPropertyName(SCRIPT)));
     }
 
@@ -103,10 +98,7 @@ public class Step extends Entity {
         json.put(jsonPropertyName(ID), theRecord.id());
         json.put(jsonPropertyName(NAME), theRecord.name());
         json.put(jsonPropertyName(TYPE), theRecord.type());
-        json.put(jsonPropertyName(ENABLED), theRecord.enabled());
         json.put(jsonPropertyName(DESCRIPTION), theRecord.description());
-        json.put(jsonPropertyName(INPUT_FORMAT), theRecord.inputFormat());
-        json.put(jsonPropertyName(OUTPUT_FORMAT), theRecord.outputFormat());
         json.put(jsonPropertyName(SCRIPT), theRecord.script());
         return json;
     }
@@ -120,11 +112,8 @@ public class Step extends Entity {
         return row -> new Step(
                 row.getUUID(dbColumnName(ID)),
                 row.getString(dbColumnName(NAME)),
-                row.getBoolean(dbColumnName(ENABLED)),
                 row.getString(dbColumnName(TYPE)),
                 row.getString(dbColumnName(DESCRIPTION)),
-                row.getString(dbColumnName(INPUT_FORMAT)),
-                row.getString(dbColumnName(OUTPUT_FORMAT)),
                 row.getString(dbColumnName(SCRIPT)));
     }
 
@@ -140,11 +129,8 @@ public class Step extends Entity {
                     Map<String, Object> parameters = new HashMap<>();
                     parameters.put(dbColumnName(ID), rec.id);
                     parameters.put(dbColumnName(NAME), rec.name);
-                    parameters.put(dbColumnName(ENABLED), rec.enabled);
                     parameters.put(dbColumnName(TYPE), rec.type);
                     parameters.put(dbColumnName(DESCRIPTION), rec.description);
-                    parameters.put(dbColumnName(INPUT_FORMAT), rec.inputFormat);
-                    parameters.put(dbColumnName(OUTPUT_FORMAT), rec.outputFormat);
                     parameters.put(dbColumnName(SCRIPT), rec.script);
                     return parameters;
                 });
@@ -167,8 +153,7 @@ public class Step extends Entity {
     }
 
     private void setScript(String xslt) {
-        theRecord = new Step.StepRecord(theRecord.id, theRecord.name, theRecord.enabled, theRecord.description, theRecord.type, theRecord.inputFormat,
-                theRecord.outputFormat, xslt);
+        theRecord = new Step.StepRecord(theRecord.id, theRecord.name, theRecord.description, theRecord.type, xslt);
     }
 
     public Future<Void> updateScript(String xslt, ModuleStorageAccess storage) {

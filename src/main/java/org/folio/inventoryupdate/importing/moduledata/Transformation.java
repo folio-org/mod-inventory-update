@@ -94,19 +94,21 @@ public class Transformation extends Entity {
         json.put(jsonPropertyName(ID), theRecord.id);
         json.put(jsonPropertyName(NAME), theRecord.name);
         json.put(jsonPropertyName(DESCRIPTION), theRecord.description);
+        putMetadata(json);
         return json;
     }
 
     @Override
-    public RowMapper<Entity> getRowMapper() {
+    public RowMapper<Entity> fromRow() {
             return row -> new Transformation(
-                    row.getUUID(dbColumnName(ID)),
-                    row.getString(dbColumnName(NAME)),
-                    row.getString(dbColumnName(DESCRIPTION)));
+                row.getUUID(dbColumnName(ID)),
+                row.getString(dbColumnName(NAME)),
+                row.getString(dbColumnName(DESCRIPTION)))
+                .withMetadata(row);
     }
 
     @Override
-    public TupleMapper<Entity> getTupleMapper() {
+    public TupleMapper<Entity> toTemplateParameters() {
         return TupleMapper.mapper(
                 entity -> {
                     TransformationRecord rec = ((Transformation) entity).theRecord;
@@ -114,6 +116,7 @@ public class Transformation extends Entity {
                     parameters.put(dbColumnName(ID), rec.id);
                     parameters.put(dbColumnName(NAME), rec.name);
                     parameters.put(dbColumnName(DESCRIPTION), rec.description);
+                    putMetadata(parameters);
                     return parameters;
                 });
     }

@@ -335,7 +335,7 @@
           "permissionsRequired": ["inventory-update.import.transformations.item.post"]
         }, {
           "methods": ["PUT"],
-          "pathPattern": "/inventory-import/transformation/{id}",
+          "pathPattern": "/inventory-import/transformations/{id}",
           "permissionsRequired": ["inventory-update.import.transformations.item.put"]
         }, {
           "methods": ["DELETE"],

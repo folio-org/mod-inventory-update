@@ -11,6 +11,7 @@ import org.apache.logging.log4j.Logger;
 import org.folio.inventoryupdate.importing.moduledata.database.SqlQuery;
 import org.folio.inventoryupdate.importing.moduledata.database.Tables;
 import org.folio.inventoryupdate.importing.service.ServiceRequest;
+import org.folio.inventoryupdate.importing.utils.SettableClock;
 import org.folio.tlib.postgres.PgCqlDefinition;
 import org.folio.tlib.postgres.PgCqlQuery;
 import org.folio.tlib.postgres.TenantPgPool;
@@ -23,6 +24,8 @@ import java.util.stream.Collectors;
 public abstract class Entity {
 
     public static final Logger logger = LogManager.getLogger("inventory-import");
+    public static final String DATE_FORMAT = "YYYY-MM-DD''T''HH24:MI:SS,MS";
+
 
     /**
      * Implement to return an enum identifier for the underlying database table for the implementing entity.
@@ -30,6 +33,7 @@ public abstract class Entity {
      */
     public abstract Tables table();
 
+    protected Metadata metadata = new Metadata();
 
     /**
      * Build and execute the DDL statements for creating the database objects for persisting the entity.
@@ -43,8 +47,7 @@ public abstract class Entity {
         StringBuilder columnsDdl = new StringBuilder();
         fields().keySet()
                 .forEach(field -> columnsDdl.append(field(field).pgColumn().getColumnDdl()).append(","));
-        columnsDdl.deleteCharAt(columnsDdl.length() - 1); // remove ending comma
-
+        columnsDdl.append(metadata.columnsDdl());
         return executeSqlStatements(pool,
                 "CREATE TABLE IF NOT EXISTS " + pool.getSchema() + "." + table()
                         + "("
@@ -108,6 +111,14 @@ public abstract class Entity {
      */
     public abstract JsonObject asJson();
 
+    public void putMetadata(JsonObject json) {
+      json.put("metadata", metadata.asJson());
+    }
+
+    public void putMetadata(Map<String, Object> parameters) {
+      parameters.putAll(metadata.asTemplateParameters());
+    }
+
     /**
      * Vert.x / Postgres template for table insert, using a tuple mapper.
      * This base implementation assumes a simple one-to-one mapping of values to columns. It should be
@@ -115,40 +126,51 @@ public abstract class Entity {
      * or additional hardcoded insert values should be applied or some transformations need to happen to the values
      * on the fly, like date or time formatting.
      */
-    public String makeInsertTemplate(String schema) {
-        StringBuilder listOfColumns = new StringBuilder();
-        StringBuilder listOfValues = new StringBuilder();
-        fields().keySet().forEach(field -> {
-            listOfColumns.append(dbColumnName(field)).append(",");
-            listOfValues.append("#{").append(dbColumnName(field)).append("},");
-        });
-        listOfColumns.deleteCharAt(listOfColumns.length()-1);
-        listOfValues.deleteCharAt(listOfValues.length()-1);
+    public String insertTemplate(String schema) {
         return "INSERT INTO " + schema + "." + table()
-                + " (" + listOfColumns + ")"
-                + " VALUES (" + listOfValues + ")";
+                + " (" + insertClauseColumns() + ")"
+                + " VALUES (" + insertClauseValueTemplates() + ")";
     }
 
-    public String makeUpdateByIdTemplate(UUID entityId, String schema) {
-        StringBuilder listOfColumnsValues = new StringBuilder();
-        fields().keySet().forEach(field ->
-                listOfColumnsValues.append(dbColumnName(field)).append(" = #{").append(dbColumnName(field)).append("},"));
-        listOfColumnsValues.deleteCharAt(listOfColumnsValues.length()-1);
+    public String updateByIdTemplate(UUID entityId, String schema) {
         return "UPDATE " + schema + "." + table()
                 + " SET "
-                + listOfColumnsValues
+                + updateClauseColumnTemplates()
                 + " WHERE id = '" + entityId.toString() + "'";
     }
 
-    /**
+    protected String insertClauseColumns() {
+      StringBuilder columnListAsString = new StringBuilder();
+      fields().keySet().forEach(field -> columnListAsString.append(dbColumnName(field)).append(","));
+      columnListAsString.append(metadata.insertClauseColumns());
+      return columnListAsString.toString().stripTrailing().replaceAll(",$","");
+    }
+
+  protected String insertClauseValueTemplates() {
+    StringBuilder valueListAsString = new StringBuilder();
+    fields().keySet().forEach(field -> valueListAsString.append("#{").append(dbColumnName(field)).append("},"));
+    valueListAsString.append(metadata.insertClauseValueTemplates());
+    return valueListAsString.toString().stripTrailing().replaceAll(",$","");
+  }
+
+  protected String updateClauseColumnTemplates() {
+      StringBuilder listOfColumnsValues = new StringBuilder();
+      fields().keySet().forEach(field ->
+          listOfColumnsValues.append(dbColumnName(field)).append(" = #{").append(dbColumnName(field)).append("},"));
+      listOfColumnsValues.append(metadata.updateClauseColumnTemplates());
+      return listOfColumnsValues.toString().stripTrailing().replaceAll(",$","");
+    }
+
+
+  /**
      * Creates vert.x row mapper that maps a database select result row onto data object(s).
      */
-    public abstract RowMapper<Entity> getRowMapper();
+    public abstract RowMapper<Entity> fromRow();
 
     /**
      * Creates vert.x tuple mapper that maps Postgres column names to field values.
      */
-    public abstract TupleMapper<Entity> getTupleMapper();
+    public abstract TupleMapper<Entity> toTemplateParameters();
 
 
     /**
@@ -175,7 +197,7 @@ public abstract class Entity {
     /**
      * Gets a SQL query string.
      */
-    public SqlQuery makeSqlFromCqlQuery(ServiceRequest request, String schemaDotTable) {
+    public SqlQuery cqlToSql(ServiceRequest request, String schemaDotTable) {
         PgCqlDefinition definition = getQueryableFields();
 
         String query = request.requestParam("query");
@@ -250,6 +272,21 @@ public abstract class Entity {
         } catch (Exception e) {
             return UUID.randomUUID();
         }
+    }
+
+    public Entity withCreatingUser(UUID currentUser) {
+      metadata = new Metadata().withCreatedByUser(currentUser).withCreatedDate(SettableClock.getLocalDateTime().toString());
+      return this;
+    }
+
+    public Entity withUpdatingUser(UUID currentUser) {
+      metadata = new Metadata().withUpdatedByUser(currentUser).withUpdatedDate(SettableClock.getLocalDateTime().toString());
+      return this;
+    }
+
+    public Entity withMetadata(Row dbRow) {
+      metadata = new Metadata().fromRow(dbRow);
+      return this;
     }
 
 }

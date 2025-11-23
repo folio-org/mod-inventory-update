@@ -81,20 +81,21 @@ public class TransformationStep extends Entity {
         json.put(jsonPropertyName(TRANSFORMATION_ID), theRecord.transformationId);
         json.put(jsonPropertyName(STEP_ID), theRecord.stepId);
         json.put(jsonPropertyName(POSITION), theRecord.position);
+        putMetadata(json);
         return json;
     }
 
     @Override
-    public RowMapper<Entity> getRowMapper() {
+    public RowMapper<Entity> fromRow() {
         return row -> new TransformationStep(
                row.getUUID(dbColumnName(ID)),
                row.getUUID(dbColumnName(TRANSFORMATION_ID)),
                row.getUUID(dbColumnName(STEP_ID)),
-               row.getInteger(dbColumnName(POSITION)));
+               row.getInteger(dbColumnName(POSITION))).withMetadata(row);
     }
 
     @Override
-    public TupleMapper<Entity> getTupleMapper() {
+    public TupleMapper<Entity> toTemplateParameters() {
         return TupleMapper.mapper(
                 entity -> {
                     TransformationStepRecord rec = ((TransformationStep) entity).theRecord;
@@ -103,6 +104,7 @@ public class TransformationStep extends Entity {
                     parameters.put(dbColumnName(TRANSFORMATION_ID), rec.transformationId);
                     parameters.put(dbColumnName(STEP_ID), rec.stepId);
                     parameters.put(dbColumnName(POSITION), rec.position);
+                    putMetadata(parameters);
                     return parameters;
                 });
     }
@@ -113,11 +115,11 @@ public class TransformationStep extends Entity {
     }
 
     public Future<Void> createTsaRepositionSteps(ServiceRequest request) {
-        return request.moduleStorageAccess().storeEntity(this)
+        return request.moduleStorageAccess().storeEntity(this.withCreatingUser(request.currentUser()))
             .onSuccess(ignore -> executeSqlStatements(request.moduleStorageAccess().getTenantPool(),
                 // Potentially adjust the positions of other steps
                 "UPDATE " + this.table(request.dbSchema())
-                    + " SET position = position + 1"
+                    + " SET position = position + 1 "
                     + " WHERE transformation_id = '" + theRecord.transformationId + "'"
                     + "   AND position >= " + this.theRecord.position
                     + "   AND id != '" + this.theRecord.id + "'"
@@ -151,7 +153,7 @@ public class TransformationStep extends Entity {
 
     public Future<Void> executeUpdateAndAdjustPositions(ServiceRequest request) {
 
-        return request.moduleStorageAccess().updateEntity(this.theRecord.id, this).onSuccess(ignore ->
+        return request.moduleStorageAccess().updateEntity(this.theRecord.id, this.withUpdatingUser(request.currentUser())).onSuccess(ignore ->
             executeSqlStatements(request.moduleStorageAccess().getTenantPool(),
                 // Update the one property that can change besides position.
                 "UPDATE " + table(request.dbSchema())
@@ -189,7 +191,7 @@ public class TransformationStep extends Entity {
                 + " WHERE id = '" + theRecord.id + "'",
             // Delete position while potentially adjusting the positions of other steps
             "UPDATE " + this.table(tenantPool.getSchema())
-                + " SET position = position - 1"
+                + " SET position = position - 1 "
                 + " WHERE transformation_id = '" + theRecord.transformationId + "'"
                 + "   AND position > " + updatingTsa.positionOfTheExistingStep
         ).mapEmpty();
@@ -210,7 +212,8 @@ public class TransformationStep extends Entity {
                 + " REFERENCES " + pool.getSchema() + "." + Tables.TRANSFORMATION + "(" + new Transformation().dbColumnName(Transformation.ID) + "), "
                 + dbColumnName(STEP_ID) + " UUID NOT NULL "
                 + " REFERENCES " + pool.getSchema() + "." + Tables.STEP + "(" + new Step().dbColumnName(Step.ID) + "), "
-                + dbColumnName(POSITION) + " INTEGER NOT NULL "
+                + dbColumnName(POSITION) + " INTEGER NOT NULL, "
+                + metadata.columnsDdl()
                 + ") "
 
         ).mapEmpty();

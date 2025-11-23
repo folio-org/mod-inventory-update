@@ -65,7 +65,7 @@ public class LogLine extends Entity {
     }
 
     @Override
-    public RowMapper<Entity> getRowMapper() {
+    public RowMapper<Entity> fromRow() {
         return row -> new LogLine(
                 row.getUUID(dbColumnName(ID)),
                 row.getUUID(dbColumnName(IMPORT_JOB_ID)),
@@ -80,28 +80,30 @@ public class LogLine extends Entity {
      * INSERT INTO statement.
      */
     @Override
-    public String makeInsertTemplate(String schema) {
+    public String insertTemplate(String schema) {
         return "INSERT INTO " + schema + "." + table()
                 + " ("
                 + dbColumnName(ID) + ", "
                 + dbColumnName(IMPORT_JOB_ID) + ", "
                 + dbColumnName(TIME_STAMP) + ", "
                 + dbColumnName(JOB_LABEL) + ", "
-                + dbColumnName(LOG_STATEMENT)
+                + dbColumnName(LOG_STATEMENT) + ", "
+                + metadata.insertClauseColumns()
                 + ")"
                 + " VALUES ("
                 + "#{" + dbColumnName(ID) + "}, "
                 + "#{" + dbColumnName(IMPORT_JOB_ID) + "}, "
                 + "TO_TIMESTAMP(#{" + dbColumnName(TIME_STAMP) + "},'" + DATE_FORMAT + "'), "
                 + "#{" + dbColumnName(JOB_LABEL) + "}, "
-                + "#{" + dbColumnName(LOG_STATEMENT) + "}"
+                + "#{" + dbColumnName(LOG_STATEMENT) + "}, "
+                + metadata.insertClauseValueTemplates()
                 + ")";
     }
 
     /**
      * Creates a TupleMapper for input mapping.
      */
-    public TupleMapper<Entity> getTupleMapper() {
+    public TupleMapper<Entity> toTemplateParameters() {
         return TupleMapper.mapper(
                 entity -> {
                     LogLineRecord rec = ((LogLine) entity).theRecord;
@@ -111,13 +113,14 @@ public class LogLine extends Entity {
                     parameters.put(dbColumnName(TIME_STAMP), rec.timeStamp);
                     parameters.put(dbColumnName(JOB_LABEL), rec.jobLabel);
                     parameters.put(dbColumnName(LOG_STATEMENT), rec.line);
+                    putMetadata(parameters);
                     return parameters;
                 });
     }
 
     @Override
-    public SqlQuery makeSqlFromCqlQuery(ServiceRequest request, String schemaDotTable) {
-        SqlQuery sql = super.makeSqlFromCqlQuery(request, schemaDotTable);
+    public SqlQuery cqlToSql(ServiceRequest request, String schemaDotTable) {
+        SqlQuery sql = super.cqlToSql(request, schemaDotTable);
         sql.withAdditionalOrderByField(dbColumnName(TIME_STAMP));
         return sql;
     }
@@ -151,6 +154,7 @@ public class LogLine extends Entity {
         json.put(jsonPropertyName(TIME_STAMP), theRecord.timeStamp);
         json.put(jsonPropertyName(JOB_LABEL), theRecord.jobLabel);
         json.put(jsonPropertyName(LOG_STATEMENT), theRecord.line);
+        putMetadata(json);
         return json;
     }
 
@@ -165,7 +169,8 @@ public class LogLine extends Entity {
                 + " REFERENCES " + pool.getSchema() + "." + Tables.IMPORT_JOB + " (" + new ImportJob().dbColumnName(ID) + "), "
                 + dbColumnName(TIME_STAMP) + " TIMESTAMP NOT NULL, "
                 + dbColumnName(JOB_LABEL) + " TEXT NOT NULL, "
-                + dbColumnName(LOG_STATEMENT) + " TEXT NOT NULL"
+                + dbColumnName(LOG_STATEMENT) + " TEXT NOT NULL, "
+                + metadata.columnsDdl()
                 + ")",
 
                 "CREATE INDEX IF NOT EXISTS log_statement_import_job_id_idx "

@@ -185,8 +185,7 @@ public class ImportService implements RouterCreator, TenantInitHooks {
         ModuleStorageAccess db = request.moduleStorageAccess();
         SqlQuery query;
         try {
-            query = entity
-                    .makeSqlFromCqlQuery(request, db.schemaDotTable(entity.table()));
+            query = entity.cqlToSql(request, db.schemaDotTable(entity.table()));
         } catch (PgCqlException pce) {
             responseText(request.routingContext, 400)
                     .end("Could not execute query to retrieve " + entity.jsonCollectionName() + ": " + pce.getMessage() + " Request:" + request.absoluteURI());
@@ -245,7 +244,7 @@ public class ImportService implements RouterCreator, TenantInitHooks {
 
     private Future<Void> storeEntityRespondWith201(ServiceRequest request, Entity entity) {
         ModuleStorageAccess db = request.moduleStorageAccess();
-        return db.storeEntity(entity)
+        return db.storeEntity(entity.withCreatingUser(request.currentUser()))
                 .onSuccess(
                         id -> db.getEntity(id, entity)
                                 .map(stored -> responseJson(request.routingContext, 201)
@@ -269,7 +268,7 @@ public class ImportService implements RouterCreator, TenantInitHooks {
     private Future<Void> putImportConfig(ServiceRequest request) {
         ImportConfig importConfig = new ImportConfig().fromJson(request.bodyAsJson());
         UUID id = UUID.fromString(request.requestParam("id"));
-        return request.moduleStorageAccess().updateEntity(id,importConfig)
+        return request.moduleStorageAccess().updateEntity(id,importConfig.withUpdatingUser(request.currentUser()))
                 .onSuccess(result-> {
                     if (result.rowCount()==1) {
                         responseText(request.routingContext(), 204).end();
@@ -304,9 +303,8 @@ public class ImportService implements RouterCreator, TenantInitHooks {
 
         SqlQuery query;
         try {
-            query = new ImportJob()
-                    .makeSqlFromCqlQuery(request, db.schemaDotTable(Tables.IMPORT_JOB))
-                    .withAdditionalWhereClause(timeRange);
+            query = new ImportJob().cqlToSql(request, db.schemaDotTable(Tables.IMPORT_JOB))
+                .withAdditionalWhereClause(timeRange);
         } catch (PgCqlException pce) {
             responseText(request.routingContext(), 400)
                     .end("Could not execute query to retrieve jobs: " + pce.getMessage() + " Request:" + request.absoluteURI());
@@ -351,7 +349,7 @@ public class ImportService implements RouterCreator, TenantInitHooks {
         JsonArray lines = body.getJsonArray("logLines");
         List<Entity> logLines = new ArrayList<>();
         for (Object o : lines) {
-            logLines.add(new LogLine().fromJson((JsonObject) o));
+            logLines.add(new LogLine().fromJson((JsonObject) o).withCreatingUser(request.currentUser()));
         }
         return request.moduleStorageAccess()
                 .storeEntities(new LogLine(), logLines)
@@ -362,8 +360,7 @@ public class ImportService implements RouterCreator, TenantInitHooks {
 
     private Future<Void> getLogStatements(ServiceRequest request) {
         ModuleStorageAccess db = request.moduleStorageAccess();
-        SqlQuery queryFromCql = new LogLine().makeSqlFromCqlQuery(
-                request, db.schemaDotTable(Tables.JOB_LOG_VIEW))
+        SqlQuery queryFromCql = new LogLine().cqlToSql(request, db.schemaDotTable(Tables.JOB_LOG_VIEW))
             .withDefaultLimit("100");
         String from = request.queryParam("from");
         String until = request.queryParam("until");
@@ -415,8 +412,7 @@ public class ImportService implements RouterCreator, TenantInitHooks {
     private Future<Void> getFailedRecords(ServiceRequest request) {
 
         ModuleStorageAccess db = request.moduleStorageAccess();
-        SqlQuery queryFromCql = new RecordFailure().makeSqlFromCqlQuery(
-                        request, db.schemaDotTable(Tables.RECORD_FAILURE_VIEW))
+        SqlQuery queryFromCql = new RecordFailure().cqlToSql(request, db.schemaDotTable(Tables.RECORD_FAILURE_VIEW))
                 .withDefaultLimit("100");
         String jobId = request.requestParam("id");
         String from = request.queryParam("from");
@@ -524,7 +520,7 @@ public class ImportService implements RouterCreator, TenantInitHooks {
         String validationResponse = step.validateScriptAsXml();
         if (validationResponse.equals("OK")) {
             UUID id = UUID.fromString(request.requestParam("id"));
-            return request.moduleStorageAccess().updateEntity(id,step)
+            return request.moduleStorageAccess().updateEntity(id,step.withUpdatingUser(request.currentUser()))
                     .onSuccess(result-> {
                         if (result.rowCount()==1) {
                             responseText(request.routingContext(), 204).end();
@@ -569,7 +565,7 @@ public class ImportService implements RouterCreator, TenantInitHooks {
 
     private Future<Void> postTransformation(ServiceRequest request) {
         Transformation transformation = new Transformation().fromJson(request.bodyAsJson());
-        return request.moduleStorageAccess().storeEntity(transformation)
+        return request.moduleStorageAccess().storeEntity(transformation.withCreatingUser(request.currentUser()))
             .compose(transformationId ->
                 request.moduleStorageAccess()
                     .storeEntities(new TransformationStep(), transformation.getListOfTransformationSteps()))
@@ -587,7 +583,7 @@ public class ImportService implements RouterCreator, TenantInitHooks {
     private Future<Void> updateTransformation(ServiceRequest request) {
         Transformation transformation = new Transformation().fromJson(request.bodyAsJson());
         UUID id = UUID.fromString(request.requestParam("id"));
-        return request.moduleStorageAccess().updateEntity(id, transformation)
+        return request.moduleStorageAccess().updateEntity(id, transformation.withUpdatingUser(request.currentUser()))
                 .onSuccess(result-> {
                     if (result.rowCount()==1) {
                     if (transformation.containsListOfSteps()) {

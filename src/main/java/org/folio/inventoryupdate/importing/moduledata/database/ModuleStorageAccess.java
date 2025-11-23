@@ -81,7 +81,7 @@ public class ModuleStorageAccess {
         Promise<Void> promise = Promise.promise();
         getEntity(UUID.fromString(id), new Step()).onComplete(getStep -> {
             if (getStep.result() != null) {
-                Step step = (Step) getStep.result();
+                Step step = (Step) getStep.result().withUpdatingUser(request.currentUser());
                 step.updateScript(script, this).onSuccess(ignore->promise.complete());
             } else {
                 promise.fail("Could not find step with ID " + id + " to GET script from");
@@ -92,8 +92,8 @@ public class ModuleStorageAccess {
 
     public Future<UUID> storeEntity(Entity entity) {
         return SqlTemplate.forUpdate(pool.getPool(),
-                        entity.makeInsertTemplate(pool.getSchema()))
-                .mapFrom(entity.getTupleMapper())
+                        entity.insertTemplate(pool.getSchema()))
+                .mapFrom(entity.toTemplateParameters())
                 .execute(entity)
                 .onSuccess(res -> logger.info("Created {}. ID [{}]", entity.entityName().toLowerCase(), entity.asJson().getString("id")))
                 .onFailure(res -> logger.error("Couldn't save {}: {} {}", entity.entityName().toLowerCase(), res.getMessage(),entity.asJson()))
@@ -102,22 +102,22 @@ public class ModuleStorageAccess {
 
     public Future<SqlResult<Void>> updateEntity (Entity entity, String updateTemplate) {
         return SqlTemplate.forUpdate(pool.getPool(), updateTemplate)
-                .mapFrom(entity.getTupleMapper())
+                .mapFrom(entity.toTemplateParameters())
                 .execute(entity);
     }
 
     public Future<SqlResult<Void>> updateEntity (UUID entityId, Entity entity) {
-        String updateTemplate = entity.makeUpdateByIdTemplate(entityId, pool.getSchema());
+        String updateTemplate = entity.updateByIdTemplate(entityId, pool.getSchema());
         return updateEntity(entity, updateTemplate);
     }
 
     public Future<Void> storeEntities(Entity definition, List<Entity> entities) {
         if (entities!=null && !entities.isEmpty()) {
-            return SqlTemplate.forUpdate(pool.getPool(),
-                            definition.makeInsertTemplate(pool.getSchema()))
-                    .mapFrom(definition.getTupleMapper())
+          return SqlTemplate.forUpdate(pool.getPool(),
+                            definition.insertTemplate(pool.getSchema()))
+                    .mapFrom(definition.toTemplateParameters())
                     .executeBatch(entities)
-                    .onFailure(res -> logger.error("Couldn't save batch of {}: {}" ,definition.entityName().toLowerCase(), res.getMessage()))
+                    .onFailure(res -> logger.error("Couldn't save batch of {} with {}: {}" ,definition.entityName().toLowerCase(), definition.insertTemplate(pool.getSchema()),  res.getMessage()))
                     .mapEmpty();
         } else {
             return Future.succeededFuture();
@@ -127,7 +127,7 @@ public class ModuleStorageAccess {
     public Future<List<Entity>> getEntities(String query, Entity definition) {
         List<Entity> records = new ArrayList<>();
         return SqlTemplate.forQuery(pool.getPool(), query)
-                .mapTo(definition.getRowMapper())
+                .mapTo(definition.fromRow())
                 .execute(null)
                 .onSuccess(rows -> {
                     for (Entity entity : rows) {
@@ -141,7 +141,7 @@ public class ModuleStorageAccess {
                         "SELECT * "
                                 + "FROM " + schemaDotTable(definition.table()) + " "
                                 + "WHERE id = #{id}")
-                .mapTo(definition.getRowMapper())
+                .mapTo(definition.fromRow())
                 .execute(Collections.singletonMap("id", id))
                 .map(rows -> {
                     RowIterator<Entity> iterator = rows.iterator();

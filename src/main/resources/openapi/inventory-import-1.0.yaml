@@ -910,6 +910,9 @@ components:
                 description: The (unique) name of the step.
             required:
               - id
+        metadata:
+          $ref: "#/components/schemas/metadata"
+
     steps:
       description: Collection of transformation step definitions, to be referenced from pipelines.
       type: object
@@ -943,6 +946,9 @@ components:
           type: string
           description: >-
             The transformation script (XSLT) of the step.
+        metadata:
+          $ref: "#/components/schemas/metadata"
+
       required:
         - name
       additionalProperties: true
@@ -990,6 +996,8 @@ components:
         transformation:
           type: string
           description: DEPRECATED, legacy Harvester schema for identifying transformation pipeline.
+        metadata:
+          $ref: "#/components/schemas/metadata"
       additionalProperties: false
       anyOf:
         - required:
@@ -1005,7 +1013,7 @@ components:
       type: object
       properties:
         logLines:
-          description: Collection of Log4J log statements.
+          description: Collection of import log statements.
           type: array
           items:
             $ref: "#/components/schemas/logLine"
@@ -1036,6 +1044,9 @@ components:
         line:
           description: The logged statement.
           type: string
+        metadata:
+          $ref: "#/components/schemas/metadata"
+
     failedRecords:
       type: object
       description: Collection of failed-record error reports
@@ -1104,6 +1115,9 @@ components:
         recordNumber:
           type: string
           description: The identifier assigned to this error report by Inventory Import.
+        metadata:
+          $ref: "#/components/schemas/metadata"
+
     importConfigs:
       type: object
       description: Collection of import configurations.
@@ -1129,6 +1143,9 @@ components:
         transformationId:
           type: string
           description: UUID referencing the transformation pipeline to use.
+        metadata:
+          $ref: "#/components/schemas/metadata"
+
     importJobs:
       type: object
       description: Collection of import job execution records.
@@ -1172,6 +1189,33 @@ components:
         message:
           type: string
           description: A description of the outcome of the import.
+        metadata:
+          $ref: "#/components/schemas/metadata"
+
+    metadata:
+      type: object
+      description: For tagging records with current time and user ID on create or update.
+      properties:
+        createdDate:
+          type: string
+          description: Time stamp for the records creation.
+          readOnly: true
+        createdByUser:
+          type: string
+          format: uuid
+          description: ID of the user creating the record.
+          readOnly: true
+        updatedDate:
+          type: string
+          format: uuid
+          description: Time stamp for the most recent update of the record.
+          readOnly: true
+        updatedByUser:
+          type: string
+          format: uuid
+          description: The ID of the user who most recently updated the record.
+          readOnly: true
+
 
   parameters:
     okapi_tenant:

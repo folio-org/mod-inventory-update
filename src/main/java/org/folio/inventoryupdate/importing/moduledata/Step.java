@@ -100,6 +100,7 @@ public class Step extends Entity {
         json.put(jsonPropertyName(TYPE), theRecord.type());
         json.put(jsonPropertyName(DESCRIPTION), theRecord.description());
         json.put(jsonPropertyName(SCRIPT), theRecord.script());
+        putMetadata(json);
         return json;
     }
 
@@ -108,13 +109,14 @@ public class Step extends Entity {
      * @return Step data object
      */
     @Override
-    public RowMapper<Entity> getRowMapper() {
+    public RowMapper<Entity> fromRow() {
         return row -> new Step(
                 row.getUUID(dbColumnName(ID)),
                 row.getString(dbColumnName(NAME)),
                 row.getString(dbColumnName(TYPE)),
                 row.getString(dbColumnName(DESCRIPTION)),
-                row.getString(dbColumnName(SCRIPT)));
+                row.getString(dbColumnName(SCRIPT)))
+            .withMetadata(row);
     }
 
     /**
@@ -122,7 +124,7 @@ public class Step extends Entity {
      * @return a mapper to be used by PG insert statement
      */
     @Override
-    public TupleMapper<Entity> getTupleMapper() {
+    public TupleMapper<Entity> toTemplateParameters() {
         return TupleMapper.mapper(
                 entity -> {
                     StepRecord rec = ((Step) entity).theRecord;
@@ -132,6 +134,7 @@ public class Step extends Entity {
                     parameters.put(dbColumnName(TYPE), rec.type);
                     parameters.put(dbColumnName(DESCRIPTION), rec.description);
                     parameters.put(dbColumnName(SCRIPT), rec.script);
+                    putMetadata(parameters);
                     return parameters;
                 });
     }
@@ -160,8 +163,9 @@ public class Step extends Entity {
         setScript(xslt);
         return storage.updateEntity(this,
                 "UPDATE " + storage.schema() + "." + table()
-                        + " SET " + dbColumnName(SCRIPT)
-                        + " = #{" + dbColumnName(SCRIPT) + "}".replaceAll(System.lineSeparator(), "\n")
+                        + " SET "
+                        + dbColumnName(SCRIPT) + " = #{" + dbColumnName(SCRIPT) + "}".replaceAll(System.lineSeparator(), "\n") + ", "
+                        + metadata.updateClauseColumnTemplates()
                         + " WHERE id = #{id}")
                 .mapEmpty();
     }

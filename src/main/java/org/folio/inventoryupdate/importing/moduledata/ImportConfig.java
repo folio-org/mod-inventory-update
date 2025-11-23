@@ -15,7 +15,6 @@ public class ImportConfig extends Entity {
 
     public ImportConfig(){}
 
-    @SuppressWarnings("java:S107") // too many parameters, ignore for entity constructors
     public ImportConfig(UUID id, String name, String type, UUID transformationId) {
         theRecord = new ImportConfigRecord(id, name, type, transformationId);
     }
@@ -67,16 +66,17 @@ public class ImportConfig extends Entity {
     }
 
     @Override
-    public RowMapper<Entity> getRowMapper() {
+    public RowMapper<Entity> fromRow() {
         return row -> new ImportConfig(
-                row.getUUID(dbColumnName(ID)),
-                row.getString(dbColumnName(NAME)),
-                row.getString(dbColumnName(TYPE)),
-                row.getUUID(dbColumnName(TRANSFORMATION_ID)));
+            row.getUUID(dbColumnName(ID)),
+            row.getString(dbColumnName(NAME)),
+            row.getString(dbColumnName(TYPE)),
+            row.getUUID(dbColumnName(TRANSFORMATION_ID)))
+            .withMetadata(row);
     }
 
     @Override
-    public TupleMapper<Entity> getTupleMapper() {
+    public TupleMapper<Entity> toTemplateParameters() {
         return TupleMapper.mapper(
                 entity -> {
                     ImportConfigRecord rec = ((ImportConfig) entity).theRecord;
@@ -85,6 +85,7 @@ public class ImportConfig extends Entity {
                     parameters.put(dbColumnName(NAME), rec.name);
                     parameters.put(dbColumnName(TYPE), rec.type);
                     parameters.put(dbColumnName(TRANSFORMATION_ID), rec.transformationId());
+                    putMetadata(parameters);
                     return parameters;
                 });
     }
@@ -98,6 +99,7 @@ public class ImportConfig extends Entity {
         json.put(jsonPropertyName(NAME), theRecord.name());
         json.put(jsonPropertyName(TYPE), theRecord.type());
         json.put(jsonPropertyName(TRANSFORMATION_ID), theRecord.transformationId());
+        putMetadata(json);
         return json;
     }
 
@@ -116,7 +118,8 @@ public class ImportConfig extends Entity {
                 + field(TYPE).pgColumnDdl() + ", "
                 + field(TRANSFORMATION_ID).pgColumnDdl()
                 + " REFERENCES " + pool.getSchema() + "." + Tables.TRANSFORMATION
-                        + " (" + new Transformation().dbColumnName(Transformation.ID) + ") "
+                        + " (" + new Transformation().dbColumnName(Transformation.ID) + "), "
+                + metadata.columnsDdl()
                 + ")"
         ).mapEmpty();
     }

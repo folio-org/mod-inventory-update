@@ -139,7 +139,7 @@ public class Reporting {
                                             new JsonArray().add(new JsonObject().put("message","Error message from storage missing or format unrecognized."))),
                                     error.getJsonObject("requestJson"),
                                     fileStats.peek() == null ? null : fileStats.peek().getFileName()
-                            )).collect(Collectors.toList()));
+                            ).withCreatingUser(null)).collect(Collectors.toList()));
         } catch (Exception e) {
             logger.error("Exception storing failed records: {} {}.", e.getMessage(), Arrays.toString(e.getStackTrace()));
             return Future.failedFuture("Exception storing failed records: " + e.getMessage());
@@ -180,7 +180,7 @@ public class Reporting {
                 fileProcessor.getImportJob().getRecord().importConfigName(),
                 SettableClock.getLocalDateTime().toString(),
                 fileProcessor.getImportJob().getRecord().importConfigName(),
-                statement));
+                statement).withCreatingUser(null));
         return storage.storeEntities(new LogLine(),lines);
     }
 }

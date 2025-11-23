@@ -142,23 +142,20 @@ public abstract class Entity {
     protected String insertClauseColumns() {
       StringBuilder columnListAsString = new StringBuilder();
       fields().keySet().forEach(field -> columnListAsString.append(dbColumnName(field)).append(","));
-      columnListAsString.append(metadata.insertClauseColumns());
-      return columnListAsString.toString().stripTrailing().replaceAll(",$","");
+      return columnListAsString.append(metadata.insertClauseColumns()).toString();
     }
 
   protected String insertClauseValueTemplates() {
     StringBuilder valueListAsString = new StringBuilder();
     fields().keySet().forEach(field -> valueListAsString.append("#{").append(dbColumnName(field)).append("},"));
-    valueListAsString.append(metadata.insertClauseValueTemplates());
-    return valueListAsString.toString().stripTrailing().replaceAll(",$","");
+    return valueListAsString.append(metadata.insertClauseValueTemplates()).toString();
   }
 
   protected String updateClauseColumnTemplates() {
       StringBuilder listOfColumnsValues = new StringBuilder();
       fields().keySet().forEach(field ->
           listOfColumnsValues.append(dbColumnName(field)).append(" = #{").append(dbColumnName(field)).append("},"));
-      listOfColumnsValues.append(metadata.updateClauseColumnTemplates());
-      return listOfColumnsValues.toString().stripTrailing().replaceAll(",$","");
+      return listOfColumnsValues.append(metadata.updateClauseColumnTemplates()).toString();
     }
 
 

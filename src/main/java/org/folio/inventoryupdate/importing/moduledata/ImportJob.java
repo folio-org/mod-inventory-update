@@ -14,9 +14,10 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 
+import static org.folio.inventoryupdate.importing.utils.DateTimeFormatter.formatDateTime;
+
 public class ImportJob extends Entity {
 
-    private static final String DATE_FORMAT = "YYYY-MM-DD''T''HH24:MI:SS,MS";
 
     public enum JobStatus {
         RUNNING,
@@ -152,6 +153,7 @@ public class ImportJob extends Entity {
         json.put(jsonPropertyName(FINISHED), theRecord.finished);
         json.put(jsonPropertyName(AMOUNT_IMPORTED), theRecord.amountImported);
         json.put(jsonPropertyName(MESSAGE), theRecord.message);
+        putMetadata(json);
         return json;
     }
 
@@ -159,7 +161,7 @@ public class ImportJob extends Entity {
      * Creates vert.x row mapper that maps a database select result row onto data object(s).
      */
     @Override
-    public RowMapper<Entity> getRowMapper() {
+    public RowMapper<Entity> fromRow() {
         return row -> new ImportJob(
                 row.getUUID(dbColumnName(ID)),
                 row.getUUID(dbColumnName(IMPORT_CONFIG_ID)),
@@ -167,17 +169,17 @@ public class ImportJob extends Entity {
                 row.getString(dbColumnName(IMPORT_TYPE)),
                 row.getUUID(dbColumnName(TRANSFORMATION)),
                 JobStatus.valueOf(row.getString(dbColumnName(STATUS))),
-                row.getLocalDateTime(dbColumnName(STARTED)).toString(),
-                (row.getValue(dbColumnName(FINISHED)) != null ? row.getLocalDateTime(dbColumnName(FINISHED)).toString() : null),
+                formatDateTime(row.getLocalDateTime(dbColumnName(STARTED))),
+                (row.getValue(dbColumnName(FINISHED)) != null ? formatDateTime(row.getLocalDateTime(dbColumnName(FINISHED))) : null),
                 (row.getValue(dbColumnName(AMOUNT_IMPORTED)) != null ? row.getInteger(dbColumnName(AMOUNT_IMPORTED)) : null),
-                row.getString(dbColumnName(MESSAGE)));
+                row.getString(dbColumnName(MESSAGE))).withMetadata(row);
     }
 
     /**
-     * Creates vert.x tuple mapper that maps Postgres column names to field values.
+     * Creates vert.x tuple mapper to field values from Postgres column names. Used with insert and update templates.
      */
     @Override
-    public TupleMapper<Entity> getTupleMapper() {
+    public TupleMapper<Entity> toTemplateParameters() {
         return TupleMapper.mapper(
                 entity -> {
                     ImportJob.ImportJobRecord rec = ((ImportJob) entity).theRecord;
@@ -199,6 +201,7 @@ public class ImportJob extends Entity {
                                 dbColumnName(AMOUNT_IMPORTED), rec.amountImported);
                     }
                     parameters.put(dbColumnName(MESSAGE), rec.message);
+                    putMetadata(parameters);
                     return parameters;
                 });
     }
@@ -224,7 +227,7 @@ public class ImportJob extends Entity {
     }
 
     @Override
-    public String makeInsertTemplate(String schema) {
+    public String insertTemplate(String schema) {
         return "INSERT INTO " + schema + "." + table()
                 + " ("
                 + dbColumnName(ID) + ", "
@@ -234,9 +237,9 @@ public class ImportJob extends Entity {
                 + dbColumnName(TRANSFORMATION) + ", "
                 + dbColumnName(STATUS) + ", "
                 + dbColumnName(STARTED) + ", "
-                //+ dbColumnName(FINISHED) + ", "
                 + dbColumnName(AMOUNT_IMPORTED) + ", "
-                + dbColumnName(MESSAGE)
+                + dbColumnName(MESSAGE) + ", "
+                + metadata.insertClauseColumns()
                 + ")"
                 + " VALUES ("
                 + "#{" + dbColumnName(ID) + "}, "
@@ -245,36 +248,40 @@ public class ImportJob extends Entity {
                 + "#{" + dbColumnName(IMPORT_TYPE) + "}, "
                 + "#{" + dbColumnName(TRANSFORMATION) + "}, "
                 + "#{" + dbColumnName(STATUS) + "}, "
-                + "TO_TIMESTAMP(#{" + dbColumnName(STARTED) + "},'" + DATE_FORMAT + "'), "
-                //+ "TO_TIMESTAMP(#{" + dbColumnName(FINISHED) + "}, '" + DATE_FORMAT + "'), "
+                + "TO_TIMESTAMP(#{" + dbColumnName(STARTED) + "},'" + DATE_FORMAT_TO_DB + "'), "
                 + "#{" + dbColumnName(AMOUNT_IMPORTED) + "}, "
-                + "#{" + dbColumnName(MESSAGE) + "}"
+                + "#{" + dbColumnName(MESSAGE) + "}, "
+                + metadata.insertClauseValueTemplates()
                 + ")";
     }
 
     public void logFinish(LocalDateTime finished, int recordCount, ModuleStorageAccess configStorage) {
         setFinished(finished, recordCount);
-        configStorage.updateEntity(this,
+        configStorage.updateEntity(this.withUpdatingUser(null),
                 "UPDATE " + configStorage.schema() + "." + table()
                         + " SET "
-                        + dbColumnName(FINISHED) + " = TO_TIMESTAMP(#{" + dbColumnName(FINISHED) + "}, '" + DATE_FORMAT + "') "
+                        + dbColumnName(FINISHED) + " = TO_TIMESTAMP(#{" + dbColumnName(FINISHED) + "}, '" + DATE_FORMAT_TO_DB + "') "
                         + ", "
                         + dbColumnName(STATUS) + " = #{" + dbColumnName(STATUS) + "} "
                         + ", "
                         + dbColumnName(AMOUNT_IMPORTED) + " = #{" + dbColumnName(AMOUNT_IMPORTED) + "}"
+                        + ", "
+                        + metadata.updateClauseColumnTemplates()
                         + " WHERE id = #{id}");
     }
 
     public void logHalted(LocalDateTime halted, int recordCount, ModuleStorageAccess configStorage) {
         setHalted(halted, recordCount);
-        configStorage.updateEntity(this,
+        configStorage.updateEntity(this.withUpdatingUser(null),
             "UPDATE " + configStorage.schema() + "." + table()
                 + " SET "
-                + dbColumnName(FINISHED) + " = TO_TIMESTAMP(#{" + dbColumnName(FINISHED) + "}, '" + DATE_FORMAT + "') "
+                + dbColumnName(FINISHED) + " = TO_TIMESTAMP(#{" + dbColumnName(FINISHED) + "}, '" + DATE_FORMAT_TO_DB + "') "
                 + ", "
                 + dbColumnName(STATUS) + " = #{" + dbColumnName(STATUS) + "} "
                 + ", "
                 + dbColumnName(AMOUNT_IMPORTED) + " = #{" + dbColumnName(AMOUNT_IMPORTED) + "}"
+                + ", "
+                + metadata.updateClauseColumnTemplates()
                 + " WHERE id = #{id}");
 
     }
@@ -296,12 +303,14 @@ public class ImportJob extends Entity {
         theRecord = new ImportJobRecord(theRecord.id, theRecord.importConfigId, theRecord.importConfigName, theRecord.importType,
                 theRecord.transformation,
                 status, theRecord.started, theRecord.finished, recordCount, theRecord.message);
-        configStorage.updateEntity(this,
+        configStorage.updateEntity(this.withUpdatingUser(null),
                 "UPDATE " + configStorage.schema() + "." + table()
                         + " SET "
                         + dbColumnName(STATUS) + " = #{" + dbColumnName(STATUS) + "} "
                         + ", "
                         + dbColumnName(AMOUNT_IMPORTED) + " = #{" + dbColumnName(AMOUNT_IMPORTED) + "}"
+                        + ", "
+                        + metadata.updateClauseColumnTemplates()
                         + " WHERE id = #{id}");
     }
 
@@ -321,8 +330,8 @@ public class ImportJob extends Entity {
                 + dbColumnNameAndType(STARTED) + " NOT NULL, "
                 + dbColumnNameAndType(FINISHED) + ", "
                 + dbColumnNameAndType(AMOUNT_IMPORTED) + ", "
-                + dbColumnNameAndType(MESSAGE) + ")",
-
+                + dbColumnNameAndType(MESSAGE) + ", "
+                + metadata.columnsDdl() + ") ",
                 "CREATE INDEX IF NOT EXISTS import_job_import_config_id_idx "
                         + " ON " + pool.getSchema() + "." + table() + "(" + dbColumnName(IMPORT_CONFIG_ID) + ")"
         ).mapEmpty();

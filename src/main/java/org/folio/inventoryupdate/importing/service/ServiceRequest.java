@@ -8,6 +8,8 @@ import io.vertx.ext.web.RoutingContext;
 
 import org.folio.inventoryupdate.importing.moduledata.database.ModuleStorageAccess;
 
+import java.util.UUID;
+
 
 public abstract class ServiceRequest {
 
@@ -61,6 +63,19 @@ public abstract class ServiceRequest {
 
     public String requestParam(String paramName) {
         return request.getParam(paramName);
+    }
+
+    public UUID currentUser() {
+      String userId = request.getHeader("X-Okapi-User-Id");
+      if (userId == null) {
+        return null;
+      } else {
+        try {
+          return UUID.fromString(userId);
+        } catch (IllegalArgumentException iae) {
+          return null;
+        }
+      }
     }
 
 }

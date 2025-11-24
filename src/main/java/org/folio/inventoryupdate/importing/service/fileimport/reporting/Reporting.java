@@ -124,7 +124,6 @@ public class Reporting {
             fileStats.peek() == null ? "file name missing" : fileStats.peek().getFileName());
         try {
             return storage.storeEntities(
-                    new RecordFailure(),
                     batch.getErrors().stream()
                             .map(JsonObject.class::cast)
                             .map(error -> new RecordFailure(UUID.randomUUID(),
@@ -139,7 +138,8 @@ public class Reporting {
                                             new JsonArray().add(new JsonObject().put("message","Error message from storage missing or format unrecognized."))),
                                     error.getJsonObject("requestJson"),
                                     fileStats.peek() == null ? null : fileStats.peek().getFileName()
-                            )).collect(Collectors.toList()));
+                            ).withCreatingUser(null))
+                        .collect(Collectors.toList()));
         } catch (Exception e) {
             logger.error("Exception storing failed records: {} {}.", e.getMessage(), Arrays.toString(e.getStackTrace()));
             return Future.failedFuture("Exception storing failed records: " + e.getMessage());
@@ -180,7 +180,7 @@ public class Reporting {
                 fileProcessor.getImportJob().getRecord().importConfigName(),
                 SettableClock.getLocalDateTime().toString(),
                 fileProcessor.getImportJob().getRecord().importConfigName(),
-                statement));
-        return storage.storeEntities(new LogLine(),lines);
+                statement).withCreatingUser(null));
+        return storage.storeEntities(lines);
     }
 }

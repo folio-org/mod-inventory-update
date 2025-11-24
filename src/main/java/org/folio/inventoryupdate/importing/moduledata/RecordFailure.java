@@ -14,6 +14,8 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 
+import static org.folio.inventoryupdate.importing.utils.DateTimeFormatter.formatDateTime;
+
 public class RecordFailure extends Entity {
 
     public RecordFailure() {}
@@ -25,6 +27,7 @@ public class RecordFailure extends Entity {
         theRecord = new FailedRecord(id, importJobId, importConfigId, importConfigName, recordNumber, timeStamp,
             originalRecord, recordErrors, transformedRecord, sourceFileName);
     }
+
     FailedRecord theRecord;
     public record FailedRecord(UUID id, UUID importJobId, UUID importConfigId, String importConfigName, String recordNumber,
                                String timeStamp, String originalRecord, JsonArray recordErrors, JsonObject transformedRecord,
@@ -82,22 +85,23 @@ public class RecordFailure extends Entity {
     /**
      * Maps rows from RECORD_FAILURE_VIEW to RecordFailure object.
      */
-    public RowMapper<Entity> getRowMapper() {
+    public RowMapper<Entity> fromRow() {
         return row -> new RecordFailure(
                 row.getUUID(dbColumnName(ID)),
                 row.getUUID(dbColumnName(IMPORT_JOB_ID)),
                 row.getUUID(dbColumnName(VIEW_IMPORT_CONFIG_ID)),
                 row.getString(dbColumnName(VIEW_IMPORT_CONFIG_NAME)),
                 row.getString(dbColumnName(RECORD_NUMBER)),
-                row.getLocalDateTime(dbColumnName(TIME_STAMP)).toString(),
+                formatDateTime(row.getLocalDateTime(dbColumnName(TIME_STAMP))),
                 row.getString(dbColumnName(ORIGINAL_RECORD)),
                 row.getJsonArray(dbColumnName(RECORD_ERRORS)),
                 row.getJsonObject(dbColumnName(TRANSFORMED_RECORD)),
-                row.getString(dbColumnName(SOURCE_FILE_NAME)));
+                row.getString(dbColumnName(SOURCE_FILE_NAME)))
+            .withMetadata(row);
     }
 
     @Override
-    public String makeInsertTemplate(String schema) {
+    public String insertTemplate(String schema) {
         return "INSERT INTO " + schema + "." + Tables.RECORD_FAILURE
                 + " ("
                 + dbColumnName(ID) + ", "
@@ -107,7 +111,8 @@ public class RecordFailure extends Entity {
                 + dbColumnName(RECORD_ERRORS) + ", "
                 + dbColumnName(ORIGINAL_RECORD) + ", "
                 + dbColumnName(TRANSFORMED_RECORD) + ", "
-                + dbColumnName(SOURCE_FILE_NAME)
+                + dbColumnName(SOURCE_FILE_NAME) + ", "
+                + metadata.insertClauseColumns()
                 + ")"
                 + " VALUES ("
                 + "#{" + dbColumnName(ID) + "}, "
@@ -117,12 +122,13 @@ public class RecordFailure extends Entity {
                 + "#{" + dbColumnName(RECORD_ERRORS) + "}, "
                 + "#{" + dbColumnName(ORIGINAL_RECORD) + "}, "
                 + "#{" + dbColumnName(TRANSFORMED_RECORD) + "}, "
-                + "#{" + dbColumnName(SOURCE_FILE_NAME) + "}"
+                + "#{" + dbColumnName(SOURCE_FILE_NAME) + "}, "
+                + metadata.insertClauseValueTemplates()
                 + ")";
     }
 
     @Override
-    public TupleMapper<Entity> getTupleMapper() {
+    public TupleMapper<Entity> toTemplateParameters() {
         return TupleMapper.mapper(
                 entity -> {
                     RecordFailure.FailedRecord rec = ((RecordFailure) entity).theRecord;
@@ -135,6 +141,7 @@ public class RecordFailure extends Entity {
                     parameters.put(dbColumnName(TRANSFORMED_RECORD), rec.transformedRecord);
                     parameters.put(dbColumnName(RECORD_ERRORS), rec.recordErrors);
                     parameters.put(dbColumnName(SOURCE_FILE_NAME), rec.sourceFileName);
+                    putMetadata(parameters);
                     return parameters;
                 });
     }
@@ -210,6 +217,7 @@ public class RecordFailure extends Entity {
         json.put(jsonPropertyName(RECORD_ERRORS), theRecord.recordErrors);
         json.put(jsonPropertyName(ORIGINAL_RECORD), theRecord.originalRecord);
         json.put(jsonPropertyName(TRANSFORMED_RECORD), theRecord.transformedRecord);
+        putMetadata(json);
         return json;
     }
 
@@ -227,7 +235,8 @@ public class RecordFailure extends Entity {
                 + dbColumnNameAndType(SOURCE_FILE_NAME) + ", "
                 + dbColumnNameAndType(RECORD_ERRORS) + " NOT NULL, "
                 + dbColumnNameAndType(ORIGINAL_RECORD) + " NOT NULL, "
-                + dbColumnNameAndType(TRANSFORMED_RECORD) + " NOT NULL "
+                + dbColumnNameAndType(TRANSFORMED_RECORD) + " NOT NULL, "
+                + metadata.columnsDdl()
                 + ")",
 
                 "CREATE INDEX IF NOT EXISTS record_failure_import_job_id_idx "

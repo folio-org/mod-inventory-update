@@ -63,7 +63,7 @@ public class FileProcessor {
         return configStorage.getEntity(importConfigId, new ImportConfig())
                 .compose(importConfig -> {
                     importJob = new ImportJob().initiate((ImportConfig) importConfig);
-                    return configStorage.storeEntity(importJob);
+                    return configStorage.storeEntity(importJob.withCreatingUser(null));
                 }).mapEmpty();
     }
 

@@ -111,13 +111,18 @@ public class ModuleStorageAccess {
         return updateEntity(entity, updateTemplate);
     }
 
-    public Future<Void> storeEntities(Entity definition, List<Entity> entities) {
+    public Future<Void> storeEntities(List<Entity> entities) {
         if (entities!=null && !entities.isEmpty()) {
+          // The insert templates are the same for all entities in a batch and some data (the metadata) live outside
+          // the entity Record and is the same for all entities of the batch as well. Those templates and data are
+          // picked from a single entity instance, though; namely from the first, and possibly only, entity instance,
+          // named the "modelEntity"
+          Entity modelEntity = entities.getFirst();
           return SqlTemplate.forUpdate(pool.getPool(),
-                            definition.insertTemplate(pool.getSchema()))
-                    .mapFrom(definition.toTemplateParameters())
+                            modelEntity.insertTemplate(pool.getSchema()))
+                    .mapFrom(modelEntity.toTemplateParameters())
                     .executeBatch(entities)
-                    .onFailure(res -> logger.error("Couldn't save batch of {} with {}: {}" ,definition.entityName().toLowerCase(), definition.insertTemplate(pool.getSchema()),  res.getMessage()))
+                    .onFailure(res -> logger.error("Couldn't save batch of {} with {}: {}" , modelEntity.entityName().toLowerCase(), modelEntity.insertTemplate(pool.getSchema()),  res.getMessage()))
                     .mapEmpty();
         } else {
             return Future.succeededFuture();

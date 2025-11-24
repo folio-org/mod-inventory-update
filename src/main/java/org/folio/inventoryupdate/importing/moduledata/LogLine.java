@@ -13,6 +13,8 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 
+import static org.folio.inventoryupdate.importing.utils.DateTimeFormatter.formatDateTime;
+
 public class LogLine extends Entity {
     LogLineRecord theRecord;
     public record LogLineRecord(UUID id, UUID importJobId, UUID importConfigId, String importConfigName, String timeStamp, String jobLabel, String line) {}
@@ -71,9 +73,10 @@ public class LogLine extends Entity {
                 row.getUUID(dbColumnName(IMPORT_JOB_ID)),
                 row.getUUID(dbColumnName(VIEW_IMPORT_CONFIG_ID)),
                 row.getString(dbColumnName(VIEW_IMPORT_CONFIG_NAME)),
-                row.getLocalDateTime(dbColumnName(TIME_STAMP)).toString(),
+                formatDateTime(row.getLocalDateTime(dbColumnName(TIME_STAMP))),
                 row.getString(dbColumnName(JOB_LABEL)),
-                row.getString(dbColumnName(LOG_STATEMENT)));
+                row.getString(dbColumnName(LOG_STATEMENT)))
+            .withMetadata(row);
     }
 
     /**

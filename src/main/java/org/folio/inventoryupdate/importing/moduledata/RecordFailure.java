@@ -14,6 +14,8 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 
+import static org.folio.inventoryupdate.importing.utils.DateTimeFormatter.formatDateTime;
+
 public class RecordFailure extends Entity {
 
     public RecordFailure() {}
@@ -25,6 +27,7 @@ public class RecordFailure extends Entity {
         theRecord = new FailedRecord(id, importJobId, importConfigId, importConfigName, recordNumber, timeStamp,
             originalRecord, recordErrors, transformedRecord, sourceFileName);
     }
+
     FailedRecord theRecord;
     public record FailedRecord(UUID id, UUID importJobId, UUID importConfigId, String importConfigName, String recordNumber,
                                String timeStamp, String originalRecord, JsonArray recordErrors, JsonObject transformedRecord,
@@ -89,11 +92,12 @@ public class RecordFailure extends Entity {
                 row.getUUID(dbColumnName(VIEW_IMPORT_CONFIG_ID)),
                 row.getString(dbColumnName(VIEW_IMPORT_CONFIG_NAME)),
                 row.getString(dbColumnName(RECORD_NUMBER)),
-                row.getLocalDateTime(dbColumnName(TIME_STAMP)).toString(),
+                formatDateTime(row.getLocalDateTime(dbColumnName(TIME_STAMP))),
                 row.getString(dbColumnName(ORIGINAL_RECORD)),
                 row.getJsonArray(dbColumnName(RECORD_ERRORS)),
                 row.getJsonObject(dbColumnName(TRANSFORMED_RECORD)),
-                row.getString(dbColumnName(SOURCE_FILE_NAME))).withMetadata(row);
+                row.getString(dbColumnName(SOURCE_FILE_NAME)))
+            .withMetadata(row);
     }
 
     @Override

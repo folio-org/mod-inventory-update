@@ -352,7 +352,7 @@ public class ImportService implements RouterCreator, TenantInitHooks {
             logLines.add(new LogLine().fromJson((JsonObject) o).withCreatingUser(request.currentUser()));
         }
         return request.moduleStorageAccess()
-                .storeEntities(new LogLine(), logLines)
+                .storeEntities(logLines)
                 .onSuccess(configId ->
                         responseJson(request.routingContext(), 201).end(logLines.size() + " log line(s) created."))
                 .mapEmpty();
@@ -461,10 +461,10 @@ public class ImportService implements RouterCreator, TenantInitHooks {
         JsonArray recs = request.bodyAsJson().getJsonArray(new RecordFailure().jsonCollectionName());
         List<Entity> failedRecs = new ArrayList<>();
         for (Object o : recs) {
-            failedRecs.add(new RecordFailure().fromJson((JsonObject) o));
+            failedRecs.add(new RecordFailure().fromJson((JsonObject) o).withCreatingUser(request.currentUser()));
         }
         return request.moduleStorageAccess()
-                .storeEntities(new RecordFailure(), failedRecs)
+                .storeEntities(failedRecs)
                 .onSuccess(configId ->
                         responseJson(request.routingContext(), 201).end(failedRecs.size() + " record failures logged."))
                 .mapEmpty();
@@ -568,7 +568,7 @@ public class ImportService implements RouterCreator, TenantInitHooks {
         return request.moduleStorageAccess().storeEntity(transformation.withCreatingUser(request.currentUser()))
             .compose(transformationId ->
                 request.moduleStorageAccess()
-                    .storeEntities(new TransformationStep(), transformation.getListOfTransformationSteps()))
+                    .storeEntities(transformation.getListOfTransformationSteps()))
             .onSuccess(res -> responseText(request.routingContext(), 201).end(transformation.asJson().encodePrettily()));
     }
 
@@ -590,7 +590,7 @@ public class ImportService implements RouterCreator, TenantInitHooks {
                         new TransformationStep().deleteStepsOfATransformation(request, transformation.getRecord().id())
                             .compose(ignore ->
                                 request.moduleStorageAccess()
-                                    .storeEntities(new TransformationStep(), transformation.getListOfTransformationSteps())
+                                    .storeEntities(transformation.getListOfTransformationSteps())
                             ).onSuccess(res -> responseText(request.routingContext(), 204).end());
                     }  else {
                         responseText(request.routingContext(), 204).end();

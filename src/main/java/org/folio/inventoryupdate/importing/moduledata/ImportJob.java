@@ -14,6 +14,8 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 
+import static org.folio.inventoryupdate.importing.utils.DateTimeFormatter.formatDateTime;
+
 public class ImportJob extends Entity {
 
 
@@ -167,8 +169,8 @@ public class ImportJob extends Entity {
                 row.getString(dbColumnName(IMPORT_TYPE)),
                 row.getUUID(dbColumnName(TRANSFORMATION)),
                 JobStatus.valueOf(row.getString(dbColumnName(STATUS))),
-                row.getLocalDateTime(dbColumnName(STARTED)).toString(),
-                (row.getValue(dbColumnName(FINISHED)) != null ? row.getLocalDateTime(dbColumnName(FINISHED)).toString() : null),
+                formatDateTime(row.getLocalDateTime(dbColumnName(STARTED))),
+                (row.getValue(dbColumnName(FINISHED)) != null ? formatDateTime(row.getLocalDateTime(dbColumnName(FINISHED))) : null),
                 (row.getValue(dbColumnName(AMOUNT_IMPORTED)) != null ? row.getInteger(dbColumnName(AMOUNT_IMPORTED)) : null),
                 row.getString(dbColumnName(MESSAGE))).withMetadata(row);
     }
@@ -246,7 +248,7 @@ public class ImportJob extends Entity {
                 + "#{" + dbColumnName(IMPORT_TYPE) + "}, "
                 + "#{" + dbColumnName(TRANSFORMATION) + "}, "
                 + "#{" + dbColumnName(STATUS) + "}, "
-                + "TO_TIMESTAMP(#{" + dbColumnName(STARTED) + "},'" + DATE_FORMAT + "'), "
+                + "TO_TIMESTAMP(#{" + dbColumnName(STARTED) + "},'" + DATE_FORMAT_TO_DB + "'), "
                 + "#{" + dbColumnName(AMOUNT_IMPORTED) + "}, "
                 + "#{" + dbColumnName(MESSAGE) + "}, "
                 + metadata.insertClauseValueTemplates()
@@ -258,7 +260,7 @@ public class ImportJob extends Entity {
         configStorage.updateEntity(this.withUpdatingUser(null),
                 "UPDATE " + configStorage.schema() + "." + table()
                         + " SET "
-                        + dbColumnName(FINISHED) + " = TO_TIMESTAMP(#{" + dbColumnName(FINISHED) + "}, '" + DATE_FORMAT + "') "
+                        + dbColumnName(FINISHED) + " = TO_TIMESTAMP(#{" + dbColumnName(FINISHED) + "}, '" + DATE_FORMAT_TO_DB + "') "
                         + ", "
                         + dbColumnName(STATUS) + " = #{" + dbColumnName(STATUS) + "} "
                         + ", "
@@ -273,7 +275,7 @@ public class ImportJob extends Entity {
         configStorage.updateEntity(this.withUpdatingUser(null),
             "UPDATE " + configStorage.schema() + "." + table()
                 + " SET "
-                + dbColumnName(FINISHED) + " = TO_TIMESTAMP(#{" + dbColumnName(FINISHED) + "}, '" + DATE_FORMAT + "') "
+                + dbColumnName(FINISHED) + " = TO_TIMESTAMP(#{" + dbColumnName(FINISHED) + "}, '" + DATE_FORMAT_TO_DB + "') "
                 + ", "
                 + dbColumnName(STATUS) + " = #{" + dbColumnName(STATUS) + "} "
                 + ", "

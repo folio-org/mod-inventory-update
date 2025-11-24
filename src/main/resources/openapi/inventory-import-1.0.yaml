@@ -1200,7 +1200,7 @@ components:
           type: string
           description: Time stamp for the records creation.
           readOnly: true
-        createdByUser:
+        createdByUserId:
           type: string
           format: uuid
           description: ID of the user creating the record.
@@ -1210,7 +1210,7 @@ components:
           format: uuid
           description: Time stamp for the most recent update of the record.
           readOnly: true
-        updatedByUser:
+        updatedByUserId:
           type: string
           format: uuid
           description: The ID of the user who most recently updated the record.

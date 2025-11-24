@@ -20,11 +20,12 @@ import org.folio.tlib.postgres.cqlfield.PgCqlFieldAlwaysMatches;
 import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
+import static org.folio.inventoryupdate.importing.moduledata.Metadata.METADATA_PROPERTY;
 
 public abstract class Entity {
 
   public static final Logger logger = LogManager.getLogger("inventory-import");
-  public static final String DATE_FORMAT = "YYYY-MM-DD''T''HH24:MI:SS,MS";
+  public static final String DATE_FORMAT_TO_DB = "YYYY-MM-DD''T''HH24:MI:SS,MS";
 
 
   /**
@@ -124,7 +125,7 @@ public abstract class Entity {
    * @param json target JSON
    */
   public void putMetadata(JsonObject json) {
-    json.put("metadata", metadata.asJson());
+    json.put(METADATA_PROPERTY, metadata.asJson());
   }
 
   /**
@@ -308,7 +309,7 @@ public abstract class Entity {
    * @param currentUser UUID of current user
    */
   public Entity withCreatingUser(UUID currentUser) {
-    metadata = new Metadata().withCreatedByUser(currentUser).withCreatedDate(SettableClock.getLocalDateTime().toString());
+    metadata = new Metadata().withCreatedByUserId(currentUser).withCreatedDate(SettableClock.getLocalDateTime().toString());
     return this;
   }
 
@@ -318,7 +319,7 @@ public abstract class Entity {
    * @param currentUser UUID of current user
    */
   public Entity withUpdatingUser(UUID currentUser) {
-    metadata = new Metadata().withUpdatedByUser(currentUser).withUpdatedDate(SettableClock.getLocalDateTime().toString());
+    metadata = new Metadata().withUpdatedByUserId(currentUser).withUpdatedDate(SettableClock.getLocalDateTime().toString());
     return this;
   }
 

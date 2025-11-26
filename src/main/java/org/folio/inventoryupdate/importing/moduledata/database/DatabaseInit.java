@@ -34,19 +34,6 @@ public class DatabaseInit {
             .compose(na -> create(new TransformationStep(), pool))
             .compose(na -> pool.query(createRecordFailureView(pool.getSchema())).execute())
             .compose(na -> pool.query(createJobLogsView(pool.getSchema())).execute()).mapEmpty();
-
-
-        /* Template for processing parameters in init.
-          JsonArray parameters set to tenantAttributes.getJsonArray("parameters");
-          condition (parameters != null) {
-            iterate (int i = 0; i < parameters.size(); i++) {
-              JsonObject parameter set to parameters.getJsonObject(i);
-              condition ("loadSample".equals(parameter.getString("key"))
-                  && "true".equals(parameter.getString("value"))) {
-              END
-            END
-          END
-        */
     }
 
     /**

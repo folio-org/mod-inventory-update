@@ -1,5 +1,6 @@
 package org.folio.inventoryupdate.importing.service.fileimport;
 
+import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.file.CopyOptions;
 import io.vertx.core.file.FileSystem;
@@ -11,23 +12,28 @@ import java.util.*;
 public class FileQueue {
 
     public static final String SOURCE_FILES_ROOT_DIR = "MIU_QUEUE";
+    public static final String TENANT_DIR_PREFIX = "TENANT_";
+    public static final String CONFIG_DIR_PREFIX = "IMPORT_";
     public static final String DIRECTORY_OF_CURRENTLY_PROCESSING_FILE = ".processing";
     public static final String TMP_DIR = ".tmp";
     private final String jobPath;
     private final String pathToProcessingSlot;
     private final FileSystem fs;
 
-    public FileQueue(ServiceRequest request, String jobConfigId) {
+    public static void clearTenantQueues(Vertx vertx, String tenant) {
+      vertx.fileSystem().deleteRecursiveBlocking(SOURCE_FILES_ROOT_DIR + "/" + TENANT_DIR_PREFIX + tenant);
+    }
+
+    public FileQueue(ServiceRequest request, String configId) {
         this.fs = request.vertx().fileSystem();
-        String sourceFilesRootDir = SOURCE_FILES_ROOT_DIR;
-        String tenantRootDir = sourceFilesRootDir + "/TENANT_" + request.tenant();
-        if (!fs.existsBlocking(sourceFilesRootDir)) {
-            fs.mkdirBlocking(sourceFilesRootDir);
+        String tenantRootDir = SOURCE_FILES_ROOT_DIR + TENANT_DIR_PREFIX + request.tenant();
+        if (!fs.existsBlocking(SOURCE_FILES_ROOT_DIR)) {
+            fs.mkdirBlocking(SOURCE_FILES_ROOT_DIR);
         }
         if (!fs.existsBlocking(tenantRootDir)) {
             fs.mkdirBlocking(tenantRootDir);
         }
-        jobPath = new File(tenantRootDir, "IMPORT_"+jobConfigId).getPath();
+        jobPath = new File(tenantRootDir, CONFIG_DIR_PREFIX+configId).getPath();
         pathToProcessingSlot = new File(jobPath, DIRECTORY_OF_CURRENTLY_PROCESSING_FILE).getPath();
         createImportConfigDirectories();
     }

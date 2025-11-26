@@ -170,16 +170,37 @@ public class ImportService implements RouterCreator, TenantInitHooks {
         } else {
             responseError(ctx, ctx.statusCode(), " router exception");
         }
-
-
     }
 
     @Override
     public Future<Void> postInit(Vertx vertx, String tenant, JsonObject tenantAttributes) {
         return new ModuleStorageAccess(vertx, tenant).init(tenantAttributes)
-                .onFailure(x -> logger.error("Database initialization failed: {}", x.getMessage()))
-                .onSuccess(x -> logger.info("Tenant '{}' database initialized", tenant));
+            .onFailure(x -> logger.error("Database initialization failed: {}", x.getMessage()))
+            .onSuccess(x -> logger.info("Tenant '{}' database initialized", tenant))
+            .compose(x -> clearTenantFileQueues(vertx, tenant, tenantAttributes));
     }
+
+  public static Future<Void> clearTenantFileQueues(Vertx vertx, String tenant, JsonObject tenantAttributes) {
+    String cleanUp = getTenantParameter(tenantAttributes,"clearPastFileQueues");
+    if (cleanUp != null && cleanUp.equalsIgnoreCase("true")) {
+      FileQueue.clearTenantQueues(vertx,tenant);
+    }
+    return Future.succeededFuture();
+  }
+
+  private static String getTenantParameter(JsonObject attributes, String parameterKey) {
+    if (attributes.containsKey("parameters") && attributes.getValue("parameters") instanceof JsonArray) {
+      JsonArray parameters = attributes.getJsonArray("parameters");
+      for (int i = 0; i < parameters.size(); i++) {
+        JsonObject parameter = parameters.getJsonObject(i);
+        if (parameterKey.equals(parameter.getString("key"))) {
+          return parameter.getString("value");
+        }
+      }
+    }
+    return null;
+  }
+
 
     private Future<Void> getEntities(ServiceRequest request, Entity entity) {
         ModuleStorageAccess db = request.moduleStorageAccess();

@@ -112,7 +112,7 @@ public class FileProcessor {
         try {
             reporting.nowProcessing(xmlFile.getName());
             String xmlFileContents = Files.readString(xmlFile.toPath(), StandardCharsets.UTF_8);
-            vertx.executeBlocking(new XmlRecordsReader(xmlFileContents, transformationPipeline))
+            vertx.executeBlocking(new XmlRecordsReader(xmlFileContents, transformationPipeline),true)
                     .onComplete(processing -> {
                                 if (processing.succeeded()) {
                                     promise.complete();

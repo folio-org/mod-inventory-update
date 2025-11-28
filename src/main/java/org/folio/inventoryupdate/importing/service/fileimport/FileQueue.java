@@ -21,12 +21,14 @@ public class FileQueue {
     private final FileSystem fs;
 
     public static void clearTenantQueues(Vertx vertx, String tenant) {
-      vertx.fileSystem().deleteRecursiveBlocking(SOURCE_FILES_ROOT_DIR + "/" + TENANT_DIR_PREFIX + tenant);
+      if (vertx.fileSystem().existsBlocking(SOURCE_FILES_ROOT_DIR + "/" + TENANT_DIR_PREFIX + tenant)) {
+        vertx.fileSystem().deleteRecursiveBlocking(SOURCE_FILES_ROOT_DIR + "/" + TENANT_DIR_PREFIX + tenant);
+      }
     }
 
     public FileQueue(ServiceRequest request, String configId) {
         this.fs = request.vertx().fileSystem();
-        String tenantRootDir = SOURCE_FILES_ROOT_DIR + TENANT_DIR_PREFIX + request.tenant();
+        String tenantRootDir = SOURCE_FILES_ROOT_DIR + "/" + TENANT_DIR_PREFIX + request.tenant();
         if (!fs.existsBlocking(SOURCE_FILES_ROOT_DIR)) {
             fs.mkdirBlocking(SOURCE_FILES_ROOT_DIR);
         }

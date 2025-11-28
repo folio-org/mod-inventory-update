@@ -36,7 +36,12 @@ public class XmlFileListener extends FileListener {
         if (fileListener == null) {
             Verticle verticle = FileListeners.addFileListener(request.tenant(), importConfigurationId, new XmlFileListener(request, importConfigurationId));
             request.vertx().deployVerticle(verticle,
-                    new DeploymentOptions().setWorkerPoolSize(1).setMaxWorkerExecuteTime(10).setMaxWorkerExecuteTimeUnit(TimeUnit.MINUTES)).onComplete(
+                    new DeploymentOptions()
+                        .setWorkerPoolSize(4)
+                        .setInstances(1)
+                        .setMaxWorkerExecuteTime(10)
+                        .setThreadingModel(ThreadingModel.WORKER)
+                        .setMaxWorkerExecuteTimeUnit(TimeUnit.MINUTES)).onComplete(
                     started -> {
                         if (started.succeeded()) {
                             logger.info("Started verticle [{}] for [{}] and configuration ID [{}].", started.result(), request.tenant(), importConfigurationId);

@@ -30,7 +30,6 @@ import org.folio.inventoryupdate.importing.moduledata.database.Tables;
 import org.folio.inventoryupdate.importing.service.fileimport.FileListeners;
 import org.folio.inventoryupdate.importing.service.fileimport.FileProcessor;
 import org.folio.inventoryupdate.importing.service.fileimport.FileQueue;
-import org.folio.inventoryupdate.importing.service.fileimport.XmlFileListener;
 import org.folio.inventoryupdate.importing.utils.Miscellaneous;
 import org.folio.inventoryupdate.importing.utils.SettableClock;
 import org.folio.tlib.RouterCreator;
@@ -275,7 +274,15 @@ public class ImportService implements RouterCreator, TenantInitHooks {
 
     private Future<Void> postImportConfig(ServiceRequest request) {
         ImportConfig importConfig = new ImportConfig().fromJson(request.bodyAsJson());
-        return storeEntityRespondWith201(request, importConfig);
+        ModuleStorageAccess db = request.moduleStorageAccess();
+        return db.storeEntity(importConfig.withCreatingUser(request.currentUser()))
+            .onSuccess(
+                id -> {
+                  new FileQueue(request, id.toString()).createDirectoriesIfNotExist();
+                  db.getEntity(id, importConfig)
+                      .map(stored -> responseJson(request.routingContext, 201)
+                          .end(stored.asJson().encodePrettily()));
+                }).mapEmpty();
     }
 
     private Future<Void> getImportConfigs(ServiceRequest request) {
@@ -300,7 +307,11 @@ public class ImportService implements RouterCreator, TenantInitHooks {
     }
 
     private Future<Void> deleteImportConfig(ServiceRequest request) {
-        return deleteEntity(request, new ImportConfig());
+        return deleteEntity(request, new ImportConfig())
+            .compose(na -> {
+              new FileQueue(request, request.requestParam("id")).deleteDirectoriesIfExist();
+              return Future.succeededFuture();
+            }).mapEmpty();
     }
 
     private Future<Void> postImportJob(ServiceRequest request) {
@@ -698,7 +709,7 @@ public class ImportService implements RouterCreator, TenantInitHooks {
         request.moduleStorageAccess().getEntity(UUID.fromString(importConfigId), new ImportConfig())
                 .onSuccess(cfg -> {
                     if (cfg != null) {
-                        XmlFileListener
+                        FileListeners
                                 .deployIfNotDeployed(request, importConfigId)
                                 .onSuccess(promise::complete);
                     } else {

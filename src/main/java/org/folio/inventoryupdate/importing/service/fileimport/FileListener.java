@@ -1,47 +1,76 @@
 package org.folio.inventoryupdate.importing.service.fileimport;
 
-import io.vertx.core.AbstractVerticle;
 import io.vertx.core.Future;
+import io.vertx.core.VerticleBase;
+import io.vertx.ext.web.RoutingContext;
 
+import java.io.File;
+import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-public abstract class FileListener extends AbstractVerticle {
-    protected FileProcessor fileProcessor;
-    protected FileQueue fileQueue;
+public abstract class FileListener extends VerticleBase {
 
-    // For demarcating jobs by start/end
-    protected AtomicBoolean fileQueuePassive = new AtomicBoolean(true);
+  protected String tenant;
+  protected UUID importConfigurationId;
+  protected RoutingContext routingContext;
+
+  protected FileProcessor fileProcessor;
+  protected FileQueue fileQueue;
+
+  // For demarcating jobs by start/end
+  protected AtomicBoolean fileQueuePassive = new AtomicBoolean(true);
 
 
-    public FileProcessor getImportJob() {
-        return fileProcessor;
-    }
+  public FileProcessor getImportJob() {
+    return fileProcessor;
+  }
 
-    public abstract Future<FileProcessor> getFileProcessor(boolean activating);
+  public void markFileQueuePassive() {
+    fileQueuePassive.set(true);
+  }
 
-    public void markFileQueuePassive() {
-        fileQueuePassive.set(true);
-    }
+  public boolean fileQueueIsPassive() {
+    return fileQueuePassive.get();
+  }
 
-    public boolean fileQueueIsPassive() {
-        return fileQueuePassive.get();
-    }
+  public boolean fileQueueIsEmpty() {
+    return !fileQueue.hasNextFile();
+  }
 
-    public boolean fileQueueIsEmpty() {
-        return !fileQueue.hasNextFile();
-    }
+  protected abstract void listen();
 
   /**
-   * If there is a file in the processing slot, then it would normally be a currently processing file that should be
-   * waited for to finish.
-   * However, if the process is newly activated or is a resumption of a paused job, then it is assumed that this file
-   * is from a past, interrupted run and that it should be re-processed.
-   * @return true if there is file from a past run that was promoted for processing but didn't finish, false if the file is
-   * already being processed by the currently running job and should be waited for, as is normally the case.
+   * Gets existing file processor or instantiate a new one
+   *
+   * @param activating true if new job must be initialized, false to continue with existing processor.
+   * @return new or previously initialized file processor
    */
-  public boolean resumePromotedFile() {
-      return (fileQueue.processingSlotTaken() &&
-        fileQueueIsPassive() || (fileProcessor != null && fileProcessor.isResuming(false)));
+  public abstract Future<FileProcessor> getFileProcessor(boolean activating);
+
+  /**
+   * Get next file from queue unless there is already a file in the processing slot.<br/>
+   * Exception: Normally, a file in the processing slot will be a currently processing file that should be
+   * waited for to finish. However, if this is an activation of a new job or is a resumption of a paused job,
+   * then it is assumed that this file is from a past, interrupted run and that it should be re-processed.
+   *
+   * @return next file from filesystem queue
+   * <li>except, if there is already a file currently processing: returns null</li>
+   * <li>except, if the process is being newly activated or resumed, then returns the currently promoted file after all, to
+   * restart processing with that</li>
+   * <li>except, if there is no promoted file and no files in queue: returns null.</li>
+   */
+  public File getNextFileIfPossible(boolean fileQueuePassive, boolean processorResuming) {
+    if (fileQueue.processingSlotTaken() && (fileQueuePassive || processorResuming)) {
+      return fileQueue.currentlyPromotedFile();
+    } else {
+      return fileQueue.nextFileIfPossible();
     }
+  }
+
+
+  public boolean importJobPaused() {
+    return fileProcessor != null && fileProcessor.paused();
+  }
+
 
 }

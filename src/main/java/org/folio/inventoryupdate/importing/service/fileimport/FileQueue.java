@@ -16,8 +16,9 @@ public class FileQueue {
     public static final String CONFIG_DIR_PREFIX = "IMPORT_";
     public static final String DIRECTORY_OF_CURRENTLY_PROCESSING_FILE = ".processing";
     public static final String TMP_DIR = ".tmp";
-    private final String jobPath;
-    private final String pathToProcessingSlot;
+  private final String jobPath;
+    private final String jobTmpDir;
+    private final String jobProcessingSlot;
     private final FileSystem fs;
 
     public static void clearTenantQueues(Vertx vertx, String tenant) {
@@ -27,22 +28,25 @@ public class FileQueue {
     }
 
     public FileQueue(ServiceRequest request, String configId) {
-        this.fs = request.vertx().fileSystem();
-        String tenantRootDir = SOURCE_FILES_ROOT_DIR + "/" + TENANT_DIR_PREFIX + request.tenant();
-        if (!fs.existsBlocking(SOURCE_FILES_ROOT_DIR)) {
-            fs.mkdirBlocking(SOURCE_FILES_ROOT_DIR);
-        }
-        if (!fs.existsBlocking(tenantRootDir)) {
-            fs.mkdirBlocking(tenantRootDir);
-        }
+        fs = request.vertx().fileSystem();
+        String tenantRootDir = new File(SOURCE_FILES_ROOT_DIR, TENANT_DIR_PREFIX + request.tenant()).getPath();
         jobPath = new File(tenantRootDir, CONFIG_DIR_PREFIX+configId).getPath();
-        pathToProcessingSlot = new File(jobPath, DIRECTORY_OF_CURRENTLY_PROCESSING_FILE).getPath();
-        createImportConfigDirectories();
+        jobProcessingSlot = new File(jobPath, DIRECTORY_OF_CURRENTLY_PROCESSING_FILE).getPath();
+        jobTmpDir = new File(jobPath, TMP_DIR).getPath();
     }
 
-    private void createImportConfigDirectories () {
-      if (! fs.existsBlocking(jobPath)) {
-        fs.mkdirsBlocking(pathToProcessingSlot).mkdirBlocking(jobPath + "/" + TMP_DIR);
+    public void createDirectoriesIfNotExist() {
+      if (! fs.existsBlocking(jobProcessingSlot)) {
+        fs.mkdirsBlocking(jobProcessingSlot);
+      }
+      if (! fs.existsBlocking(jobTmpDir)) {
+        fs.mkdirsBlocking(jobTmpDir);
+      }
+    }
+
+    public void deleteDirectoriesIfExist() {
+      if (fs.existsBlocking(jobPath)) {
+          fs.deleteRecursiveBlocking(jobPath);
       }
     }
 
@@ -53,12 +57,16 @@ public class FileQueue {
    * @return Message describing the action taken.
    */
   public String initializeQueue() {
-      int filesInQueueBefore = fs.readDirBlocking(jobPath).size();
-      fs.deleteRecursiveBlocking(jobPath);
-      createImportConfigDirectories();
-      int filesInQueueAfter = fs.readDirBlocking(jobPath).size();
-      if (filesInQueueBefore>filesInQueueAfter) {
-        return "Deleted " + (filesInQueueBefore-filesInQueueAfter) + " source files from the queue at " + jobPath;
+      int filesInQueueBefore = 0;
+      if (fs.existsBlocking(jobPath)) {
+        filesInQueueBefore = fs.readDirBlocking(jobPath).size()-2;
+        if (filesInQueueBefore > 0) {
+          deleteDirectoriesIfExist();
+        }
+      }
+      createDirectoriesIfNotExist();
+      if (filesInQueueBefore>0) {
+        return "Deleted " + filesInQueueBefore + " source files from the queue at " + jobPath;
       } else {
         return "Initialized file system queue at " + jobPath;
       }
@@ -82,7 +90,7 @@ public class FileQueue {
      * @return true if the processing directory is occupied, false if it's ready for next file.
      */
     public boolean processingSlotTaken() {
-        return fs.readDirBlocking(pathToProcessingSlot).stream().map(File::new).anyMatch(File::isFile);
+        return fs.readDirBlocking(jobProcessingSlot).stream().map(File::new).anyMatch(File::isFile);
     }
 
     public boolean hasNextFile() {
@@ -99,7 +107,7 @@ public class FileQueue {
             return fs.readDirBlocking(jobPath).stream().map(File::new).filter(File::isFile).min(Comparator.comparing(File::lastModified))
                     .map(file -> {
                         if (!processingSlotTaken()) {
-                            fs.moveBlocking(file.getPath(), pathToProcessingSlot + "/" + file.getName());
+                            fs.moveBlocking(file.getPath(), jobProcessingSlot + "/" + file.getName());
                             return true;
                         } else {
                             return false;
@@ -114,7 +122,7 @@ public class FileQueue {
      * @return The name of file being processed, "none" if there is none.
      */
     public File currentlyPromotedFile() {
-        return fs.readDirBlocking(pathToProcessingSlot).stream().map(File::new).filter(File::isFile).findFirst().orElse(null);
+        return fs.readDirBlocking(jobProcessingSlot).stream().map(File::new).filter(File::isFile).findFirst().orElse(null);
     }
 
     public void deleteFile(File file) {

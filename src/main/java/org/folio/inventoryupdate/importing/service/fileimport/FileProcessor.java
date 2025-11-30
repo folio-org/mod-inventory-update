@@ -21,6 +21,7 @@ public abstract class FileProcessor {
   String tenant;
 
 
+
   /**
    * Sets the file processor that the file listener forwards files to.
    */
@@ -78,6 +79,6 @@ public abstract class FileProcessor {
     importJob.logFinish(SettableClock.getLocalDateTime(), recordCount, configStorage);
   }
 
-
+  public abstract String getStats ();
 
 }

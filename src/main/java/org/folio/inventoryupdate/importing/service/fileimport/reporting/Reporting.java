@@ -116,6 +116,7 @@ public class Reporting {
 
             logger.info("Done processing queue. {} file(s) with {} records processed in {} ({} recs/s.) ",
                 filesProcessed, recordsProcessed.get(), processingTimeAsString(processingTime), (recordsProcessed.get() * 1000L / processingTime));
+            logger.info(fileProcessor.getStats());
         }
     }
 

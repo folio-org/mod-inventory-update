@@ -24,6 +24,8 @@ public class InventoryBatchUpdater implements RecordReceiver {
     public static final Logger logger = LogManager.getLogger("InventoryBatchUpdater");
     private long batchNumber;
 
+    private long processingTime;
+    private int recordsProcessed;
     public InventoryBatchUpdater(RoutingContext routingContext) {
         updateClient = new InternalInventoryUpdateClient(routingContext.vertx(), routingContext);
         batchNumber=0L;
@@ -40,6 +42,7 @@ public class InventoryBatchUpdater implements RecordReceiver {
     @Override
     public void put(ProcessingRecord processingRecord) {
         if (processingRecord != null) {
+            recordsProcessed++;
             processingRecord.setBatchIndex(records.size());
             records.add(processingRecord);
             if (records.size() > 99 || processingRecord.isDeletion()) {
@@ -90,7 +93,17 @@ public class InventoryBatchUpdater implements RecordReceiver {
         put(null);
     }
 
-    /**
+  @Override
+  public long getProcessingTime() {
+    return processingTime;
+  }
+
+  @Override
+  public int getRecordsProcessed() {
+    return recordsProcessed;
+  }
+
+  /**
      * This is the last function of the import pipeline, and since it's asynchronous
      * it must be in charge of when to invoke results reporting. The file listening verticle will not
      * know when the last upsert of a source file of records is done, for example.
@@ -105,7 +118,9 @@ public class InventoryBatchUpdater implements RecordReceiver {
           turnstile.exitBatch();
         } else if (batch != null) {
           if (batch.size() > 0) {
+            long upsertStarted = System.currentTimeMillis();
             updateClient.inventoryUpsert(batch.getUpsertRequestBody()).onSuccess(upsert -> {
+                    processingTime += (System.currentTimeMillis()-upsertStarted);
                     if (upsert.statusCode() >= 400) {
                       logger.error("Fatal error when updating inventory, status code: {}", upsert.statusCode());
                       promise.fail("Inventory update failed with status code " + upsert.statusCode());

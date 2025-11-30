@@ -30,6 +30,7 @@ import java.util.UUID;
  */
 public class XmlFileProcessor extends FileProcessor {
     TransformationPipeline transformationPipeline;
+    InventoryBatchUpdater inventoryBatchUpdater;
     final Vertx vertx;
 
     public static final Logger logger = LogManager.getLogger("ImportJob");
@@ -58,16 +59,21 @@ public class XmlFileProcessor extends FileProcessor {
                 .onComplete(pipelineCreated -> transformationPipeline = pipelineCreated.result());
     }
 
+    public XmlFileProcessor withInventoryBatchUpdater(RoutingContext routingContext) {
+      inventoryBatchUpdater = new InventoryBatchUpdater(routingContext).forFileProcessor(this);
+      return this;
+    }
+
     /**
      * Attaches a file processor to the file listener, a job log and a transformation pipeline to the file processor,
      * and an inventory batch updater to the transformation pipeline.
      * @return a file processor for the listener, with a transformation pipeline and an inventory updater.
      */
-    public Future<XmlFileProcessor> initiateJob(RoutingContext routingContext) {
+    public Future<XmlFileProcessor> initiateJob() {
         return this.withJobLog(this.importConfigId)
                         .compose(v -> withTransformationPipeline(tenant, importConfigId, vertx))
                         .compose(transformer -> {
-                            transformer.withTarget(new InventoryBatchUpdater(routingContext).forFileProcessor(this));
+                            transformer.withTarget(inventoryBatchUpdater);
                             return Future.succeededFuture(this);
                         });
     }
@@ -104,4 +110,16 @@ public class XmlFileProcessor extends FileProcessor {
         return promise.future();
     }
 
+    public String getStats() {
+      String stats = "Transformation, records processed: " + transformationPipeline.getRecordsProcessed()
+          + ", Upserting, records processed: " + inventoryBatchUpdater.getRecordsProcessed()
+          + ".";
+      if (transformationPipeline.getRecordsProcessed()>0 && inventoryBatchUpdater.getRecordsProcessed()>0) {
+        stats += " Transformation: "
+            + (transformationPipeline.getRecordsProcessed() * 1000L / transformationPipeline.getProcessingTime()) + " recs/s."
+            + " Upserting: "
+            + (inventoryBatchUpdater.getRecordsProcessed() * 1000L / inventoryBatchUpdater.getProcessingTime()) + " recs/s.";
+      }
+      return stats;
+    }
 }

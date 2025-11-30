@@ -34,7 +34,7 @@ public class XmlFileListener extends FileListener {
 
   @Override
   protected void listen() {
-    if (/* awake & */ !importJobPaused()) {
+    if (!importJobPaused()) {
       boolean processorResuming = (fileProcessor != null && fileProcessor.isResuming(false));
       File currentFile = getNextFileIfPossible(fileQueuePassive.get(), processorResuming);
       if (currentFile != null) {  // null if queue is empty or a previous file is still processing
@@ -56,7 +56,8 @@ public class XmlFileListener extends FileListener {
     if (instantiate) {
       return new XmlFileProcessor(vertx, tenant, importConfigurationId)
           .forFileListener(this)
-          .initiateJob(routingContext)
+          .withInventoryBatchUpdater(routingContext)
+          .initiateJob()
           .compose(newFileProcessor -> {
             fileProcessor = newFileProcessor;
             return Future.succeededFuture(fileProcessor);

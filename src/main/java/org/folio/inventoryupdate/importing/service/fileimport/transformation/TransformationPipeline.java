@@ -11,7 +11,6 @@ import org.folio.inventoryupdate.importing.moduledata.Entity;
 import org.folio.inventoryupdate.importing.moduledata.Step;
 import org.folio.inventoryupdate.importing.moduledata.TransformationStep;
 import org.folio.inventoryupdate.importing.moduledata.database.ModuleStorageAccess;
-import org.folio.inventoryupdate.importing.service.fileimport.InventoryBatchUpdater;
 import org.folio.inventoryupdate.importing.service.fileimport.RecordReceiver;
 import org.folio.inventoryupdate.importing.service.fileimport.ProcessingRecord;
 
@@ -41,10 +40,6 @@ public class TransformationPipeline implements RecordReceiver {
         this.inventoryUpdater = inventoryUpdater;
         records = 0;
         transformationTime = 0;
-    }
-
-    public InventoryBatchUpdater getUpdater() {
-        return (InventoryBatchUpdater) inventoryUpdater;
     }
 
     public static Future<TransformationPipeline> create(Vertx vertx, String tenant, UUID transformationId) {
@@ -130,6 +125,16 @@ public class TransformationPipeline implements RecordReceiver {
     @Override
     public void endOfDocument() {
         inventoryUpdater.endOfDocument();
+    }
+
+    @Override
+    public long getProcessingTime() {
+      return transformationTime;
+    }
+
+    @Override
+    public int getRecordsProcessed() {
+      return records;
     }
 
 }

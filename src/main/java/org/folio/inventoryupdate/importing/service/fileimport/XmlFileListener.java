@@ -52,14 +52,14 @@ public class XmlFileListener extends FileListener {
     }
   }
 
+
   public Future<FileProcessor> getFileProcessor(boolean instantiate) {
     if (instantiate) {
       return new XmlFileProcessor(vertx, tenant, importConfigurationId)
           .forFileListener(this)
-          .withInventoryBatchUpdater(routingContext)
-          .initiateJob()
+          .withProcessingPipeline(tenant, importConfigurationId, vertx, new InventoryBatchUpdater(routingContext))
           .compose(newFileProcessor -> {
-            fileProcessor = newFileProcessor;
+            this.fileProcessor = newFileProcessor;
             return Future.succeededFuture(fileProcessor);
           });
     } else {

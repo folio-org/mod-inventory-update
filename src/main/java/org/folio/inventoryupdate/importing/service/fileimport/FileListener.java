@@ -40,7 +40,7 @@ public abstract class FileListener extends VerticleBase {
   protected abstract void listen();
 
   /**
-   * Gets existing file processor or instantiate a new one
+   * Gets existing file processor or instantiates a new one
    *
    * @param activating true if new job must be initialized, false to continue with existing processor.
    * @return new or previously initialized file processor

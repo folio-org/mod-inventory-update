@@ -24,7 +24,7 @@ import java.util.*;
 /**
  * An XSLT transformation pipeline with an XML to JSON conversion at the end
  */
-public class TransformationPipeline implements RecordReceiver {
+public class XmlTransformationPipeline implements RecordReceiver {
 
     private final List<Templates> listOfTemplates = new ArrayList<>();
     private RecordReceiver inventoryUpdater;
@@ -32,18 +32,19 @@ public class TransformationPipeline implements RecordReceiver {
     private long transformationTime = 0;
     public static final Logger logger = LogManager.getLogger("TransformationPipeline");
 
-    private TransformationPipeline(JsonObject transformation) {
+    private XmlTransformationPipeline(JsonObject transformation) {
         setTemplates(transformation);
     }
 
-    public void withTarget(RecordReceiver inventoryUpdater) {
+    public XmlTransformationPipeline withTarget(RecordReceiver inventoryUpdater) {
         this.inventoryUpdater = inventoryUpdater;
         records = 0;
         transformationTime = 0;
+        return this;
     }
 
-    public static Future<TransformationPipeline> create(Vertx vertx, String tenant, UUID transformationId) {
-        Promise<TransformationPipeline> promise = Promise.promise();
+    public static Future<XmlTransformationPipeline> create(Vertx vertx, String tenant, UUID transformationId) {
+        Promise<XmlTransformationPipeline> promise = Promise.promise();
         ModuleStorageAccess access = new ModuleStorageAccess(vertx, tenant);
         TransformationStep tsasDef = new TransformationStep();
         Step stepDef = new Step();
@@ -61,7 +62,7 @@ public class TransformationPipeline implements RecordReceiver {
                         o.getJsonObject("step").put("entityType", "xmlTransformationStep");
                         json.getJsonArray("stepAssociations").add(o);
                     }
-                    TransformationPipeline pipeline = new TransformationPipeline(json);
+                    XmlTransformationPipeline pipeline = new XmlTransformationPipeline(json);
                     promise.complete(pipeline);
                 })
                 .onFailure(handler -> logger.error("Problem retrieving steps {}", handler.getMessage()));

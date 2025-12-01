@@ -1,7 +1,7 @@
 {
   "id" : "42ae09ec-8afd-41dc-b529-ac112a607271",
-  "importConfigId" : "c71b4d3a-2030-4f71-8b0a-294ec41fad22",
-  "importConfigName" : "a name",
+  "channelId" : "c71b4d3a-2030-4f71-8b0a-294ec41fad22",
+  "channelName" : "a name",
   "importType" : "xml",
   "transformation" : "10928a21-89eb-440d-bc37-b9efae2c98a0",
   "status" : "DONE",

@@ -4,7 +4,7 @@ import io.vertx.core.Future;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.folio.inventoryupdate.importing.moduledata.Entity;
-import org.folio.inventoryupdate.importing.moduledata.ImportConfig;
+import org.folio.inventoryupdate.importing.moduledata.Channel;
 import org.folio.inventoryupdate.importing.moduledata.ImportJob;
 import org.folio.inventoryupdate.importing.moduledata.LogLine;
 import org.folio.inventoryupdate.importing.moduledata.RecordFailure;
@@ -27,7 +27,7 @@ public class DatabaseInit {
     public static Future<Void> createDatabase(TenantPgPool pool) {
         return create(new Step(), pool)
             .compose(na -> create(new Transformation(), pool))
-            .compose(na -> create(new ImportConfig(), pool))
+            .compose(na -> create(new Channel(), pool))
             .compose(na -> create(new ImportJob(), pool))
             .compose(na -> create(new RecordFailure(), pool))
             .compose(na -> create(new LogLine(), pool))
@@ -55,8 +55,8 @@ public class DatabaseInit {
         ddl = "CREATE OR REPLACE VIEW " + schema + "." + Tables.RECORD_FAILURE_VIEW
                 + " AS SELECT rf.id AS id, "
                 + "          rf.import_job_Id AS import_job_id, "
-                + "          ij.import_config_id AS import_config_id, "
-                + "          ij.import_config_name AS import_config_name, "
+                + "          ij.channel_id AS channel_id, "
+                + "          ij.channel_name AS channel_name, "
                 + "          rf.record_number AS record_number, "
                 + "          rf.time_stamp AS time_stamp, "
                 + "          rf.record_errors AS record_errors, "
@@ -78,8 +78,8 @@ public class DatabaseInit {
         ddl = "CREATE OR REPLACE VIEW " + schema + "." + Tables.JOB_LOG_VIEW
             + " AS SELECT ls.id AS id, "
             + "          ls.import_job_Id AS import_job_id, "
-            + "          ij.import_config_id AS import_config_id, "
-            + "          ij.import_config_name AS import_config_name, "
+            + "          ij.channel_id AS channel_id, "
+            + "          ij.channel_name AS channel_name, "
             + "          ls.time_stamp AS time_stamp, "
             + "          ls.job_label AS job_label, "
             + "          ls.statement AS statement, "

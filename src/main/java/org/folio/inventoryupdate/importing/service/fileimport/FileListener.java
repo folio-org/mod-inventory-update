@@ -3,7 +3,7 @@ package org.folio.inventoryupdate.importing.service.fileimport;
 import io.vertx.core.Future;
 import io.vertx.core.VerticleBase;
 import io.vertx.ext.web.RoutingContext;
-import org.folio.inventoryupdate.importing.moduledata.ImportConfig;
+import org.folio.inventoryupdate.importing.moduledata.Channel;
 
 import java.io.File;
 import java.util.UUID;
@@ -12,7 +12,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 public abstract class FileListener extends VerticleBase {
 
   protected String tenant;
-  protected ImportConfig importConfig;
+  protected Channel channel;
   protected RoutingContext routingContext;
   protected FileProcessor fileProcessor;
   protected FileQueue fileQueue;
@@ -24,19 +24,19 @@ public abstract class FileListener extends VerticleBase {
     return fileProcessor;
   }
 
-  public void updateImportConfig(ImportConfig importConfig) {
-    this.importConfig = importConfig;
+  public void updateChannel(Channel channel) {
+    this.channel = channel;
   }
 
   public UUID getConfigId() {
-    return importConfig.getRecord().id();
+    return channel.getRecord().id();
   }
   public String getConfigIdStr() {
     return getConfigId().toString();
   }
 
   public String getConfigName () {
-    return importConfig.getRecord().name();
+    return channel.getRecord().name();
   }
 
   public void markFileQueuePassive() {

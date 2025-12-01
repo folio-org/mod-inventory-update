@@ -13,7 +13,7 @@ public class FileQueue {
 
     public static final String SOURCE_FILES_ROOT_DIR = "MIU_QUEUE";
     public static final String TENANT_DIR_PREFIX = "TENANT_";
-    public static final String CONFIG_DIR_PREFIX = "IMPORT_";
+    public static final String CHANNEL_PREFIX = "CHANNEL_";
     public static final String DIRECTORY_OF_CURRENTLY_PROCESSING_FILE = ".processing";
     public static final String TMP_DIR = ".tmp";
   private final String jobPath;
@@ -30,7 +30,7 @@ public class FileQueue {
     public FileQueue(ServiceRequest request, String configId) {
         fs = request.vertx().fileSystem();
         String tenantRootDir = new File(SOURCE_FILES_ROOT_DIR, TENANT_DIR_PREFIX + request.tenant()).getPath();
-        jobPath = new File(tenantRootDir, CONFIG_DIR_PREFIX+configId).getPath();
+        jobPath = new File(tenantRootDir, CHANNEL_PREFIX + configId).getPath();
         jobProcessingSlot = new File(jobPath, DIRECTORY_OF_CURRENTLY_PROCESSING_FILE).getPath();
         jobTmpDir = new File(jobPath, TMP_DIR).getPath();
     }

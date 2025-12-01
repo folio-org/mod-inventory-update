@@ -15,7 +15,7 @@ public class Service {
     public static final String PATH_TRANSFORMATIONS = "inventory-import/transformations";
     public static final String PATH_STEPS = "inventory-import/steps";
     public static final String PATH_TSAS = "inventory-import/tsas";
-    public static final String PATH_IMPORT_CONFIGS = "inventory-import/import-configs";
+    public static final String PATH_CHANNELS = "inventory-import/channels";
     public static final String PATH_IMPORT_JOBS = "inventory-import/import-jobs";
     public static final String PATH_FAILED_RECORDS = "inventory-import/failed-records";
     public static final String PATH_JOB_LOGS = "inventory-import/job-logs";

@@ -17,7 +17,7 @@ import org.apache.logging.log4j.Logger;
 import org.folio.inventoryupdate.importing.foliodata.ConfigurationsClient;
 import org.folio.inventoryupdate.importing.foliodata.SettingsClient;
 import org.folio.inventoryupdate.importing.moduledata.Entity;
-import org.folio.inventoryupdate.importing.moduledata.ImportConfig;
+import org.folio.inventoryupdate.importing.moduledata.Channel;
 import org.folio.inventoryupdate.importing.moduledata.ImportJob;
 import org.folio.inventoryupdate.importing.moduledata.LogLine;
 import org.folio.inventoryupdate.importing.moduledata.RecordFailure;
@@ -66,11 +66,11 @@ public class ImportService implements RouterCreator, TenantInitHooks {
 
     private void handlers(Vertx vertx, RouterBuilder routerBuilder) {
         // Configurations
-        validatingHandler(vertx, routerBuilder, "postImportConfig", this::postImportConfig);
-        validatingHandler(vertx, routerBuilder, "getImportConfigs", this::getImportConfigs);
-        validatingHandler(vertx, routerBuilder, "getImportConfig", this::getImportConfigById);
-        validatingHandler(vertx, routerBuilder, "putImportConfig", this::putImportConfig);
-        validatingHandler(vertx, routerBuilder, "deleteImportConfig", this::deleteImportConfig);
+        validatingHandler(vertx, routerBuilder, "postChannel", this::postChannel);
+        validatingHandler(vertx, routerBuilder, "getChannels", this::getChannels);
+        validatingHandler(vertx, routerBuilder, "getChannel", this::getChannelById);
+        validatingHandler(vertx, routerBuilder, "putChannel", this::putChannel);
+        validatingHandler(vertx, routerBuilder, "deleteChannel", this::deleteChannel);
         validatingHandler(vertx, routerBuilder, "postTransformation", this::postTransformation);
         validatingHandler(vertx, routerBuilder, "getTransformation", this::getTransformationById);
         validatingHandler(vertx, routerBuilder, "getTransformations", this::getTransformations);
@@ -274,41 +274,41 @@ public class ImportService implements RouterCreator, TenantInitHooks {
                 .mapEmpty();
     }
 
-    private Future<Void> postImportConfig(ServiceRequest request) {
-        ImportConfig importConfig = new ImportConfig().fromJson(request.bodyAsJson());
+    private Future<Void> postChannel(ServiceRequest request) {
+        Channel channel = new Channel().fromJson(request.bodyAsJson());
         ModuleStorageAccess db = request.moduleStorageAccess();
-        return db.storeEntity(importConfig.withCreatingUser(request.currentUser()))
+        return db.storeEntity(channel.withCreatingUser(request.currentUser()))
             .compose(id -> {
               new FileQueue(request, id.toString()).createDirectoriesIfNotExist();
               return Future.succeededFuture(id);
-            }).compose(id ->  db.getEntity(id, importConfig))
+            }).compose(id ->  db.getEntity(id, channel))
             .compose(cfg -> {
-              FileListeners.deployIfNotDeployed(request, (ImportConfig) cfg);
+              FileListeners.deployIfNotDeployed(request, (Channel) cfg);
               return Future.succeededFuture(cfg);
             })
             .compose(cfg -> responseJson(request.routingContext, 201).end(cfg.asJson().encodePrettily()))
             .mapEmpty();
     }
 
-    private Future<Void> getImportConfigs(ServiceRequest request) {
-        return getEntities(request, new ImportConfig());
+    private Future<Void> getChannels(ServiceRequest request) {
+        return getEntities(request, new Channel());
     }
 
-    private Future<Void> getImportConfigById(ServiceRequest request) {
-        return getEntity(request, new ImportConfig());
+    private Future<Void> getChannelById(ServiceRequest request) {
+        return getEntity(request, new Channel());
     }
 
-    private Future<Void> putImportConfig(ServiceRequest request) {
-        ImportConfig importConfig = new ImportConfig().fromJson(request.bodyAsJson());
+    private Future<Void> putChannel(ServiceRequest request) {
+        Channel channel = new Channel().fromJson(request.bodyAsJson());
         UUID id = UUID.fromString(request.requestParam("id"));
-        return request.moduleStorageAccess().updateEntity(id,importConfig.withUpdatingUser(request.currentUser()))
+        return request.moduleStorageAccess().updateEntity(id, channel.withUpdatingUser(request.currentUser()))
             .onSuccess(result -> {
               if (result.rowCount()==1) {
-                request.moduleStorageAccess().getEntity(id, new ImportConfig())
+                request.moduleStorageAccess().getEntity(id, new Channel())
                         .compose(cfg -> {
                           FileListener listener = FileListeners.getFileListener(request.tenant(), id.toString());
                           if (listener != null) {
-                            listener.updateImportConfig((ImportConfig)cfg);
+                            listener.updateChannel((Channel)cfg);
                           }
                           return responseText(request.routingContext(), 204).end();
                         });
@@ -319,8 +319,8 @@ public class ImportService implements RouterCreator, TenantInitHooks {
             }).mapEmpty();
     }
 
-    private Future<Void> deleteImportConfig(ServiceRequest request) {
-        return deleteEntity(request, new ImportConfig())
+    private Future<Void> deleteChannel(ServiceRequest request) {
+        return deleteEntity(request, new Channel())
             .compose(na -> {
               new FileQueue(request, request.requestParam("id")).deleteDirectoriesIfExist();
               return Future.succeededFuture();
@@ -700,84 +700,84 @@ public class ImportService implements RouterCreator, TenantInitHooks {
     private Future<Void> stageXmlSourceFile(ServiceRequest request) {
 
         final long fileStartTime = System.currentTimeMillis();
-        String importConfigId = request.requestParam("id");
+        String channelId = request.requestParam("id");
         String fileName = request.queryParam("filename",UUID.randomUUID() + ".xml");
         Buffer xmlContent = Buffer.buffer(request.bodyAsString());
 
-        return activateFileListener(request, importConfigId)
+        return activateFileListener(request, channelId)
                 .onSuccess(ignore -> {
-                    new FileQueue(request, importConfigId).addNewFile(fileName, xmlContent);
+                    new FileQueue(request, channelId).addNewFile(fileName, xmlContent);
                     responseText(request.routingContext, 200).end("File queued for processing in ms " + (System.currentTimeMillis() - fileStartTime));
                 }).mapEmpty();
     }
 
     private Future<Void> activateFileListener(ServiceRequest request) {
-        String importConfigId = request.requestParam("id");
-        return activateFileListener(request, importConfigId)
+        String channelId = request.requestParam("id");
+        return activateFileListener(request, channelId)
                 .onSuccess(response -> responseText(request.routingContext(), 200).end(response)).mapEmpty();
     }
 
-    private Future<String> activateFileListener(ServiceRequest request, String importConfigId) {
+    private Future<String> activateFileListener(ServiceRequest request, String channelId) {
         Promise<String> promise = Promise.promise();
-        request.moduleStorageAccess().getEntity(UUID.fromString(importConfigId), new ImportConfig())
+        request.moduleStorageAccess().getEntity(UUID.fromString(channelId), new Channel())
                 .onSuccess(cfg -> {
                     if (cfg != null) {
-                        FileListeners.deployIfNotDeployed(request, (ImportConfig) cfg)
+                        FileListeners.deployIfNotDeployed(request, (Channel) cfg)
                                 .onSuccess(promise::complete);
                     } else {
-                        promise.fail("Could not find import config with id [" + importConfigId + "].");
+                        promise.fail("Could not find import config with id [" + channelId + "].");
                     }
                 }).mapEmpty();
         return promise.future();
     }
 
     private Future<Void> pauseImportJob(ServiceRequest request) {
-        String importConfigId = request.requestParam("id");
-        if (FileListeners.hasFileListener(request.tenant(), importConfigId)) {
-            FileProcessor job = FileListeners.getFileListener(request.tenant(), importConfigId).getImportJob();
+        String channelId = request.requestParam("id");
+        if (FileListeners.hasFileListener(request.tenant(), channelId)) {
+            FileProcessor job = FileListeners.getFileListener(request.tenant(), channelId).getImportJob();
             if (job == null) {
-              responseText(request.routingContext(), 404).end("No job found for this import configuration yet, [" + importConfigId + "].");
+              responseText(request.routingContext(), 404).end("No job found for this import configuration yet, [" + channelId + "].");
             } else {
               if (job.paused()) {
-                responseText(request.routingContext(), 200).end("File listener already paused for import config [" + importConfigId + "].");
+                responseText(request.routingContext(), 200).end("File listener already paused for import config [" + channelId + "].");
               } else {
                 job.pause();
-                responseText(request.routingContext(), 200).end("Processing paused for import config [" + importConfigId + "].");
+                responseText(request.routingContext(), 200).end("Processing paused for import config [" + channelId + "].");
               }
             }
         } else {
-            responseText(request.routingContext(), 200).end("Currently no running import process found to pause for import config [" + importConfigId + "].");
+            responseText(request.routingContext(), 200).end("Currently no running import process found to pause for import config [" + channelId + "].");
         }
         return Future.succeededFuture();
     }
 
     private Future<Void> resumeImportJob(ServiceRequest request) {
 
-        String importConfigId = request.requestParam("id");
-        if (FileListeners.hasFileListener(request.tenant(), importConfigId)) {
-            FileProcessor job = FileListeners.getFileListener(request.tenant(), importConfigId).getImportJob();
+        String channelId = request.requestParam("id");
+        if (FileListeners.hasFileListener(request.tenant(), channelId)) {
+            FileProcessor job = FileListeners.getFileListener(request.tenant(), channelId).getImportJob();
             if (job.paused()) {
                 job.resume();
-                responseText(request.routingContext(), 200).end("Processing resumed for import config [" + importConfigId + "].");
+                responseText(request.routingContext(), 200).end("Processing resumed for import config [" + channelId + "].");
             } else {
-                responseText(request.routingContext(), 200).end("File listener already active for import config [" + importConfigId + "].");
+                responseText(request.routingContext(), 200).end("File listener already active for import config [" + channelId + "].");
             }
         } else {
-            responseText(request.routingContext(), 200).end("Currently no running import process found to resume for import config [" + importConfigId + "].");
+            responseText(request.routingContext(), 200).end("Currently no running import process found to resume for import config [" + channelId + "].");
         }
         return Future.succeededFuture();
     }
 
     private Future<Void> initFileSystemQueue(ServiceRequest request) {
       Promise<String> promise = Promise.promise();
-      String importConfigId = request.requestParam("id");
-      request.moduleStorageAccess().getEntity(UUID.fromString(importConfigId), new ImportConfig())
+      String channelId = request.requestParam("id");
+      request.moduleStorageAccess().getEntity(UUID.fromString(channelId), new Channel())
           .onSuccess(cfg -> {
             if (cfg != null) {
-              String initMessage = new FileQueue(request, importConfigId).initializeQueue();
+              String initMessage = new FileQueue(request, channelId).initializeQueue();
               responseText(request.routingContext(), 200).end(initMessage);
             } else {
-              promise.fail("Could not find import config with id [" + importConfigId + "].");
+              promise.fail("Could not find import config with id [" + channelId + "].");
             }
           }).mapEmpty();
       return Future.succeededFuture();

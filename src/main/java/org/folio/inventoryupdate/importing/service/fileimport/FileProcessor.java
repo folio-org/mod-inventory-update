@@ -11,7 +11,7 @@ import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 public abstract class FileProcessor {
-  UUID importConfigId;
+  UUID channelId;
   ImportJob importJob;
   Reporting reporting;
   FileListener fileListener;
@@ -63,7 +63,7 @@ public abstract class FileProcessor {
   }
 
   public UUID getImportConfigId() {
-    return importConfigId;
+    return channelId;
   }
 
   public void halt(String errorMessage) {

@@ -7,7 +7,7 @@ import io.vertx.core.ThreadingModel;
 import io.vertx.core.VerticleBase;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.folio.inventoryupdate.importing.moduledata.ImportConfig;
+import org.folio.inventoryupdate.importing.moduledata.Channel;
 import org.folio.inventoryupdate.importing.service.ServiceRequest;
 
 import java.util.concurrent.ConcurrentHashMap;
@@ -23,27 +23,27 @@ public class FileListeners {
     throw new IllegalStateException("Utility class");
   }
 
-  public static FileListener getFileListener(String tenant, String importConfigurationId) {
+  public static FileListener getFileListener(String tenant, String channelId) {
     FILE_LISTENERS.putIfAbsent(tenant, new ConcurrentHashMap<>());
-    return FILE_LISTENERS.get(tenant).get(importConfigurationId);
+    return FILE_LISTENERS.get(tenant).get(channelId);
   }
 
-  public static VerticleBase addFileListener(String tenant, String importConfigurationId, FileListener fileListener) {
+  public static VerticleBase addFileListener(String tenant, String channelId, FileListener fileListener) {
     FILE_LISTENERS.putIfAbsent(tenant, new ConcurrentHashMap<>());
-    FILE_LISTENERS.get(tenant).put(importConfigurationId, fileListener);
+    FILE_LISTENERS.get(tenant).put(channelId, fileListener);
     return fileListener;
   }
 
-  public static boolean hasFileListener(String tenant, String importConfigurationId) {
-    return getFileListener(tenant, importConfigurationId) != null;
+  public static boolean hasFileListener(String tenant, String channelId) {
+    return getFileListener(tenant, channelId) != null;
   }
 
-  public static Future<String> deployIfNotDeployed(ServiceRequest request, ImportConfig importConfig) {
+  public static Future<String> deployIfNotDeployed(ServiceRequest request, Channel channel) {
     Promise<String> promise = Promise.promise();
-    String cfgId = importConfig.getRecord().id().toString();
+    String cfgId = channel.getRecord().id().toString();
     FileListener fileListener = FileListeners.getFileListener(request.tenant(), cfgId);
     if (fileListener == null) {
-      VerticleBase verticle = FileListeners.addFileListener(request.tenant(), cfgId, new XmlFileListener(request, importConfig));
+      VerticleBase verticle = FileListeners.addFileListener(request.tenant(), cfgId, new XmlFileListener(request, channel));
       request.vertx().deployVerticle(verticle,
           new DeploymentOptions()
               .setWorkerPoolSize(4)
@@ -53,15 +53,15 @@ public class FileListeners {
               .setMaxWorkerExecuteTimeUnit(TimeUnit.MINUTES)).onComplete(
           started -> {
             if (started.succeeded()) {
-              logger.info("Started verticle [{}] for [{}] and configuration ID [{}].", started.result(), request.tenant(), importConfig.getRecord().name());
-              promise.complete("Started verticle [" + started.result() + "] for configuration ID [" + importConfig.getRecord().name() + "].");
+              logger.info("Started verticle [{}] for [{}] and configuration ID [{}].", started.result(), request.tenant(), channel.getRecord().name());
+              promise.complete("Started verticle [" + started.result() + "] for configuration ID [" + channel.getRecord().name() + "].");
             } else {
-              logger.error("Couldn't start file processor verticle for tenant [{}] and import configuration ID [{}].", request.tenant(), importConfig.getRecord().name());
-              promise.fail("Couldn't start file processor verticle for import configuration ID [" + importConfig.getRecord().name() + "].");
+              logger.error("Couldn't start file processor verticle for tenant [{}] and import configuration ID [{}].", request.tenant(), channel.getRecord().name());
+              promise.fail("Couldn't start file processor verticle for import configuration ID [" + channel.getRecord().name() + "].");
             }
           });
     } else {
-      promise.complete("File listener already created for import configuration ID [" + importConfig.getRecord().name() + "].");
+      promise.complete("File listener already created for import configuration ID [" + channel.getRecord().name() + "].");
     }
     return promise.future();
   }

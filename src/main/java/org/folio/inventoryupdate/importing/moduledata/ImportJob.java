@@ -30,8 +30,8 @@ public class ImportJob extends Entity {
 
     @SuppressWarnings("java:S107") // too many parameters, ignore for entity constructors
     public ImportJob(UUID id,
-                     UUID importConfigId,
-                     String importConfigName,
+                     UUID channelId,
+                     String channelName,
                      String importType,
                      UUID transformation,
                      JobStatus status,
@@ -40,7 +40,7 @@ public class ImportJob extends Entity {
                      Integer amountImported,
                      String message) {
         theRecord = new ImportJob.ImportJobRecord(
-                id, importConfigId, importConfigName, importType, transformation, status, started, finished, amountImported, message);
+                id, channelId, channelName, importType, transformation, status, started, finished, amountImported, message);
     }
 
     ImportJobRecord theRecord;
@@ -48,8 +48,8 @@ public class ImportJob extends Entity {
     return theRecord;
   }
     public record ImportJobRecord(UUID id,
-                                   UUID importConfigId,
-                                   String importConfigName,
+                                   UUID channelId,
+                                   String channelName,
                                    String importType,
                                    UUID transformation,
                                    JobStatus status,
@@ -61,8 +61,8 @@ public class ImportJob extends Entity {
 
     private static final Map<String, Field> FIELDS = new HashMap<>();
     public static final String ID = "ID";
-    public static final String IMPORT_CONFIG_ID = "IMPORT_CONFIG_ID";
-    public static final String IMPORT_CONFIG_NAME = "IMPORT_CONFIG_NAME";
+    public static final String CHANNEL_ID = "CHANNEL_ID";
+    public static final String CHANNEL_NAME = "CHANNEL_NAME";
     public static final String IMPORT_TYPE = "IMPORT_TYPE";
     public static final String TRANSFORMATION = "TRANSFORMATION";
     public static final String STATUS = "STATUS";
@@ -73,8 +73,8 @@ public class ImportJob extends Entity {
 
     static {
         FIELDS.put(ID, new Field("id", "id", PgColumn.Type.UUID, false, true, true));
-        FIELDS.put(IMPORT_CONFIG_ID, new Field("importConfigId", "import_config_id", PgColumn.Type.UUID, false, true));
-        FIELDS.put(IMPORT_CONFIG_NAME, new Field("importConfigName", "import_config_name", PgColumn.Type.TEXT, false, true));
+        FIELDS.put(CHANNEL_ID, new Field("channelId", "channel_id", PgColumn.Type.UUID, false, true));
+        FIELDS.put(CHANNEL_NAME, new Field("channelName", "channel_name", PgColumn.Type.TEXT, false, true));
         FIELDS.put(IMPORT_TYPE, new Field("importType", "import_type", PgColumn.Type.TEXT, false, true));
         FIELDS.put(TRANSFORMATION, new Field("transformation", "transformation_id", PgColumn.Type.UUID, false, true));
         FIELDS.put(STATUS, new Field("status", "status", PgColumn.Type.TEXT, true, true));
@@ -104,8 +104,8 @@ public class ImportJob extends Entity {
         return FIELDS;
     }
 
-    public ImportJob initiate(ImportConfig importConfig) {
-        ImportConfig.ImportConfigRecord cfg = importConfig.theRecord;
+    public ImportJob initiate(Channel channel) {
+        Channel.ChannelRecord cfg = channel.theRecord;
         return new ImportJob(UUID.randomUUID(), cfg.id(), cfg.name(), cfg.type(),
                 cfg.transformationId(),
                 JobStatus.RUNNING, SettableClock.getLocalDateTime().toString(), "", 0, "");
@@ -123,8 +123,8 @@ public class ImportJob extends Entity {
         String finished = json.getString(jsonPropertyName(FINISHED));
         return new ImportJob(
                 getUuidOrGenerate(json.getString(jsonPropertyName(ID))),
-                UUID.fromString(json.getString(jsonPropertyName(IMPORT_CONFIG_ID))),
-                json.getString(jsonPropertyName(IMPORT_CONFIG_NAME)),
+                UUID.fromString(json.getString(jsonPropertyName(CHANNEL_ID))),
+                json.getString(jsonPropertyName(CHANNEL_NAME)),
                 json.getString(jsonPropertyName(IMPORT_TYPE)),
                 Util.getUUID(json, jsonPropertyName(TRANSFORMATION), null),
                 JobStatus.valueOf(json.getString(jsonPropertyName(STATUS))),
@@ -144,8 +144,8 @@ public class ImportJob extends Entity {
     public JsonObject asJson() {
         JsonObject json = new JsonObject();
         json.put(jsonPropertyName(ID), theRecord.id);
-        json.put(jsonPropertyName(IMPORT_CONFIG_ID), theRecord.importConfigId);
-        json.put(jsonPropertyName(IMPORT_CONFIG_NAME), theRecord.importConfigName);
+        json.put(jsonPropertyName(CHANNEL_ID), theRecord.channelId);
+        json.put(jsonPropertyName(CHANNEL_NAME), theRecord.channelName);
         json.put(jsonPropertyName(IMPORT_TYPE), theRecord.importType);
         json.put(jsonPropertyName(TRANSFORMATION), theRecord.transformation);
         json.put(jsonPropertyName(STATUS), theRecord.status);
@@ -164,8 +164,8 @@ public class ImportJob extends Entity {
     public RowMapper<Entity> fromRow() {
         return row -> new ImportJob(
                 row.getUUID(dbColumnName(ID)),
-                row.getUUID(dbColumnName(IMPORT_CONFIG_ID)),
-                row.getString(dbColumnName(IMPORT_CONFIG_NAME)),
+                row.getUUID(dbColumnName(CHANNEL_ID)),
+                row.getString(dbColumnName(CHANNEL_NAME)),
                 row.getString(dbColumnName(IMPORT_TYPE)),
                 row.getUUID(dbColumnName(TRANSFORMATION)),
                 JobStatus.valueOf(row.getString(dbColumnName(STATUS))),
@@ -185,8 +185,8 @@ public class ImportJob extends Entity {
                     ImportJob.ImportJobRecord rec = ((ImportJob) entity).theRecord;
                     Map<String, Object> parameters = new HashMap<>();
                     parameters.put(dbColumnName(ID), rec.id);
-                    parameters.put(dbColumnName(IMPORT_CONFIG_ID), rec.importConfigId);
-                    parameters.put(dbColumnName(IMPORT_CONFIG_NAME), rec.importConfigName);
+                    parameters.put(dbColumnName(CHANNEL_ID), rec.channelId);
+                    parameters.put(dbColumnName(CHANNEL_NAME), rec.channelName);
                     parameters.put(dbColumnName(IMPORT_TYPE), rec.importType);
                     parameters.put(dbColumnName(TRANSFORMATION), rec.transformation);
                     parameters.put(dbColumnName(STATUS), rec.status);
@@ -231,8 +231,8 @@ public class ImportJob extends Entity {
         return "INSERT INTO " + schema + "." + table()
                 + " ("
                 + dbColumnName(ID) + ", "
-                + dbColumnName(IMPORT_CONFIG_ID) + ", "
-                + dbColumnName(IMPORT_CONFIG_NAME) + ", "
+                + dbColumnName(CHANNEL_ID) + ", "
+                + dbColumnName(CHANNEL_NAME) + ", "
                 + dbColumnName(IMPORT_TYPE) + ", "
                 + dbColumnName(TRANSFORMATION) + ", "
                 + dbColumnName(STATUS) + ", "
@@ -243,8 +243,8 @@ public class ImportJob extends Entity {
                 + ")"
                 + " VALUES ("
                 + "#{" + dbColumnName(ID) + "}, "
-                + "#{" + dbColumnName(IMPORT_CONFIG_ID) + "}, "
-                + "#{" + dbColumnName(IMPORT_CONFIG_NAME) + "}, "
+                + "#{" + dbColumnName(CHANNEL_ID) + "}, "
+                + "#{" + dbColumnName(CHANNEL_NAME) + "}, "
                 + "#{" + dbColumnName(IMPORT_TYPE) + "}, "
                 + "#{" + dbColumnName(TRANSFORMATION) + "}, "
                 + "#{" + dbColumnName(STATUS) + "}, "
@@ -287,20 +287,20 @@ public class ImportJob extends Entity {
     }
 
     private void setFinished(LocalDateTime finished, int recordCount) {
-        theRecord = new ImportJobRecord(theRecord.id, theRecord.importConfigId, theRecord.importConfigName, theRecord.importType,
+        theRecord = new ImportJobRecord(theRecord.id, theRecord.channelId, theRecord.channelName, theRecord.importType,
                 theRecord.transformation,
                 JobStatus.DONE, theRecord.started, finished.toString(), recordCount, theRecord.message);
     }
 
     private void setHalted(LocalDateTime finished, int recordCount) {
-      theRecord = new ImportJobRecord(theRecord.id, theRecord.importConfigId, theRecord.importConfigName, theRecord.importType,
+      theRecord = new ImportJobRecord(theRecord.id, theRecord.channelId, theRecord.channelName, theRecord.importType,
           theRecord.transformation,
           JobStatus.HALTED, theRecord.started, finished.toString(), recordCount, theRecord.message);
 
     }
 
     public void logStatus(JobStatus status, int recordCount, ModuleStorageAccess configStorage) {
-        theRecord = new ImportJobRecord(theRecord.id, theRecord.importConfigId, theRecord.importConfigName, theRecord.importType,
+        theRecord = new ImportJobRecord(theRecord.id, theRecord.channelId, theRecord.channelName, theRecord.importType,
                 theRecord.transformation,
                 status, theRecord.started, theRecord.finished, recordCount, theRecord.message);
         configStorage.updateEntity(this.withUpdatingUser(null),
@@ -321,9 +321,9 @@ public class ImportJob extends Entity {
                 "CREATE TABLE IF NOT EXISTS " + pool.getSchema() + "." + table()
                 + "("
                 + dbColumnNameAndType(ID) + " PRIMARY KEY, "
-                + dbColumnNameAndType(IMPORT_CONFIG_ID) + " NOT NULL "
-                + " REFERENCES " + pool.getSchema() + "." + Tables.IMPORT_CONFIG + " (" + new ImportConfig().dbColumnName(ID) + "), "
-                + dbColumnNameAndType(IMPORT_CONFIG_NAME)  + ", "
+                + dbColumnNameAndType(CHANNEL_ID) + " NOT NULL "
+                + " REFERENCES " + pool.getSchema() + "." + Tables.CHANNEL + " (" + new Channel().dbColumnName(ID) + "), "
+                + dbColumnNameAndType(CHANNEL_NAME)  + ", "
                 + dbColumnNameAndType(IMPORT_TYPE) + ", "
                 + dbColumnNameAndType(TRANSFORMATION) + ", "
                 + dbColumnNameAndType(STATUS) + ", "
@@ -332,8 +332,8 @@ public class ImportJob extends Entity {
                 + dbColumnNameAndType(AMOUNT_IMPORTED) + ", "
                 + dbColumnNameAndType(MESSAGE) + ", "
                 + metadata.columnsDdl() + ") ",
-                "CREATE INDEX IF NOT EXISTS import_job_import_config_id_idx "
-                        + " ON " + pool.getSchema() + "." + table() + "(" + dbColumnName(IMPORT_CONFIG_ID) + ")"
+                "CREATE INDEX IF NOT EXISTS import_job_channel_id_idx "
+                        + " ON " + pool.getSchema() + "." + table() + "(" + dbColumnName(CHANNEL_ID) + ")"
         ).mapEmpty();
     }
 

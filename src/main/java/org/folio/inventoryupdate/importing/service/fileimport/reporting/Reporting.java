@@ -130,7 +130,7 @@ public class Reporting {
                             .map(error -> new RecordFailure(UUID.randomUUID(),
                                     fileProcessor.getImportJob().getRecord().id(),
                                     fileProcessor.getImportConfigId(),
-                                    fileProcessor.getImportJob().getRecord().importConfigName(),
+                                    fileProcessor.getImportJob().getRecord().channelName(),
                                     getInstanceHridFromErrorResponse(error),
                                     SettableClock.getLocalDateTime().toString(),
                                     getBatchIndexFromErrorResponse(error) == -1 ? null : batch.get(getBatchIndexFromErrorResponse(error)).getOriginalRecordAsString(),
@@ -177,10 +177,10 @@ public class Reporting {
         lines.add(new LogLine(
                 UUID.randomUUID(),
                 fileProcessor.getImportJob().getRecord().id(),
-                fileProcessor.getImportJob().getRecord().importConfigId(),
-                fileProcessor.getImportJob().getRecord().importConfigName(),
+                fileProcessor.getImportJob().getRecord().channelId(),
+                fileProcessor.getImportJob().getRecord().channelName(),
                 SettableClock.getLocalDateTime().toString(),
-                fileProcessor.getImportJob().getRecord().importConfigName(),
+                fileProcessor.getImportJob().getRecord().channelName(),
                 statement).withCreatingUser(null));
         return storage.storeEntities(lines);
     }

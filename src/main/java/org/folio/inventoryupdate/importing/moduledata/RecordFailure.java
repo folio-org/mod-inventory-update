@@ -21,15 +21,15 @@ public class RecordFailure extends Entity {
     public RecordFailure() {}
 
     @SuppressWarnings("java:S107") // too many parameters, ignore for entity constructors
-    public RecordFailure(UUID id, UUID importJobId, UUID importConfigId, String importConfigName, String recordNumber,
+    public RecordFailure(UUID id, UUID importJobId, UUID channelId, String channelName, String recordNumber,
                          String timeStamp, String originalRecord, JsonArray recordErrors, JsonObject transformedRecord,
                          String sourceFileName) {
-        theRecord = new FailedRecord(id, importJobId, importConfigId, importConfigName, recordNumber, timeStamp,
+        theRecord = new FailedRecord(id, importJobId, channelId, channelName, recordNumber, timeStamp,
             originalRecord, recordErrors, transformedRecord, sourceFileName);
     }
 
     FailedRecord theRecord;
-    public record FailedRecord(UUID id, UUID importJobId, UUID importConfigId, String importConfigName, String recordNumber,
+    public record FailedRecord(UUID id, UUID importJobId, UUID channelId, String channelName, String recordNumber,
                                String timeStamp, String originalRecord, JsonArray recordErrors, JsonObject transformedRecord,
                                String sourceFileName) {}
 
@@ -37,8 +37,8 @@ public class RecordFailure extends Entity {
 
     public static final String ID = "ID";
     public static final String IMPORT_JOB_ID = "IMPORT_JOB_ID";
-    public static final String VIEW_IMPORT_CONFIG_ID = "IMPORT_CONFIG_ID";
-    public static final String VIEW_IMPORT_CONFIG_NAME = "IMPORT_CONFIG_NAME";
+    public static final String VIEW_CHANNEL_ID = "CHANNEL_ID";
+    public static final String VIEW_CHANNEL_NAME = "CHANNEL_NAME";
     public static final String RECORD_NUMBER = "RECORD_NUMBER";
     public static final String TIME_STAMP = "TIME_STAMP";
     public static final String ORIGINAL_RECORD = "ORIGINAL_RECORD";
@@ -49,8 +49,8 @@ public class RecordFailure extends Entity {
     static {
         FIELDS.put(ID, new Field("id", "id", PgColumn.Type.UUID, false, true, true));
         FIELDS.put(IMPORT_JOB_ID, new Field("importJobId", "import_job_id", PgColumn.Type.UUID, false, true));
-        FIELDS.put(VIEW_IMPORT_CONFIG_ID, new Field("importConfigId", "import_config_id", PgColumn.Type.UUID, true, true));
-        FIELDS.put(VIEW_IMPORT_CONFIG_NAME, new Field("importConfigName", "import_config_name", PgColumn.Type.TEXT, true, true));
+        FIELDS.put(VIEW_CHANNEL_ID, new Field("channelId", "channel_id", PgColumn.Type.UUID, true, true));
+        FIELDS.put(VIEW_CHANNEL_NAME, new Field("channelName", "channel_name", PgColumn.Type.TEXT, true, true));
         FIELDS.put(RECORD_NUMBER, new Field("recordNumber", "record_number", PgColumn.Type.TEXT, true, true));
         FIELDS.put(TIME_STAMP, new Field("timeStamp", "time_stamp", PgColumn.Type.TIMESTAMP, false, true));
         FIELDS.put(ORIGINAL_RECORD, new Field("originalRecord", "original_record", PgColumn.Type.TEXT, false, false));
@@ -89,8 +89,8 @@ public class RecordFailure extends Entity {
         return row -> new RecordFailure(
                 row.getUUID(dbColumnName(ID)),
                 row.getUUID(dbColumnName(IMPORT_JOB_ID)),
-                row.getUUID(dbColumnName(VIEW_IMPORT_CONFIG_ID)),
-                row.getString(dbColumnName(VIEW_IMPORT_CONFIG_NAME)),
+                row.getUUID(dbColumnName(VIEW_CHANNEL_ID)),
+                row.getString(dbColumnName(VIEW_CHANNEL_NAME)),
                 row.getString(dbColumnName(RECORD_NUMBER)),
                 formatDateTime(row.getLocalDateTime(dbColumnName(TIME_STAMP))),
                 row.getString(dbColumnName(ORIGINAL_RECORD)),
@@ -152,9 +152,9 @@ public class RecordFailure extends Entity {
         pgCqlDefinition.addField("cql.allRecords", new PgCqlFieldAlwaysMatches());
         pgCqlDefinition.addField("recordNumber", new PgCqlFieldText().withExact().withLikeOps());
         pgCqlDefinition.addField("importJobId", new PgCqlFieldUuid());
-        pgCqlDefinition.addField("importConfigId", new PgCqlFieldUuid());
+        pgCqlDefinition.addField("channelId", new PgCqlFieldUuid());
         pgCqlDefinition.addField(
-                "importConfigName", new PgCqlFieldText().withExact().withLikeOps().withFullText());
+                "channelName", new PgCqlFieldText().withExact().withLikeOps().withFullText());
         pgCqlDefinition.addField("timeStamp", new PgCqlFieldTimestamp());
         pgCqlDefinition.addField("sourceFileName", new PgCqlFieldText().withExact().withLikeOps().withFullText());
         return pgCqlDefinition;
@@ -191,8 +191,8 @@ public class RecordFailure extends Entity {
         return new RecordFailure(
                 getUuidOrGenerate(json.getString(jsonPropertyName(ID))),
                 UUID.fromString(json.getString(jsonPropertyName(IMPORT_JOB_ID))),
-                null,  // importConfigId a column in view, thus read-only, ignore if in input JSON
-                null, // importConfigName a column in view, thus read-only, ignore if in input JSON
+                null,  // channelId, a column in view, thus read-only, ignore if in input JSON
+                null, // channelName, a column in view, thus read-only, ignore if in input JSON
                 json.getString(jsonPropertyName(RECORD_NUMBER)),
                 json.getString(jsonPropertyName(TIME_STAMP)),
                 json.getString(jsonPropertyName(ORIGINAL_RECORD)),
@@ -209,8 +209,8 @@ public class RecordFailure extends Entity {
         JsonObject json = new JsonObject();
         json.put(jsonPropertyName(ID), theRecord.id);
         json.put(jsonPropertyName(IMPORT_JOB_ID), theRecord.importJobId);
-        json.put(jsonPropertyName(VIEW_IMPORT_CONFIG_ID), theRecord.importConfigId);
-        json.put(jsonPropertyName(VIEW_IMPORT_CONFIG_NAME), theRecord.importConfigName);
+        json.put(jsonPropertyName(VIEW_CHANNEL_ID), theRecord.channelId);
+        json.put(jsonPropertyName(VIEW_CHANNEL_NAME), theRecord.channelName);
         json.put(jsonPropertyName(RECORD_NUMBER), theRecord.recordNumber);
         json.put(jsonPropertyName(TIME_STAMP), theRecord.timeStamp);
         json.put(jsonPropertyName(SOURCE_FILE_NAME), theRecord.sourceFileName);

@@ -5,7 +5,7 @@ import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.folio.inventoryupdate.importing.moduledata.ImportConfig;
+import org.folio.inventoryupdate.importing.moduledata.Channel;
 import org.folio.inventoryupdate.importing.moduledata.ImportJob;
 import org.folio.inventoryupdate.importing.moduledata.database.ModuleStorageAccess;
 import org.folio.inventoryupdate.importing.service.fileimport.reporting.Reporting;
@@ -34,9 +34,9 @@ public class XmlFileProcessor extends FileProcessor {
 
   public static final Logger logger = LogManager.getLogger("ImportJob");
 
-  public XmlFileProcessor(Vertx vertx, String tenant, UUID importConfigId) {
+  public XmlFileProcessor(Vertx vertx, String tenant, UUID channelId) {
     this.vertx = vertx;
-    this.importConfigId = importConfigId;
+    this.channelId = channelId;
     this.configStorage = new ModuleStorageAccess(vertx, tenant);
     this.tenant = tenant;
   }
@@ -49,10 +49,10 @@ public class XmlFileProcessor extends FileProcessor {
    * @param inventoryBatchUpdater component responsible for batch and putting transformed records to inventory
    * @return file processor with pipeline
    */
-  public Future<XmlFileProcessor> withProcessingPipeline(String tenant, UUID importConfigId, Vertx vertx,
+  public Future<XmlFileProcessor> withProcessingPipeline(String tenant, UUID channelId, Vertx vertx,
                                                          InventoryBatchUpdater inventoryBatchUpdater) {
-    return configStorage.getEntity(importConfigId, new ImportConfig())
-        .map(cfg -> ((ImportConfig) cfg).getRecord().transformationId())
+    return configStorage.getEntity(channelId, new Channel())
+        .map(cfg -> ((Channel) cfg).getRecord().transformationId())
         .compose(transformationId -> XmlTransformationPipeline.create(vertx, tenant, transformationId))
         .compose(pipelineCreated -> {
           inventoryBatchUpdater.forFileProcessor(this);
@@ -61,13 +61,13 @@ public class XmlFileProcessor extends FileProcessor {
           this.reporting = new Reporting(this, tenant, vertx);
           return Future.succeededFuture(this);
         })
-        .compose(p -> p.withJobLog(importConfigId));
+        .compose(p -> p.withJobLog(channelId));
   }
 
-  private Future<XmlFileProcessor> withJobLog(UUID importConfigId) {
-    return configStorage.getEntity(importConfigId, new ImportConfig())
-        .compose(importConfig -> {
-          importJob = new ImportJob().initiate((ImportConfig) importConfig.withCreatingUser(null));
+  private Future<XmlFileProcessor> withJobLog(UUID channelId) {
+    return configStorage.getEntity(channelId, new Channel())
+        .compose(channel -> {
+          importJob = new ImportJob().initiate((Channel) channel.withCreatingUser(null));
           return configStorage.storeEntity(importJob);
         }).compose(v -> Future.succeededFuture(this));
   }

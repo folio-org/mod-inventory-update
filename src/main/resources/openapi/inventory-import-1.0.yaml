@@ -4,13 +4,13 @@ info:
   version: v1.0
 paths:
 
-  /inventory-import/import-configs:
+  /inventory-import/channels:
     parameters:
       - $ref: "#/components/parameters/okapi_tenant"
       - $ref: "#/components/parameters/okapi_token"
       - $ref: "#/components/parameters/okapi_url"
     get:
-      operationId: getImportConfigs
+      operationId: getChannels
       description: Get import configuration records
       parameters:
         - in: query
@@ -31,17 +31,17 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/importConfigs"
+                $ref: "#/components/schemas/channels"
         "500":
           $ref: "#/components/responses/trait_500"
     post:
-      description: Create import configuration
-      operationId: postImportConfig
+      description: Create channel
+      operationId: postChannel
       requestBody:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/importConfig"
+              $ref: "#/components/schemas/channel"
         required: true
       responses:
         "201":
@@ -49,13 +49,13 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/importConfig"
+                $ref: "#/components/schemas/channel"
         "400":
           $ref: "#/components/responses/trait_400"
         "500":
           $ref: "#/components/responses/trait_500"
 
-  /inventory-import/import-configs/{id}:
+  /inventory-import/channels/{id}:
     parameters:
       - $ref: "#/components/parameters/okapi_tenant"
       - $ref: "#/components/parameters/okapi_token"
@@ -63,19 +63,19 @@ paths:
       - in: path
         name: id
         required: true
-        description: Import configuration identifier
+        description: Channel identifier
         schema:
           type: string
     get:
-      operationId: getImportConfig
-      description: Get import configuration record
+      operationId: getChannel
+      description: Get channel configuration record
       responses:
         "200":
           description: OK
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/importConfig"
+                $ref: "#/components/schemas/channel"
         "400":
           $ref: "#/components/responses/trait_400"
         "404":
@@ -83,13 +83,13 @@ paths:
         "500":
           $ref: "#/components/responses/trait_500"
     put:
-      operationId: putImportConfig
-      description: Update an import configuration
+      operationId: putChannel
+      description: Update an import channel
       requestBody:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/importConfig"
+              $ref: "#/components/schemas/channel"
       responses:
         "204":
           description:  No content
@@ -100,8 +100,8 @@ paths:
         "500":
           $ref: "#/components/responses/trait_500"
     delete:
-      operationId: deleteImportConfig
-      description: Delete an import configuration
+      operationId: deleteChannel
+      description: Delete an import channel
       responses:
         "204":
           description: No content
@@ -110,7 +110,7 @@ paths:
         "500":
           $ref: "#/components/responses/trait_500"
 
-  /inventory-import/import-configs/{id}/import:
+  /inventory-import/channels/{id}/import:
     parameters:
       - $ref: "#/components/parameters/okapi_tenant"
       - $ref: "#/components/parameters/okapi_token"
@@ -145,7 +145,7 @@ paths:
         "500":
           $ref: "#/components/responses/trait_500"
 
-  /inventory-import/import-configs/{id}/activate:
+  /inventory-import/channels/{id}/activate:
     parameters:
       - $ref: "#/components/parameters/okapi_tenant"
       - $ref: "#/components/parameters/okapi_token"
@@ -169,7 +169,7 @@ paths:
         "500":
           $ref: "#/components/responses/trait_500"
 
-  /inventory-import/import-configs/{id}/pause:
+  /inventory-import/channels/{id}/pause:
     parameters:
       - $ref: "#/components/parameters/okapi_tenant"
       - $ref: "#/components/parameters/okapi_token"
@@ -193,7 +193,7 @@ paths:
         "500":
           $ref: "#/components/responses/trait_500"
 
-  /inventory-import/import-configs/{id}/resume:
+  /inventory-import/channels/{id}/resume:
     parameters:
       - $ref: "#/components/parameters/okapi_tenant"
       - $ref: "#/components/parameters/okapi_token"
@@ -217,7 +217,7 @@ paths:
         "500":
           $ref: "#/components/responses/trait_500"
 
-  /inventory-import/import-configs/{id}/init-queue:
+  /inventory-import/channels/{id}/init-queue:
     parameters:
       - $ref: "#/components/parameters/okapi_tenant"
       - $ref: "#/components/parameters/okapi_token"
@@ -1027,11 +1027,11 @@ components:
         importJobId:
           type: string
           description: UUID referencing the import job that generated the log.
-        importConfigId:
+        channelId:
           type: string
           description: UUID referencing the configuration that defined the import job.
           readOnly: true
-        importConfigName:
+        channelName:
           type: string
           description: The name of the import configuration at the time the job was run.
           readOnly: true
@@ -1066,11 +1066,11 @@ components:
         importJobId:
           type: string
           description: UUID referencing the import job generation the report.
-        importConfigId:
+        channelId:
           type: string
           description: UUID referencing the configuration that defined the import job.
           readOnly: true
-        importConfigName:
+        channelName:
           type: string
           description: The name of the import configuration at the time the job was run.
           readOnly: true
@@ -1118,16 +1118,16 @@ components:
         metadata:
           $ref: "#/components/schemas/metadata"
 
-    importConfigs:
+    channels:
       type: object
       description: Collection of import configurations.
       properties:
-        importConfigs:
+        channels:
           type: array
           description: List of import configurations.
           items:
-            $ref: "#/components/schemas/importConfig"
-    importConfig:
+            $ref: "#/components/schemas/channel"
+    channel:
       type: object
       description: "Configuration of import jobs."
       properties:
@@ -1139,7 +1139,7 @@ components:
           description: A name for the configuration.
         type:
           type: string
-          description: Type of import job, only bulk XML, 'XML', supported.
+          description: Type of import channel, only bulk XML, 'XML', supported.
         transformationId:
           type: string
           description: UUID referencing the transformation pipeline to use.
@@ -1162,10 +1162,10 @@ components:
         id:
           type: string
           description: 'Unique identifier (UUID) for the import job report.'
-        importConfigName:
+        channelName:
           type: string
           description: The name of the import configuration at the time of logging the import job.
-        importConfigId:
+        channelId:
           type: string
           description: UUID referencing the import configuration that defined the import job run.
         importType:

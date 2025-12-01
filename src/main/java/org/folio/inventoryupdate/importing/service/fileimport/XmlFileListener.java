@@ -3,7 +3,7 @@ package org.folio.inventoryupdate.importing.service.fileimport;
 import io.vertx.core.Future;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.folio.inventoryupdate.importing.moduledata.ImportConfig;
+import org.folio.inventoryupdate.importing.moduledata.Channel;
 import org.folio.inventoryupdate.importing.service.ServiceRequest;
 
 import java.io.File;
@@ -20,9 +20,9 @@ public class XmlFileListener extends FileListener {
   public static final Logger logger = LogManager.getLogger("queued-files-processing");
   private final AtomicLong timerId = new AtomicLong(-1L);
 
-  public XmlFileListener(ServiceRequest request, ImportConfig importConfig) {
+  public XmlFileListener(ServiceRequest request, Channel channel) {
     this.tenant = request.tenant();
-    this.importConfig = importConfig;
+    this.channel = channel;
     this.routingContext = request.routingContext();
     this.fileQueue = new FileQueue(request, getConfigIdStr());
   }
@@ -35,7 +35,7 @@ public class XmlFileListener extends FileListener {
   }
 
   public boolean listenerEnabled() {
-    return importConfig.getRecord().enabled();
+    return channel.getRecord().enabled();
   }
 
   public boolean hasTimerId() {
@@ -81,7 +81,7 @@ public class XmlFileListener extends FileListener {
     if (hasTimerId()) {
       boolean cancelled = vertx.cancelTimer(resetTimerId());
       if (cancelled) {
-        logger.info("Cancelled listener {} for {} ", oldTimerId, importConfig.getRecord().name());
+        logger.info("Cancelled listener {} for {} ", oldTimerId, channel.getRecord().name());
         fileProcessor.halt("File listener deactivated.");
         markFileQueuePassive();
       } else {

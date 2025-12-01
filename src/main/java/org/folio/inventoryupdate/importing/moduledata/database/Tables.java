@@ -1,7 +1,7 @@
 package org.folio.inventoryupdate.importing.moduledata.database;
 
 public enum Tables {
-  IMPORT_CONFIG,
+  CHANNEL,
   IMPORT_JOB,
   RECORD_FAILURE,
   RECORD_FAILURE_VIEW,

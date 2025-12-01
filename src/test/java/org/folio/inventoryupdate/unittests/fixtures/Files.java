@@ -33,7 +33,7 @@ public class Files {
   public static final String XML_INVENTORY_RECORD_SET = getSampleFile("samplesourcefiles/inventoryRecordSet.xml");
   public static final String TWO_XML_INVENTOR_RECORD_SETS = getSampleFile("samplesourcefiles/twoInventoryRecordSets.xml");
   public static final JsonObject JSON_TRANSFORMATION_CONFIG = new JsonObject(Objects.requireNonNull(getSampleFile("configs/transformation.json")));
-  public static final JsonObject JSON_IMPORT_CONFIG = new JsonObject(Objects.requireNonNull(getSampleFile("configs/importConfig.json")));
+  public static final JsonObject JSON_CHANNEL = new JsonObject(Objects.requireNonNull(getSampleFile("configs/channel.json")));
   public static final JsonObject JSON_IMPORT_JOB = new JsonObject(Objects.requireNonNull(getSampleFile("jobs/importJob.json")));
   public static final JsonObject JSON_FAILED_RECORDS = new JsonObject(Objects.requireNonNull(getSampleFile("jobs/failed-records.json")));
 

@@ -398,24 +398,24 @@
         },
         {
           "methods": ["GET"],
-          "pathPattern": "/inventory-import/import-configs",
-          "permissionsRequired": ["inventory-update.import.import-configs.collection.get"]
+          "pathPattern": "/inventory-import/channels",
+          "permissionsRequired": ["inventory-update.import.channels.collection.get"]
         }, {
           "methods": ["GET"],
-          "pathPattern": "/inventory-import/import-configs/{id}",
-          "permissionsRequired": ["inventory-update.import.import-configs.item.get"]
+          "pathPattern": "/inventory-import/channels/{id}",
+          "permissionsRequired": ["inventory-update.import.channels.item.get"]
         }, {
           "methods": ["POST"],
-          "pathPattern": "/inventory-import/import-configs",
-          "permissionsRequired": ["inventory-update.import.import-configs.item.post"]
+          "pathPattern": "/inventory-import/channels",
+          "permissionsRequired": ["inventory-update.import.channels.item.post"]
         }, {
           "methods": ["PUT"],
-          "pathPattern": "/inventory-import/import-configs/{id}",
-          "permissionsRequired": ["inventory-update.import.import-configs.item.put"]
+          "pathPattern": "/inventory-import/channels/{id}",
+          "permissionsRequired": ["inventory-update.import.channels.item.put"]
         }, {
           "methods": ["DELETE"],
-          "pathPattern": "/inventory-import/import-configs/{id}",
-          "permissionsRequired": ["inventory-update.import.import-configs.item.delete"]
+          "pathPattern": "/inventory-import/channels/{id}",
+          "permissionsRequired": ["inventory-update.import.channels.item.delete"]
         },
         {
           "methods": ["GET"],
@@ -462,7 +462,7 @@
         },
         {
           "methods": ["POST"],
-          "pathPattern": "/inventory-import/import-configs/{id}/import",
+          "pathPattern": "/inventory-import/channels/{id}/import",
           "permissionsRequired": ["inventory-update.import.post"],
           "modulePermissions": [
             "modperms.inventory-update.import"
@@ -470,7 +470,7 @@
         },
         {
           "methods": ["POST"],
-          "pathPattern": "/inventory-import/import-configs/{id}/activate",
+          "pathPattern": "/inventory-import/channels/{id}/activate",
           "permissionsRequired": ["inventory-update.import.activate.post"],
           "modulePermissions": [
             "modperms.inventory-update.import"
@@ -478,19 +478,19 @@
         },
         {
           "methods": ["POST"],
-          "pathPattern": "/inventory-import/import-configs/{id}/pause",
+          "pathPattern": "/inventory-import/channels/{id}/pause",
           "permissionsRequired": ["inventory-update.import.pause.post"]
         },
         {
           "methods": ["POST"],
-          "pathPattern": "/inventory-import/import-configs/{id}/resume",
+          "pathPattern": "/inventory-import/channels/{id}/resume",
           "permissionsRequired": ["inventory-update.import.resume.post"],
           "modulePermissions": [
             "modperms.inventory-update.import"
           ]
         },
         {
-          "pathPattern": "/inventory-import/import-configs/{id}/init-queue",
+          "pathPattern": "/inventory-import/channels/{id}/init-queue",
           "methods": ["POST"],
           "permissionsRequired": ["inventory-update.import.init-queue.post"]
         }
@@ -696,23 +696,23 @@
       "description": "Import configurations: Delete all transformation step associations from storage"
     },
     {
-      "permissionName": "inventory-update.import.import-configs.collection.get",
+      "permissionName": "inventory-update.import.channels.collection.get",
       "displayName": "Get set of import configurations",
       "description": "Import configurations: Get collection of import job configurations"
     }, {
-      "permissionName": "inventory-update.import.import-configs.item.get",
+      "permissionName": "inventory-update.import.channels.item.get",
       "displayName": "Get single import job configuration",
       "description": "Import configurations: Get single import job configuration"
     }, {
-      "permissionName": "inventory-update.import.import-configs.item.post",
+      "permissionName": "inventory-update.import.channels.item.post",
       "displayName": "Create import job configuration",
       "description": "Import configurations: Create an import job configuration"
     }, {
-      "permissionName": "inventory-update.import.import-configs.item.put",
+      "permissionName": "inventory-update.import.channels.item.put",
       "displayName": "Update import job configuration",
       "description": "Import configurations: Update an import job configuration"
     }, {
-      "permissionName": "inventory-update.import.import-configs.item.delete",
+      "permissionName": "inventory-update.import.channels.item.delete",
       "displayName": "Delete import configuration",
       "description": "Import configurations: Delete an import job configuration"
     },
@@ -794,7 +794,7 @@
       "displayName": "Import admin - delete all configurations of given types",
       "description": "Delete collections of import configs, transformations, steps, and transformation-steps",
       "subPermissions": [
-        "inventory-update.import.import-configs.collection.delete",
+        "inventory-update.import.channels.collection.delete",
         "inventory-update.import.storages.collection.delete",
         "inventory-update.import.transformations.collection.delete",
         "inventory-update.import.steps.collection.delete",
@@ -885,11 +885,11 @@
         "inventory-update.import.tsas.item.delete",
         "inventory-update.import.tsas.collection.delete",
 
-        "inventory-update.import.import-configs.collection.get",
-        "inventory-update.import.import-configs.item.get",
-        "inventory-update.import.import-configs.item.post",
-        "inventory-update.import.import-configs.item.put",
-        "inventory-update.import.import-configs.item.delete",
+        "inventory-update.import.channels.collection.get",
+        "inventory-update.import.channels.item.get",
+        "inventory-update.import.channels.item.post",
+        "inventory-update.import.channels.item.put",
+        "inventory-update.import.channels.item.delete",
 
         "inventory-update.import.import-jobs.collection.get",
         "inventory-update.import.import-jobs.item.get",

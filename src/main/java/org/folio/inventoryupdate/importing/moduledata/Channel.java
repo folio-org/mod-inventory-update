@@ -11,25 +11,25 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 
-public class ImportConfig extends Entity {
+public class Channel extends Entity {
 
-    public ImportConfig(){}
+    public Channel(){}
 
-    public ImportConfig(UUID id, String name, String type, UUID transformationId, boolean enabled) {
-        theRecord = new ImportConfigRecord(id, name, type, transformationId, enabled);
+    public Channel(UUID id, String name, String type, UUID transformationId, boolean enabled) {
+        theRecord = new ChannelRecord(id, name, type, transformationId, enabled);
     }
 
     // Import config record, the entity data.
-    public record ImportConfigRecord(UUID id, String name, String type, UUID transformationId, boolean enabled) {
+    public record ChannelRecord(UUID id, String name, String type, UUID transformationId, boolean enabled) {
     }
-    ImportConfigRecord theRecord;
+    ChannelRecord theRecord;
 
-    public ImportConfigRecord getRecord() {
+    public ChannelRecord getRecord() {
       return theRecord;
     }
 
     // Static map of Entity Fields.
-    private static final Map<String, Field> IMPORT_CONFIG_FIELDS = new HashMap<>();
+    private static final Map<String, Field> CHANNEL_FIELDS = new HashMap<>();
     public static final String ID = "ID";
     public static final String NAME = "NAME";
     public static final String TYPE = "TYPE";
@@ -37,40 +37,40 @@ public class ImportConfig extends Entity {
     public static final String ENABLED = "ENABLED";
 
     static {
-        IMPORT_CONFIG_FIELDS.put(ID, new Field("id", "id", PgColumn.Type.UUID, false, true, true));
-        IMPORT_CONFIG_FIELDS.put(NAME, new Field("name", "name", PgColumn.Type.TEXT, false, true));
-        IMPORT_CONFIG_FIELDS.put(TYPE, new Field("type", "type", PgColumn.Type.TEXT, false, true));
-        IMPORT_CONFIG_FIELDS.put(TRANSFORMATION_ID, new Field("transformationId", "transformation_id", PgColumn.Type.UUID, false, true));
-        IMPORT_CONFIG_FIELDS.put(ENABLED, new Field("enabled", "enabled", PgColumn.Type.BOOLEAN, false, true));
+        CHANNEL_FIELDS.put(ID, new Field("id", "id", PgColumn.Type.UUID, false, true, true));
+        CHANNEL_FIELDS.put(NAME, new Field("name", "name", PgColumn.Type.TEXT, false, true));
+        CHANNEL_FIELDS.put(TYPE, new Field("type", "type", PgColumn.Type.TEXT, false, true));
+        CHANNEL_FIELDS.put(TRANSFORMATION_ID, new Field("transformationId", "transformation_id", PgColumn.Type.UUID, false, true));
+        CHANNEL_FIELDS.put(ENABLED, new Field("enabled", "enabled", PgColumn.Type.BOOLEAN, false, true));
     }
 
     @Override
     public Map<String, Field> fields() {
-        return IMPORT_CONFIG_FIELDS;
+        return CHANNEL_FIELDS;
     }
 
     @Override
     public String jsonCollectionName() {
-        return "importConfigs";
+        return "channels";
     }
 
     @Override
     public String entityName() {
-        return "Import config";
+        return "Channel";
     }
 
-    public ImportConfig fromJson(JsonObject importConfigJson) {
-        return new ImportConfig(
-                getUuidOrGenerate(importConfigJson.getString(jsonPropertyName(ID))),
-                importConfigJson.getString(jsonPropertyName(NAME)),
-                importConfigJson.getString(jsonPropertyName(TYPE)),
-                Util.getUUID(importConfigJson, jsonPropertyName(TRANSFORMATION_ID), null),
-                "TRUE".equalsIgnoreCase(importConfigJson.getString(jsonPropertyName(ENABLED))));
+    public Channel fromJson(JsonObject channelJson) {
+        return new Channel(
+                getUuidOrGenerate(channelJson.getString(jsonPropertyName(ID))),
+                channelJson.getString(jsonPropertyName(NAME)),
+                channelJson.getString(jsonPropertyName(TYPE)),
+                Util.getUUID(channelJson, jsonPropertyName(TRANSFORMATION_ID), null),
+                "TRUE".equalsIgnoreCase(channelJson.getString(jsonPropertyName(ENABLED))));
     }
 
     @Override
     public RowMapper<Entity> fromRow() {
-        return row -> new ImportConfig(
+        return row -> new Channel(
             row.getUUID(dbColumnName(ID)),
             row.getString(dbColumnName(NAME)),
             row.getString(dbColumnName(TYPE)),
@@ -83,7 +83,7 @@ public class ImportConfig extends Entity {
     public TupleMapper<Entity> toTemplateParameters() {
         return TupleMapper.mapper(
                 entity -> {
-                    ImportConfigRecord rec = ((ImportConfig) entity).theRecord;
+                    ChannelRecord rec = ((Channel) entity).theRecord;
                     Map<String, Object> parameters = new HashMap<>();
                     parameters.put(dbColumnName(ID), rec.id);
                     parameters.put(dbColumnName(NAME), rec.name);
@@ -96,7 +96,7 @@ public class ImportConfig extends Entity {
     }
 
     /**
-     * ImportConfig to JSON mapping.
+     * Channel pojo to JSON mapping.
      */
     public JsonObject asJson() {
         JsonObject json = new JsonObject();
@@ -111,7 +111,7 @@ public class ImportConfig extends Entity {
 
     @Override
     public Tables table() {
-        return Tables.IMPORT_CONFIG;
+        return Tables.CHANNEL;
     }
 
     @Override

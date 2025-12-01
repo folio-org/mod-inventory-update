@@ -15,12 +15,12 @@ public class ImportConfig extends Entity {
 
     public ImportConfig(){}
 
-    public ImportConfig(UUID id, String name, String type, UUID transformationId) {
-        theRecord = new ImportConfigRecord(id, name, type, transformationId);
+    public ImportConfig(UUID id, String name, String type, UUID transformationId, boolean enabled) {
+        theRecord = new ImportConfigRecord(id, name, type, transformationId, enabled);
     }
 
     // Import config record, the entity data.
-    public record ImportConfigRecord(UUID id, String name, String type, UUID transformationId) {
+    public record ImportConfigRecord(UUID id, String name, String type, UUID transformationId, boolean enabled) {
     }
     ImportConfigRecord theRecord;
 
@@ -34,12 +34,14 @@ public class ImportConfig extends Entity {
     public static final String NAME = "NAME";
     public static final String TYPE = "TYPE";
     public static final String TRANSFORMATION_ID = "TRANSFORMATION_ID";
+    public static final String ENABLED = "ENABLED";
 
     static {
         IMPORT_CONFIG_FIELDS.put(ID, new Field("id", "id", PgColumn.Type.UUID, false, true, true));
         IMPORT_CONFIG_FIELDS.put(NAME, new Field("name", "name", PgColumn.Type.TEXT, false, true));
         IMPORT_CONFIG_FIELDS.put(TYPE, new Field("type", "type", PgColumn.Type.TEXT, false, true));
         IMPORT_CONFIG_FIELDS.put(TRANSFORMATION_ID, new Field("transformationId", "transformation_id", PgColumn.Type.UUID, false, true));
+        IMPORT_CONFIG_FIELDS.put(ENABLED, new Field("enabled", "enabled", PgColumn.Type.BOOLEAN, false, true));
     }
 
     @Override
@@ -62,7 +64,8 @@ public class ImportConfig extends Entity {
                 getUuidOrGenerate(importConfigJson.getString(jsonPropertyName(ID))),
                 importConfigJson.getString(jsonPropertyName(NAME)),
                 importConfigJson.getString(jsonPropertyName(TYPE)),
-                Util.getUUID(importConfigJson, jsonPropertyName(TRANSFORMATION_ID), null));
+                Util.getUUID(importConfigJson, jsonPropertyName(TRANSFORMATION_ID), null),
+                "TRUE".equalsIgnoreCase(importConfigJson.getString(jsonPropertyName(ENABLED))));
     }
 
     @Override
@@ -71,7 +74,8 @@ public class ImportConfig extends Entity {
             row.getUUID(dbColumnName(ID)),
             row.getString(dbColumnName(NAME)),
             row.getString(dbColumnName(TYPE)),
-            row.getUUID(dbColumnName(TRANSFORMATION_ID)))
+            row.getUUID(dbColumnName(TRANSFORMATION_ID)),
+            row.getBoolean(dbColumnName(ENABLED)))
             .withMetadata(row);
     }
 
@@ -85,6 +89,7 @@ public class ImportConfig extends Entity {
                     parameters.put(dbColumnName(NAME), rec.name);
                     parameters.put(dbColumnName(TYPE), rec.type);
                     parameters.put(dbColumnName(TRANSFORMATION_ID), rec.transformationId());
+                    parameters.put(dbColumnName(ENABLED), rec.enabled);
                     putMetadata(parameters);
                     return parameters;
                 });
@@ -99,6 +104,7 @@ public class ImportConfig extends Entity {
         json.put(jsonPropertyName(NAME), theRecord.name());
         json.put(jsonPropertyName(TYPE), theRecord.type());
         json.put(jsonPropertyName(TRANSFORMATION_ID), theRecord.transformationId());
+        json.put(jsonPropertyName(ENABLED), theRecord.enabled());
         putMetadata(json);
         return json;
     }
@@ -119,6 +125,7 @@ public class ImportConfig extends Entity {
                 + field(TRANSFORMATION_ID).pgColumnDdl()
                 + " REFERENCES " + pool.getSchema() + "." + Tables.TRANSFORMATION
                         + " (" + new Transformation().dbColumnName(Transformation.ID) + "), "
+                + field(ENABLED).pgColumnDdl() + ", "
                 + metadata.columnsDdl()
                 + ")"
         ).mapEmpty();

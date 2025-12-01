@@ -670,6 +670,7 @@ public class ImportTests extends InventoryUpdateTestBase {
         String transformationId = Files.JSON_TRANSFORMATION_CONFIG.getString("id");
         getRecordById(Service.PATH_IMPORT_CONFIGS, importConfigId);
         getRecordById(Service.PATH_TRANSFORMATIONS, transformationId);
+        assertThat("Instances in storage", fakeFolioApis.instanceStorage.getRecords().size(), is(0));
 
 
         // Upsert
@@ -680,13 +681,13 @@ public class ImportTests extends InventoryUpdateTestBase {
         String started = getRecordById(Service.PATH_IMPORT_JOBS, jobId).extract().path("started");
         await().until(() -> getRecordById(Service.PATH_IMPORT_JOBS, jobId).extract().path("finished"), greaterThan(started));
         await().until(() ->  getTotalRecords(Service.PATH_JOB_LOGS), is(4));
-        assertThat("Instances in storage", fakeFolioApis.instanceStorage.getRecords().size(), is(1));
+        assertThat("Instances in storage (incl. provisional instance)", fakeFolioApis.instanceStorage.getRecords().size(), is(2));
 
         // Delete
         postSourceXml(Service.PATH_IMPORT_CONFIGS + "/" + importConfigId + "/import",
             Files.createCollectionOfOneDeleteRecord(hrid));
         await().until(() ->  getTotalRecords(Service.PATH_JOB_LOGS), is(8));
-        assertThat("Instances in storage", fakeFolioApis.instanceStorage.getRecords().size(), is(0));
+        assertThat("Instances left in storage", fakeFolioApis.instanceStorage.getRecords().size(), is(1));
     }
 
     @Test

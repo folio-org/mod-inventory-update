@@ -184,7 +184,7 @@
             <arr>
                 <i>
                     <hrid>586366237</hrid>
-                    <permanentLocationId>78091d58-5057-4f5d-bbcc-ca07eafd8cc1</permanentLocationId>
+                    <permanentLocationId>LOC1</permanentLocationId><!-- ID of location created by test base -->
                     <callNumber>K 2003 B 324</callNumber>
                     <callNumberPrefix/>
                     <holdingsTypeId>0c422f92-0f4d-4d32-8cbe-390ebc33a3e5</holdingsTypeId>

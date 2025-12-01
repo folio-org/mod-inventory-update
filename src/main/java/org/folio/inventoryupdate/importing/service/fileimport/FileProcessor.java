@@ -15,12 +15,18 @@ public abstract class FileProcessor {
   ImportJob importJob;
   Reporting reporting;
   FileListener fileListener;
+
   boolean paused = false;
+  AtomicBoolean running = new AtomicBoolean(false);
+
   AtomicBoolean resuming = new AtomicBoolean(false);
   ModuleStorageAccess configStorage;
   String tenant;
 
-
+  public FileProcessor running() {
+    running.set(true);
+    return this;
+  }
 
   /**
    * Sets the file processor that the file listener forwards files to.

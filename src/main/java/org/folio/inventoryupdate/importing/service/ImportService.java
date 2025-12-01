@@ -27,6 +27,7 @@ import org.folio.inventoryupdate.importing.moduledata.TransformationStep;
 import org.folio.inventoryupdate.importing.moduledata.database.ModuleStorageAccess;
 import org.folio.inventoryupdate.importing.moduledata.database.SqlQuery;
 import org.folio.inventoryupdate.importing.moduledata.database.Tables;
+import org.folio.inventoryupdate.importing.service.fileimport.FileListener;
 import org.folio.inventoryupdate.importing.service.fileimport.FileListeners;
 import org.folio.inventoryupdate.importing.service.fileimport.FileProcessor;
 import org.folio.inventoryupdate.importing.service.fileimport.FileQueue;
@@ -105,7 +106,9 @@ public class ImportService implements RouterCreator, TenantInitHooks {
         validatingHandler(vertx, routerBuilder, "pauseImport", this::pauseImportJob);
         validatingHandler(vertx, routerBuilder, "resumeImport", this::resumeImportJob);
         validatingHandler(vertx, routerBuilder, "initFileSystemQueue", this::initFileSystemQueue);
+
     }
+
 
     private void validatingHandler(Vertx vertx, RouterBuilder routerBuilder, String operation,
                                    Function<ServiceRequest, Future<Void>> method) {
@@ -179,7 +182,7 @@ public class ImportService implements RouterCreator, TenantInitHooks {
             .compose(x -> clearTenantFileQueues(vertx, tenant, tenantAttributes));
     }
 
-  public static Future<Void> clearTenantFileQueues(Vertx vertx, String tenant, JsonObject tenantAttributes) {
+  public Future<Void> clearTenantFileQueues(Vertx vertx, String tenant, JsonObject tenantAttributes) {
     String cleanUp = getTenantParameter(tenantAttributes,"clearPastFileQueues");
     if (cleanUp != null && cleanUp.equalsIgnoreCase("true")) {
       FileQueue.clearTenantQueues(vertx,tenant);
@@ -199,7 +202,6 @@ public class ImportService implements RouterCreator, TenantInitHooks {
     }
     return null;
   }
-
 
     private Future<Void> getEntities(ServiceRequest request, Entity entity) {
         ModuleStorageAccess db = request.moduleStorageAccess();
@@ -276,13 +278,16 @@ public class ImportService implements RouterCreator, TenantInitHooks {
         ImportConfig importConfig = new ImportConfig().fromJson(request.bodyAsJson());
         ModuleStorageAccess db = request.moduleStorageAccess();
         return db.storeEntity(importConfig.withCreatingUser(request.currentUser()))
-            .onSuccess(
-                id -> {
-                  new FileQueue(request, id.toString()).createDirectoriesIfNotExist();
-                  db.getEntity(id, importConfig)
-                      .map(stored -> responseJson(request.routingContext, 201)
-                          .end(stored.asJson().encodePrettily()));
-                }).mapEmpty();
+            .compose(id -> {
+              new FileQueue(request, id.toString()).createDirectoriesIfNotExist();
+              return Future.succeededFuture(id);
+            }).compose(id ->  db.getEntity(id, importConfig))
+            .compose(cfg -> {
+              FileListeners.deployIfNotDeployed(request, (ImportConfig) cfg);
+              return Future.succeededFuture(cfg);
+            })
+            .compose(cfg -> responseJson(request.routingContext, 201).end(cfg.asJson().encodePrettily()))
+            .mapEmpty();
     }
 
     private Future<Void> getImportConfigs(ServiceRequest request) {
@@ -297,13 +302,21 @@ public class ImportService implements RouterCreator, TenantInitHooks {
         ImportConfig importConfig = new ImportConfig().fromJson(request.bodyAsJson());
         UUID id = UUID.fromString(request.requestParam("id"));
         return request.moduleStorageAccess().updateEntity(id,importConfig.withUpdatingUser(request.currentUser()))
-                .onSuccess(result-> {
-                    if (result.rowCount()==1) {
-                        responseText(request.routingContext(), 204).end();
-                    } else {
-                        responseText(request.routingContext(), 404).end("Not found");
-                    }
-                }).mapEmpty();
+            .onSuccess(result -> {
+              if (result.rowCount()==1) {
+                request.moduleStorageAccess().getEntity(id, new ImportConfig())
+                        .compose(cfg -> {
+                          FileListener listener = FileListeners.getFileListener(request.tenant(), id.toString());
+                          if (listener != null) {
+                            listener.updateImportConfig((ImportConfig)cfg);
+                          }
+                          return responseText(request.routingContext(), 204).end();
+                        });
+
+              } else {
+                responseText(request.routingContext(), 404).end("Import config to update not found");
+              }
+            }).mapEmpty();
     }
 
     private Future<Void> deleteImportConfig(ServiceRequest request) {
@@ -709,8 +722,7 @@ public class ImportService implements RouterCreator, TenantInitHooks {
         request.moduleStorageAccess().getEntity(UUID.fromString(importConfigId), new ImportConfig())
                 .onSuccess(cfg -> {
                     if (cfg != null) {
-                        FileListeners
-                                .deployIfNotDeployed(request, importConfigId)
+                        FileListeners.deployIfNotDeployed(request, (ImportConfig) cfg)
                                 .onSuccess(promise::complete);
                     } else {
                         promise.fail("Could not find import config with id [" + importConfigId + "].");
@@ -723,11 +735,15 @@ public class ImportService implements RouterCreator, TenantInitHooks {
         String importConfigId = request.requestParam("id");
         if (FileListeners.hasFileListener(request.tenant(), importConfigId)) {
             FileProcessor job = FileListeners.getFileListener(request.tenant(), importConfigId).getImportJob();
-            if (job.paused()) {
-                responseText(request.routingContext(), 200).end("File listener already paused for import config [" + importConfigId + "].");
+            if (job == null) {
+              responseText(request.routingContext(), 404).end("No job found for this import configuration yet, [" + importConfigId + "].");
             } else {
+              if (job.paused()) {
+                responseText(request.routingContext(), 200).end("File listener already paused for import config [" + importConfigId + "].");
+              } else {
                 job.pause();
                 responseText(request.routingContext(), 200).end("Processing paused for import config [" + importConfigId + "].");
+              }
             }
         } else {
             responseText(request.routingContext(), 200).end("Currently no running import process found to pause for import config [" + importConfigId + "].");
@@ -750,7 +766,6 @@ public class ImportService implements RouterCreator, TenantInitHooks {
             responseText(request.routingContext(), 200).end("Currently no running import process found to resume for import config [" + importConfigId + "].");
         }
         return Future.succeededFuture();
-
     }
 
     private Future<Void> initFileSystemQueue(ServiceRequest request) {

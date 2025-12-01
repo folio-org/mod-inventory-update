@@ -3,6 +3,7 @@ package org.folio.inventoryupdate.importing.service.fileimport;
 import io.vertx.core.Future;
 import io.vertx.core.VerticleBase;
 import io.vertx.ext.web.RoutingContext;
+import org.folio.inventoryupdate.importing.moduledata.ImportConfig;
 
 import java.io.File;
 import java.util.UUID;
@@ -11,18 +12,31 @@ import java.util.concurrent.atomic.AtomicBoolean;
 public abstract class FileListener extends VerticleBase {
 
   protected String tenant;
-  protected UUID importConfigurationId;
+  protected ImportConfig importConfig;
   protected RoutingContext routingContext;
-
   protected FileProcessor fileProcessor;
   protected FileQueue fileQueue;
 
   // For demarcating jobs by start/end
   protected AtomicBoolean fileQueuePassive = new AtomicBoolean(true);
 
-
   public FileProcessor getImportJob() {
     return fileProcessor;
+  }
+
+  public void updateImportConfig(ImportConfig importConfig) {
+    this.importConfig = importConfig;
+  }
+
+  public UUID getConfigId() {
+    return importConfig.getRecord().id();
+  }
+  public String getConfigIdStr() {
+    return getConfigId().toString();
+  }
+
+  public String getConfigName () {
+    return importConfig.getRecord().name();
   }
 
   public void markFileQueuePassive() {
@@ -37,7 +51,7 @@ public abstract class FileListener extends VerticleBase {
     return !fileQueue.hasNextFile();
   }
 
-  protected abstract void listen();
+  public abstract void listen();
 
   /**
    * Gets existing file processor or instantiates a new one
@@ -66,7 +80,6 @@ public abstract class FileListener extends VerticleBase {
       return fileQueue.nextFileIfPossible();
     }
   }
-
 
   public boolean importJobPaused() {
     return fileProcessor != null && fileProcessor.paused();

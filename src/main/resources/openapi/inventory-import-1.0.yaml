@@ -1168,14 +1168,6 @@ components:
         transformationId:
           type: string
           description: UUID referencing the transformation pipeline to use.
-        commission:
-          type: boolean
-          description: Intention is that this channel should be deployed
-          default: false;
-        listening:
-          type: boolean
-          description: Channel is listening for incoming source files when deployed
-          default: true;
         metadata:
           $ref: "#/components/schemas/metadata"
 
@@ -1240,7 +1232,6 @@ components:
           readOnly: true
         updatedDate:
           type: string
-          format: uuid
           description: Time stamp for the most recent update of the record.
           readOnly: true
         updatedByUserId:

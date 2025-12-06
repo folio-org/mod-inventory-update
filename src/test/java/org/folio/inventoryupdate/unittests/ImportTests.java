@@ -845,7 +845,7 @@ public class ImportTests extends InventoryUpdateTestBase {
                 .header(Service.OKAPI_TENANT)
                 .header(Service.OKAPI_URL)
                 .header(Service.OKAPI_TOKEN)
-                .post(Service.PATH_CHANNELS + "/" + channelId + "/activate")
+                .post(Service.PATH_CHANNELS + "/" + channelId + "/commission")
                 .then().statusCode(200)
                 .extract().response();
     }

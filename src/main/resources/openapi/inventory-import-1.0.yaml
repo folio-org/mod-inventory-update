@@ -11,7 +11,7 @@ paths:
       - $ref: "#/components/parameters/okapi_url"
     get:
       operationId: getChannels
-      description: Get import configuration records
+      description: Get channel config records
       parameters:
         - in: query
           name: offset
@@ -45,7 +45,7 @@ paths:
         required: true
       responses:
         "201":
-          description: Import configuration created
+          description: Import channel created
           content:
             application/json:
               schema:
@@ -118,7 +118,7 @@ paths:
       - in: path
         name: id
         required: true
-        description: Import configuration identifier (UUID)
+        description: Channel identifier (UUID)
         schema:
           type: string
       - in: query
@@ -129,7 +129,7 @@ paths:
           type: string
     post:
       operationId: importXmlRecords
-      description: Load XML document using given import configuration
+      description: Load XML document to given import channel
       requestBody:
         content:
           text/plain:
@@ -145,7 +145,7 @@ paths:
         "500":
           $ref: "#/components/responses/trait_500"
 
-  /inventory-import/channels/{id}/activate:
+  /inventory-import/channels/{id}/commission:
     parameters:
       - $ref: "#/components/parameters/okapi_tenant"
       - $ref: "#/components/parameters/okapi_token"
@@ -153,12 +153,12 @@ paths:
       - in: path
         name: id
         required: true
-        description: Import configuration identifier (UUID)
+        description: Channel identifier (UUID)
         schema:
           type: string
     post:
-      operationId: startFileListener
-      description: start verticle for given config ID that listens for incoming source records
+      operationId: deployFileListener
+      description: start verticle that listens for incoming source records in given channel
       responses:
         "200":
           description: OK
@@ -169,6 +169,31 @@ paths:
         "500":
           $ref: "#/components/responses/trait_500"
 
+  /inventory-import/channels/{id}/decommission:
+    parameters:
+      - $ref: "#/components/parameters/okapi_tenant"
+      - $ref: "#/components/parameters/okapi_token"
+      - $ref: "#/components/parameters/okapi_url"
+      - in: path
+        name: id
+        required: true
+        description: Channel identifier (UUID)
+        schema:
+          type: string
+    post:
+      operationId: undeployFileListener
+      description: stop verticle for given channel ID
+      responses:
+        "200":
+          description: OK
+        "400":
+          $ref: "#/components/responses/trait_400"
+        "404":
+          $ref: "#/components/responses/trait_404"
+        "500":
+          $ref: "#/components/responses/trait_500"
+
+
   /inventory-import/channels/{id}/pause:
     parameters:
       - $ref: "#/components/parameters/okapi_tenant"
@@ -177,12 +202,12 @@ paths:
       - in: path
         name: id
         required: true
-        description: Import configuration identifier (UUID)
+        description: Import channel identifier (UUID)
         schema:
           type: string
     post:
       operationId: pauseImport
-      description: stop file listening for given config ID
+      description: pause file processing for given config ID
       responses:
         "200":
           description: OK
@@ -230,7 +255,7 @@ paths:
           type: string
     post:
       operationId: initFileSystemQueue
-      description: create new file system queue or delete all sources files from an existing queue for the given import configuration
+      description: create new file system queue or delete all sources files from an existing queue for the given channel
       responses:
         "200":
           description: All files deleted from the queue
@@ -1029,11 +1054,11 @@ components:
           description: UUID referencing the import job that generated the log.
         channelId:
           type: string
-          description: UUID referencing the configuration that defined the import job.
+          description: UUID referencing the channel configuration that governed the import job.
           readOnly: true
         channelName:
           type: string
-          description: The name of the import configuration at the time the job was run.
+          description: The name of the channel at the time the job was run.
           readOnly: true
         timeStamp:
           type: string
@@ -1072,7 +1097,7 @@ components:
           readOnly: true
         channelName:
           type: string
-          description: The name of the import configuration at the time the job was run.
+          description: The name of the channel at the time the job was run.
           readOnly: true
         recordErrors:
           type: array
@@ -1120,11 +1145,11 @@ components:
 
     channels:
       type: object
-      description: Collection of import configurations.
+      description: Collection of channel records.
       properties:
         channels:
           type: array
-          description: List of import configurations.
+          description: List of channels.
           items:
             $ref: "#/components/schemas/channel"
     channel:
@@ -1143,6 +1168,14 @@ components:
         transformationId:
           type: string
           description: UUID referencing the transformation pipeline to use.
+        commission:
+          type: boolean
+          description: Intention is that this channel should be deployed
+          default: false;
+        listening:
+          type: boolean
+          description: Channel is listening for incoming source files when deployed
+          default: true;
         metadata:
           $ref: "#/components/schemas/metadata"
 
@@ -1164,10 +1197,10 @@ components:
           description: 'Unique identifier (UUID) for the import job report.'
         channelName:
           type: string
-          description: The name of the import configuration at the time of logging the import job.
+          description: The name of the channel at the time of logging the import job.
         channelId:
           type: string
-          description: UUID referencing the import configuration that defined the import job run.
+          description: UUID referencing the channel configuration that governed the import job run.
         importType:
           type: string
           description: 'Type of import job (obsolete, always bulk XML).'

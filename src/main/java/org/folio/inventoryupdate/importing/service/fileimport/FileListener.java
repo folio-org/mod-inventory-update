@@ -1,21 +1,32 @@
 package org.folio.inventoryupdate.importing.service.fileimport;
 
+import io.vertx.core.DeploymentOptions;
 import io.vertx.core.Future;
+import io.vertx.core.Promise;
+import io.vertx.core.ThreadingModel;
 import io.vertx.core.VerticleBase;
+import io.vertx.core.Vertx;
 import io.vertx.ext.web.RoutingContext;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.folio.inventoryupdate.importing.moduledata.Channel;
 
 import java.io.File;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 public abstract class FileListener extends VerticleBase {
+
+  public static final Logger logger = LogManager.getLogger("queued-files-processing");
 
   protected String tenant;
   protected Channel channel;
   protected RoutingContext routingContext;
   protected FileProcessor fileProcessor;
   protected FileQueue fileQueue;
+  protected Vertx deploymentVertx;
+  protected String deploymentId;
 
   // For demarcating jobs by start/end
   protected AtomicBoolean fileQueuePassive = new AtomicBoolean(true);
@@ -33,10 +44,6 @@ public abstract class FileListener extends VerticleBase {
   }
   public String getConfigIdStr() {
     return getConfigId().toString();
-  }
-
-  public String getConfigName () {
-    return channel.getRecord().name();
   }
 
   public void markFileQueuePassive() {
@@ -85,5 +92,34 @@ public abstract class FileListener extends VerticleBase {
     return fileProcessor != null && fileProcessor.paused();
   }
 
+  public Future<Void> undeploy() {
+    return deploymentVertx.undeploy(deploymentId);
+  }
+
+  public Future<String> deploy() {
+    Promise<String> promise = Promise.promise();
+    // Use new Vertx so that we can close it -- if the channel is removed again -- without closing the Okapi client
+    // for all other requests (it's the underlying Vert.X WebClient that we avoid closing, to be accurate).
+    // Creating a new Vertx will give us a warning in the logs.
+    deploymentVertx = Vertx.vertx();
+    deploymentVertx.deployVerticle(this,
+        new DeploymentOptions()
+            .setWorkerPoolSize(4)
+            .setInstances(1)
+            .setMaxWorkerExecuteTime(10)
+            .setThreadingModel(ThreadingModel.WORKER)
+            .setMaxWorkerExecuteTimeUnit(TimeUnit.MINUTES)).onComplete(
+        started -> {
+          if (started.succeeded()) {
+            deploymentId = started.result();
+            logger.info("Started verticle [{}] on Vertx {} for [{}] and channel [{}].", started.result(), deploymentVertx, tenant, channel.getRecord().name());
+            promise.complete("Started verticle [" + started.result() + "] for channel ID [" + channel.getRecord().name() + "].");
+          } else {
+            logger.error("Couldn't start file processor verticle for tenant [{}] and channel ID [{}].", tenant, channel.getRecord().name());
+            promise.fail("Couldn't start file processor verticle for channel [" + channel.getRecord().name() + "].");
+          }
+        });
+    return promise.future();
+  }
 
 }

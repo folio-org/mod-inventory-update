@@ -47,6 +47,8 @@ The dynamic parts of a channel are
 All these operate on a single channel. There are two more requests that operates on multiple channels. When a module is
 redeployed non of the channels are automatically deployed. The operator can choose to one of two operations after deploying the module:
 
+The `../upload` API will accept source files up to a size of 100 MB.
+
 - POST `/inventory-import/recommission-channels`    Will deploy all channels that are marked with `commission: true`
 - POST `/inventory-import/do-not-recommission`      Will mark all channels with `commission: false`
 

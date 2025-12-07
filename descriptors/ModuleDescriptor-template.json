@@ -465,8 +465,8 @@
         },
         {
           "methods": ["POST"],
-          "pathPattern": "/inventory-import/channels/{id}/import",
-          "permissionsRequired": ["inventory-update.import.post"],
+          "pathPattern": "/inventory-import/channels/{id}/upload",
+          "permissionsRequired": ["inventory-update.import.upload.post"],
           "modulePermissions": [
             "modperms.inventory-update.import"
           ]
@@ -768,9 +768,9 @@
       "description": "Imports: Delete a failed record log entry"
     },
     {
-      "permissionName": "inventory-update.import.post",
-      "displayName": "Import XML file",
-      "description": "Imports: Execute import of a posted XML file"
+      "permissionName": "inventory-update.import.upload.post",
+      "displayName": "Upload XML file for importing",
+      "description": "Imports: Upload source file to a commissioned channel. If or when the channel is listening the file will be processed."
     },
     {
       "permissionName": "inventory-update.import.commission.post",
@@ -922,7 +922,7 @@
         "inventory-update.import.failed-records.collection.post",
         "inventory-update.import.failed-records.item.delete",
 
-        "inventory-update.import.post",
+        "inventory-update.import.upload.post",
         "inventory-update.import.commission.post",
         "inventory-update.import.decommission.post",
         "inventory-update.import.pause-job.post",

@@ -1,7 +1,6 @@
 package org.folio.inventoryupdate.importing.service;
 
 import io.vertx.core.Future;
-import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.json.JsonArray;
@@ -101,7 +100,7 @@ public class ImportService implements RouterCreator, TenantInitHooks {
         validatingHandler(vertx, routerBuilder, "deleteRecordFailure", this::deleteRecordFailure);
         // Processing
         validatingHandler(vertx, routerBuilder, "purgeAgedLogs", this::purgeAgedLogs);
-        nonValidatingHandler(vertx, routerBuilder, "importXmlRecords", this::stageXmlSourceFile);
+        nonValidatingHandler(vertx, routerBuilder, "uploadXmlRecords", this::uploadXmlSourceFile);
         validatingHandler(vertx, routerBuilder, "deployFileListener", this::deployFileListener);
         validatingHandler(vertx, routerBuilder, "undeployFileListener", this::undeployFileListener);
         validatingHandler(vertx, routerBuilder, "pauseJob", this::pauseImportJob);
@@ -135,7 +134,7 @@ public class ImportService implements RouterCreator, TenantInitHooks {
     private void nonValidatingHandler(Vertx vertx, RouterBuilder routerBuilder, String operation,
                                       Function<ServiceRequest, Future<Void>> method) {
         routerBuilder.getRoute(operation)
-            .addHandler(new BodyHandlerImpl())
+            .addHandler(new BodyHandlerImpl().setBodyLimit(104857600))
             .setDoValidation(false)
             .addHandler(ctx -> {
                 try {
@@ -716,7 +715,7 @@ public class ImportService implements RouterCreator, TenantInitHooks {
             });
     }
 
-    private Future<Void> stageXmlSourceFile(ServiceRequest request) {
+    private Future<Void> uploadXmlSourceFile(ServiceRequest request) {
 
         final long fileStartTime = System.currentTimeMillis();
         String channelId = request.requestParam("id");
@@ -726,7 +725,12 @@ public class ImportService implements RouterCreator, TenantInitHooks {
         return getChannelByTagOrUuid(request, channelId)
             .compose(channel -> {
               if (channel == null) {
-                return Future.succeededFuture("Could not find channel with id or tag [" + channelId + "] to deploy.");
+                return responseText(request.routingContext, 404).end("Could not find channel with id or tag [" + channelId + "] to upload file to.").mapEmpty();
+              } else if (!channel.getRecord().commission()) {
+                return responseText(request.routingContext, 403).end("The channel with id or tag [" + channelId + "] is not ready to accept files.").mapEmpty();
+              } else if (channel.isCommissioned()) {
+                new FileQueue(request, channel.getId().toString()).addNewFile(fileName, xmlContent);
+                return responseText(request.routingContext, 204).end().mapEmpty();
               } else {
                 return FileListeners.deployIfNotDeployed(request, channel)
                     .onSuccess(ignore -> {

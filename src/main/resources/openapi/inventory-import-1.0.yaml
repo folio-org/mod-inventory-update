@@ -110,7 +110,7 @@ paths:
         "500":
           $ref: "#/components/responses/trait_500"
 
-  /inventory-import/channels/{id}/import:
+  /inventory-import/channels/{id}/upload:
     parameters:
       - $ref: "#/components/parameters/okapi_tenant"
       - $ref: "#/components/parameters/okapi_token"
@@ -128,7 +128,7 @@ paths:
         schema:
           type: string
     post:
-      operationId: importXmlRecords
+      operationId: uploadXmlRecords
       description: Load XML document to given import channel
       requestBody:
         content:

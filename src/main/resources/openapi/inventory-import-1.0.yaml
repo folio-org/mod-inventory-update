@@ -193,8 +193,7 @@ paths:
         "500":
           $ref: "#/components/responses/trait_500"
 
-
-  /inventory-import/channels/{id}/pause:
+  /inventory-import/channels/{id}/pause-job:
     parameters:
       - $ref: "#/components/parameters/okapi_tenant"
       - $ref: "#/components/parameters/okapi_token"
@@ -206,7 +205,7 @@ paths:
         schema:
           type: string
     post:
-      operationId: pauseImport
+      operationId: pauseJob
       description: pause file processing for given config ID
       responses:
         "200":
@@ -218,7 +217,7 @@ paths:
         "500":
           $ref: "#/components/responses/trait_500"
 
-  /inventory-import/channels/{id}/resume:
+  /inventory-import/channels/{id}/resume-job:
     parameters:
       - $ref: "#/components/parameters/okapi_tenant"
       - $ref: "#/components/parameters/okapi_token"
@@ -230,7 +229,7 @@ paths:
         schema:
           type: string
     post:
-      operationId: resumeImport
+      operationId: resumeJob
       description: resume file listening for given config ID
       responses:
         "200":
@@ -250,7 +249,7 @@ paths:
       - in: path
         name: id
         required: true
-        description: Import configuration identifier (UUID)
+        description: Channel identifier (UUID)
         schema:
           type: string
     post:

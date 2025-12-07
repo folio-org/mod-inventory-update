@@ -114,7 +114,12 @@ public class TransformationStep extends Entity {
         return Tables.TRANSFORMATION_STEP;
     }
 
-    public Future<Void> createTsaRepositionSteps(ServiceRequest request) {
+  @Override
+  public UUID getId() {
+    return theRecord == null ? null : theRecord.id();
+  }
+
+  public Future<Void> createTsaRepositionSteps(ServiceRequest request) {
         return request.moduleStorageAccess().storeEntity(this.withCreatingUser(request.currentUser()))
             .onSuccess(ignore -> executeSqlStatements(request.moduleStorageAccess().getTenantPool(),
                 // Potentially adjust the positions of other steps

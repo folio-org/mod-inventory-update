@@ -5,6 +5,7 @@ import io.vertx.core.json.JsonObject;
 import io.vertx.sqlclient.templates.RowMapper;
 import io.vertx.sqlclient.templates.TupleMapper;
 import org.folio.inventoryupdate.importing.moduledata.database.Tables;
+import org.folio.inventoryupdate.importing.service.fileimport.FileListeners;
 import org.folio.tlib.postgres.TenantPgPool;
 
 import java.util.HashMap;
@@ -36,8 +37,10 @@ public class Channel extends Entity {
     public static final String TRANSFORMATION_ID = "TRANSFORMATION_ID";
     public static final String COMMISSION = "COMMISSION";
     public static final String LISTENING = "LISTENING";
+    // virtual (non-db) property
+    public static final String PROPERTY_IS_COMMISSIONED = "isCommissioned";
 
-    static {
+  static {
         CHANNEL_FIELDS.put(ID, new Field("id", "id", PgColumn.Type.UUID, false, true, true));
         CHANNEL_FIELDS.put(NAME, new Field("name", "name", PgColumn.Type.TEXT, false, true));
         CHANNEL_FIELDS.put(TYPE, new Field("type", "type", PgColumn.Type.TEXT, false, true));
@@ -110,6 +113,7 @@ public class Channel extends Entity {
         json.put(jsonPropertyName(TYPE), theRecord.type());
         json.put(jsonPropertyName(TRANSFORMATION_ID), theRecord.transformationId());
         json.put(jsonPropertyName(COMMISSION), theRecord.commission());
+        json.put(PROPERTY_IS_COMMISSIONED, isCommissioned());
         json.put(jsonPropertyName(LISTENING), theRecord.listening());
         putMetadata(json);
         return json;
@@ -120,7 +124,12 @@ public class Channel extends Entity {
         return Tables.CHANNEL;
     }
 
-    @Override
+  @Override
+  public UUID getId() {
+    return theRecord == null ? null : theRecord.id();
+  }
+
+  @Override
     public Future<Void> createDatabase(TenantPgPool pool) {
         return executeSqlStatements(pool,
                 "CREATE TABLE IF NOT EXISTS " + pool.getSchema() + "." + table()
@@ -137,5 +146,15 @@ public class Channel extends Entity {
                 + ")"
         ).mapEmpty();
     }
+
+    public boolean isCommissioned () {
+      if (tenant == null) {
+        logger.warn(
+            "Tenant not specified for this Channel object ({}), cannot say if the channel is commissioned",
+            theRecord.name());
+      }
+      return tenant != null && FileListeners.hasFileListener(tenant, theRecord.id().toString());
+    }
+
 
 }

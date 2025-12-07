@@ -27,12 +27,14 @@ import java.util.UUID;
 public class ModuleStorageAccess {
     final TenantPgPool pool;
     private static final Logger logger = LogManager.getLogger(ModuleStorageAccess.class);
+    String tenant;
 
 
     /**
      * Constructor.
      */
     public ModuleStorageAccess(Vertx vertx, String tenant) {
+        this.tenant = tenant;
         pool = TenantPgPool.pool(vertx, tenant);
     }
 
@@ -95,9 +97,9 @@ public class ModuleStorageAccess {
                         entity.insertTemplate(pool.getSchema()))
                 .mapFrom(entity.toTemplateParameters())
                 .execute(entity)
-                .onSuccess(res -> logger.info("Created {}. ID [{}]", entity.entityName().toLowerCase(), entity.asJson().getString("id")))
+                .onSuccess(res -> logger.info("Created {}. ID [{}]", entity.entityName().toLowerCase(), entity.getId()))
                 .onFailure(res -> logger.error("Couldn't save {}: {} {}", entity.entityName().toLowerCase(), res.getMessage(),entity.asJson()))
-                .map(UUID.fromString(entity.asJson().getString("id")));
+                .map(entity.getId());
     }
 
     public Future<SqlResult<Void>> updateEntity (Entity entity, String updateTemplate) {
@@ -136,7 +138,7 @@ public class ModuleStorageAccess {
                 .execute(null)
                 .onSuccess(rows -> {
                     for (Entity entity : rows) {
-                        records.add(entity);
+                        records.add(entity.withTenant(tenant));
                     }
                 }).map(records);
     }
@@ -150,7 +152,7 @@ public class ModuleStorageAccess {
                 .execute(Collections.singletonMap("id", id))
                 .map(rows -> {
                     RowIterator<Entity> iterator = rows.iterator();
-                    return iterator.hasNext() ? iterator.next() : null;
+                    return iterator.hasNext() ? iterator.next().withTenant(tenant) : null;
                 });
     }
 

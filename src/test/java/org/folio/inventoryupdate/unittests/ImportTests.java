@@ -766,7 +766,6 @@ public class ImportTests extends InventoryUpdateTestBase {
         String jobId = getRecords(Service.PATH_IMPORT_JOBS).extract().path("importJobs[0].id");
         String started = getRecordById(Service.PATH_IMPORT_JOBS, jobId).extract().path("started");
         await().until(() -> getRecordById(Service.PATH_IMPORT_JOBS, jobId).extract().path("finished"), greaterThan(started));
-        getRecords(Service.PATH_JOB_LOGS).extract().response().prettyPrint();
     }
 
     @Test
@@ -809,7 +808,7 @@ public class ImportTests extends InventoryUpdateTestBase {
                 .header(Service.OKAPI_TENANT)
                 .header(Service.OKAPI_URL)
                 .header(Service.OKAPI_TOKEN)
-                .post(Service.PATH_CHANNELS + "/" + channelId + "/pause")
+                .post(Service.PATH_CHANNELS + "/" + channelId + "/pause-job")
                 .then().statusCode(200)
                 .extract().response();
 
@@ -825,7 +824,7 @@ public class ImportTests extends InventoryUpdateTestBase {
                 .header(Service.OKAPI_TENANT)
                 .header(Service.OKAPI_URL)
                 .header(Service.OKAPI_TOKEN)
-                .post(Service.PATH_CHANNELS + "/" + channelId + "/resume")
+                .post(Service.PATH_CHANNELS + "/" + channelId + "/resume-job")
                 .then().statusCode(200)
                 .extract().response();
 

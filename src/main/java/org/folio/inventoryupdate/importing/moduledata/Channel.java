@@ -40,7 +40,6 @@ public class Channel extends Entity {
     // virtual (non-db) property
     public static final String PROPERTY_IS_COMMISSIONED = "isCommissioned";
 
-
   static {
         CHANNEL_FIELDS.put(ID, new Field("id", "id", PgColumn.Type.UUID, false, true, true));
         CHANNEL_FIELDS.put(NAME, new Field("name", "name", PgColumn.Type.TEXT, false, true));

@@ -783,6 +783,11 @@
       "description": "Imports: Undeploy a source file listener"
     },
     {
+      "permissionName": "inventory-update.import.decommission.post",
+      "displayName": "Undeploy an import listener",
+      "description": "Imports: Undeploy a source file listener"
+    },
+    {
       "permissionName": "inventory-update.import.pause-job.post",
       "displayName": "Temporarily stop an import job",
       "description": "Imports: Pause a running import process until eventually resumed again"
@@ -795,7 +800,7 @@
     {
       "permissionName": "inventory-update.import.init-queue.post",
       "displayName": "Initiate or reset source file queue for import job",
-      "description": "Imports: Delete source files previously uploaded to a channel"
+      "description": "Imports: Create new source file queue or clear existing queue for given channel configuration"
     },
     {
       "permissionName": "mod-settings.global.read.mod-inventory-update",

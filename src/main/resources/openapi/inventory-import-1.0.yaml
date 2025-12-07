@@ -193,7 +193,6 @@ paths:
         "500":
           $ref: "#/components/responses/trait_500"
 
-
   /inventory-import/channels/{id}/pause-job:
     parameters:
       - $ref: "#/components/parameters/okapi_tenant"

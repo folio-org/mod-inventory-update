@@ -104,8 +104,8 @@ public class ImportService implements RouterCreator, TenantInitHooks {
         nonValidatingHandler(vertx, routerBuilder, "importXmlRecords", this::stageXmlSourceFile);
         validatingHandler(vertx, routerBuilder, "deployFileListener", this::deployFileListener);
         validatingHandler(vertx, routerBuilder, "undeployFileListener", this::undeployFileListener);
-        validatingHandler(vertx, routerBuilder, "pauseImport", this::pauseImportJob);
-        validatingHandler(vertx, routerBuilder, "resumeImport", this::resumeImportJob);
+        validatingHandler(vertx, routerBuilder, "pauseJob", this::pauseImportJob);
+        validatingHandler(vertx, routerBuilder, "resumeJob", this::resumeImportJob);
         validatingHandler(vertx, routerBuilder, "initFileSystemQueue", this::initFileSystemQueue);
 
     }

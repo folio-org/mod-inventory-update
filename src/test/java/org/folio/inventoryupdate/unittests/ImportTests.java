@@ -808,7 +808,7 @@ public class ImportTests extends InventoryUpdateTestBase {
                 .header(Service.OKAPI_TENANT)
                 .header(Service.OKAPI_URL)
                 .header(Service.OKAPI_TOKEN)
-                .post(Service.PATH_CHANNELS + "/" + channelId + "/pause")
+                .post(Service.PATH_CHANNELS + "/" + channelId + "/pause-job")
                 .then().statusCode(200)
                 .extract().response();
 
@@ -824,7 +824,7 @@ public class ImportTests extends InventoryUpdateTestBase {
                 .header(Service.OKAPI_TENANT)
                 .header(Service.OKAPI_URL)
                 .header(Service.OKAPI_TOKEN)
-                .post(Service.PATH_CHANNELS + "/" + channelId + "/resume")
+                .post(Service.PATH_CHANNELS + "/" + channelId + "/resume-job")
                 .then().statusCode(200)
                 .extract().response();
 

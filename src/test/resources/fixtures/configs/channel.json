@@ -1,7 +1,8 @@
 {
   "id": "c71b4d3a-2030-4f71-8b0a-294ec41fad22",
-  "name": "The name of an import configuration",
+  "name": "Channel A",
   "type": "xml",
   "transformationId": "10928a21-89eb-440d-bc37-b9efae2c98a0",
-  "enabled": "true"
+  "commission": true,
+  "listening": true
 }

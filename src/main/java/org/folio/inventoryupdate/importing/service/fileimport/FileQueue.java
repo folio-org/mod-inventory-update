@@ -51,7 +51,7 @@ public class FileQueue {
     }
 
   /**
-   * Create system directories for a source file queue for this import configuration. If the directories
+   * Create system directories for a source file queue for the current channel. If the directories
    * already exist with source files in them, initializing the queue will remove all the source files, thereby
    * resetting the queue to empty.
    * @return Message describing the action taken.

@@ -407,7 +407,10 @@
         }, {
           "methods": ["POST"],
           "pathPattern": "/inventory-import/channels",
-          "permissionsRequired": ["inventory-update.import.channels.item.post"]
+          "permissionsRequired": ["inventory-update.import.channels.item.post"],
+          "modulePermissions": [
+            "modperms.inventory-update.import"
+          ]
         }, {
           "methods": ["PUT"],
           "pathPattern": "/inventory-import/channels/{id}",
@@ -470,11 +473,16 @@
         },
         {
           "methods": ["POST"],
-          "pathPattern": "/inventory-import/channels/{id}/activate",
-          "permissionsRequired": ["inventory-update.import.activate.post"],
+          "pathPattern": "/inventory-import/channels/{id}/commission",
+          "permissionsRequired": ["inventory-update.import.commission.post"],
           "modulePermissions": [
             "modperms.inventory-update.import"
           ]
+        },
+        {
+          "methods": ["POST"],
+          "pathPattern": "/inventory-import/channels/{id}/decommission",
+          "permissionsRequired": ["inventory-update.import.decommission.post"]
         },
         {
           "methods": ["POST"],
@@ -697,8 +705,8 @@
     },
     {
       "permissionName": "inventory-update.import.channels.collection.get",
-      "displayName": "Get set of import configurations",
-      "description": "Import configurations: Get collection of import job configurations"
+      "displayName": "Get set of channel configuration records",
+      "description": "Import configurations: Get collection of channel configurations"
     }, {
       "permissionName": "inventory-update.import.channels.item.get",
       "displayName": "Get single import job configuration",
@@ -713,7 +721,7 @@
       "description": "Import configurations: Update an import job configuration"
     }, {
       "permissionName": "inventory-update.import.channels.item.delete",
-      "displayName": "Delete import configuration",
+      "displayName": "Delete channel configuration",
       "description": "Import configurations: Delete an import job configuration"
     },
     {
@@ -765,9 +773,14 @@
       "description": "Imports: Execute import of a posted XML file"
     },
     {
-      "permissionName": "inventory-update.import.activate.post",
-      "displayName": "Start an import process",
-      "description": "Imports: Activate a new or passive source file listener to start importing"
+      "permissionName": "inventory-update.import.commission.post",
+      "displayName": "Start an import listener",
+      "description": "Imports: Launch a source file listener for a channel"
+    },
+    {
+      "permissionName": "inventory-update.import.decommission.post",
+      "displayName": "Undeploy an import listener",
+      "description": "Imports: Undeploy a source file listener"
     },
     {
       "permissionName": "inventory-update.import.pause.post",
@@ -777,12 +790,12 @@
     {
       "permissionName": "inventory-update.import.resume.post",
       "displayName": "Resume a stopped import process",
-      "description": "Imports: Activate a passive source file listener to resume importing"
+      "description": "Imports: Activate a paused job to resume importing from the file queue"
     },
     {
       "permissionName": "inventory-update.import.init-queue.post",
       "displayName": "Initiate or reset source file queue for import job",
-      "description": "Imports: Create new source file queue or clear existing queue for given import configuration"
+      "description": "Imports: Create new source file queue or clear existing queue for given channel configuration"
     },
     {
       "permissionName": "mod-settings.global.read.mod-inventory-update",
@@ -792,7 +805,7 @@
     {
       "permissionName": "inventory-import.delete-all",
       "displayName": "Import admin - delete all configurations of given types",
-      "description": "Delete collections of import configs, transformations, steps, and transformation-steps",
+      "description": "Delete collections of channel records, transformations, steps, and transformation-steps",
       "subPermissions": [
         "inventory-update.import.channels.collection.delete",
         "inventory-update.import.storages.collection.delete",
@@ -905,7 +918,8 @@
         "inventory-update.import.failed-records.item.delete",
 
         "inventory-update.import.post",
-        "inventory-update.import.activate.post",
+        "inventory-update.import.commission.post",
+        "inventory-update.import.decommission.post",
         "inventory-update.import.pause.post",
         "inventory-update.import.resume.post",
         "inventory-update.import.init-queue.post",

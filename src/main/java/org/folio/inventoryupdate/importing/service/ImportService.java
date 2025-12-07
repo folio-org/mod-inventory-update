@@ -102,7 +102,8 @@ public class ImportService implements RouterCreator, TenantInitHooks {
         // Processing
         validatingHandler(vertx, routerBuilder, "purgeAgedLogs", this::purgeAgedLogs);
         nonValidatingHandler(vertx, routerBuilder, "importXmlRecords", this::stageXmlSourceFile);
-        validatingHandler(vertx, routerBuilder, "startFileListener", this::activateFileListener);
+        validatingHandler(vertx, routerBuilder, "deployFileListener", this::deployFileListener);
+        validatingHandler(vertx, routerBuilder, "undeployFileListener", this::undeployFileListener);
         validatingHandler(vertx, routerBuilder, "pauseImport", this::pauseImportJob);
         validatingHandler(vertx, routerBuilder, "resumeImport", this::resumeImportJob);
         validatingHandler(vertx, routerBuilder, "initFileSystemQueue", this::initFileSystemQueue);
@@ -179,16 +180,8 @@ public class ImportService implements RouterCreator, TenantInitHooks {
         return new ModuleStorageAccess(vertx, tenant).init(tenantAttributes)
             .onFailure(x -> logger.error("Database initialization failed: {}", x.getMessage()))
             .onSuccess(x -> logger.info("Tenant '{}' database initialized", tenant))
-            .compose(x -> clearTenantFileQueues(vertx, tenant, tenantAttributes));
+            .compose(x -> clearTenantFileQueues(vertx, tenant, getTenantParameter(tenantAttributes,"clearPastFileQueues")));
     }
-
-  public Future<Void> clearTenantFileQueues(Vertx vertx, String tenant, JsonObject tenantAttributes) {
-    String cleanUp = getTenantParameter(tenantAttributes,"clearPastFileQueues");
-    if (cleanUp != null && cleanUp.equalsIgnoreCase("true")) {
-      FileQueue.clearTenantQueues(vertx,tenant);
-    }
-    return Future.succeededFuture();
-  }
 
   private static String getTenantParameter(JsonObject attributes, String parameterKey) {
     if (attributes.containsKey("parameters") && attributes.getValue("parameters") instanceof JsonArray) {
@@ -201,6 +194,13 @@ public class ImportService implements RouterCreator, TenantInitHooks {
       }
     }
     return null;
+  }
+
+  public Future<Void> clearTenantFileQueues(Vertx vertx, String tenant, String clearPastFileQueues) {
+    if ("true".equalsIgnoreCase(clearPastFileQueues)) {
+      FileQueue.clearTenantQueues(vertx,tenant);
+    }
+    return Future.succeededFuture();
   }
 
     private Future<Void> getEntities(ServiceRequest request, Entity entity) {
@@ -323,7 +323,7 @@ public class ImportService implements RouterCreator, TenantInitHooks {
         return deleteEntity(request, new Channel())
             .compose(na -> {
               new FileQueue(request, request.requestParam("id")).deleteDirectoriesIfExist();
-              return Future.succeededFuture();
+              return undeployFileListener(request);
             }).mapEmpty();
     }
 
@@ -704,49 +704,60 @@ public class ImportService implements RouterCreator, TenantInitHooks {
         String fileName = request.queryParam("filename",UUID.randomUUID() + ".xml");
         Buffer xmlContent = Buffer.buffer(request.bodyAsString());
 
-        return activateFileListener(request, channelId)
+        return deployFileListener(request, channelId)
                 .onSuccess(ignore -> {
                     new FileQueue(request, channelId).addNewFile(fileName, xmlContent);
                     responseText(request.routingContext, 200).end("File queued for processing in ms " + (System.currentTimeMillis() - fileStartTime));
                 }).mapEmpty();
     }
 
-    private Future<Void> activateFileListener(ServiceRequest request) {
+    private Future<Void> deployFileListener(ServiceRequest request) {
         String channelId = request.requestParam("id");
-        return activateFileListener(request, channelId)
+        return deployFileListener(request, channelId)
                 .onSuccess(response -> responseText(request.routingContext(), 200).end(response)).mapEmpty();
     }
 
-    private Future<String> activateFileListener(ServiceRequest request, String channelId) {
-        Promise<String> promise = Promise.promise();
-        request.moduleStorageAccess().getEntity(UUID.fromString(channelId), new Channel())
-                .onSuccess(cfg -> {
-                    if (cfg != null) {
-                        FileListeners.deployIfNotDeployed(request, (Channel) cfg)
-                                .onSuccess(promise::complete);
-                    } else {
-                        promise.fail("Could not find import config with id [" + channelId + "].");
-                    }
-                }).mapEmpty();
-        return promise.future();
+    private Future<String> deployFileListener(ServiceRequest request, String channelId) {
+        return request.moduleStorageAccess().getEntity(UUID.fromString(channelId), new Channel())
+            .compose(cfg -> {
+              if (cfg != null) {
+                return FileListeners.deployIfNotDeployed(request, (Channel) cfg);
+              } else {
+                return Future.succeededFuture("Could not find channel with id [" + channelId + "] to commission.");
+              }
+            });
     }
 
-    private Future<Void> pauseImportJob(ServiceRequest request) {
+  private Future<Void> undeployFileListener(ServiceRequest request) {
+    String channelId = request.requestParam("id");
+    return request.moduleStorageAccess().getEntity(UUID.fromString(channelId), new Channel())
+        .onSuccess(cfg -> {
+          if (cfg != null) {
+            FileListeners.undeployIfDeployed(request, (Channel) cfg)
+                .onSuccess(response -> responseText(request.routingContext(), 200).end(response)).mapEmpty();
+          } else {
+            responseText(request.routingContext,200).end("Found no channel with ID " + channelId + " to decommission.");
+          }
+        }).mapEmpty();
+  }
+
+
+  private Future<Void> pauseImportJob(ServiceRequest request) {
         String channelId = request.requestParam("id");
         if (FileListeners.hasFileListener(request.tenant(), channelId)) {
             FileProcessor job = FileListeners.getFileListener(request.tenant(), channelId).getImportJob();
             if (job == null) {
-              responseText(request.routingContext(), 404).end("No job found for this import configuration yet, [" + channelId + "].");
+              responseText(request.routingContext(), 404).end("No job found for this channel yet, [" + channelId + "].");
             } else {
               if (job.paused()) {
-                responseText(request.routingContext(), 200).end("File listener already paused for import config [" + channelId + "].");
+                responseText(request.routingContext(), 200).end("File listener already paused for channel [" + channelId + "].");
               } else {
                 job.pause();
-                responseText(request.routingContext(), 200).end("Processing paused for import config [" + channelId + "].");
+                responseText(request.routingContext(), 200).end("Processing paused for channel [" + channelId + "].");
               }
             }
         } else {
-            responseText(request.routingContext(), 200).end("Currently no running import process found to pause for import config [" + channelId + "].");
+            responseText(request.routingContext(), 200).end("Currently no running import process found to pause for channel [" + channelId + "].");
         }
         return Future.succeededFuture();
     }
@@ -758,12 +769,12 @@ public class ImportService implements RouterCreator, TenantInitHooks {
             FileProcessor job = FileListeners.getFileListener(request.tenant(), channelId).getImportJob();
             if (job.paused()) {
                 job.resume();
-                responseText(request.routingContext(), 200).end("Processing resumed for import config [" + channelId + "].");
+                responseText(request.routingContext(), 200).end("Processing resumed for channel [" + channelId + "].");
             } else {
-                responseText(request.routingContext(), 200).end("File listener already active for import config [" + channelId + "].");
+                responseText(request.routingContext(), 200).end("File listener already active for channel [" + channelId + "].");
             }
         } else {
-            responseText(request.routingContext(), 200).end("Currently no running import process found to resume for import config [" + channelId + "].");
+            responseText(request.routingContext(), 200).end("Currently no running import process found to resume for channel [" + channelId + "].");
         }
         return Future.succeededFuture();
     }
@@ -777,7 +788,7 @@ public class ImportService implements RouterCreator, TenantInitHooks {
               String initMessage = new FileQueue(request, channelId).initializeQueue();
               responseText(request.routingContext(), 200).end(initMessage);
             } else {
-              promise.fail("Could not find import config with id [" + channelId + "].");
+              promise.fail("Could not find channel with id [" + channelId + "].");
             }
           }).mapEmpty();
       return Future.succeededFuture();

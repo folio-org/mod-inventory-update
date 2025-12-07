@@ -1,10 +1,7 @@
 package org.folio.inventoryupdate.importing.service.fileimport;
 
-import io.vertx.core.DeploymentOptions;
 import io.vertx.core.Future;
 import io.vertx.core.Promise;
-import io.vertx.core.ThreadingModel;
-import io.vertx.core.VerticleBase;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.folio.inventoryupdate.importing.moduledata.Channel;
@@ -12,7 +9,6 @@ import org.folio.inventoryupdate.importing.service.ServiceRequest;
 
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.TimeUnit;
 
 public class FileListeners {
   private static final ConcurrentMap<String, ConcurrentMap<String, FileListener>> FILE_LISTENERS = new ConcurrentHashMap<>();
@@ -28,7 +24,7 @@ public class FileListeners {
     return FILE_LISTENERS.get(tenant).get(channelId);
   }
 
-  public static VerticleBase addFileListener(String tenant, String channelId, FileListener fileListener) {
+  public static FileListener addFileListener(String tenant, String channelId, FileListener fileListener) {
     FILE_LISTENERS.putIfAbsent(tenant, new ConcurrentHashMap<>());
     FILE_LISTENERS.get(tenant).put(channelId, fileListener);
     return fileListener;
@@ -43,27 +39,24 @@ public class FileListeners {
     String cfgId = channel.getRecord().id().toString();
     FileListener fileListener = FileListeners.getFileListener(request.tenant(), cfgId);
     if (fileListener == null) {
-      VerticleBase verticle = FileListeners.addFileListener(request.tenant(), cfgId, new XmlFileListener(request, channel));
-      request.vertx().deployVerticle(verticle,
-          new DeploymentOptions()
-              .setWorkerPoolSize(4)
-              .setInstances(1)
-              .setMaxWorkerExecuteTime(10)
-              .setThreadingModel(ThreadingModel.WORKER)
-              .setMaxWorkerExecuteTimeUnit(TimeUnit.MINUTES)).onComplete(
-          started -> {
-            if (started.succeeded()) {
-              logger.info("Started verticle [{}] for [{}] and configuration ID [{}].", started.result(), request.tenant(), channel.getRecord().name());
-              promise.complete("Started verticle [" + started.result() + "] for configuration ID [" + channel.getRecord().name() + "].");
-            } else {
-              logger.error("Couldn't start file processor verticle for tenant [{}] and import configuration ID [{}].", request.tenant(), channel.getRecord().name());
-              promise.fail("Couldn't start file processor verticle for import configuration ID [" + channel.getRecord().name() + "].");
-            }
-          });
+      FileListener listenerVerticle = addFileListener(request.tenant(), cfgId, new XmlFileListener(request, channel));
+      return listenerVerticle.deploy();
     } else {
-      promise.complete("File listener already created for import configuration ID [" + channel.getRecord().name() + "].");
+      promise.complete("File listener already commissioned for channel [" + channel.getRecord().name() + "].");
     }
     return promise.future();
+  }
+
+  public static Future<String> undeployIfDeployed (ServiceRequest request, Channel channel) {
+    String cfgId = channel.getRecord().id().toString();
+    FileListener fileListener = FileListeners.getFileListener(request.tenant(), cfgId);
+    if (fileListener != null) {
+      return fileListener.undeploy()
+          .map(na -> FILE_LISTENERS.get(request.tenant())
+              .remove(cfgId)).map(("Decommissioned channel " + channel.getRecord().name()));
+    } else {
+      return Future.succeededFuture("Did not find channel [" + channel.getRecord().name() + "] in list of commissioned channels.");
+    }
   }
 
 }

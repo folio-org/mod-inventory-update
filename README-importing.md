@@ -6,13 +6,14 @@ The only existing pipeline implementation is an XSLT transformation pipeline, th
 elements and -- through one or more custom written XSLT style-sheets -- transforms them into "inventory XML" that can be converted
 to batches of inventory upsert compatible JSON records and processed through MIU's inventory upsert APIs.
 
-The importing component
+## The importing component
 
 The main elements of the importing component are
 
   - a "channel" with an associated file queue
   - a processing pipeline, called a "transformation"
   - the "transformation"  has an ordered set of transformation style-sheets, called "steps"
+  - the "transformation" also has a "target" for its results, which is a component that will persist the results to inventory storage
 
 ### Channels
 
@@ -42,6 +43,13 @@ The dynamic parts of a channel are
 - POST `/inventory-import/channels/<channel id>/upload`        pushes a source file to the channel
 - POST `/inventory-import/channels/<channel id>/init-queue'    deletes all the source files in a queue (or re-establishes an empty queue structure, in case the previous queue was deleted directly in the file system for example).
 - DELETE `/inventory-import/channels/<channel id>` delete the channel configuration including the file queue but not its job history
+
+All these operate on a single channel. There are two more requests that operates on multiple channels. When a module is
+redeployed non of the channels are automatically deployed. The operator can choose to one of two operations after deploying the module:
+
+- POST `/inventory-import/recommission-channels`    Will deploy all channels that are marked with `commission: true`
+- POST `/inventory-import/do-not-recommission`      Will mark all channels with `commission: false`
+
 
 ### The "import job"
 

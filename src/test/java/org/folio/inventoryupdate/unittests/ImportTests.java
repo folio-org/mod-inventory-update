@@ -648,11 +648,12 @@ public class ImportTests extends InventoryUpdateTestBase {
     public void canImportSourceXml() {
         configureSamplePipeline();
         String channelId = Files.JSON_CHANNEL.getString("id");
+        String channelTag = Files.JSON_CHANNEL.getString("tag");
         String transformationId = Files.JSON_TRANSFORMATION_CONFIG.getString("id");
 
         getRecordById(Service.PATH_CHANNELS, channelId);
         getRecordById(Service.PATH_TRANSFORMATIONS, transformationId);
-        postSourceXml(Service.PATH_CHANNELS + "/" + channelId + "/import", Files.XML_INVENTORY_RECORD_SET);
+        postSourceXml(Service.PATH_CHANNELS + "/" + channelTag + "/upload", Files.XML_INVENTORY_RECORD_SET);
         getRecordById(Service.PATH_TRANSFORMATIONS, transformationId);
 
         await().until(() ->  getTotalRecords(Service.PATH_IMPORT_JOBS), is(1));
@@ -674,7 +675,7 @@ public class ImportTests extends InventoryUpdateTestBase {
 
 
         // Upsert
-        postSourceXml(Service.PATH_CHANNELS + "/" + channelId + "/import", Files.XML_INVENTORY_RECORD_SET);
+        postSourceXml(Service.PATH_CHANNELS + "/" + channelId + "/upload", Files.XML_INVENTORY_RECORD_SET);
 
         await().until(() ->  getTotalRecords(Service.PATH_IMPORT_JOBS), is(1));
         String jobId = getRecords(Service.PATH_IMPORT_JOBS).extract().path("importJobs[0].id");
@@ -684,7 +685,7 @@ public class ImportTests extends InventoryUpdateTestBase {
         assertThat("Instances in storage (incl. provisional instance)", fakeFolioApis.instanceStorage.getRecords().size(), is(2));
 
         // Delete
-        postSourceXml(Service.PATH_CHANNELS + "/" + channelId + "/import",
+        postSourceXml(Service.PATH_CHANNELS + "/" + channelId + "/upload",
             Files.createCollectionOfOneDeleteRecord(hrid));
         await().until(() ->  getTotalRecords(Service.PATH_JOB_LOGS), is(8));
         assertThat("Instances left in storage", fakeFolioApis.instanceStorage.getRecords().size(), is(1));
@@ -698,10 +699,10 @@ public class ImportTests extends InventoryUpdateTestBase {
         getRecordById(Service.PATH_CHANNELS, channelId);
         getRecordById(Service.PATH_TRANSFORMATIONS, transformationId);
 
-        Files.filesOfInventoryXmlRecords(1,100, "200")
-                .forEach(xml -> postSourceXml(Service.PATH_CHANNELS + "/" + channelId + "/import", xml));
+        Files.filesOfInventoryXmlRecords(1,100, "204")
+                .forEach(xml -> postSourceXml(Service.PATH_CHANNELS + "/" + channelId + "/upload", xml));
         // Delete in first position
-        postSourceXml(Service.PATH_CHANNELS + "/" + channelId + "/import",
+        postSourceXml(Service.PATH_CHANNELS + "/" + channelId + "/upload",
                 Files.createCollectionOfInventoryXmlRecordsWithDeletes(1,100, "200", 1));
         await().until(() ->  getTotalRecords(Service.PATH_IMPORT_JOBS), is(1));
         await().until(() ->  getTotalRecords(Service.PATH_JOB_LOGS), greaterThan(1));
@@ -711,9 +712,9 @@ public class ImportTests extends InventoryUpdateTestBase {
         assertThat("Instances in storage", fakeFolioApis.instanceStorage.getRecords().size(), is(99));
         // Ensure 100 records
         Files.filesOfInventoryXmlRecords(1,100, "200")
-                .forEach(xml -> postSourceXml(Service.PATH_CHANNELS + "/" + channelId + "/import", xml));
+                .forEach(xml -> postSourceXml(Service.PATH_CHANNELS + "/" + channelId + "/upload", xml));
         // Two consecutive deletes
-        postSourceXml(Service.PATH_CHANNELS + "/" + channelId + "/import",
+        postSourceXml(Service.PATH_CHANNELS + "/" + channelId + "/upload",
                 Files.createCollectionOfInventoryXmlRecordsWithDeletes(1,100, "200", 49, 50));
         await().until(() ->  getTotalRecords(Service.PATH_IMPORT_JOBS), is(2));
         String jobId2 = getRecords(Service.PATH_IMPORT_JOBS).extract().path("importJobs[1].id");
@@ -723,9 +724,9 @@ public class ImportTests extends InventoryUpdateTestBase {
 
         // Ensure 100 records
         Files.filesOfInventoryXmlRecords(1,100, "200")
-                .forEach(xml -> postSourceXml(Service.PATH_CHANNELS + "/" + channelId + "/import", xml));
+                .forEach(xml -> postSourceXml(Service.PATH_CHANNELS + "/" + channelId + "/upload", xml));
         // Two non-consecutive deletes
-        postSourceXml(Service.PATH_CHANNELS + "/" + channelId + "/import",
+        postSourceXml(Service.PATH_CHANNELS + "/" + channelId + "/upload",
                 Files.createCollectionOfInventoryXmlRecordsWithDeletes(1,100, "200", 25, 75));
         await().until(() ->  getTotalRecords(Service.PATH_IMPORT_JOBS), is(3));
         String jobId3 = getRecords(Service.PATH_IMPORT_JOBS).extract().path("importJobs[2].id");
@@ -735,11 +736,11 @@ public class ImportTests extends InventoryUpdateTestBase {
 
         // Ensure 100 records
         Files.filesOfInventoryXmlRecords(1,100, "200")
-                .forEach(xml -> postSourceXml(Service.PATH_CHANNELS + "/" + channelId + "/import", xml));
+                .forEach(xml -> postSourceXml(Service.PATH_CHANNELS + "/" + channelId + "/upload", xml));
         // Two consecutive deletes at end of first file, followed by a second file of upserts
-        postSourceXml(Service.PATH_CHANNELS + "/" + channelId + "/import",
+        postSourceXml(Service.PATH_CHANNELS + "/" + channelId + "/upload",
                 Files.createCollectionOfInventoryXmlRecordsWithDeletes(1,100, "200", 99, 100));
-        postSourceXml(Service.PATH_CHANNELS + "/" + channelId + "/import",
+        postSourceXml(Service.PATH_CHANNELS + "/" + channelId + "/upload",
                 Files.createCollectionOfInventoryXmlRecordsWithDeletes(101,200, "200", 99, 100));
         await().until(() ->  getTotalRecords(Service.PATH_IMPORT_JOBS), is(4));
         String jobId4 = getRecords(Service.PATH_IMPORT_JOBS).extract().path("importJobs[3].id");
@@ -757,10 +758,10 @@ public class ImportTests extends InventoryUpdateTestBase {
         getRecordById(Service.PATH_TRANSFORMATIONS, transformationId);
 
         // Ensure 100 records
-        Files.filesOfInventoryXmlRecords(1,100, "200")
-                .forEach(xml -> postSourceXml(Service.PATH_CHANNELS + "/" + channelId + "/import", xml));
+        Files.filesOfInventoryXmlRecords(1,100, "204")
+                .forEach(xml -> postSourceXml(Service.PATH_CHANNELS + "/" + channelId + "/upload", xml));
 
-        postSourceXml(Service.PATH_CHANNELS + "/" + channelId + "/import",
+        postSourceXml(Service.PATH_CHANNELS + "/" + channelId + "/upload",
                 Files.createCollectionOfOneDeleteRecord(9999));
         await().until(() ->  getTotalRecords(Service.PATH_IMPORT_JOBS), is(1));
         String jobId = getRecords(Service.PATH_IMPORT_JOBS).extract().path("importJobs[0].id");
@@ -776,8 +777,8 @@ public class ImportTests extends InventoryUpdateTestBase {
         getRecordById(Service.PATH_CHANNELS, channelId);
         getRecordById(Service.PATH_TRANSFORMATIONS, transformationId);
 
-        Files.filesOfInventoryXmlRecords(5,100, "200")
-                .forEach(xml -> postSourceXml(Service.PATH_CHANNELS + "/" + channelId + "/import", xml));
+        Files.filesOfInventoryXmlRecords(5,100, "204")
+                .forEach(xml -> postSourceXml(Service.PATH_CHANNELS + "/" + channelId + "/upload", xml));
 
         await().until(() ->  getTotalRecords(Service.PATH_IMPORT_JOBS), is(1));
         await().until(() ->  getTotalRecords(Service.PATH_JOB_LOGS), greaterThan(1));
@@ -792,12 +793,13 @@ public class ImportTests extends InventoryUpdateTestBase {
     public void canPauseAndResumeImportJob() {
         configureSamplePipeline();
         String channelId = Files.JSON_CHANNEL.getString("id");
+        String channelTag = Files.JSON_CHANNEL.getString("tag");
         String transformationId = Files.JSON_TRANSFORMATION_CONFIG.getString("id");
         getRecordById(Service.PATH_CHANNELS, channelId);
         getRecordById(Service.PATH_TRANSFORMATIONS, transformationId);
 
-        Files.filesOfInventoryXmlRecords(5,100,"200")
-                .forEach(xml -> postSourceXml(Service.PATH_CHANNELS + "/" + channelId + "/import", xml));
+        Files.filesOfInventoryXmlRecords(5,100,"204")
+                .forEach(xml -> postSourceXml(Service.PATH_CHANNELS + "/" + channelId + "/upload", xml));
 
         await().until(() ->  getTotalRecords(Service.PATH_IMPORT_JOBS), is(1));
         String jobId = getRecords(Service.PATH_IMPORT_JOBS).extract().path("importJobs[0].id");
@@ -808,7 +810,7 @@ public class ImportTests extends InventoryUpdateTestBase {
                 .header(Service.OKAPI_TENANT)
                 .header(Service.OKAPI_URL)
                 .header(Service.OKAPI_TOKEN)
-                .post(Service.PATH_CHANNELS + "/" + channelId + "/pause-job")
+                .post(Service.PATH_CHANNELS + "/" + channelTag + "/pause-job")
                 .then().statusCode(200)
                 .extract().response();
 
@@ -824,7 +826,7 @@ public class ImportTests extends InventoryUpdateTestBase {
                 .header(Service.OKAPI_TENANT)
                 .header(Service.OKAPI_URL)
                 .header(Service.OKAPI_TOKEN)
-                .post(Service.PATH_CHANNELS + "/" + channelId + "/resume-job")
+                .post(Service.PATH_CHANNELS + "/" + channelTag + "/resume-job")
                 .then().statusCode(200)
                 .extract().response();
 
@@ -838,7 +840,7 @@ public class ImportTests extends InventoryUpdateTestBase {
     @Test
     public void canStartFileListener() {
         configureSamplePipeline();
-        String channelId = Files.JSON_CHANNEL.getString("id");
+        String channelId = Files.JSON_CHANNEL.getString("tag");
         given()
                 .baseUri(BASE_URI_INVENTORY_UPDATE)
                 .header(Service.OKAPI_TENANT)
@@ -870,7 +872,7 @@ public class ImportTests extends InventoryUpdateTestBase {
 
         getRecordById(Service.PATH_CHANNELS, channelId);
         getRecordById(Service.PATH_TRANSFORMATIONS, transformationId);
-                postSourceXml(Service.PATH_CHANNELS + "/" + channelId + "/import", Files.TWO_XML_INVENTOR_RECORD_SETS);
+                postSourceXml(Service.PATH_CHANNELS + "/" + channelId + "/upload", Files.TWO_XML_INVENTOR_RECORD_SETS);
         await().until(() ->  getTotalRecords(Service.PATH_IMPORT_JOBS), is(1));
         String jobId = getRecords(Service.PATH_IMPORT_JOBS).extract().path("importJobs[0].id");
         String started = getRecordById(Service.PATH_IMPORT_JOBS, jobId).extract().path("started");
@@ -1030,7 +1032,7 @@ public class ImportTests extends InventoryUpdateTestBase {
                 .header(CONTENT_TYPE_XML)
                 .post(api)
                 .then()
-                .statusCode(200);
+                .statusCode(204);
     }
 
     ValidatableResponse getRecordById(String api, String id) {

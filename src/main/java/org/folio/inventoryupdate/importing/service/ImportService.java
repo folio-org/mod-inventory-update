@@ -1,7 +1,6 @@
 package org.folio.inventoryupdate.importing.service;
 
 import io.vertx.core.Future;
-import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.json.JsonArray;
@@ -101,7 +100,7 @@ public class ImportService implements RouterCreator, TenantInitHooks {
         validatingHandler(vertx, routerBuilder, "deleteRecordFailure", this::deleteRecordFailure);
         // Processing
         validatingHandler(vertx, routerBuilder, "purgeAgedLogs", this::purgeAgedLogs);
-        nonValidatingHandler(vertx, routerBuilder, "importXmlRecords", this::stageXmlSourceFile);
+        nonValidatingHandler(vertx, routerBuilder, "uploadXmlRecords", this::uploadXmlSourceFile);
         validatingHandler(vertx, routerBuilder, "deployFileListener", this::deployFileListener);
         validatingHandler(vertx, routerBuilder, "undeployFileListener", this::undeployFileListener);
         validatingHandler(vertx, routerBuilder, "pauseJob", this::pauseImportJob);
@@ -135,7 +134,7 @@ public class ImportService implements RouterCreator, TenantInitHooks {
     private void nonValidatingHandler(Vertx vertx, RouterBuilder routerBuilder, String operation,
                                       Function<ServiceRequest, Future<Void>> method) {
         routerBuilder.getRoute(operation)
-            .addHandler(new BodyHandlerImpl())
+            .addHandler(new BodyHandlerImpl().setBodyLimit(104857600))
             .setDoValidation(false)
             .addHandler(ctx -> {
                 try {
@@ -456,6 +455,23 @@ public class ImportService implements RouterCreator, TenantInitHooks {
         ).mapEmpty();
     }
 
+    private Future<Channel> getChannelByTagOrUuid (ServiceRequest request, String channelIdentifier) {
+      ModuleStorageAccess db = request.moduleStorageAccess();
+      SqlQuery queryFromCql = new Channel()
+          .cqlToSql(channelIdentifier.length()>24 ?
+                  "id==" + channelIdentifier :
+                  "tag=="+ channelIdentifier , "0", "1" ,
+              db.schemaDotTable(Tables.CHANNEL), new Channel().getQueryableFields());
+      return db.getEntities(queryFromCql.getQueryWithLimits(), new Channel())
+          .map(entities -> {
+            if (entities.isEmpty()) {
+              return null;
+            } else {
+              return (Channel) (entities.getFirst());
+            }
+          });
+    }
+
     private Future<Void> getFailedRecords(ServiceRequest request) {
 
         ModuleStorageAccess db = request.moduleStorageAccess();
@@ -699,18 +715,31 @@ public class ImportService implements RouterCreator, TenantInitHooks {
             });
     }
 
-    private Future<Void> stageXmlSourceFile(ServiceRequest request) {
+    private Future<Void> uploadXmlSourceFile(ServiceRequest request) {
 
         final long fileStartTime = System.currentTimeMillis();
         String channelId = request.requestParam("id");
         String fileName = request.queryParam("filename",UUID.randomUUID() + ".xml");
         Buffer xmlContent = Buffer.buffer(request.bodyAsString());
 
-        return deployFileListener(request, channelId)
-                .onSuccess(ignore -> {
-                    new FileQueue(request, channelId).addNewFile(fileName, xmlContent);
-                    responseText(request.routingContext, 200).end("File queued for processing in ms " + (System.currentTimeMillis() - fileStartTime));
-                }).mapEmpty();
+        return getChannelByTagOrUuid(request, channelId)
+            .compose(channel -> {
+              if (channel == null) {
+                return responseText(request.routingContext, 404).end("Could not find channel with id or tag [" + channelId + "] to upload file to.").mapEmpty();
+              } else if (!channel.getRecord().commission()) {
+                return responseText(request.routingContext, 403).end("The channel with id or tag [" + channelId + "] is not ready to accept files.").mapEmpty();
+              } else if (channel.isCommissioned()) {
+                new FileQueue(request, channel.getId().toString()).addNewFile(fileName, xmlContent);
+                return responseText(request.routingContext, 204).end().mapEmpty();
+              } else {
+                return FileListeners.deployIfNotDeployed(request, channel)
+                    .onSuccess(ignore -> {
+                      new FileQueue(request, channel.getId().toString()).addNewFile(fileName, xmlContent);
+                      responseText(request.routingContext, 200).end("File queued for processing in ms " + (System.currentTimeMillis() - fileStartTime));
+                    }).mapEmpty();
+
+              }
+            }).mapEmpty();
     }
 
     private Future<Void> deployFileListener(ServiceRequest request) {
@@ -720,80 +749,97 @@ public class ImportService implements RouterCreator, TenantInitHooks {
     }
 
     private Future<String> deployFileListener(ServiceRequest request, String channelId) {
-        return request.moduleStorageAccess().getEntity(UUID.fromString(channelId), new Channel())
-            .compose(cfg -> {
-              if (cfg != null) {
-                return FileListeners.deployIfNotDeployed(request, (Channel) cfg);
-              } else {
-                return Future.succeededFuture("Could not find channel with id [" + channelId + "] to commission.");
-              }
-            });
+      return getChannelByTagOrUuid(request, channelId)
+          .compose(channel -> {
+            if (channel == null) {
+              return Future.succeededFuture("Could not find channel with id or tag [" + channelId + "] to deploy.");
+            } else {
+              return FileListeners.deployIfNotDeployed(request, channel);
+            }
+          });
     }
 
   private Future<Void> undeployFileListener(ServiceRequest request) {
     String channelId = request.requestParam("id");
-    return request.moduleStorageAccess().getEntity(UUID.fromString(channelId), new Channel())
-        .onSuccess(cfg -> {
-          if (cfg != null) {
-            FileListeners.undeployIfDeployed(request, (Channel) cfg)
+    return getChannelByTagOrUuid(request, channelId)
+        .compose(channel -> {
+          if (channel != null) {
+            return FileListeners.undeployIfDeployed(request, channel)
                 .onSuccess(response -> responseText(request.routingContext(), 200).end(response)).mapEmpty();
           } else {
-            responseText(request.routingContext,200).end("Found no channel with ID " + channelId + " to decommission.");
+            return responseText(request.routingContext,404)
+                .end("Found no channel with tag or id " + channelId + " to undeploy.").mapEmpty();
           }
-        }).mapEmpty();
+        });
   }
 
-
   private Future<Void> pauseImportJob(ServiceRequest request) {
-        String channelId = request.requestParam("id");
-        if (FileListeners.hasFileListener(request.tenant(), channelId)) {
-            FileProcessor job = FileListeners.getFileListener(request.tenant(), channelId).getImportJob();
-            if (job == null) {
-              responseText(request.routingContext(), 404).end("No job found for this channel yet, [" + channelId + "].");
+      String channelId = request.requestParam("id");
+      return getChannelByTagOrUuid(request, channelId)
+          .compose(channel -> {
+            if (channel == null) {
+              return responseText(request.routingContext,404)
+                  .end("Found no channel with tag or id " + channelId + " to undeploy.").mapEmpty();
             } else {
-              if (job.paused()) {
-                responseText(request.routingContext(), 200).end("File listener already paused for channel [" + channelId + "].");
+              UUID channelUuid = channel.getId();
+              if (FileListeners.hasFileListener(request.tenant(), channelUuid.toString())) {
+                FileProcessor job = FileListeners.getFileListener(request.tenant(), channelUuid.toString()).getImportJob();
+                if (job == null) {
+                  return responseText(request.routingContext(), 404).end("No current job found for this channel, [" + channelUuid + "].");
+                } else {
+                  if (job.paused()) {
+                    return responseText(request.routingContext(), 200).end("The job was already paused for channel [" + channelUuid + "].");
+                  } else {
+                    job.pause();
+                    return responseText(request.routingContext(), 200).end("Processing paused for channel [" + channelUuid + "].");
+                  }
+                }
               } else {
-                job.pause();
-                responseText(request.routingContext(), 200).end("Processing paused for channel [" + channelId + "].");
+                return responseText(request.routingContext(), 200).end("Channel is not commissioned [" + channelUuid + "].");
               }
             }
-        } else {
-            responseText(request.routingContext(), 200).end("Currently no running import process found to pause for channel [" + channelId + "].");
-        }
-        return Future.succeededFuture();
+          });
     }
 
     private Future<Void> resumeImportJob(ServiceRequest request) {
-
-        String channelId = request.requestParam("id");
-        if (FileListeners.hasFileListener(request.tenant(), channelId)) {
-            FileProcessor job = FileListeners.getFileListener(request.tenant(), channelId).getImportJob();
-            if (job.paused()) {
-                job.resume();
-                responseText(request.routingContext(), 200).end("Processing resumed for channel [" + channelId + "].");
+      String channelId = request.requestParam("id");
+      return getChannelByTagOrUuid(request, channelId)
+          .compose(channel -> {
+            if (channel == null) {
+              return responseText(request.routingContext,404)
+                  .end("Found no channel with tag or id " + channelId + " to undeploy.").mapEmpty();
             } else {
-                responseText(request.routingContext(), 200).end("File listener already active for channel [" + channelId + "].");
+              UUID channelUuid = channel.getId();
+              if (FileListeners.hasFileListener(request.tenant(), channelUuid.toString())) {
+                FileProcessor job = FileListeners.getFileListener(request.tenant(), channelUuid.toString()).getImportJob();
+                if (job == null) {
+                  return responseText(request.routingContext(), 404).end("No current job found for this channel, [" + channelUuid + "].");
+                } else {
+                  if (job.paused()) {
+                    job.resume();
+                    return responseText(request.routingContext(), 200).end("Processing resumed for channel [" + channelId + "].");
+                  } else {
+                    return responseText(request.routingContext(), 200).end("A job is already running in channel [" + channelId + "].");
+                  }
+                }
+              } else {
+                return responseText(request.routingContext(), 200).end("Channel is not commissioned [" + channelUuid + "].");
+              }
             }
-        } else {
-            responseText(request.routingContext(), 200).end("Currently no running import process found to resume for channel [" + channelId + "].");
-        }
-        return Future.succeededFuture();
+          });
     }
 
     private Future<Void> initFileSystemQueue(ServiceRequest request) {
-      Promise<String> promise = Promise.promise();
       String channelId = request.requestParam("id");
-      request.moduleStorageAccess().getEntity(UUID.fromString(channelId), new Channel())
-          .onSuccess(cfg -> {
-            if (cfg != null) {
+      return getChannelByTagOrUuid(request, channelId)
+          .compose(channel -> {
+            if (channel != null) {
               String initMessage = new FileQueue(request, channelId).initializeQueue();
-              responseText(request.routingContext(), 200).end(initMessage);
+              return responseText(request.routingContext(), 200).end(initMessage).mapEmpty();
             } else {
-              promise.fail("Could not find channel with id [" + channelId + "].");
+              return responseText(request.routingContext(), 404).end("Could not find channel [" + channelId + "].").mapEmpty();
             }
-          }).mapEmpty();
-      return Future.succeededFuture();
+          });
     }
 
 

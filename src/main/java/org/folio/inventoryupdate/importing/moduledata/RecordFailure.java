@@ -47,7 +47,7 @@ public class RecordFailure extends Entity {
     public static final String SOURCE_FILE_NAME = "SOURCE_FILE_NAME";
 
     static {
-        FIELDS.put(ID, new Field("id", "id", PgColumn.Type.UUID, false, true, true));
+        FIELDS.put(ID, new Field("id", "id", PgColumn.Type.UUID, false, true).isPrimaryKey());
         FIELDS.put(IMPORT_JOB_ID, new Field("importJobId", "import_job_id", PgColumn.Type.UUID, false, true));
         FIELDS.put(VIEW_CHANNEL_ID, new Field("channelId", "channel_id", PgColumn.Type.UUID, true, true));
         FIELDS.put(VIEW_CHANNEL_NAME, new Field("channelName", "channel_name", PgColumn.Type.TEXT, true, true));

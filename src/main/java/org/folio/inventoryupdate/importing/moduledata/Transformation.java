@@ -33,8 +33,8 @@ public class Transformation extends Entity {
     public static final String DESCRIPTION = "DESCRIPTION";
 
     static {
-        FIELDS.put(ID,new Field("id", "id", PgColumn.Type.UUID, false, true, true));
-        FIELDS.put(NAME,new Field("name", "name", PgColumn.Type.TEXT, false, true));
+        FIELDS.put(ID,new Field("id", "id", PgColumn.Type.UUID, false, true).isPrimaryKey());
+        FIELDS.put(NAME,new Field("name", "name", PgColumn.Type.TEXT, false, true).isUnique());
         FIELDS.put(DESCRIPTION, new Field("description", "description", PgColumn.Type.TEXT, true, true));
     }
     @Override

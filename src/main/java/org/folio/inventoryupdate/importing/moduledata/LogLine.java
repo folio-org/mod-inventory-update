@@ -36,7 +36,7 @@ public class LogLine extends Entity {
     public static final String LOG_STATEMENT="LOG_STATEMENT";
 
     static {
-        FIELDS.put(ID, new Field("id", "id", PgColumn.Type.UUID, false, false, true));
+        FIELDS.put(ID, new Field("id", "id", PgColumn.Type.UUID, false, false).isPrimaryKey());
         FIELDS.put(IMPORT_JOB_ID, new Field("importJobId", "import_job_id", PgColumn.Type.UUID, false, true));
         FIELDS.put(VIEW_CHANNEL_ID, new Field("channelId", "channel_id", PgColumn.Type.UUID, true, true));
         FIELDS.put(VIEW_CHANNEL_NAME, new Field("channelName", "channel_name", PgColumn.Type.TEXT, true, true));

@@ -252,6 +252,7 @@ public class ImportService implements RouterCreator, TenantInitHooks {
                 .mapEmpty();
     }
 
+
     private Future<Void> deleteEntity(ServiceRequest request, Entity entity) {
         UUID id = UUID.fromString(request.requestParam("id"));
         return request.moduleStorageAccess().deleteEntity(id, entity).
@@ -286,7 +287,8 @@ public class ImportService implements RouterCreator, TenantInitHooks {
               FileListeners.deployIfNotDeployed(request, (Channel) cfg);
               return Future.succeededFuture(cfg);
             })
-            .compose(cfg -> responseJson(request.routingContext, 201).end(cfg.asJson().encodePrettily()))
+            .compose(cfg -> responseJson(request.routingContext, 201)
+                .end(cfg.asJson().encodePrettily()))
             .mapEmpty();
     }
 

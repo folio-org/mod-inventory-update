@@ -94,7 +94,12 @@ public class ImportJob extends Entity {
         return Tables.IMPORT_JOB;
     }
 
-    /**
+  @Override
+  public UUID getId() {
+    return theRecord == null ? null : theRecord.id();
+  }
+
+  /**
      * Implement to provide a map of the {@link Field} fields of the implementing entity
      *
      * @return Map fields by field keys to be used for finding queryable fields or, if possible, for creating the database table and more.

@@ -27,6 +27,7 @@ public abstract class Entity {
   public static final Logger logger = LogManager.getLogger("inventory-import");
   public static final String DATE_FORMAT_TO_DB = "YYYY-MM-DD''T''HH24:MI:SS,MS";
 
+  protected String tenant;
 
   /**
    * Implement to return an enum identifier for the underlying database table for the implementing entity.
@@ -34,6 +35,8 @@ public abstract class Entity {
    * @return a Tables enum value
    */
   public abstract Tables table();
+
+  public abstract UUID getId();
 
   protected Metadata metadata = new Metadata();
 
@@ -323,5 +326,9 @@ public abstract class Entity {
     return this;
   }
 
+  public Entity withTenant (String tenant) {
+    this.tenant = tenant;
+    return this;
+  }
 
 }

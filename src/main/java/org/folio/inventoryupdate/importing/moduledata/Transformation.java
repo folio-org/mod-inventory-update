@@ -47,7 +47,12 @@ public class Transformation extends Entity {
         return Tables.TRANSFORMATION;
     }
 
-    @Override
+  @Override
+  public UUID getId() {
+    return theRecord == null ? null : theRecord.id();
+  }
+
+  @Override
     public String jsonCollectionName() {
         return "transformations";
     }

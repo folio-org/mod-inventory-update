@@ -79,7 +79,12 @@ public class Step extends Entity {
         return Tables.STEP;
     }
 
-    /**
+  @Override
+  public UUID getId() {
+    return theRecord == null ? null : theRecord.id();
+  }
+
+  /**
      * Creates record from JSON.
      * @param stepJson Step JSON
      * @return Data object

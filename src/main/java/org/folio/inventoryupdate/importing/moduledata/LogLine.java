@@ -66,7 +66,12 @@ public class LogLine extends Entity {
         return Tables.LOG_STATEMENT;
     }
 
-    @Override
+  @Override
+  public UUID getId() {
+    return theRecord == null ? null : theRecord.id();
+  }
+
+  @Override
     public RowMapper<Entity> fromRow() {
         return row -> new LogLine(
                 row.getUUID(dbColumnName(ID)),

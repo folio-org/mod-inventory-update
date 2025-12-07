@@ -766,7 +766,6 @@ public class ImportTests extends InventoryUpdateTestBase {
         String jobId = getRecords(Service.PATH_IMPORT_JOBS).extract().path("importJobs[0].id");
         String started = getRecordById(Service.PATH_IMPORT_JOBS, jobId).extract().path("started");
         await().until(() -> getRecordById(Service.PATH_IMPORT_JOBS, jobId).extract().path("finished"), greaterThan(started));
-        getRecords(Service.PATH_JOB_LOGS).extract().response().prettyPrint();
     }
 
     @Test

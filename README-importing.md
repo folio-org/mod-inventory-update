@@ -32,8 +32,8 @@ Requests operating on channels:
 
 - POST `/inventory-import/channels` create a channel
 - POST `/inventory-import/channels/<channel id>/commission`   launch a channel that is actively listening for source files to import
-- POST `/inventory-import/channels/<channel id>/pause-listener`  stop actively listening for source files in queue
-- POST `/inventory-import/channels/<channel id>/resume-listener`  resume active listening for source files
+- POST `/inventory-import/channels/<channel id>/listen`  stop actively listening for source files in queue
+- POST `/inventory-import/channels/<channel id>/pause-listen`  resume active listening for source files
 - POST `/inventory-import/channels/<channel id>/decommission`  undeploy (disable) the channel
 - PUT `/inventory-import/channels/<channel id>`  update properties of a channel
 - DELETE `/inventory-import/channels/<channel id>` delete the channel configuration including the file queue but not its job history

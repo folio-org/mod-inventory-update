@@ -648,11 +648,12 @@ public class ImportTests extends InventoryUpdateTestBase {
     public void canImportSourceXml() {
         configureSamplePipeline();
         String channelId = Files.JSON_CHANNEL.getString("id");
+        String channelTag = Files.JSON_CHANNEL.getString("tag");
         String transformationId = Files.JSON_TRANSFORMATION_CONFIG.getString("id");
 
         getRecordById(Service.PATH_CHANNELS, channelId);
         getRecordById(Service.PATH_TRANSFORMATIONS, transformationId);
-        postSourceXml(Service.PATH_CHANNELS + "/" + channelId + "/import", Files.XML_INVENTORY_RECORD_SET);
+        postSourceXml(Service.PATH_CHANNELS + "/" + channelTag + "/import", Files.XML_INVENTORY_RECORD_SET);
         getRecordById(Service.PATH_TRANSFORMATIONS, transformationId);
 
         await().until(() ->  getTotalRecords(Service.PATH_IMPORT_JOBS), is(1));
@@ -792,6 +793,7 @@ public class ImportTests extends InventoryUpdateTestBase {
     public void canPauseAndResumeImportJob() {
         configureSamplePipeline();
         String channelId = Files.JSON_CHANNEL.getString("id");
+        String channelTag = Files.JSON_CHANNEL.getString("tag");
         String transformationId = Files.JSON_TRANSFORMATION_CONFIG.getString("id");
         getRecordById(Service.PATH_CHANNELS, channelId);
         getRecordById(Service.PATH_TRANSFORMATIONS, transformationId);
@@ -808,7 +810,7 @@ public class ImportTests extends InventoryUpdateTestBase {
                 .header(Service.OKAPI_TENANT)
                 .header(Service.OKAPI_URL)
                 .header(Service.OKAPI_TOKEN)
-                .post(Service.PATH_CHANNELS + "/" + channelId + "/pause-job")
+                .post(Service.PATH_CHANNELS + "/" + channelTag + "/pause-job")
                 .then().statusCode(200)
                 .extract().response();
 
@@ -824,7 +826,7 @@ public class ImportTests extends InventoryUpdateTestBase {
                 .header(Service.OKAPI_TENANT)
                 .header(Service.OKAPI_URL)
                 .header(Service.OKAPI_TOKEN)
-                .post(Service.PATH_CHANNELS + "/" + channelId + "/resume-job")
+                .post(Service.PATH_CHANNELS + "/" + channelTag + "/resume-job")
                 .then().statusCode(200)
                 .extract().response();
 
@@ -838,7 +840,7 @@ public class ImportTests extends InventoryUpdateTestBase {
     @Test
     public void canStartFileListener() {
         configureSamplePipeline();
-        String channelId = Files.JSON_CHANNEL.getString("id");
+        String channelId = Files.JSON_CHANNEL.getString("tag");
         given()
                 .baseUri(BASE_URI_INVENTORY_UPDATE)
                 .header(Service.OKAPI_TENANT)

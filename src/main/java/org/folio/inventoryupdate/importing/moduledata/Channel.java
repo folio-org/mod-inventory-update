@@ -16,12 +16,12 @@ public class Channel extends Entity {
 
     public Channel(){}
 
-    public Channel(UUID id, String name, String type, UUID transformationId, boolean commission, boolean listening) {
-        theRecord = new ChannelRecord(id, name, type, transformationId, commission, listening);
+    public Channel(UUID id, String tag, String name, String type, UUID transformationId, boolean commission, boolean listening) {
+        theRecord = new ChannelRecord(id, tag, name, type, transformationId, commission, listening);
     }
 
     // Import config record, the entity data.
-    public record ChannelRecord(UUID id, String name, String type, UUID transformationId, boolean commission, boolean listening) {
+    public record ChannelRecord(UUID id, String tag, String name, String type, UUID transformationId, boolean commission, boolean listening) {
     }
     ChannelRecord theRecord;
 
@@ -32,6 +32,7 @@ public class Channel extends Entity {
     // Static map of Entity Fields.
     private static final Map<String, Field> CHANNEL_FIELDS = new HashMap<>();
     public static final String ID = "ID";
+    public static final String TAG = "TAG";
     public static final String NAME = "NAME";
     public static final String TYPE = "TYPE";
     public static final String TRANSFORMATION_ID = "TRANSFORMATION_ID";
@@ -41,8 +42,9 @@ public class Channel extends Entity {
     public static final String PROPERTY_IS_COMMISSIONED = "isCommissioned";
 
   static {
-        CHANNEL_FIELDS.put(ID, new Field("id", "id", PgColumn.Type.UUID, false, true, true));
-        CHANNEL_FIELDS.put(NAME, new Field("name", "name", PgColumn.Type.TEXT, false, true));
+        CHANNEL_FIELDS.put(ID, new Field("id", "id", PgColumn.Type.UUID, false, true).isPrimaryKey());
+        CHANNEL_FIELDS.put(TAG, new Field("tag", "tag", PgColumn.Type.TEXT, true, true).isUnique());
+        CHANNEL_FIELDS.put(NAME, new Field("name", "name", PgColumn.Type.TEXT, false, true).isUnique());
         CHANNEL_FIELDS.put(TYPE, new Field("type", "type", PgColumn.Type.TEXT, false, true));
         CHANNEL_FIELDS.put(TRANSFORMATION_ID, new Field("transformationId", "transformation_id", PgColumn.Type.UUID, false, true));
         CHANNEL_FIELDS.put(COMMISSION, new Field("commission", "commission", PgColumn.Type.BOOLEAN, false, true));
@@ -67,6 +69,7 @@ public class Channel extends Entity {
     public Channel fromJson(JsonObject channelJson) {
         return new Channel(
                 getUuidOrGenerate(channelJson.getString(jsonPropertyName(ID))),
+                channelJson.getString(jsonPropertyName(TAG)),
                 channelJson.getString(jsonPropertyName(NAME)),
                 channelJson.getString(jsonPropertyName(TYPE)),
                 Util.getUUID(channelJson, jsonPropertyName(TRANSFORMATION_ID), null),
@@ -78,6 +81,7 @@ public class Channel extends Entity {
     public RowMapper<Entity> fromRow() {
         return row -> new Channel(
             row.getUUID(dbColumnName(ID)),
+            row.getString(dbColumnName(TAG)),
             row.getString(dbColumnName(NAME)),
             row.getString(dbColumnName(TYPE)),
             row.getUUID(dbColumnName(TRANSFORMATION_ID)),
@@ -93,6 +97,7 @@ public class Channel extends Entity {
                     ChannelRecord rec = ((Channel) entity).theRecord;
                     Map<String, Object> parameters = new HashMap<>();
                     parameters.put(dbColumnName(ID), rec.id());
+                    parameters.put(dbColumnName(TAG), rec.tag());
                     parameters.put(dbColumnName(NAME), rec.name());
                     parameters.put(dbColumnName(TYPE), rec.type());
                     parameters.put(dbColumnName(TRANSFORMATION_ID), rec.transformationId());
@@ -109,6 +114,7 @@ public class Channel extends Entity {
     public JsonObject asJson() {
         JsonObject json = new JsonObject();
         json.put(jsonPropertyName(ID), theRecord.id());
+        json.put(jsonPropertyName(TAG), theRecord.tag());
         json.put(jsonPropertyName(NAME), theRecord.name());
         json.put(jsonPropertyName(TYPE), theRecord.type());
         json.put(jsonPropertyName(TRANSFORMATION_ID), theRecord.transformationId());
@@ -135,6 +141,7 @@ public class Channel extends Entity {
                 "CREATE TABLE IF NOT EXISTS " + pool.getSchema() + "." + table()
                 + "("
                 + field(ID).pgColumnDdl() + ", "
+                + field(TAG).pgColumnDdl() + ", "
                 + field(NAME).pgColumnDdl() + ", "
                 + field(TYPE).pgColumnDdl() + ", "
                 + field(TRANSFORMATION_ID).pgColumnDdl()

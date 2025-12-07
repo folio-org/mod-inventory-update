@@ -72,7 +72,7 @@ public class ImportJob extends Entity {
     public static final String MESSAGE = "MESSAGE";
 
     static {
-        FIELDS.put(ID, new Field("id", "id", PgColumn.Type.UUID, false, true, true));
+        FIELDS.put(ID, new Field("id", "id", PgColumn.Type.UUID, false, true).isPrimaryKey());
         FIELDS.put(CHANNEL_ID, new Field("channelId", "channel_id", PgColumn.Type.UUID, false, true));
         FIELDS.put(CHANNEL_NAME, new Field("channelName", "channel_name", PgColumn.Type.TEXT, false, true));
         FIELDS.put(IMPORT_TYPE, new Field("importType", "import_type", PgColumn.Type.TEXT, false, true));

@@ -39,10 +39,10 @@ The dynamic parts of a channel are
 - POST `/inventory-import/channels/<channel id>/listen`        listen for source files in queue
 - POST `/inventory-import/channels/<channel id>/pause-listen`  ignore source files in queue
 - POST `/inventory-import/channels/<channel id>/decommission`  undeploy (disable) the channel
-- PUT `/inventory-import/channels/<channel id>`                update properties of a channel
+- PUT `/inventory-import/channels/<channel uuid>`                update properties of a channel
 - POST `/inventory-import/channels/<channel id>/upload`        pushes a source file to the channel
 - POST `/inventory-import/channels/<channel id>/init-queue'    deletes all the source files in a queue (or re-establishes an empty queue structure, in case the previous queue was deleted directly in the file system for example).
-- DELETE `/inventory-import/channels/<channel id>` delete the channel configuration including the file queue but not its job history
+- DELETE `/inventory-import/channels/<channel uuid>` delete the channel configuration including the file queue but not its job history
 
 All these operate on a single channel. There are two more requests that operates on multiple channels. When a module is
 redeployed non of the channels are automatically deployed. The operator can choose to one of two operations after deploying the module:
@@ -50,6 +50,12 @@ redeployed non of the channels are automatically deployed. The operator can choo
 - POST `/inventory-import/recommission-channels`    Will deploy all channels that are marked with `commission: true`
 - POST `/inventory-import/do-not-recommission`      Will mark all channels with `commission: false`
 
+#### Using `tag` for channel ID
+
+The <channel id> in the paths can either be the UUID of the channel record (`channel.id`) or the value of the property
+`channel.tag`. The tag is an optional, unique, max 24 character long string without spaces. If it's set on a channel,
+that channel can be referenced by the tag in the various channel commands. The basic REST requests (GET, PUT, DELETE channel)
+use the UUID like standard FOLIO APIs.
 
 ### The "import job"
 

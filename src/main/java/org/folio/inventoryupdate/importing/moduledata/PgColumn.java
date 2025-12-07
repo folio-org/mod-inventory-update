@@ -11,6 +11,7 @@ public class PgColumn {
   public final String name;
   public final PgColumn.Type type;
   public final String nullable;
+  public final String unique;
   public final Boolean isPrimaryKey;
 
   public enum Type {
@@ -27,15 +28,16 @@ public class PgColumn {
   /**
    * Constructor.
    */
-  public PgColumn(String name, Type type, Boolean nullable, Boolean isPrimaryKey) {
+  public PgColumn(String name, Type type, Boolean nullable, Boolean isPrimaryKey, Boolean unique) {
     this.name = name;
     this.type = type;
     this.isPrimaryKey = isPrimaryKey;
-    this.nullable = Boolean.TRUE.equals(nullable) ? "NULL" : "NOT NULL";
+    this.nullable = Boolean.TRUE.equals(nullable) ? " NULL" : " NOT NULL";
+    this.unique = Boolean.TRUE.equals(unique) ? " UNIQUE" : "";
   }
 
   public String getColumnDdl() {
-    return name + " " + type + " " + (Boolean.TRUE.equals(isPrimaryKey) ? " PRIMARY KEY " : nullable);
+    return name + " " + type + (Boolean.TRUE.equals(isPrimaryKey) ? " PRIMARY KEY" : nullable + unique);
   }
 
   /**

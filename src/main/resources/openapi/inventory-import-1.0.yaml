@@ -1158,6 +1158,10 @@ components:
         id:
           type: string
           description: Unique identifier (UUID) for the configuration.
+        tag:
+          type: string
+          pattern: "^[A-Za-z0-9-_]{1,24}$"
+          description: Optional, unique identifier that can be used instead of the UUID in channel operations
         name:
           type: string
           description: A name for the configuration.

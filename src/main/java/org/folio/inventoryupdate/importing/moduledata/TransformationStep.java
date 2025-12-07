@@ -41,7 +41,7 @@ public class TransformationStep extends Entity {
     public static final String  POSITION="POSITION";
 
     static {
-        FIELDS.put(ID,new Field("id", "id", PgColumn.Type.UUID, false, true, true));
+        FIELDS.put(ID,new Field("id", "id", PgColumn.Type.UUID, false, true).isPrimaryKey());
         FIELDS.put(TRANSFORMATION_ID,new Field("transformationId", "transformation_id", PgColumn.Type.UUID, false, true));
         FIELDS.put(STEP_ID, new Field("stepId", "step_id", PgColumn.Type.UUID, true, true));
         FIELDS.put(POSITION, new Field("position", "position", PgColumn.Type.INTEGER, false, true));

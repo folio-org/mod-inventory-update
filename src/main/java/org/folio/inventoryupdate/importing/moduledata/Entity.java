@@ -78,25 +78,52 @@ public abstract class Entity {
   /**
    * Represents a field of an entity, containing JSON property name, database column name and other features of the field.
    *
-   * @param jsonPropertyName
-   * @param columnName
-   * @param pgType
-   * @param nullable
-   * @param queryable
-   * @param primaryKey
    */
-  public record Field(String jsonPropertyName, String columnName, PgColumn.Type pgType, boolean nullable,
-                      boolean queryable, boolean primaryKey) {
+  public static class Field {
+    public String jsonPropertyName() {
+      return jsonPropertyName;
+    }
+
+    public String columnName() {
+      return columnName;
+    }
+
+    public PgColumn.Type pgType() {
+      return pgType;
+    }
+
+    String jsonPropertyName;
+    String columnName;
+    PgColumn.Type pgType;
+    boolean nullable;
+    boolean queryable;
+    boolean primaryKey;
+    boolean unique;
+
     public Field(String jsonPropertyName, String columnName, PgColumn.Type pgType, boolean nullable, boolean queryable) {
-      this(jsonPropertyName, columnName, pgType, nullable, queryable, false);
+      this.jsonPropertyName = jsonPropertyName;
+      this.columnName = columnName;
+      this.pgType = pgType;
+      this.nullable = nullable;
+      this.queryable = queryable;
+    }
+
+    public Field isPrimaryKey() {
+      this.primaryKey = true;
+      return this;
+    }
+
+    public Field isUnique() {
+      this.unique = true;
+      return this;
     }
 
     public PgColumn pgColumn() {
-      return new PgColumn(columnName, pgType, nullable, primaryKey);
+      return new PgColumn(columnName, pgType, nullable, primaryKey, unique);
     }
 
     public String pgColumnDdl() {
-      return pgColumn().getColumnDdl();
+      return pgColumn().getColumnDdl().strip();
     }
   }
 
@@ -208,8 +235,8 @@ public abstract class Entity {
     PgCqlDefinition pgCqlDefinition = PgCqlDefinition.create();
     pgCqlDefinition.addField("cql.allRecords", new PgCqlFieldAlwaysMatches());
     for (Field entityField : fields().values()) {
-      if (entityField.queryable()) {
-        pgCqlDefinition.addField(entityField.jsonPropertyName(), entityField.pgColumn().pgCqlField());
+      if (entityField.queryable) {
+        pgCqlDefinition.addField(entityField.jsonPropertyName, entityField.pgColumn().pgCqlField());
       }
     }
     return pgCqlDefinition;
@@ -231,9 +258,12 @@ public abstract class Entity {
     String query = request.requestParam("query");
     String offset = request.requestParam("offset");
     String limit = request.requestParam("limit");
+    return cqlToSql(query, offset, limit, schemaDotTable, definition);
+  }
 
+  public SqlQuery cqlToSql(String query, String offset, String limit, String table, PgCqlDefinition definition) {
     String select = "SELECT * ";
-    String from = "FROM " + schemaDotTable;
+    String from = "FROM " + table;
     String whereClause = "";
     String orderByClause = "";
     if (query != null && !query.isEmpty()) {
@@ -246,8 +276,8 @@ public abstract class Entity {
       }
     }
     return new SqlQuery(select, from, whereClause, orderByClause, offset, limit);
-  }
 
+  }
   /**
    * Crosswalk JSON property names to table column names.
    *

@@ -57,7 +57,6 @@ public class XmlFileListener extends FileListener {
 
   public Future<FileProcessor> getFileProcessor(boolean instantiate) {
     if (instantiate) {
-      logger.info("Get file processor on vertx [" + vertx + "]");
       return new XmlFileProcessor(vertx, tenant, getConfigId())
           .forFileListener(this)
           .withProcessingPipeline(tenant, getConfigId(), vertx, new InventoryBatchUpdater(routingContext))

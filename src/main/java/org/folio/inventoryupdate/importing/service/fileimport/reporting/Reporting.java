@@ -144,7 +144,7 @@ public class Reporting {
                   error.getJsonObject("requestJson"),
                   fileStats.peek() == null ? null : fileStats.peek().getFileName()
               ).withCreatingUser(null))
-              .collect(Collectors.toList()));
+              .toList());
     } catch (Exception e) {
       logger.error("Exception storing failed records: {} {}.", e.getMessage(), Arrays.toString(e.getStackTrace()));
       return Future.failedFuture("Exception storing failed records: " + e.getMessage());

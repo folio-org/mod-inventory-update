@@ -3,36 +3,36 @@ package org.folio.inventoryupdate.importing.service.fileimport;
 import io.vertx.core.Future;
 import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
+import java.io.File;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.util.UUID;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.folio.inventoryupdate.importing.moduledata.Channel;
 import org.folio.inventoryupdate.importing.moduledata.ImportJob;
 import org.folio.inventoryupdate.importing.moduledata.database.ModuleStorageAccess;
 import org.folio.inventoryupdate.importing.service.fileimport.reporting.Reporting;
-import org.folio.inventoryupdate.importing.service.fileimport.transformation.XmlTransformationPipeline;
 import org.folio.inventoryupdate.importing.service.fileimport.transformation.XmlRecordsReader;
-
-import java.io.File;
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.util.UUID;
+import org.folio.inventoryupdate.importing.service.fileimport.transformation.XmlTransformationPipeline;
 
 /**
- * File processing is made up of following components, listed in the order of processing
+ * File processing is made up of following components, listed in the order of processing.
  * <li>a queue of source files (in VertX file system, synchronous access)</li>
  * <li>a file listener (a verticle) that feeds files from the queue to the processor</li>
  * <li>a SAX parser splitting a file of records into individual xml records (synchronous)</li>
  * <li>an XSLT transformation pipeline and an XML to JSON converter, handling individual xml records (synchronous)</li>
- * <li>a client that collects records into sets of 100 json objects and pushes the result to Inventory Update, one batch at a time (asynchronous)</li>
+ * <li>a client that collects records into sets of 100 json objects and pushes the result to Inventory Update, one
+ * batch at a time (asynchronous)</li>
  * <p/>The import process additionally uses a logging component for reporting status and errors.
  */
 public class XmlFileProcessor extends FileProcessor {
+
+  public static final Logger logger = LogManager.getLogger("ImportJob");
   XmlTransformationPipeline transformationPipeline;
   RecordReceiver inventoryBatchUpdater;
   final Vertx vertx;
-
-  public static final Logger logger = LogManager.getLogger("ImportJob");
 
   public XmlFileProcessor(Vertx vertx, String tenant, UUID channelId) {
     this.vertx = vertx;
@@ -42,7 +42,7 @@ public class XmlFileProcessor extends FileProcessor {
   }
 
   /**
-   * Creates processing pipeline with
+   * Creates processing pipeline. With
    * <li>XML transformation</li><li>XML-to-JSON conversion</li><li>batch upserting to inventory storage</li>
    * <li>reporting</li><li>a new job instance (ImportJob) for logging/reporting to the database</li>
    *
@@ -72,7 +72,6 @@ public class XmlFileProcessor extends FileProcessor {
         }).compose(v -> Future.succeededFuture(this));
   }
 
-
   @Override
   public XmlFileProcessor forFileListener(FileListener fileListener) {
     this.fileListener = fileListener;
@@ -99,7 +98,6 @@ public class XmlFileProcessor extends FileProcessor {
               promise.complete();
             }
           });
-
     } catch (IOException e) {
       promise.fail("Could not open XML source file for importing " + e.getMessage());
     }
@@ -112,9 +110,11 @@ public class XmlFileProcessor extends FileProcessor {
         + ".";
     if (transformationPipeline.getRecordsProcessed() > 0 && inventoryBatchUpdater.getRecordsProcessed() > 0) {
       stats += " Transformation: "
-          + (transformationPipeline.getRecordsProcessed() * 1000L / transformationPipeline.getProcessingTime()) + " recs/s."
+          + (transformationPipeline.getRecordsProcessed() * 1000L / transformationPipeline.getProcessingTime())
+          + " recs/s."
           + " Upserting: "
-          + (inventoryBatchUpdater.getRecordsProcessed() * 1000L / inventoryBatchUpdater.getProcessingTime()) + " recs/s.";
+          + (inventoryBatchUpdater.getRecordsProcessed() * 1000L / inventoryBatchUpdater.getProcessingTime())
+          + " recs/s.";
     }
     return stats;
   }

@@ -486,6 +486,7 @@
           <sourceDirectories>
             <sourceDirectory>${project.build.sourceDirectory}</sourceDirectory>
           </sourceDirectories>
+          <excludes>**/updating/**</excludes>
         </configuration>
         <executions>
           <execution>

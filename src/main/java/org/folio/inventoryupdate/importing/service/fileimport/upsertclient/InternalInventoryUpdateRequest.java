@@ -10,7 +10,7 @@ public class InternalInventoryUpdateRequest extends UpdateRequest {
 
   private final JsonObject requestBody;
 
-  public InternalInventoryUpdateRequest (Vertx vertx, RoutingContext routingContext, JsonObject jsonBody) {
+  public InternalInventoryUpdateRequest(Vertx vertx, RoutingContext routingContext, JsonObject jsonBody) {
     this.vertx = vertx;
     this.routingContext = routingContext;
     this.tenant = TenantUtil.tenant(routingContext);

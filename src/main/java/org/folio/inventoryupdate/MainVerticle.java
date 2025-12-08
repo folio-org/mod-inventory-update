@@ -26,10 +26,10 @@ public class MainVerticle extends AbstractVerticle {
     ImportService importService = new ImportService();
 
     RouterCreator[] routerCreators = {
-        importService,
-        new Tenant2Api(importService),
-        updateService,
-        new HealthApi()
+      importService,
+      new Tenant2Api(importService),
+      updateService,
+      new HealthApi()
     };
 
     HttpServerOptions so = new HttpServerOptions()
@@ -42,5 +42,4 @@ public class MainVerticle extends AbstractVerticle {
         .<Void>mapEmpty()
         .onComplete(promise);
   }
-
 }

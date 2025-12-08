@@ -590,7 +590,7 @@ public class ImportService implements RouterCreator, TenantInitHooks {
         .onSuccess(result -> {
           if (result.rowCount() == 1) {
             if (transformation.containsListOfSteps()) {
-              new TransformationStep().deleteStepsOfATransformation(request, transformation.getRecord().id())
+              new TransformationStep().deleteStepsOfTransformation(request, transformation.getRecord().id())
                   .compose(ignore ->
                       request.moduleStorageAccess().storeEntities(transformation.getListOfTransformationSteps()))
                   .onSuccess(res -> responseText(request.routingContext(), 204).end());

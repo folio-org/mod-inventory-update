@@ -7,14 +7,13 @@ import io.vertx.core.ThreadingModel;
 import io.vertx.core.VerticleBase;
 import io.vertx.core.Vertx;
 import io.vertx.ext.web.RoutingContext;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-import org.folio.inventoryupdate.importing.moduledata.Channel;
-
 import java.io.File;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.folio.inventoryupdate.importing.moduledata.Channel;
 
 public abstract class FileListener extends VerticleBase {
 
@@ -42,6 +41,7 @@ public abstract class FileListener extends VerticleBase {
   public UUID getConfigId() {
     return channel.getRecord().id();
   }
+
   public String getConfigIdStr() {
     return getConfigId().toString();
   }
@@ -61,7 +61,7 @@ public abstract class FileListener extends VerticleBase {
   public abstract void listen();
 
   /**
-   * Gets existing file processor or instantiates a new one
+   * Gets existing file processor or instantiates a new one.
    *
    * @param activating true if new job must be initialized, false to continue with existing processor.
    * @return new or previously initialized file processor
@@ -75,10 +75,10 @@ public abstract class FileListener extends VerticleBase {
    * then it is assumed that this file is from a past, interrupted run and that it should be re-processed.
    *
    * @return next file from filesystem queue
-   * <li>except, if there is already a file currently processing: returns null</li>
-   * <li>except, if the process is being newly activated or resumed, then returns the currently promoted file after all, to
-   * restart processing with that</li>
-   * <li>except, if there is no promoted file and no files in queue: returns null.</li>
+   *   <li>except, if there is already a file currently processing: returns null</li>
+   *   <li>except, if the process is being newly activated or resumed, then returns the currently promoted file after
+   *   all, to restart processing with that</li>
+   *   <li>except, if there is no promoted file and no files in queue: returns null.</li>
    */
   public File getNextFileIfPossible(boolean fileQueuePassive, boolean processorResuming) {
     if (fileQueue.processingSlotTaken() && (fileQueuePassive || processorResuming)) {
@@ -108,18 +108,19 @@ public abstract class FileListener extends VerticleBase {
             .setInstances(1)
             .setMaxWorkerExecuteTime(10)
             .setThreadingModel(ThreadingModel.WORKER)
-            .setMaxWorkerExecuteTimeUnit(TimeUnit.MINUTES)).onComplete(
-        started -> {
-          if (started.succeeded()) {
-            deploymentId = started.result();
-            logger.info("Started verticle [{}] on Vertx {} for [{}] and channel [{}].", started.result(), deploymentVertx, tenant, channel.getRecord().name());
-            promise.complete("Started verticle [" + started.result() + "] for channel ID [" + channel.getRecord().name() + "].");
-          } else {
-            logger.error("Couldn't start file processor verticle for tenant [{}] and channel ID [{}].", tenant, channel.getRecord().name());
-            promise.fail("Couldn't start file processor verticle for channel [" + channel.getRecord().name() + "].");
-          }
-        });
+            .setMaxWorkerExecuteTimeUnit(TimeUnit.MINUTES)).onComplete(started -> {
+              if (started.succeeded()) {
+                deploymentId = started.result();
+                logger.info("Started verticle [{}] on Vertx {} for [{}] and channel [{}].",
+                    started.result(), deploymentVertx, tenant, channel.getRecord().name());
+                promise.complete("Started verticle [" + started.result() + "] for channel ID ["
+                    + channel.getRecord().name() + "].");
+              } else {
+                logger.error("Couldn't start file processor verticle for tenant [{}] and channel ID [{}].",
+                    tenant, channel.getRecord().name());
+                promise.fail("Couldn't launch file processor for channel [" + channel.getRecord().name() + "].");
+              }
+            });
     return promise.future();
   }
-
 }

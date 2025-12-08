@@ -1,6 +1,5 @@
 package org.folio.inventoryupdate.importing.moduledata.database;
 
-
 import org.apache.commons.lang3.StringUtils;
 
 public class SqlQuery {
@@ -44,7 +43,7 @@ public class SqlQuery {
         + (where.isEmpty() ? "" : " WHERE " + where)
         + (orderBy.isEmpty() ? "" : " ORDER BY " + orderBy)
         + keywordLong(" offset ", offset)
-        + keywordLong(" limit ", (limit == null ? defaultLimit : limit));
+        + keywordLong(" limit ", limit == null ? defaultLimit : limit);
   }
 
   /**

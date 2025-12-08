@@ -54,8 +54,8 @@ public final class XmlTransformationPipeline implements RecordReceiver {
     TransformationStep tsasDef = new TransformationStep();
     Step stepDef = new Step();
     access.getEntities("SELECT step.* "
-            + " FROM " + stepDef.table(access.schema()) + " as step,"
-            + "      " + tsasDef.table(access.schema()) + " as tsa "
+            + " FROM " + stepDef.schemaTable(access.schema()) + " as step,"
+            + "      " + tsasDef.schemaTable(access.schema()) + " as tsa "
             + "  WHERE step.id = tsa.step_id "
             + "    AND tsa.transformation_id = '" + transformationId.toString() + "'"
             + "  ORDER BY tsa.position", stepDef)

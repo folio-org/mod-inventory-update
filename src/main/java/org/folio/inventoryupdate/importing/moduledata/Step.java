@@ -79,6 +79,10 @@ public class Step extends Entity {
         return Tables.STEP;
     }
 
+    public String name() {
+      return asJson().getString(jsonPropertyName(NAME));
+    }
+
   @Override
   public UUID getId() {
     return theRecord == null ? null : theRecord.id();

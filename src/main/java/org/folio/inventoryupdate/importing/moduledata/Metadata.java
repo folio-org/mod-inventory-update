@@ -26,10 +26,6 @@ public class Metadata {
   String updatedDate;
   UUID updatedByUserId;
 
-  public Metadata() {
-
-  }
-
   public Metadata withUpdatedDate(String date) {
     this.updatedDate = date;
     return this;

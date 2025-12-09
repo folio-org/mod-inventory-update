@@ -111,6 +111,12 @@ public class ModuleStorageAccess {
     return updateEntity(entity, updateTemplate);
   }
 
+  public Future<SqlResult<Void>> updateEntitiesByStatement(Entity entity, String updateTemplate) {
+    return SqlTemplate.forUpdate(pool.getPool(), updateTemplate)
+        .mapFrom(entity.toUpdateStatementTemplateParameters())
+        .execute(entity);
+  }
+
   public Future<Void> storeEntities(List<Entity> entities) {
     if (entities != null && !entities.isEmpty()) {
       // The insert templates are the same for all entities in a batch and some data (the metadata) live outside

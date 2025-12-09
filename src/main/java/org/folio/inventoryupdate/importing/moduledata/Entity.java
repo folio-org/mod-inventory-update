@@ -8,6 +8,7 @@ import io.vertx.sqlclient.Row;
 import io.vertx.sqlclient.RowSet;
 import io.vertx.sqlclient.templates.RowMapper;
 import io.vertx.sqlclient.templates.TupleMapper;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -187,6 +188,14 @@ public abstract class Entity {
    * Creates vert.x tuple mapper that maps Postgres column names to field values.
    */
   public abstract TupleMapper<Entity> toTemplateParameters();
+
+  public TupleMapper<Entity> toUpdateStatementTemplateParameters() {
+    return TupleMapper.mapper(entity -> {
+      Map<String, Object> parameters = new HashMap<>();
+      putMetadata(parameters);
+      return parameters;
+    });
+  }
 
   /**
    * Gets Postgres/CQL definition, containing listing of queryable fields.

@@ -102,6 +102,7 @@ public class ImportService implements RouterCreator, TenantInitHooks {
     nonValidatingHandler(vertx, routerBuilder, "uploadXmlRecords", this::uploadXmlSourceFile);
     validatingHandler(vertx, routerBuilder, "deployFileListener", this::deployFileListener);
     validatingHandler(vertx, routerBuilder, "undeployFileListener", this::undeployFileListener);
+    validatingHandler(vertx, routerBuilder, "recoverInterruptedChannels", this::recoverChannels);
     validatingHandler(vertx, routerBuilder, "pauseJob", this::pauseImportJob);
     validatingHandler(vertx, routerBuilder, "resumeJob", this::resumeImportJob);
     validatingHandler(vertx, routerBuilder, "initFileSystemQueue", this::initFileSystemQueue);
@@ -142,10 +143,14 @@ public class ImportService implements RouterCreator, TenantInitHooks {
   }
 
   private void exceptionResponse(Throwable cause, RoutingContext routingContext) {
-    if (cause.getMessage().toLowerCase().contains("could not find")) {
-      responseError(routingContext, 404, cause.getMessage());
+    if (routingContext.response().headWritten()) {
+      logger.error("Exception: {}  (response already sent)", cause.getMessage());
     } else {
-      responseError(routingContext, 400, cause.getClass().getSimpleName() + ": " + cause.getMessage());
+      if (cause.getMessage().toLowerCase().contains("could not find")) {
+        responseError(routingContext, 404, cause.getMessage());
+      } else {
+        responseError(routingContext, 400, cause.getClass().getSimpleName() + ": " + cause.getMessage());
+      }
     }
   }
 
@@ -259,9 +264,13 @@ public class ImportService implements RouterCreator, TenantInitHooks {
       new FileQueue(request, id.toString()).createDirectoriesIfNotExist();
       return Future.succeededFuture(id);
     }).compose(id -> db.getEntity(id, channel)).compose(cfg -> {
-      FileListeners.deployIfNotDeployed(request, (Channel) cfg);
-      return Future.succeededFuture(cfg);
-    }).compose(cfg -> responseJson(request.routingContext, 201).end(cfg.asJson().encodePrettily())).mapEmpty();
+      if (((Channel) cfg).isEnabled()) {
+        return FileListeners.deployIfNotDeployed(request, (Channel) cfg).map(na -> cfg)
+            .compose(na -> responseJson(request.routingContext, 201).end(cfg.asJson().encodePrettily())).mapEmpty();
+      } else {
+        return responseJson(request.routingContext, 201).end(cfg.asJson().encodePrettily()).mapEmpty();
+      }
+    });
   }
 
   private Future<Void> getChannels(ServiceRequest request) {
@@ -273,18 +282,28 @@ public class ImportService implements RouterCreator, TenantInitHooks {
   }
 
   private Future<Void> putChannel(ServiceRequest request) {
-    Channel channel = new Channel().fromJson(request.bodyAsJson());
+    Channel inputChannel = new Channel().fromJson(request.bodyAsJson());
     UUID id = UUID.fromString(request.requestParam("id"));
-    return request.moduleStorageAccess().updateEntity(id, channel.withUpdatingUser(request.currentUser()))
+    return request.moduleStorageAccess().updateEntity(id, inputChannel.withUpdatingUser(request.currentUser()))
         .onSuccess(result -> {
           if (result.rowCount() == 1) {
-            request.moduleStorageAccess().getEntity(id, new Channel()).compose(cfg -> {
-              FileListener listener = FileListeners.getFileListener(request.tenant(), id.toString());
-              if (listener != null) {
-                listener.updateChannel((Channel) cfg);
-              }
-              return responseText(request.routingContext(), 204).end();
-            });
+            request.moduleStorageAccess().getEntity(id, new Channel()).map(entity -> (Channel) entity)
+                .compose(channel -> {
+                  if (channel.isEnabled() && channel.isCommissioned()) {
+                    FileListener listener = FileListeners.getFileListener(request.tenant(), id.toString());
+                    listener.updateChannel(channel);
+                    return responseText(request.routingContext(), 204).end();
+                  } else if (!channel.isEnabled() && channel.isCommissioned()) {
+                    FileListener listener = FileListeners.getFileListener(request.tenant(), id.toString());
+                    return listener.undeploy().map(
+                        na -> responseText(request.routingContext, 204).end()).mapEmpty();
+                  } else if (channel.isEnabled() && !channel.isCommissioned()) {
+                    return FileListeners.deployIfNotDeployed(request, channel)
+                        .map(message -> responseText(request.routingContext(), 200).end(message)).mapEmpty();
+                  } else {
+                    return responseText(request.routingContext(), 204).end();
+                  }
+                });
           } else {
             responseText(request.routingContext(), 404).end("Import config to update not found");
           }
@@ -428,8 +447,19 @@ public class ImportService implements RouterCreator, TenantInitHooks {
     });
   }
 
-  private Future<Void> getFailedRecords(ServiceRequest request) {
+  private Future<List<Channel>> getDeployableChannels(ServiceRequest request) {
+    ModuleStorageAccess db = request.moduleStorageAccess();
+    SqlQuery queryFromCql = new Channel().cqlToSql("enabled==true", "0", "100",
+        db.schemaDotTable(Tables.CHANNEL), new Channel().getQueryableFields());
+    return db.getEntities(queryFromCql.getQueryWithLimits(), new Channel())
+        .compose(entities -> {
+          List<Channel> deployableChannels = entities.stream().map(entity -> (Channel) entity)
+              .filter(channel -> !channel.isCommissioned()).toList();
+          return Future.succeededFuture(deployableChannels);
+        });
+  }
 
+  private Future<Void> getFailedRecords(ServiceRequest request) {
     ModuleStorageAccess db = request.moduleStorageAccess();
     SqlQuery queryFromCql = new RecordFailure()
         .cqlToSql(request, db.schemaDotTable(Tables.RECORD_FAILURE_VIEW)).withDefaultLimit("100");
@@ -663,7 +693,7 @@ public class ImportService implements RouterCreator, TenantInitHooks {
       if (channel == null) {
         return responseText(request.routingContext, 404)
             .end("Could not find channel with id or tag [" + channelId + "] to upload file to.").mapEmpty();
-      } else if (!channel.getRecord().commission()) {
+      } else if (!channel.isEnabled()) {
         return responseText(request.routingContext, 403)
             .end("The channel with id or tag [" + channelId + "] is not ready to accept files.").mapEmpty();
       } else if (channel.isCommissioned()) {
@@ -704,6 +734,22 @@ public class ImportService implements RouterCreator, TenantInitHooks {
       } else {
         return responseText(request.routingContext, 404)
             .end("Found no channel with tag or id " + channelId + " to undeploy.").mapEmpty();
+      }
+    });
+  }
+
+  private Future<Void> recoverChannels(ServiceRequest request) {
+    return getDeployableChannels(request).compose(channels -> {
+      if (channels.isEmpty()) {
+        return responseText(request.routingContext, 200).end("Found no channels to re-deploy").mapEmpty();
+      } else {
+        List<Future<String>> deploymentFutures = new ArrayList<>();
+        for (Channel channel : channels) {
+          deploymentFutures.add(deployFileListener(request, channel.getId().toString()));
+        }
+        return Future.join(deploymentFutures)
+            .compose(deployments -> responseText(request.routingContext, 200)
+                .end("Deployed: " + deployments.list().toString()));
       }
     });
   }

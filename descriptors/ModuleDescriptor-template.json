@@ -501,6 +501,14 @@
           "pathPattern": "/inventory-import/channels/{id}/init-queue",
           "methods": ["POST"],
           "permissionsRequired": ["inventory-update.import.init-queue.post"]
+        },
+        {
+          "pathPattern": "/inventory-import/recover-interrupted-channels",
+          "methods": ["POST"],
+          "permissionsRequired": ["inventory-update.import.recover-interrupted-channels"],
+          "modulePermissions": [
+            "modperms.inventory-update.import"
+          ]
         }
       ]
     },
@@ -788,6 +796,11 @@
       "description": "Imports: Undeploy a source file listener"
     },
     {
+      "permissionName": "inventory-update.import.recover-interrupted-channels",
+      "displayName": "Redeploy channels after a module reboot",
+      "description": "Imports: Restart channels that were interrupted by a reboot of the module."
+    },
+    {
       "permissionName": "inventory-update.import.pause-job.post",
       "displayName": "Temporarily stop an import job",
       "description": "Imports: Pause a running import process until eventually resumed again"
@@ -925,6 +938,7 @@
         "inventory-update.import.upload.post",
         "inventory-update.import.commission.post",
         "inventory-update.import.decommission.post",
+        "inventory-update.import.recover-interrupted-channels",
         "inventory-update.import.pause-job.post",
         "inventory-update.import.resume-job.post",
         "inventory-update.import.init-queue.post",

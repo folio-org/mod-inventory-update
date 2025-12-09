@@ -18,7 +18,7 @@ public class Channel extends Entity {
   public static final String NAME = "NAME";
   public static final String TYPE = "TYPE";
   public static final String TRANSFORMATION_ID = "TRANSFORMATION_ID";
-  public static final String COMMISSION = "COMMISSION";
+  public static final String ENABLED = "ENABLED";
   public static final String LISTENING = "LISTENING";
   // virtual (non-db) property
   public static final String PROPERTY_IS_COMMISSIONED = "isCommissioned";
@@ -27,16 +27,16 @@ public class Channel extends Entity {
   static {
     CHANNEL_FIELDS.put(ID,
         new Field("id", "id", PgColumn.Type.UUID, false, true).isPrimaryKey());
-    CHANNEL_FIELDS.put(TAG,
-        new Field("tag", "tag", PgColumn.Type.TEXT, true, true).isUnique());
     CHANNEL_FIELDS.put(NAME,
         new Field("name", "name", PgColumn.Type.TEXT, false, true).isUnique());
+    CHANNEL_FIELDS.put(TAG,
+        new Field("tag", "tag", PgColumn.Type.TEXT, true, true).isUnique());
     CHANNEL_FIELDS.put(TYPE,
         new Field("type", "type", PgColumn.Type.TEXT, false, true));
     CHANNEL_FIELDS.put(TRANSFORMATION_ID,
         new Field("transformationId", "transformation_id", PgColumn.Type.UUID, false, true));
-    CHANNEL_FIELDS.put(COMMISSION,
-        new Field("commission", "commission", PgColumn.Type.BOOLEAN, false, true));
+    CHANNEL_FIELDS.put(ENABLED,
+        new Field("enabled", "enabled", PgColumn.Type.BOOLEAN, false, true));
     CHANNEL_FIELDS.put(LISTENING,
         new Field("listening", "listening", PgColumn.Type.BOOLEAN, false, true));
   }
@@ -46,9 +46,9 @@ public class Channel extends Entity {
   public Channel() {
   }
 
-  public Channel(UUID id, String tag, String name, String type, UUID transformationId,
-                 boolean commission, boolean listening) {
-    theRecord = new ChannelRecord(id, tag, name, type, transformationId, commission, listening);
+  public Channel(UUID id, String name, String tag, String type, UUID transformationId,
+                 boolean enabled, boolean listening) {
+    theRecord = new ChannelRecord(id, name, tag, type, transformationId, enabled, listening);
   }
 
   public ChannelRecord getRecord() {
@@ -73,11 +73,11 @@ public class Channel extends Entity {
   public Channel fromJson(JsonObject channelJson) {
     return new Channel(
         getUuidOrGenerate(channelJson.getString(jsonPropertyName(ID))),
-        channelJson.getString(jsonPropertyName(TAG)),
         channelJson.getString(jsonPropertyName(NAME)),
+        channelJson.getString(jsonPropertyName(TAG)),
         channelJson.getString(jsonPropertyName(TYPE)),
         Util.getUuid(channelJson, jsonPropertyName(TRANSFORMATION_ID), null),
-        "TRUE".equalsIgnoreCase(channelJson.getString(jsonPropertyName(COMMISSION))),
+        "TRUE".equalsIgnoreCase(channelJson.getString(jsonPropertyName(ENABLED))),
         "TRUE".equalsIgnoreCase(channelJson.getString(jsonPropertyName(LISTENING))));
   }
 
@@ -85,11 +85,11 @@ public class Channel extends Entity {
   public RowMapper<Entity> fromRow() {
     return row -> new Channel(
         row.getUUID(dbColumnName(ID)),
-        row.getString(dbColumnName(TAG)),
         row.getString(dbColumnName(NAME)),
+        row.getString(dbColumnName(TAG)),
         row.getString(dbColumnName(TYPE)),
         row.getUUID(dbColumnName(TRANSFORMATION_ID)),
-        row.getBoolean(dbColumnName(COMMISSION)),
+        row.getBoolean(dbColumnName(ENABLED)),
         row.getBoolean(dbColumnName(LISTENING)))
         .withMetadata(row);
   }
@@ -101,11 +101,11 @@ public class Channel extends Entity {
           ChannelRecord rec = ((Channel) entity).theRecord;
           Map<String, Object> parameters = new HashMap<>();
           parameters.put(dbColumnName(ID), rec.id());
-          parameters.put(dbColumnName(TAG), rec.tag());
           parameters.put(dbColumnName(NAME), rec.name());
+          parameters.put(dbColumnName(TAG), rec.tag());
           parameters.put(dbColumnName(TYPE), rec.type());
           parameters.put(dbColumnName(TRANSFORMATION_ID), rec.transformationId());
-          parameters.put(dbColumnName(COMMISSION), rec.commission());
+          parameters.put(dbColumnName(ENABLED), rec.enabled());
           parameters.put(dbColumnName(LISTENING), rec.listening());
           putMetadata(parameters);
           return parameters;
@@ -118,11 +118,11 @@ public class Channel extends Entity {
   public JsonObject asJson() {
     JsonObject json = new JsonObject();
     json.put(jsonPropertyName(ID), theRecord.id());
-    json.put(jsonPropertyName(TAG), theRecord.tag());
     json.put(jsonPropertyName(NAME), theRecord.name());
+    json.put(jsonPropertyName(TAG), theRecord.tag());
     json.put(jsonPropertyName(TYPE), theRecord.type());
     json.put(jsonPropertyName(TRANSFORMATION_ID), theRecord.transformationId());
-    json.put(jsonPropertyName(COMMISSION), theRecord.commission());
+    json.put(jsonPropertyName(ENABLED), theRecord.enabled());
     json.put(PROPERTY_IS_COMMISSIONED, isCommissioned());
     json.put(jsonPropertyName(LISTENING), theRecord.listening());
     putMetadata(json);
@@ -151,7 +151,7 @@ public class Channel extends Entity {
             + field(TRANSFORMATION_ID).pgColumnDdl()
             + " REFERENCES " + pool.getSchema() + "." + Tables.TRANSFORMATION
             + " (" + new Transformation().dbColumnName(Transformation.ID) + "), "
-            + field(COMMISSION).pgColumnDdl() + ", "
+            + field(ENABLED).pgColumnDdl() + ", "
             + field(LISTENING).pgColumnDdl() + ", "
             + metadata.columnsDdl()
             + ")"
@@ -167,8 +167,12 @@ public class Channel extends Entity {
     return tenant != null && FileListeners.hasFileListener(tenant, theRecord.id().toString());
   }
 
+  public boolean isEnabled() {
+    return theRecord.enabled();
+  }
+
   // Import config record, the entity data.
-  public record ChannelRecord(UUID id, String tag, String name, String type, UUID transformationId, boolean commission,
+  public record ChannelRecord(UUID id, String name, String tag, String type, UUID transformationId, boolean enabled,
                               boolean listening) {
   }
 }

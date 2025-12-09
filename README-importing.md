@@ -20,7 +20,7 @@ The main elements of the importing component are
 The static parts of the channel itself are
   - a name for channel
   - a reference to the "transformation" that processes the incoming source files
-  - two flags that indicates if the channel is deployed (or is available for deployment), and is actively listening
+  - two flags that indicates if the channel is deployed (or is to be deployed after an interruption), and is actively listening
 
 The dynamic parts of a channel are
 
@@ -34,23 +34,20 @@ The dynamic parts of a channel are
 
 #### Requests operating on channels:
 
-- POST `/inventory-import/channels` create a channel
-- POST `/inventory-import/channels/<channel id>/commission`    launch a channel that is actively listening for source files to import
-- POST `/inventory-import/channels/<channel id>/listen`        listen for source files in queue
-- POST `/inventory-import/channels/<channel id>/pause-listen`  ignore source files in queue
-- POST `/inventory-import/channels/<channel id>/decommission`  undeploy (disable) the channel
-- PUT `/inventory-import/channels/<channel uuid>`                update properties of a channel
-- POST `/inventory-import/channels/<channel id>/upload`        pushes a source file to the channel
+- POST `/inventory-import/channels` create a channel           including 'enabled' and 'listening' settings
+- PUT `/inventory-import/channels/<channel uuid>`              update properties of a channel, including 'enabled' and 'listening'
+- POST `/inventory-import/channels/<channel id>/commission`    launch a channel, marking it enabled, same effect as setting channel.enabled=true
+- wip POST `/inventory-import/channels/<channel id>/listen`    listen for source files in queue
+- wip POST `/inventory-import/channels/<channel id>/pause-listen`  ignore source files in queue
+- POST `/inventory-import/channels/<channel id>/decommission`  undeploy (disable) the channel, same effect as setting channel.enabled=false
+- POST `/inventory-import/channels/<channel id>/upload`        pushes a source file to the channel, currently set accept files up to a size of 100 MB
 - POST `/inventory-import/channels/<channel id>/init-queue'    deletes all the source files in a queue (or re-establishes an empty queue structure, in case the previous queue was deleted directly in the file system for example).
 - DELETE `/inventory-import/channels/<channel uuid>` delete the channel configuration including the file queue but not its job history
 
-All these operate on a single channel. There are two more requests that operates on multiple channels. When a module is
-redeployed non of the channels are automatically deployed. The operator can choose to one of two operations after deploying the module:
+All these requests operate on a single channel, whereas this request is applied cross-channel:
 
-The `../upload` API will accept source files up to a size of 100 MB.
-
-- POST `/inventory-import/recommission-channels`    Will deploy all channels that are marked with `commission: true`
-- POST `/inventory-import/do-not-recommission`      Will mark all channels with `commission: false`
+- POST `/inventory-import/recover-interrupted-channels`    Will deploy all channels that are marked `enabled` but are not actually running
+wip the recovered channels can be set to not listening by /inventory-import/recover-interrupted-channels?listening=false
 
 #### Using `tag` for channel ID
 
@@ -90,4 +87,4 @@ import job directly.
 
 - POST `/inventory-import/channels/<channel id>/pause-job`
 - POST `/inventory-import/channels/<channel id>/resume-job`
-- POST `/inventory-import/channels/<channel id>/cancel-job`
+wip - POST `/inventory-import/channels/<channel id>/cancel-job`

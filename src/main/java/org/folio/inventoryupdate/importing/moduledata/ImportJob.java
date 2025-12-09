@@ -4,6 +4,7 @@ import static org.folio.inventoryupdate.importing.utils.DateTimeFormatter.format
 
 import io.vertx.core.Future;
 import io.vertx.core.json.JsonObject;
+import io.vertx.sqlclient.SqlResult;
 import io.vertx.sqlclient.templates.RowMapper;
 import io.vertx.sqlclient.templates.TupleMapper;
 import java.time.LocalDateTime;
@@ -56,7 +57,8 @@ public class ImportJob extends Entity {
     RUNNING,
     DONE,
     PAUSED,
-    HALTED
+    HALTED,
+    INTERRUPTED
   }
 
   ImportJobRecord theRecord;
@@ -260,6 +262,17 @@ public class ImportJob extends Entity {
         + "#{" + dbColumnName(MESSAGE) + "}, "
         + metadata.insertClauseValueTemplates()
         + ")";
+  }
+
+  public Future<Integer> changeRunningToInterruptedByChannelId(ModuleStorageAccess db, String channelId) {
+    String template = "UPDATE " + db.schema() + "." + table()
+        + " SET "
+        + dbColumnName(STATUS) + " = '"  + JobStatus.INTERRUPTED.name() + "', "
+        + metadata.updateClauseColumnTemplates()
+        + " WHERE " + dbColumnName(CHANNEL_ID) + " = '" + channelId + "'"
+        + "  AND " + dbColumnName(STATUS) + " = '" + JobStatus.RUNNING.name() + "'";
+    return db.updateEntitiesByStatement(this.withUpdatingUser(null), template)
+        .map(SqlResult::rowCount);
   }
 
   public void logFinish(LocalDateTime finished, int recordCount, ModuleStorageAccess configStorage) {

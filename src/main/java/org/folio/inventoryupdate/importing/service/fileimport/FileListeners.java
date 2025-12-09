@@ -7,6 +7,7 @@ import java.util.concurrent.ConcurrentMap;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.folio.inventoryupdate.importing.moduledata.Channel;
+import org.folio.inventoryupdate.importing.moduledata.ImportJob;
 import org.folio.inventoryupdate.importing.service.ServiceRequest;
 
 public final class FileListeners {
@@ -41,7 +42,12 @@ public final class FileListeners {
     FileListener fileListener = FileListeners.getFileListener(request.tenant(), cfgId);
     if (fileListener == null) {
       FileListener listenerVerticle = addFileListener(request.tenant(), cfgId, new XmlFileListener(request, channel));
-      return listenerVerticle.deploy();
+      return new ImportJob().changeRunningToInterruptedByChannelId(request.moduleStorageAccess(), cfgId)
+          .compose(jobsInterrupted -> {
+            String jobsMarkedInterrupted = jobsInterrupted > 0
+                ? jobsInterrupted + " previous job was marked 'RUNNING', now marked 'INTERRUPTED'. " : "";
+            return listenerVerticle.deploy().map(resp -> jobsMarkedInterrupted + resp);
+          });
     } else {
       promise.complete("File listener already commissioned for channel [" + channel.getRecord().name() + "].");
     }

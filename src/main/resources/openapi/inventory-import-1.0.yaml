@@ -90,6 +90,7 @@ paths:
           application/json:
             schema:
               $ref: "#/components/schemas/channel"
+        required: true
       responses:
         "204":
           description:  No content
@@ -135,6 +136,7 @@ paths:
           text/plain:
             schema:
               type: string
+        required: true
       responses:
         "200":
           description: Source file uploaded
@@ -892,6 +894,14 @@ paths:
         "201":
           description: No content
 
+  /inventory-import/recover-interrupted-channels:
+    post:
+      operationId: recoverInterruptedChannels
+      description: Deploy channels that are 'enabled' but not deployed, as would be the case after a module restart.
+      responses:
+        "200":
+          description: OK
+
 components:
   schemas:
     transformations:
@@ -1158,13 +1168,13 @@ components:
         id:
           type: string
           description: Unique identifier (UUID) for the configuration.
+        name:
+          type: string
+          description: A name for the configuration.
         tag:
           type: string
           pattern: "^[A-Za-z0-9-_]{1,24}$"
           description: Optional, unique identifier that can be used instead of the UUID in channel operations
-        name:
-          type: string
-          description: A name for the configuration.
         type:
           type: string
           description: Type of import channel, only bulk XML, 'XML', supported.
@@ -1173,6 +1183,9 @@ components:
           description: UUID referencing the transformation pipeline to use.
         metadata:
           $ref: "#/components/schemas/metadata"
+      required:
+        - name
+        - transformationId
 
     importJobs:
       type: object

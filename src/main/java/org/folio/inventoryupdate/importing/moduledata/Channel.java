@@ -2,11 +2,13 @@ package org.folio.inventoryupdate.importing.moduledata;
 
 import io.vertx.core.Future;
 import io.vertx.core.json.JsonObject;
+import io.vertx.sqlclient.SqlResult;
 import io.vertx.sqlclient.templates.RowMapper;
 import io.vertx.sqlclient.templates.TupleMapper;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
+import org.folio.inventoryupdate.importing.moduledata.database.ModuleStorageAccess;
 import org.folio.inventoryupdate.importing.moduledata.database.Tables;
 import org.folio.inventoryupdate.importing.service.provisioning.fileimport.FileListeners;
 import org.folio.tlib.postgres.TenantPgPool;
@@ -171,8 +173,25 @@ public class Channel extends Entity {
     return theRecord.enabled();
   }
 
-  // Import config record, the entity data.
-  public record ChannelRecord(UUID id, String name, String tag, String type, UUID transformationId, boolean enabled,
-                              boolean listening) {
+  public boolean isListeningIfEnabled() {
+    return theRecord.listening();
   }
+
+  public Future<Integer> setEnabledListening(boolean enabled, boolean listening, ModuleStorageAccess configStorage) {
+    theRecord = new ChannelRecord(theRecord.id(), theRecord.name(), theRecord.tag(), theRecord.type(),
+        theRecord.transformationId(), enabled, listening);
+    return configStorage.updateEntity(this.withUpdatingUser(null),
+        "UPDATE " + configStorage.schema() + "." + table()
+            + " SET "
+            + dbColumnName(ENABLED) + " = #{" + dbColumnName(ENABLED) + "} "
+            + ", "
+            + dbColumnName(LISTENING) + " = #{" + dbColumnName(LISTENING) + "} "
+            + ", "
+            + metadata.updateClauseColumnTemplates()
+            + " WHERE id = #{id}").map(SqlResult::rowCount);
+  }
+
+  // Import config record, the entity data.
+  public record ChannelRecord(UUID id, String name, String tag, String type, UUID transformationId,
+                              boolean enabled, boolean listening) {}
 }

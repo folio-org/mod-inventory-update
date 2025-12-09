@@ -1,4 +1,4 @@
-package org.folio.inventoryupdate.importing.service.fileimport;
+package org.folio.inventoryupdate.importing.service.provisioning.fileimport;
 
 import io.vertx.core.Future;
 import io.vertx.core.Promise;
@@ -13,9 +13,9 @@ import org.apache.logging.log4j.Logger;
 import org.folio.inventoryupdate.importing.moduledata.Channel;
 import org.folio.inventoryupdate.importing.moduledata.ImportJob;
 import org.folio.inventoryupdate.importing.moduledata.database.ModuleStorageAccess;
-import org.folio.inventoryupdate.importing.service.fileimport.reporting.Reporting;
-import org.folio.inventoryupdate.importing.service.fileimport.transformation.XmlRecordsReader;
-import org.folio.inventoryupdate.importing.service.fileimport.transformation.XmlTransformationPipeline;
+import org.folio.inventoryupdate.importing.service.provisioning.fileimport.reporting.Reporting;
+import org.folio.inventoryupdate.importing.service.provisioning.fileimport.transformation.XmlRecordsReader;
+import org.folio.inventoryupdate.importing.service.provisioning.fileimport.transformation.XmlTransformationPipeline;
 
 /**
  * File processing is made up of following components, listed in the order of processing.

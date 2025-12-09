@@ -1,4 +1,4 @@
-package org.folio.inventoryupdate.importing.service.fileimport;
+package org.folio.inventoryupdate.importing.service.provisioning.fileimport;
 
 import io.vertx.core.Future;
 import io.vertx.core.Promise;
@@ -10,9 +10,9 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.TimeUnit;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.folio.inventoryupdate.importing.service.fileimport.reporting.InventoryMetrics;
-import org.folio.inventoryupdate.importing.service.fileimport.upsertclient.InternalInventoryUpdateClient;
-import org.folio.inventoryupdate.importing.service.fileimport.upsertclient.InventoryUpdateClient;
+import org.folio.inventoryupdate.importing.service.provisioning.fileimport.reporting.InventoryMetrics;
+import org.folio.inventoryupdate.importing.service.provisioning.fileimport.upsertclient.InternalInventoryUpdateClient;
+import org.folio.inventoryupdate.importing.service.provisioning.fileimport.upsertclient.InventoryUpdateClient;
 
 public class InventoryBatchUpdater implements RecordReceiver {
 

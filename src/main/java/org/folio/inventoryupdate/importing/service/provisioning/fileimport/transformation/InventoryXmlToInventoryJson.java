@@ -1,4 +1,4 @@
-package org.folio.inventoryupdate.importing.service.fileimport.transformation;
+package org.folio.inventoryupdate.importing.service.provisioning.fileimport.transformation;
 
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;

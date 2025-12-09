@@ -1,4 +1,4 @@
-package org.folio.inventoryupdate.importing.service.fileimport;
+package org.folio.inventoryupdate.importing.service.provisioning.fileimport;
 
 import io.vertx.core.json.JsonObject;
 

@@ -1,4 +1,4 @@
-package org.folio.inventoryupdate.importing.service.fileimport.reporting;
+package org.folio.inventoryupdate.importing.service.provisioning.fileimport.reporting;
 
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
@@ -17,8 +17,8 @@ import org.folio.inventoryupdate.importing.moduledata.Entity;
 import org.folio.inventoryupdate.importing.moduledata.LogLine;
 import org.folio.inventoryupdate.importing.moduledata.RecordFailure;
 import org.folio.inventoryupdate.importing.moduledata.database.ModuleStorageAccess;
-import org.folio.inventoryupdate.importing.service.fileimport.BatchOfRecords;
-import org.folio.inventoryupdate.importing.service.fileimport.FileProcessor;
+import org.folio.inventoryupdate.importing.service.provisioning.fileimport.BatchOfRecords;
+import org.folio.inventoryupdate.importing.service.provisioning.fileimport.FileProcessor;
 import org.folio.inventoryupdate.importing.utils.SettableClock;
 
 public class Reporting {

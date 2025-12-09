@@ -1,4 +1,4 @@
-package org.folio.inventoryupdate.importing.service.fileimport.reporting;
+package org.folio.inventoryupdate.importing.service.provisioning.fileimport.reporting;
 
 import java.util.concurrent.atomic.AtomicInteger;
 

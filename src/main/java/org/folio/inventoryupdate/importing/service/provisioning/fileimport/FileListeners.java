@@ -42,7 +42,8 @@ public final class FileListeners {
     FileListener fileListener = FileListeners.getFileListener(request.tenant(), cfgId);
     if (fileListener == null) {
       FileListener listenerVerticle = addFileListener(request.tenant(), cfgId, new XmlFileListener(request, channel));
-      return new ImportJob().changeRunningToInterruptedByChannelId(request.moduleStorageAccess(), cfgId)
+      return channel.setEnabledListening(true, channel.isListeningIfEnabled(), request.moduleStorageAccess())
+          .compose(na -> new ImportJob().changeRunningToInterruptedByChannelId(request.moduleStorageAccess(), cfgId))
           .compose(jobsInterrupted -> {
             String jobsMarkedInterrupted = jobsInterrupted > 0
                 ? jobsInterrupted + " previous job was marked 'RUNNING', now marked 'INTERRUPTED'. " : "";

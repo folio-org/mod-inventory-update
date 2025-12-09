@@ -22,7 +22,6 @@ public class PgColumn {
     UUID,
     BOOLEAN,
     JSONB
-
   }
 
   /**

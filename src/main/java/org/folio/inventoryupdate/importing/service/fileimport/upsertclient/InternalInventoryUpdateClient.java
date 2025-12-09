@@ -21,7 +21,7 @@ public class InternalInventoryUpdateClient extends InventoryUpdateClient {
   private final Vertx vertx;
   private final RoutingContext routingContext;
 
-  public InternalInventoryUpdateClient (Vertx vertx, RoutingContext routingContext) {
+  public InternalInventoryUpdateClient(Vertx vertx, RoutingContext routingContext) {
     this.vertx = vertx;
     this.routingContext = routingContext;
   }
@@ -35,16 +35,15 @@ public class InternalInventoryUpdateClient extends InventoryUpdateClient {
       JsonObject outcomeJson = outcome.getJson();
       if (outcome.getStatusCode() == 404) {
         if (outcome.getError() != null) {
-          outcomeJson.put("errors", new JsonArray().add(new JsonObject().put("message", outcome.getError().getMessageAsString())));
+          outcomeJson.put("errors", new JsonArray().add(
+              new JsonObject().put("message", outcome.getError().getMessageAsString())));
         } else {
           outcomeJson.put("errors", new JsonArray().add(new JsonObject().put("message", "No message to provide")));
         }
       }
-      return Future.succeededFuture(
-              new UpdateResponse(outcome.getStatusCode(), outcomeJson));
-
-        })
-        .onFailure(e -> logger.error("Could not perform delete request {}", e.getMessage()));
+      return Future.succeededFuture(new UpdateResponse(outcome.getStatusCode(), outcomeJson));
+    })
+    .onFailure(e -> logger.error("Could not perform delete request {}", e.getMessage()));
   }
 
   @Override
@@ -52,12 +51,13 @@ public class InternalInventoryUpdateClient extends InventoryUpdateClient {
     InternalInventoryUpdateRequest req = new InternalInventoryUpdateRequest(vertx, routingContext, recordSets);
     HandlersUpdating upsertMethods = new HandlersUpdating();
     return upsertMethods.doBatchUpsert(req, new UpdatePlanAllHRIDs()).compose(
-        outcome -> {
-          if (outcome.getStatusCode() == 207) {
-            logger.warn("Upsert issue: {}", (outcome.getErrorResponse() != null ? outcome.getErrorResponse().getShortMessage() : ""));
-          }
-          return Future.succeededFuture(new UpdateResponse(outcome.getStatusCode(), outcome.getJson()));
-        })
+            outcome -> {
+              if (outcome.getStatusCode() == 207) {
+                logger.warn("Upsert issue: {}",
+                    outcome.getErrorResponse() != null ? outcome.getErrorResponse().getShortMessage() : "");
+              }
+              return Future.succeededFuture(new UpdateResponse(outcome.getStatusCode(), outcome.getJson()));
+            })
         .onFailure(e -> logger.error("Could not upsert batch: {}", e.getMessage()));
   }
 }

@@ -2,18 +2,19 @@ package org.folio.inventoryupdate.importing.service.fileimport;
 
 import io.vertx.core.Future;
 import io.vertx.core.Promise;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.folio.inventoryupdate.importing.moduledata.Channel;
 import org.folio.inventoryupdate.importing.service.ServiceRequest;
 
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
-
-public class FileListeners {
-  private static final ConcurrentMap<String, ConcurrentMap<String, FileListener>> FILE_LISTENERS = new ConcurrentHashMap<>();
+public final class FileListeners {
 
   public static final Logger logger = LogManager.getLogger("file-listeners");
+
+  private static final ConcurrentMap<String, ConcurrentMap<String, FileListener>> FILE_LISTENERS
+      = new ConcurrentHashMap<>();
 
   private FileListeners() {
     throw new IllegalStateException("Utility class");
@@ -47,16 +48,16 @@ public class FileListeners {
     return promise.future();
   }
 
-  public static Future<String> undeployIfDeployed (ServiceRequest request, Channel channel) {
+  public static Future<String> undeployIfDeployed(ServiceRequest request, Channel channel) {
     String cfgId = channel.getRecord().id().toString();
     FileListener fileListener = FileListeners.getFileListener(request.tenant(), cfgId);
     if (fileListener != null) {
       return fileListener.undeploy()
           .map(na -> FILE_LISTENERS.get(request.tenant())
-              .remove(cfgId)).map(("Decommissioned channel " + channel.getRecord().name()));
+              .remove(cfgId)).map("Decommissioned channel " + channel.getRecord().name());
     } else {
-      return Future.succeededFuture("Did not find channel [" + channel.getRecord().name() + "] in list of commissioned channels.");
+      return Future.succeededFuture(
+          "Did not find channel [" + channel.getRecord().name() + "] in list of commissioned channels.");
     }
   }
-
 }

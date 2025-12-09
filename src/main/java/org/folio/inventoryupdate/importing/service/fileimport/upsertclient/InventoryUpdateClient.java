@@ -6,8 +6,9 @@ import io.vertx.core.json.JsonObject;
 
 public abstract class InventoryUpdateClient {
 
-  public abstract Future<UpdateResponse> inventoryDeletion (JsonObject theRecord);
-  public abstract Future<UpdateResponse> inventoryUpsert (JsonObject recordSets);
+  public abstract Future<UpdateResponse> inventoryDeletion(JsonObject theRecord);
+
+  public abstract Future<UpdateResponse> inventoryUpsert(JsonObject recordSets);
 
   public record UpdateResponse(int statusCode, JsonObject json) {
     public JsonObject getMetrics() {
@@ -29,6 +30,5 @@ public abstract class InventoryUpdateClient {
     public boolean hasErrorObjects() {
       return !getErrors().isEmpty() && getErrors().getJsonObject(0).getValue("message") instanceof JsonObject;
     }
-
   }
 }

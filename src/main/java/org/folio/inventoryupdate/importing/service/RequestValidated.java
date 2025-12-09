@@ -9,36 +9,36 @@ import org.folio.tlib.util.TenantUtil;
 
 public class RequestValidated extends ServiceRequest {
 
+  private final ValidatedRequest validatedRequest;
 
-    private final ValidatedRequest validatedRequest;
-    public RequestValidated(Vertx vertx, RoutingContext routingContext) {
-        this.vertx = vertx;
-        this.routingContext = routingContext;
-        this.validatedRequest = routingContext.get(RouterBuilder.KEY_META_DATA_VALIDATED_REQUEST);
-        this.tenant = TenantUtil.tenant(routingContext);
-        this.request = routingContext.request();
-        this.requestPath = request.path();
-    }
+  public RequestValidated(Vertx vertx, RoutingContext routingContext) {
+    this.vertx = vertx;
+    this.routingContext = routingContext;
+    this.validatedRequest = routingContext.get(RouterBuilder.KEY_META_DATA_VALIDATED_REQUEST);
+    this.tenant = TenantUtil.tenant(routingContext);
+    this.request = routingContext.request();
+    this.requestPath = request.path();
+  }
 
-    public String queryParam(String paramName) {
-        if (validatedRequest.getQuery().get(paramName) != null) {
-            return validatedRequest.getQuery().get(paramName).getString();
-        } else {
-            return null;
-        }
+  public String queryParam(String paramName) {
+    if (validatedRequest.getQuery().get(paramName) != null) {
+      return validatedRequest.getQuery().get(paramName).getString();
+    } else {
+      return null;
     }
+  }
 
-    public JsonObject bodyAsJson() {
-        if (validatedRequest.getBody() != null && validatedRequest.getBody().getJsonObject() != null) {
-                return validatedRequest.getBody().getJsonObject();
-        }
-        return new JsonObject();
+  public JsonObject bodyAsJson() {
+    if (validatedRequest.getBody() != null && validatedRequest.getBody().getJsonObject() != null) {
+      return validatedRequest.getBody().getJsonObject();
     }
+    return new JsonObject();
+  }
 
-    public String bodyAsString() {
-        if (validatedRequest.getBody() != null && validatedRequest.getBody().getString() != null) {
-                return validatedRequest.getBody().getString();
-        }
-        return "";
+  public String bodyAsString() {
+    if (validatedRequest.getBody() != null && validatedRequest.getBody().getString() != null) {
+      return validatedRequest.getBody().getString();
     }
+    return "";
+  }
 }

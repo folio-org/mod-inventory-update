@@ -4,131 +4,135 @@ import io.vertx.core.Future;
 import io.vertx.core.json.JsonObject;
 import io.vertx.sqlclient.templates.RowMapper;
 import io.vertx.sqlclient.templates.TupleMapper;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.UUID;
 import org.folio.inventoryupdate.importing.moduledata.database.Tables;
 import org.folio.inventoryupdate.importing.service.fileimport.FileListeners;
 import org.folio.tlib.postgres.TenantPgPool;
 
-import java.util.HashMap;
-import java.util.Map;
-import java.util.UUID;
-
 public class Channel extends Entity {
 
-    public Channel(){}
-
-    public Channel(UUID id, String tag, String name, String type, UUID transformationId, boolean commission, boolean listening) {
-        theRecord = new ChannelRecord(id, tag, name, type, transformationId, commission, listening);
-    }
-
-    // Import config record, the entity data.
-    public record ChannelRecord(UUID id, String tag, String name, String type, UUID transformationId, boolean commission, boolean listening) {
-    }
-    ChannelRecord theRecord;
-
-    public ChannelRecord getRecord() {
-      return theRecord;
-    }
-
-    // Static map of Entity Fields.
-    private static final Map<String, Field> CHANNEL_FIELDS = new HashMap<>();
-    public static final String ID = "ID";
-    public static final String TAG = "TAG";
-    public static final String NAME = "NAME";
-    public static final String TYPE = "TYPE";
-    public static final String TRANSFORMATION_ID = "TRANSFORMATION_ID";
-    public static final String COMMISSION = "COMMISSION";
-    public static final String LISTENING = "LISTENING";
-    // virtual (non-db) property
-    public static final String PROPERTY_IS_COMMISSIONED = "isCommissioned";
+  public static final String ID = "ID";
+  public static final String TAG = "TAG";
+  public static final String NAME = "NAME";
+  public static final String TYPE = "TYPE";
+  public static final String TRANSFORMATION_ID = "TRANSFORMATION_ID";
+  public static final String COMMISSION = "COMMISSION";
+  public static final String LISTENING = "LISTENING";
+  // virtual (non-db) property
+  public static final String PROPERTY_IS_COMMISSIONED = "isCommissioned";
+  private static final Map<String, Field> CHANNEL_FIELDS = new HashMap<>();
 
   static {
-        CHANNEL_FIELDS.put(ID, new Field("id", "id", PgColumn.Type.UUID, false, true).isPrimaryKey());
-        CHANNEL_FIELDS.put(TAG, new Field("tag", "tag", PgColumn.Type.TEXT, true, true).isUnique());
-        CHANNEL_FIELDS.put(NAME, new Field("name", "name", PgColumn.Type.TEXT, false, true).isUnique());
-        CHANNEL_FIELDS.put(TYPE, new Field("type", "type", PgColumn.Type.TEXT, false, true));
-        CHANNEL_FIELDS.put(TRANSFORMATION_ID, new Field("transformationId", "transformation_id", PgColumn.Type.UUID, false, true));
-        CHANNEL_FIELDS.put(COMMISSION, new Field("commission", "commission", PgColumn.Type.BOOLEAN, false, true));
-        CHANNEL_FIELDS.put(LISTENING, new Field("listening", "listening", PgColumn.Type.BOOLEAN, false, true));
-    }
+    CHANNEL_FIELDS.put(ID,
+        new Field("id", "id", PgColumn.Type.UUID, false, true).isPrimaryKey());
+    CHANNEL_FIELDS.put(TAG,
+        new Field("tag", "tag", PgColumn.Type.TEXT, true, true).isUnique());
+    CHANNEL_FIELDS.put(NAME,
+        new Field("name", "name", PgColumn.Type.TEXT, false, true).isUnique());
+    CHANNEL_FIELDS.put(TYPE,
+        new Field("type", "type", PgColumn.Type.TEXT, false, true));
+    CHANNEL_FIELDS.put(TRANSFORMATION_ID,
+        new Field("transformationId", "transformation_id", PgColumn.Type.UUID, false, true));
+    CHANNEL_FIELDS.put(COMMISSION,
+        new Field("commission", "commission", PgColumn.Type.BOOLEAN, false, true));
+    CHANNEL_FIELDS.put(LISTENING,
+        new Field("listening", "listening", PgColumn.Type.BOOLEAN, false, true));
+  }
 
-    @Override
-    public Map<String, Field> fields() {
-        return CHANNEL_FIELDS;
-    }
+  ChannelRecord theRecord;
 
-    @Override
-    public String jsonCollectionName() {
-        return "channels";
-    }
+  public Channel() {
+  }
 
-    @Override
-    public String entityName() {
-        return "Channel";
-    }
+  public Channel(UUID id, String tag, String name, String type, UUID transformationId,
+                 boolean commission, boolean listening) {
+    theRecord = new ChannelRecord(id, tag, name, type, transformationId, commission, listening);
+  }
 
-    public Channel fromJson(JsonObject channelJson) {
-        return new Channel(
-                getUuidOrGenerate(channelJson.getString(jsonPropertyName(ID))),
-                channelJson.getString(jsonPropertyName(TAG)),
-                channelJson.getString(jsonPropertyName(NAME)),
-                channelJson.getString(jsonPropertyName(TYPE)),
-                Util.getUUID(channelJson, jsonPropertyName(TRANSFORMATION_ID), null),
-                "TRUE".equalsIgnoreCase(channelJson.getString(jsonPropertyName(COMMISSION))),
-                "TRUE".equalsIgnoreCase(channelJson.getString(jsonPropertyName(LISTENING))));
-    }
+  public ChannelRecord getRecord() {
+    return theRecord;
+  }
 
-    @Override
-    public RowMapper<Entity> fromRow() {
-        return row -> new Channel(
-            row.getUUID(dbColumnName(ID)),
-            row.getString(dbColumnName(TAG)),
-            row.getString(dbColumnName(NAME)),
-            row.getString(dbColumnName(TYPE)),
-            row.getUUID(dbColumnName(TRANSFORMATION_ID)),
-            row.getBoolean(dbColumnName(COMMISSION)),
-            row.getBoolean(dbColumnName(LISTENING)))
-            .withMetadata(row);
-    }
+  @Override
+  public Map<String, Field> fields() {
+    return CHANNEL_FIELDS;
+  }
 
-    @Override
-    public TupleMapper<Entity> toTemplateParameters() {
-        return TupleMapper.mapper(
-                entity -> {
-                    ChannelRecord rec = ((Channel) entity).theRecord;
-                    Map<String, Object> parameters = new HashMap<>();
-                    parameters.put(dbColumnName(ID), rec.id());
-                    parameters.put(dbColumnName(TAG), rec.tag());
-                    parameters.put(dbColumnName(NAME), rec.name());
-                    parameters.put(dbColumnName(TYPE), rec.type());
-                    parameters.put(dbColumnName(TRANSFORMATION_ID), rec.transformationId());
-                    parameters.put(dbColumnName(COMMISSION), rec.commission());
-                    parameters.put(dbColumnName(LISTENING), rec.listening());
-                    putMetadata(parameters);
-                    return parameters;
-                });
-    }
+  @Override
+  public String jsonCollectionName() {
+    return "channels";
+  }
 
-    /**
-     * Channel pojo to JSON mapping.
-     */
-    public JsonObject asJson() {
-        JsonObject json = new JsonObject();
-        json.put(jsonPropertyName(ID), theRecord.id());
-        json.put(jsonPropertyName(TAG), theRecord.tag());
-        json.put(jsonPropertyName(NAME), theRecord.name());
-        json.put(jsonPropertyName(TYPE), theRecord.type());
-        json.put(jsonPropertyName(TRANSFORMATION_ID), theRecord.transformationId());
-        json.put(jsonPropertyName(COMMISSION), theRecord.commission());
-        json.put(PROPERTY_IS_COMMISSIONED, isCommissioned());
-        json.put(jsonPropertyName(LISTENING), theRecord.listening());
-        putMetadata(json);
-        return json;
-    }
+  @Override
+  public String entityName() {
+    return "Channel";
+  }
 
-    @Override
-    public Tables table() {
-        return Tables.CHANNEL;
-    }
+  public Channel fromJson(JsonObject channelJson) {
+    return new Channel(
+        getUuidOrGenerate(channelJson.getString(jsonPropertyName(ID))),
+        channelJson.getString(jsonPropertyName(TAG)),
+        channelJson.getString(jsonPropertyName(NAME)),
+        channelJson.getString(jsonPropertyName(TYPE)),
+        Util.getUuid(channelJson, jsonPropertyName(TRANSFORMATION_ID), null),
+        "TRUE".equalsIgnoreCase(channelJson.getString(jsonPropertyName(COMMISSION))),
+        "TRUE".equalsIgnoreCase(channelJson.getString(jsonPropertyName(LISTENING))));
+  }
+
+  @Override
+  public RowMapper<Entity> fromRow() {
+    return row -> new Channel(
+        row.getUUID(dbColumnName(ID)),
+        row.getString(dbColumnName(TAG)),
+        row.getString(dbColumnName(NAME)),
+        row.getString(dbColumnName(TYPE)),
+        row.getUUID(dbColumnName(TRANSFORMATION_ID)),
+        row.getBoolean(dbColumnName(COMMISSION)),
+        row.getBoolean(dbColumnName(LISTENING)))
+        .withMetadata(row);
+  }
+
+  @Override
+  public TupleMapper<Entity> toTemplateParameters() {
+    return TupleMapper.mapper(
+        entity -> {
+          ChannelRecord rec = ((Channel) entity).theRecord;
+          Map<String, Object> parameters = new HashMap<>();
+          parameters.put(dbColumnName(ID), rec.id());
+          parameters.put(dbColumnName(TAG), rec.tag());
+          parameters.put(dbColumnName(NAME), rec.name());
+          parameters.put(dbColumnName(TYPE), rec.type());
+          parameters.put(dbColumnName(TRANSFORMATION_ID), rec.transformationId());
+          parameters.put(dbColumnName(COMMISSION), rec.commission());
+          parameters.put(dbColumnName(LISTENING), rec.listening());
+          putMetadata(parameters);
+          return parameters;
+        });
+  }
+
+  /**
+   * Channel pojo to JSON mapping.
+   */
+  public JsonObject asJson() {
+    JsonObject json = new JsonObject();
+    json.put(jsonPropertyName(ID), theRecord.id());
+    json.put(jsonPropertyName(TAG), theRecord.tag());
+    json.put(jsonPropertyName(NAME), theRecord.name());
+    json.put(jsonPropertyName(TYPE), theRecord.type());
+    json.put(jsonPropertyName(TRANSFORMATION_ID), theRecord.transformationId());
+    json.put(jsonPropertyName(COMMISSION), theRecord.commission());
+    json.put(PROPERTY_IS_COMMISSIONED, isCommissioned());
+    json.put(jsonPropertyName(LISTENING), theRecord.listening());
+    putMetadata(json);
+    return json;
+  }
+
+  @Override
+  public Tables table() {
+    return Tables.CHANNEL;
+  }
 
   @Override
   public UUID getId() {
@@ -136,32 +140,35 @@ public class Channel extends Entity {
   }
 
   @Override
-    public Future<Void> createDatabase(TenantPgPool pool) {
-        return executeSqlStatements(pool,
-                "CREATE TABLE IF NOT EXISTS " + pool.getSchema() + "." + table()
-                + "("
-                + field(ID).pgColumnDdl() + ", "
-                + field(TAG).pgColumnDdl() + ", "
-                + field(NAME).pgColumnDdl() + ", "
-                + field(TYPE).pgColumnDdl() + ", "
-                + field(TRANSFORMATION_ID).pgColumnDdl()
-                + " REFERENCES " + pool.getSchema() + "." + Tables.TRANSFORMATION
-                        + " (" + new Transformation().dbColumnName(Transformation.ID) + "), "
-                + field(COMMISSION).pgColumnDdl() + ", "
-                + field(LISTENING).pgColumnDdl() + ", "
-                + metadata.columnsDdl()
-                + ")"
-        ).mapEmpty();
+  public Future<Void> createDatabase(TenantPgPool pool) {
+    return executeSqlStatements(pool,
+        "CREATE TABLE IF NOT EXISTS " + pool.getSchema() + "." + table()
+            + "("
+            + field(ID).pgColumnDdl() + ", "
+            + field(TAG).pgColumnDdl() + ", "
+            + field(NAME).pgColumnDdl() + ", "
+            + field(TYPE).pgColumnDdl() + ", "
+            + field(TRANSFORMATION_ID).pgColumnDdl()
+            + " REFERENCES " + pool.getSchema() + "." + Tables.TRANSFORMATION
+            + " (" + new Transformation().dbColumnName(Transformation.ID) + "), "
+            + field(COMMISSION).pgColumnDdl() + ", "
+            + field(LISTENING).pgColumnDdl() + ", "
+            + metadata.columnsDdl()
+            + ")"
+    ).mapEmpty();
+  }
+
+  public boolean isCommissioned() {
+    if (tenant == null) {
+      logger.warn(
+          "Tenant not specified for this Channel object ({}), cannot say if the channel is commissioned",
+          theRecord.name());
     }
+    return tenant != null && FileListeners.hasFileListener(tenant, theRecord.id().toString());
+  }
 
-    public boolean isCommissioned () {
-      if (tenant == null) {
-        logger.warn(
-            "Tenant not specified for this Channel object ({}), cannot say if the channel is commissioned",
-            theRecord.name());
-      }
-      return tenant != null && FileListeners.hasFileListener(tenant, theRecord.id().toString());
-    }
-
-
+  // Import config record, the entity data.
+  public record ChannelRecord(UUID id, String tag, String name, String type, UUID transformationId, boolean commission,
+                              boolean listening) {
+  }
 }

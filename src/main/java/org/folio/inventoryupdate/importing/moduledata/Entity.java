@@ -1,11 +1,16 @@
 package org.folio.inventoryupdate.importing.moduledata;
 
+import static org.folio.inventoryupdate.importing.moduledata.Metadata.METADATA_PROPERTY;
+
 import io.vertx.core.Future;
 import io.vertx.core.json.JsonObject;
 import io.vertx.sqlclient.Row;
 import io.vertx.sqlclient.RowSet;
 import io.vertx.sqlclient.templates.RowMapper;
 import io.vertx.sqlclient.templates.TupleMapper;
+import java.util.Map;
+import java.util.UUID;
+import java.util.stream.Collectors;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.folio.inventoryupdate.importing.moduledata.database.SqlQuery;
@@ -17,17 +22,14 @@ import org.folio.tlib.postgres.PgCqlQuery;
 import org.folio.tlib.postgres.TenantPgPool;
 import org.folio.tlib.postgres.cqlfield.PgCqlFieldAlwaysMatches;
 
-import java.util.Map;
-import java.util.UUID;
-import java.util.stream.Collectors;
-import static org.folio.inventoryupdate.importing.moduledata.Metadata.METADATA_PROPERTY;
-
 public abstract class Entity {
 
   public static final Logger logger = LogManager.getLogger("inventory-import");
   public static final String DATE_FORMAT_TO_DB = "YYYY-MM-DD''T''HH24:MI:SS,MS";
 
   protected String tenant;
+
+  protected Metadata metadata = new Metadata();
 
   /**
    * Implement to return an enum identifier for the underlying database table for the implementing entity.
@@ -38,7 +40,42 @@ public abstract class Entity {
 
   public abstract UUID getId();
 
-  protected Metadata metadata = new Metadata();
+  /**
+   * Implement to provide a map of the {@link Field} fields of the implementing entity.
+   *
+   * @return Map fields by field keys to be used for finding queryable fields or, if possible, for creating the
+   *   database table and more.
+   */
+  public abstract Map<String, Field> fields();
+
+  /**
+   * Implement to map from request body JSON to entity POJO.
+   *
+   * @param json incoming JSON body
+   * @return Entity POJO
+   */
+  public abstract Entity fromJson(JsonObject json);
+
+  /**
+   * Implement to map for entity POJO to response JSON.
+   *
+   * @return json representation of the entity
+   */
+  public abstract JsonObject asJson();
+
+  /**
+   * For naming the property of a JSON collection response.
+   *
+   * @return the JSON property name for a collection of the entity
+   */
+  public abstract String jsonCollectionName();
+
+  /**
+   * For logging statements and response messages.
+   *
+   * @return label to display in messages.
+   */
+  public abstract String entityName();
 
   /**
    * Build and execute the DDL statements for creating the database objects for persisting the entity.
@@ -70,87 +107,12 @@ public abstract class Entity {
     return future;
   }
 
-  public String table(String schema) {
+  public String schemaTable(String schema) {
     return schema + "." + table().toString();
   }
 
-
   /**
-   * Represents a field of an entity, containing JSON property name, database column name and other features of the field.
-   *
-   */
-  public static class Field {
-    public String jsonPropertyName() {
-      return jsonPropertyName;
-    }
-
-    public String columnName() {
-      return columnName;
-    }
-
-    public PgColumn.Type pgType() {
-      return pgType;
-    }
-
-    String jsonPropertyName;
-    String columnName;
-    PgColumn.Type pgType;
-    boolean nullable;
-    boolean queryable;
-    boolean primaryKey;
-    boolean unique;
-
-    public Field(String jsonPropertyName, String columnName, PgColumn.Type pgType, boolean nullable, boolean queryable) {
-      this.jsonPropertyName = jsonPropertyName;
-      this.columnName = columnName;
-      this.pgType = pgType;
-      this.nullable = nullable;
-      this.queryable = queryable;
-    }
-
-    public Field isPrimaryKey() {
-      this.primaryKey = true;
-      return this;
-    }
-
-    public Field isUnique() {
-      this.unique = true;
-      return this;
-    }
-
-    public PgColumn pgColumn() {
-      return new PgColumn(columnName, pgType, nullable, primaryKey, unique);
-    }
-
-    public String pgColumnDdl() {
-      return pgColumn().getColumnDdl().strip();
-    }
-  }
-
-  /**
-   * Implement to provide a map of the {@link Field} fields of the implementing entity
-   *
-   * @return Map fields by field keys to be used for finding queryable fields or, if possible, for creating the database table and more.
-   */
-  public abstract Map<String, Field> fields();
-
-  /**
-   * Implement to map from request body JSON to entity POJO.
-   *
-   * @param json incoming JSON body
-   * @return Entity POJO
-   */
-  public abstract Entity fromJson(JsonObject json);
-
-  /**
-   * Implement to map for entity POJO to response JSON
-   *
-   * @return json representation of the entity
-   */
-  public abstract JsonObject asJson();
-
-  /**
-   * Mapping of metadata to JSON
+   * Mapping of metadata to JSON.
    *
    * @param json target JSON
    */
@@ -159,7 +121,7 @@ public abstract class Entity {
   }
 
   /**
-   * Mapping of metadata to SQL insert/update templates
+   * Mapping of metadata to SQL insert/update templates.
    *
    * @param parameters template parameters for metadata properties
    */
@@ -206,7 +168,6 @@ public abstract class Entity {
     return listOfColumnsValues.append(metadata.updateClauseColumnTemplates()).toString();
   }
 
-
   /**
    * Creates Vert.X row mapper that maps a database select result row onto data object(s).
    */
@@ -226,7 +187,6 @@ public abstract class Entity {
    * Creates vert.x tuple mapper that maps Postgres column names to field values.
    */
   public abstract TupleMapper<Entity> toTemplateParameters();
-
 
   /**
    * Gets Postgres/CQL definition, containing listing of queryable fields.
@@ -276,8 +236,8 @@ public abstract class Entity {
       }
     }
     return new SqlQuery(select, from, whereClause, orderByClause, offset, limit);
-
   }
+
   /**
    * Crosswalk JSON property names to table column names.
    *
@@ -314,20 +274,6 @@ public abstract class Entity {
     return dbColumnName(key) + " " + dbColumnType(key);
   }
 
-  /**
-   * For naming the property of a JSON collection response
-   *
-   * @return the JSON property name for a collection of the entity
-   */
-  public abstract String jsonCollectionName();
-
-  /**
-   * For logging statements and response messages.
-   *
-   * @return label to display in messages.
-   */
-  public abstract String entityName();
-
   public UUID getUuidOrGenerate(String uuidAsString) {
     try {
       return UUID.fromString(uuidAsString);
@@ -337,28 +283,82 @@ public abstract class Entity {
   }
 
   /**
-   * Setting current user (if any) as the creating user in the record's metadata
+   * Setting current user (if any) as the creating user in the record's metadata.
    *
    * @param currentUser UUID of current user
    */
   public Entity withCreatingUser(UUID currentUser) {
-    metadata = new Metadata().withCreatedByUserId(currentUser).withCreatedDate(SettableClock.getLocalDateTime().toString());
+    metadata = new Metadata().withCreatedByUserId(currentUser)
+        .withCreatedDate(SettableClock.getLocalDateTime().toString());
     return this;
   }
 
   /**
-   * Setting current user (if any) as the updating user in the record's metadata
+   * Setting current user (if any) as the updating user in the record's metadata.
    *
    * @param currentUser UUID of current user
    */
   public Entity withUpdatingUser(UUID currentUser) {
-    metadata = new Metadata().withUpdatedByUserId(currentUser).withUpdatedDate(SettableClock.getLocalDateTime().toString());
+    metadata = new Metadata().withUpdatedByUserId(currentUser)
+        .withUpdatedDate(SettableClock.getLocalDateTime().toString());
     return this;
   }
 
-  public Entity withTenant (String tenant) {
+  public Entity withTenant(String tenant) {
     this.tenant = tenant;
     return this;
   }
 
+  /**
+   * Represents a field of an entity, containing JSON property name, database column name and other features of a field.
+   *
+   */
+  public static class Field {
+    String jsonPropertyName;
+    String columnName;
+    PgColumn.Type pgType;
+    boolean nullable;
+    boolean queryable;
+    boolean primaryKey;
+    boolean unique;
+
+    public Field(String jsonPropertyName, String columnName, PgColumn.Type pgType,
+                 boolean nullable, boolean queryable) {
+      this.jsonPropertyName = jsonPropertyName;
+      this.columnName = columnName;
+      this.pgType = pgType;
+      this.nullable = nullable;
+      this.queryable = queryable;
+    }
+
+    public String jsonPropertyName() {
+      return jsonPropertyName;
+    }
+
+    public String columnName() {
+      return columnName;
+    }
+
+    public PgColumn.Type pgType() {
+      return pgType;
+    }
+
+    public Field isPrimaryKey() {
+      this.primaryKey = true;
+      return this;
+    }
+
+    public Field isUnique() {
+      this.unique = true;
+      return this;
+    }
+
+    public PgColumn pgColumn() {
+      return new PgColumn(columnName, pgType, nullable, primaryKey, unique);
+    }
+
+    public String pgColumnDdl() {
+      return pgColumn().getColumnDdl().strip();
+    }
+  }
 }

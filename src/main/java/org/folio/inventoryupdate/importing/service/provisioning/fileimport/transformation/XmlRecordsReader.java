@@ -1,4 +1,4 @@
-package org.folio.inventoryupdate.importing.service.fileimport.transformation;
+package org.folio.inventoryupdate.importing.service.provisioning.fileimport.transformation;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -8,9 +8,9 @@ import java.util.concurrent.Callable;
 import javax.xml.parsers.ParserConfigurationException;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.folio.inventoryupdate.importing.service.fileimport.ProcessingRecord;
-import org.folio.inventoryupdate.importing.service.fileimport.RecordProvider;
-import org.folio.inventoryupdate.importing.service.fileimport.RecordReceiver;
+import org.folio.inventoryupdate.importing.service.provisioning.fileimport.ProcessingRecord;
+import org.folio.inventoryupdate.importing.service.provisioning.fileimport.RecordProvider;
+import org.folio.inventoryupdate.importing.service.provisioning.fileimport.RecordReceiver;
 import org.folio.inventoryupdate.importing.utils.SecureSaxParser;
 import org.folio.reservoir.util.EncodeXmlText;
 import org.xml.sax.Attributes;

@@ -1,7 +1,7 @@
 package org.folio.inventoryupdate.importing.service;
 
+import static org.folio.inventoryupdate.importing.service.provisioning.Channels.getChannelByTagOrUuid;
 import static org.folio.okapi.common.HttpResponse.responseError;
-import static org.folio.okapi.common.HttpResponse.responseJson;
 import static org.folio.okapi.common.HttpResponse.responseText;
 
 import io.vertx.core.Future;
@@ -14,37 +14,18 @@ import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.handler.impl.BodyHandlerImpl;
 import io.vertx.ext.web.openapi.router.RouterBuilder;
 import io.vertx.openapi.contract.OpenAPIContract;
-import java.time.LocalDateTime;
-import java.time.Period;
-import java.time.temporal.ChronoUnit;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.UUID;
 import java.util.function.Function;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.folio.inventoryupdate.importing.foliodata.ConfigurationsClient;
-import org.folio.inventoryupdate.importing.foliodata.SettingsClient;
-import org.folio.inventoryupdate.importing.moduledata.Channel;
-import org.folio.inventoryupdate.importing.moduledata.Entity;
-import org.folio.inventoryupdate.importing.moduledata.ImportJob;
-import org.folio.inventoryupdate.importing.moduledata.LogLine;
-import org.folio.inventoryupdate.importing.moduledata.RecordFailure;
-import org.folio.inventoryupdate.importing.moduledata.Step;
-import org.folio.inventoryupdate.importing.moduledata.Transformation;
-import org.folio.inventoryupdate.importing.moduledata.TransformationStep;
 import org.folio.inventoryupdate.importing.moduledata.database.ModuleStorageAccess;
-import org.folio.inventoryupdate.importing.moduledata.database.SqlQuery;
-import org.folio.inventoryupdate.importing.moduledata.database.Tables;
-import org.folio.inventoryupdate.importing.service.fileimport.FileListener;
-import org.folio.inventoryupdate.importing.service.fileimport.FileListeners;
-import org.folio.inventoryupdate.importing.service.fileimport.FileProcessor;
-import org.folio.inventoryupdate.importing.service.fileimport.FileQueue;
-import org.folio.inventoryupdate.importing.utils.Miscellaneous;
-import org.folio.inventoryupdate.importing.utils.SettableClock;
+import org.folio.inventoryupdate.importing.service.provisioning.Channels;
+import org.folio.inventoryupdate.importing.service.provisioning.JobsAndMonitoring;
+import org.folio.inventoryupdate.importing.service.provisioning.Transformations;
+import org.folio.inventoryupdate.importing.service.provisioning.fileimport.FileListeners;
+import org.folio.inventoryupdate.importing.service.provisioning.fileimport.FileQueue;
 import org.folio.tlib.RouterCreator;
 import org.folio.tlib.TenantInitHooks;
-import org.folio.tlib.postgres.PgCqlException;
 
 /**
  * Main service.
@@ -64,48 +45,52 @@ public class ImportService implements RouterCreator, TenantInitHooks {
 
   private void handlers(Vertx vertx, RouterBuilder routerBuilder) {
     // Configurations
-    validatingHandler(vertx, routerBuilder, "postChannel", this::postChannel);
-    validatingHandler(vertx, routerBuilder, "getChannels", this::getChannels);
-    validatingHandler(vertx, routerBuilder, "getChannel", this::getChannelById);
-    validatingHandler(vertx, routerBuilder, "putChannel", this::putChannel);
-    validatingHandler(vertx, routerBuilder, "deleteChannel", this::deleteChannel);
-    validatingHandler(vertx, routerBuilder, "postTransformation", this::postTransformation);
-    validatingHandler(vertx, routerBuilder, "getTransformation", this::getTransformationById);
-    validatingHandler(vertx, routerBuilder, "getTransformations", this::getTransformations);
-    validatingHandler(vertx, routerBuilder, "putTransformation", this::updateTransformation);
-    validatingHandler(vertx, routerBuilder, "deleteTransformation", this::deleteTransformation);
-    validatingHandler(vertx, routerBuilder, "postStep", this::postStep);
-    validatingHandler(vertx, routerBuilder, "getSteps", this::getSteps);
-    validatingHandler(vertx, routerBuilder, "getStep", this::getStepById);
-    validatingHandler(vertx, routerBuilder, "putStep", this::putStep);
-    validatingHandler(vertx, routerBuilder, "deleteStep", this::deleteStep);
-    validatingHandler(vertx, routerBuilder, "getScript", this::getScript);
-    nonValidatingHandler(vertx, routerBuilder, "putScript", this::putScript);
-    validatingHandler(vertx, routerBuilder, "postTsa", this::postTransformationStep);
-    validatingHandler(vertx, routerBuilder, "getTsas", this::getTransformationSteps);
-    validatingHandler(vertx, routerBuilder, "getTsa", this::getTransformationStepById);
-    validatingHandler(vertx, routerBuilder, "putTsa", this::putTransformationStep);
-    validatingHandler(vertx, routerBuilder, "deleteTsa", this::deleteTransformationStep);
+    validatingHandler(vertx, routerBuilder, "postChannel", Channels::postChannel);
+    validatingHandler(vertx, routerBuilder, "getChannels", Channels::getChannels);
+    validatingHandler(vertx, routerBuilder, "getChannel", Channels::getChannelById);
+    validatingHandler(vertx, routerBuilder, "putChannel", Channels::putChannel);
+    validatingHandler(vertx, routerBuilder, "deleteChannel", Channels::deleteChannel);
+    validatingHandler(vertx, routerBuilder, "initFileSystemQueue", Channels::initFileSystemQueue);
+    validatingHandler(vertx, routerBuilder, "deployFileListener", Channels::deployFileListener);
+    validatingHandler(vertx, routerBuilder, "undeployFileListener", Channels::undeployFileListener);
 
-    // Jobs
-    validatingHandler(vertx, routerBuilder, "getImportJobs", this::getImportJobs);
-    validatingHandler(vertx, routerBuilder, "getImportJob", this::getImportJobById);
-    validatingHandler(vertx, routerBuilder, "postImportJob", this::postImportJob);
-    validatingHandler(vertx, routerBuilder, "deleteImportJob", this::deleteImportJob);
-    nonValidatingHandler(vertx, routerBuilder, "postImportJobLogLines", this::postLogStatements);
-    nonValidatingHandler(vertx, routerBuilder, "getImportJobLogLines", this::getLogStatements);
-    validatingHandler(vertx, routerBuilder, "getFailedRecords", this::getFailedRecords);
-    validatingHandler(vertx, routerBuilder, "postFailedRecords", this::postFailedRecords);
-    validatingHandler(vertx, routerBuilder, "deleteRecordFailure", this::deleteRecordFailure);
-    // Processing
-    validatingHandler(vertx, routerBuilder, "purgeAgedLogs", this::purgeAgedLogs);
+    validatingHandler(vertx, routerBuilder, "postTransformation", Transformations::postTransformation);
+    validatingHandler(vertx, routerBuilder, "getTransformation",   Transformations::getTransformationById);
+    validatingHandler(vertx, routerBuilder, "getTransformations",   Transformations::getTransformations);
+    validatingHandler(vertx, routerBuilder, "putTransformation",   Transformations::updateTransformation);
+    validatingHandler(vertx, routerBuilder, "deleteTransformation",   Transformations::deleteTransformation);
+    validatingHandler(vertx, routerBuilder, "postStep",   Transformations::postStep);
+    validatingHandler(vertx, routerBuilder, "getSteps",   Transformations::getSteps);
+    validatingHandler(vertx, routerBuilder, "getStep",   Transformations::getStepById);
+    validatingHandler(vertx, routerBuilder, "putStep",   Transformations::putStep);
+    validatingHandler(vertx, routerBuilder, "deleteStep",   Transformations::deleteStep);
+    validatingHandler(vertx, routerBuilder, "getScript",   Transformations::getScript);
+    nonValidatingHandler(vertx, routerBuilder, "putScript",   Transformations::putScript);
+    validatingHandler(vertx, routerBuilder, "postTsa",   Transformations::postTransformationStep);
+    validatingHandler(vertx, routerBuilder, "getTsas",   Transformations::getTransformationSteps);
+    validatingHandler(vertx, routerBuilder, "getTsa",   Transformations::getTransformationStepById);
+    validatingHandler(vertx, routerBuilder, "putTsa",   Transformations::putTransformationStep);
+    validatingHandler(vertx, routerBuilder, "deleteTsa",   Transformations::deleteTransformationStep);
+
+    // Job handling and tracking
+    validatingHandler(vertx, routerBuilder, "getImportJobs", JobsAndMonitoring::getImportJobs);
+    validatingHandler(vertx, routerBuilder, "getImportJob", JobsAndMonitoring::getImportJobById);
+    validatingHandler(vertx, routerBuilder, "postImportJob", JobsAndMonitoring::postImportJob);
+    validatingHandler(vertx, routerBuilder, "deleteImportJob", JobsAndMonitoring::deleteImportJob);
+    nonValidatingHandler(vertx, routerBuilder, "postImportJobLogLines", JobsAndMonitoring::postLogStatements);
+    nonValidatingHandler(vertx, routerBuilder, "getImportJobLogLines", JobsAndMonitoring::getLogStatements);
+    validatingHandler(vertx, routerBuilder, "getFailedRecords", JobsAndMonitoring::getFailedRecords);
+    validatingHandler(vertx, routerBuilder, "postFailedRecords", JobsAndMonitoring::postFailedRecords);
+    validatingHandler(vertx, routerBuilder, "deleteRecordFailure", JobsAndMonitoring::deleteRecordFailure);
+    validatingHandler(vertx, routerBuilder, "pauseJob", JobsAndMonitoring::pauseImportJob);
+    validatingHandler(vertx, routerBuilder, "resumeJob", JobsAndMonitoring::resumeImportJob);
+
+    // Systems operations
+    validatingHandler(vertx, routerBuilder, "purgeAgedLogs", JobsAndMonitoring::purgeAgedLogs);
+    validatingHandler(vertx, routerBuilder, "recoverInterruptedChannels", Channels::recoverChannels);
+
+    // Importing
     nonValidatingHandler(vertx, routerBuilder, "uploadXmlRecords", this::uploadXmlSourceFile);
-    validatingHandler(vertx, routerBuilder, "deployFileListener", this::deployFileListener);
-    validatingHandler(vertx, routerBuilder, "undeployFileListener", this::undeployFileListener);
-    validatingHandler(vertx, routerBuilder, "recoverInterruptedChannels", this::recoverChannels);
-    validatingHandler(vertx, routerBuilder, "pauseJob", this::pauseImportJob);
-    validatingHandler(vertx, routerBuilder, "resumeJob", this::resumeImportJob);
-    validatingHandler(vertx, routerBuilder, "initFileSystemQueue", this::initFileSystemQueue);
   }
 
   private void validatingHandler(Vertx vertx, RouterBuilder routerBuilder, String operation,
@@ -196,494 +181,7 @@ public class ImportService implements RouterCreator, TenantInitHooks {
     return Future.succeededFuture();
   }
 
-  private Future<Void> getEntities(ServiceRequest request, Entity entity) {
-    ModuleStorageAccess db = request.moduleStorageAccess();
-    SqlQuery query;
-    try {
-      query = entity.cqlToSql(request, db.schemaDotTable(entity.table()));
-    } catch (PgCqlException pce) {
-      responseText(request.routingContext, 400)
-          .end("Could not execute query to retrieve " + entity.jsonCollectionName() + ": " + pce.getMessage()
-              + " Request:" + request.absoluteUri());
-      return Future.succeededFuture();
-    } catch (Exception e) {
-      return Future.failedFuture(e.getMessage());
-    }
-    return db.getEntities(query.getQueryWithLimits(), entity).onComplete(result -> {
-      if (result.succeeded()) {
-        JsonObject responseJson = new JsonObject();
-        JsonArray jsonRecords = new JsonArray();
-        responseJson.put(entity.jsonCollectionName(), jsonRecords);
-        List<Entity> recs = result.result();
-        for (Entity rec : recs) {
-          jsonRecords.add(rec.asJson());
-        }
-        db.getCount(query.getCountingSql()).onComplete(count -> {
-          responseJson.put("totalRecords", count.result());
-          responseJson(request.routingContext, 200).end(responseJson.encodePrettily());
-        });
-      } else {
-        responseText(request.routingContext, 500).end("Problem retrieving jobs: " + result.cause().getMessage());
-      }
-    }).mapEmpty();
-  }
-
-  private Future<Void> getEntity(ServiceRequest request, Entity entity) {
-    UUID id = UUID.fromString(request.requestParam("id"));
-    return request.moduleStorageAccess().getEntity(id, entity).onSuccess(instance -> {
-      if (instance == null) {
-        responseText(request.routingContext, 404).end(entity.entityName() + " " + id + " not found.");
-      } else {
-        responseJson(request.routingContext, 200).end(instance.asJson().encodePrettily());
-      }
-    }).mapEmpty();
-  }
-
-  private Future<Void> deleteEntity(ServiceRequest request, Entity entity) {
-    UUID id = UUID.fromString(request.requestParam("id"));
-    return request.moduleStorageAccess().deleteEntity(id, entity).onSuccess(result -> {
-      if (result == 0) {
-        responseText(request.routingContext, 404).end("Not found");
-      } else {
-        responseText(request.routingContext, 200).end();
-      }
-    }).mapEmpty();
-  }
-
-  private Future<Void> storeEntityRespondWith201(ServiceRequest request, Entity entity) {
-    ModuleStorageAccess db = request.moduleStorageAccess();
-    return db.storeEntity(entity.withCreatingUser(request.currentUser()))
-        .onSuccess(id -> db.getEntity(id, entity).map(stored ->
-            responseJson(request.routingContext, 201).end(stored.asJson().encodePrettily()))).mapEmpty();
-  }
-
-  private Future<Void> postChannel(ServiceRequest request) {
-    Channel channel = new Channel().fromJson(request.bodyAsJson());
-    ModuleStorageAccess db = request.moduleStorageAccess();
-    return db.storeEntity(channel.withCreatingUser(request.currentUser())).compose(id -> {
-      new FileQueue(request, id.toString()).createDirectoriesIfNotExist();
-      return Future.succeededFuture(id);
-    }).compose(id -> db.getEntity(id, channel)).compose(cfg -> {
-      if (((Channel) cfg).isEnabled()) {
-        return FileListeners.deployIfNotDeployed(request, (Channel) cfg).map(na -> cfg)
-            .compose(na -> responseJson(request.routingContext, 201).end(cfg.asJson().encodePrettily())).mapEmpty();
-      } else {
-        return responseJson(request.routingContext, 201).end(cfg.asJson().encodePrettily()).mapEmpty();
-      }
-    });
-  }
-
-  private Future<Void> getChannels(ServiceRequest request) {
-    return getEntities(request, new Channel());
-  }
-
-  private Future<Void> getChannelById(ServiceRequest request) {
-    return getEntity(request, new Channel());
-  }
-
-  private Future<Void> putChannel(ServiceRequest request) {
-    Channel inputChannel = new Channel().fromJson(request.bodyAsJson());
-    UUID id = UUID.fromString(request.requestParam("id"));
-    return request.moduleStorageAccess().updateEntity(id, inputChannel.withUpdatingUser(request.currentUser()))
-        .onSuccess(result -> {
-          if (result.rowCount() == 1) {
-            request.moduleStorageAccess().getEntity(id, new Channel()).map(entity -> (Channel) entity)
-                .compose(channel -> {
-                  if (channel.isEnabled() && channel.isCommissioned()) {
-                    FileListener listener = FileListeners.getFileListener(request.tenant(), id.toString());
-                    listener.updateChannel(channel);
-                    return responseText(request.routingContext(), 204).end();
-                  } else if (!channel.isEnabled() && channel.isCommissioned()) {
-                    FileListener listener = FileListeners.getFileListener(request.tenant(), id.toString());
-                    return listener.undeploy().map(
-                        na -> responseText(request.routingContext, 204).end()).mapEmpty();
-                  } else if (channel.isEnabled() && !channel.isCommissioned()) {
-                    return FileListeners.deployIfNotDeployed(request, channel)
-                        .map(message -> responseText(request.routingContext(), 200).end(message)).mapEmpty();
-                  } else {
-                    return responseText(request.routingContext(), 204).end();
-                  }
-                });
-          } else {
-            responseText(request.routingContext(), 404).end("Import config to update not found");
-          }
-        }).mapEmpty();
-  }
-
-  private Future<Void> deleteChannel(ServiceRequest request) {
-    return deleteEntity(request, new Channel()).compose(na -> {
-      new FileQueue(request, request.requestParam("id")).deleteDirectoriesIfExist();
-      return undeployFileListener(request);
-    }).mapEmpty();
-  }
-
-  private Future<Void> postImportJob(ServiceRequest request) {
-    ImportJob importJob = new ImportJob().fromJson(request.bodyAsJson());
-    return storeEntityRespondWith201(request, importJob);
-  }
-
-  private Future<Void> getImportJobs(ServiceRequest request) {
-    ModuleStorageAccess db = request.moduleStorageAccess();
-
-    String fromDateTime = request.queryParam("from");
-    String untilDateTime = request.queryParam("until");
-    String timeRange = null;
-    if (fromDateTime != null && untilDateTime != null) {
-      timeRange = " (finished >= '" + fromDateTime + "'  AND finished <= '" + untilDateTime + "') ";
-    } else if (fromDateTime != null) {
-      timeRange = " finished >= '" + fromDateTime + "' ";
-    } else if (untilDateTime != null) {
-      timeRange = " finished <= '" + untilDateTime + "' ";
-    }
-
-    SqlQuery query;
-    try {
-      query = new ImportJob()
-          .cqlToSql(request, db.schemaDotTable(Tables.IMPORT_JOB)).withAdditionalWhereClause(timeRange);
-    } catch (PgCqlException pce) {
-      responseText(request.routingContext(), 400)
-          .end("Could not execute query to retrieve jobs: " + pce.getMessage() + " Request:" + request.absoluteUri());
-      return Future.succeededFuture();
-    } catch (Exception e) {
-      return Future.failedFuture(e.getMessage());
-    }
-    return db.getEntities(query.getQueryWithLimits(), new ImportJob()).onComplete(jobsList -> {
-      if (jobsList.succeeded()) {
-        JsonObject responseJson = new JsonObject();
-        JsonArray importJobs = new JsonArray();
-        responseJson.put("importJobs", importJobs);
-        List<Entity> jobs = jobsList.result();
-        for (Entity job : jobs) {
-          importJobs.add(job.asJson());
-        }
-        db.getCount(query.getCountingSql()).onComplete(count -> {
-          responseJson.put("totalRecords", count.result());
-          responseJson(request.routingContext(), 200).end(responseJson.encodePrettily());
-        });
-      } else {
-        responseText(request.routingContext(), 500).end("Problem retrieving jobs: " + jobsList.cause().getMessage());
-      }
-    }).mapEmpty();
-  }
-
-  private Future<Void> getImportJobById(ServiceRequest request) {
-    return getEntity(request, new ImportJob());
-  }
-
-  private Future<Void> deleteImportJob(ServiceRequest request) {
-    return deleteEntity(request, new ImportJob());
-  }
-
-  private Future<Void> postLogStatements(ServiceRequest request) {
-    JsonObject body = request.bodyAsJson();
-    JsonArray lines = body.getJsonArray("logLines");
-    List<Entity> logLines = new ArrayList<>();
-    for (Object o : lines) {
-      logLines.add(new LogLine().fromJson((JsonObject) o).withCreatingUser(request.currentUser()));
-    }
-    return request.moduleStorageAccess().storeEntities(logLines)
-        .onSuccess(configId ->
-            responseJson(request.routingContext(), 201).end(logLines.size() + " log line(s) created."))
-        .mapEmpty();
-  }
-
-  private Future<Void> getLogStatements(ServiceRequest request) {
-    ModuleStorageAccess db = request.moduleStorageAccess();
-    SqlQuery queryFromCql =
-        new LogLine().cqlToSql(request, db.schemaDotTable(Tables.JOB_LOG_VIEW)).withDefaultLimit("100");
-    String from = request.queryParam("from");
-    String until = request.queryParam("until");
-
-    String timeRange = null;
-    if (from != null && until != null) {
-      timeRange = " (time_stamp >= '" + from + "'  AND time_stamp <= '" + until + "') ";
-    } else if (from != null) {
-      timeRange = " time_stamp >= '" + from + "' ";
-    } else if (until != null) {
-      timeRange = " time_stamp <= '" + until + "' ";
-    }
-
-    if (timeRange != null) {
-      queryFromCql.withAdditionalWhereClause(timeRange);
-    }
-
-    return db.getEntities(queryFromCql.getQueryWithLimits(), new LogLine()).onComplete(logStatements -> {
-      boolean asText = request.getHeader("Accept").equalsIgnoreCase("text/plain");
-      if (logStatements.succeeded()) {
-        JsonObject responseJson = new JsonObject();
-        final StringBuilder logAsText = new StringBuilder();
-        JsonArray logLines = new JsonArray();
-        responseJson.put("logLines", logLines);
-        for (Entity logLine : logStatements.result()) {
-          if (asText) {
-            logAsText.append(logLine.toString()).append(System.lineSeparator());
-          } else {
-            logLines.add(logLine.asJson());
-          }
-        }
-        if (asText) {
-          responseText(request.routingContext, 200).end(logAsText.toString());
-        } else {
-          db.getCount(queryFromCql.getCountingSql()).onComplete(count -> {
-            responseJson.put("totalRecords", count.result());
-            responseJson(request.routingContext(), 200).end(responseJson.encodePrettily());
-          });
-        }
-      }
-    }).mapEmpty();
-  }
-
-  private Future<Channel> getChannelByTagOrUuid(ServiceRequest request, String channelIdentifier) {
-    ModuleStorageAccess db = request.moduleStorageAccess();
-    SqlQuery queryFromCql = new Channel().cqlToSql(
-        channelIdentifier.length() > 24 ? "id==" + channelIdentifier : "tag==" + channelIdentifier, "0", "1",
-        db.schemaDotTable(Tables.CHANNEL), new Channel().getQueryableFields());
-    return db.getEntities(queryFromCql.getQueryWithLimits(), new Channel()).map(entities -> {
-      if (entities.isEmpty()) {
-        return null;
-      } else {
-        return (Channel) (entities.getFirst());
-      }
-    });
-  }
-
-  private Future<List<Channel>> getDeployableChannels(ServiceRequest request) {
-    ModuleStorageAccess db = request.moduleStorageAccess();
-    SqlQuery queryFromCql = new Channel().cqlToSql("enabled==true", "0", "100",
-        db.schemaDotTable(Tables.CHANNEL), new Channel().getQueryableFields());
-    return db.getEntities(queryFromCql.getQueryWithLimits(), new Channel())
-        .compose(entities -> {
-          List<Channel> deployableChannels = entities.stream().map(entity -> (Channel) entity)
-              .filter(channel -> !channel.isCommissioned()).toList();
-          return Future.succeededFuture(deployableChannels);
-        });
-  }
-
-  private Future<Void> getFailedRecords(ServiceRequest request) {
-    ModuleStorageAccess db = request.moduleStorageAccess();
-    SqlQuery queryFromCql = new RecordFailure()
-        .cqlToSql(request, db.schemaDotTable(Tables.RECORD_FAILURE_VIEW)).withDefaultLimit("100");
-    String jobId = request.requestParam("id");
-    String from = request.queryParam("from");
-    String until = request.queryParam("until");
-
-    String timeRange = null;
-    if (from != null && until != null) {
-      timeRange = " (time_stamp >= '" + from + "'  AND time_stamp <= '" + until + "') ";
-    } else if (from != null) {
-      timeRange = " time_stamp >= '" + from + "' ";
-    } else if (until != null) {
-      timeRange = " time_stamp <= '" + until + "' ";
-    }
-
-    if (jobId != null) {
-      queryFromCql.withAdditionalWhereClause("import_job_id = '" + jobId + "'");
-    }
-    if (timeRange != null) {
-      queryFromCql.withAdditionalWhereClause(timeRange);
-    }
-
-    return db.getEntities(queryFromCql.getQueryWithLimits(), new RecordFailure()).onComplete(failuresList -> {
-      if (failuresList.succeeded()) {
-        JsonObject responseJson = new JsonObject();
-        JsonArray recordFailures = new JsonArray();
-        responseJson.put("failedRecords", recordFailures);
-        List<Entity> failures = failuresList.result();
-        for (Entity failure : failures) {
-          recordFailures.add(failure.asJson());
-        }
-        db.getCount(queryFromCql.getCountingSql()).onComplete(count -> {
-          responseJson.put("totalRecords", count.result());
-          responseJson(request.routingContext(), 200).end(responseJson.encodePrettily());
-        });
-      }
-    }).mapEmpty();
-  }
-
-  private Future<Void> postFailedRecords(ServiceRequest request) {
-    JsonArray recs = request.bodyAsJson().getJsonArray(new RecordFailure().jsonCollectionName());
-    List<Entity> failedRecs = new ArrayList<>();
-    for (Object o : recs) {
-      failedRecs.add(new RecordFailure().fromJson((JsonObject) o).withCreatingUser(request.currentUser()));
-    }
-    return request.moduleStorageAccess().storeEntities(failedRecs)
-        .onSuccess(configId ->
-            responseJson(request.routingContext(), 201).end(failedRecs.size() + " record failures logged."))
-        .mapEmpty();
-  }
-
-  private Future<Void> deleteRecordFailure(ServiceRequest request) {
-    return deleteEntity(request, new RecordFailure());
-  }
-
-  private Future<Void> purgeAgedLogs(ServiceRequest request) {
-    logger.info("Running timer process: purge aged logs");
-    final String settings_scope = "mod-inventory-import";
-    final String settings_key = "PURGE_LOGS_AFTER";
-    SettingsClient.getStringValue(request.routingContext(), settings_scope, settings_key).onComplete(settingsValue -> {
-      if (settingsValue.result() != null) {
-        applyPurgeOfPastJobs(request, settingsValue.result());
-      } else {
-        final String configs_module = "mod-inventory-import";
-        final String configs_config_name = "PURGE_LOGS_AFTER";
-        ConfigurationsClient.getStringValue(request.routingContext(), configs_module, configs_config_name)
-            .onComplete(configsValue -> applyPurgeOfPastJobs(request, configsValue.result()));
-      }
-    });
-    return Future.succeededFuture();
-  }
-
-  private void applyPurgeOfPastJobs(ServiceRequest request, String purgeSetting) {
-    Period ageForDeletion = Miscellaneous.getPeriod(purgeSetting, 3, "MONTHS");
-    LocalDateTime untilDate = SettableClock.getLocalDateTime().minus(ageForDeletion).truncatedTo(ChronoUnit.MINUTES);
-    logger.info("Running timer process: purging aged logs from before {}", untilDate);
-    request.moduleStorageAccess().purgePreviousJobsByAge(untilDate)
-        .onComplete(x -> request.routingContext().response().setStatusCode(204).end()).mapEmpty();
-  }
-
-  private Future<Void> postStep(ServiceRequest request) {
-    Step step = new Step().fromJson(request.bodyAsJson());
-    String validationResponse = step.validateScriptAsXml();
-    if (validationResponse.equals("OK")) {
-      return storeEntityRespondWith201(request, step);
-    } else {
-      return Future.failedFuture(validationResponse);
-    }
-  }
-
-  private Future<Void> putStep(ServiceRequest request) {
-    Step step = new Step().fromJson(request.bodyAsJson());
-    String validationResponse = step.validateScriptAsXml();
-    if (validationResponse.equals("OK")) {
-      UUID id = UUID.fromString(request.requestParam("id"));
-      return request.moduleStorageAccess().updateEntity(id, step.withUpdatingUser(request.currentUser()))
-          .onSuccess(result -> {
-            if (result.rowCount() == 1) {
-              responseText(request.routingContext(), 204).end();
-            } else {
-              responseText(request.routingContext(), 404).end("Not found");
-            }
-          }).mapEmpty();
-    } else {
-      return Future.failedFuture(validationResponse);
-    }
-  }
-
-  private Future<Void> getSteps(ServiceRequest request) {
-    return getEntities(request, new Step());
-  }
-
-  private Future<Void> getStepById(ServiceRequest request) {
-    return getEntity(request, new Step());
-  }
-
-  private Future<Void> deleteStep(ServiceRequest request) {
-    return deleteEntity(request, new Step());
-  }
-
-  private Future<Void> getScript(ServiceRequest request) {
-
-    return request.moduleStorageAccess().getScript(request)
-        .onSuccess(script -> responseText(request.routingContext(), 200).end(script)).mapEmpty();
-  }
-
-  private Future<Void> putScript(ServiceRequest request) {
-    String validationResponse = Step.validateScriptAsXml(request.bodyAsString());
-    if (validationResponse.equals("OK")) {
-      return request.moduleStorageAccess().putScript(request)
-          .onSuccess(script -> responseText(request.routingContext(), 204).end()).mapEmpty();
-    } else {
-      return Future.failedFuture(validationResponse);
-    }
-  }
-
-  private Future<Void> postTransformation(ServiceRequest request) {
-    Transformation transformation = new Transformation().fromJson(request.bodyAsJson());
-    return request.moduleStorageAccess().storeEntity(transformation.withCreatingUser(request.currentUser()))
-        .compose(transformationId ->
-            request.moduleStorageAccess().storeEntities(transformation.getListOfTransformationSteps()))
-        .onSuccess(res -> responseText(request.routingContext(), 201).end(transformation.asJson().encodePrettily()));
-  }
-
-  private Future<Void> getTransformationById(ServiceRequest request) {
-    return getEntity(request, new Transformation());
-  }
-
-  private Future<Void> getTransformations(ServiceRequest request) {
-    return getEntities(request, new Transformation());
-  }
-
-  private Future<Void> updateTransformation(ServiceRequest request) {
-    Transformation transformation = new Transformation().fromJson(request.bodyAsJson());
-    UUID id = UUID.fromString(request.requestParam("id"));
-    return request.moduleStorageAccess().updateEntity(id, transformation.withUpdatingUser(request.currentUser()))
-        .onSuccess(result -> {
-          if (result.rowCount() == 1) {
-            if (transformation.containsListOfSteps()) {
-              new TransformationStep().deleteStepsOfTransformation(request, transformation.getRecord().id())
-                  .compose(ignore ->
-                      request.moduleStorageAccess().storeEntities(transformation.getListOfTransformationSteps()))
-                  .onSuccess(res -> responseText(request.routingContext(), 204).end());
-            } else {
-              responseText(request.routingContext(), 204).end();
-            }
-          } else {
-            responseText(request.routingContext(), 404).end("Not found");
-          }
-        }).mapEmpty();
-  }
-
-  private Future<Void> deleteTransformation(ServiceRequest request) {
-    return deleteEntity(request, new Transformation());
-  }
-
-  private Future<Void> postTransformationStep(ServiceRequest request) {
-    TransformationStep transformationStep = new TransformationStep().fromJson(request.bodyAsJson());
-    return transformationStep.createTsaRepositionSteps(request)
-        .onSuccess(result -> responseText(request.routingContext, 201).end());
-  }
-
-  private Future<Void> getTransformationStepById(ServiceRequest request) {
-    return getEntity(request, new TransformationStep());
-  }
-
-  private Future<Void> getTransformationSteps(ServiceRequest request) {
-    return getEntities(request, new TransformationStep());
-  }
-
-  private Future<Void> putTransformationStep(ServiceRequest request) {
-    TransformationStep transformationStep = new TransformationStep().fromJson(request.bodyAsJson());
-
-    UUID id = UUID.fromString(request.requestParam("id"));
-    return request.moduleStorageAccess().getEntity(id, transformationStep).compose(existingTsa -> {
-      if (existingTsa == null) {
-        responseText(request.routingContext, 404).end("Not found");
-      } else {
-        Integer positionOfExistingTsa = ((TransformationStep) existingTsa).getRecord().position();
-        transformationStep.updateTsaRepositionSteps(request, positionOfExistingTsa)
-            .onSuccess(result -> responseText(request.routingContext, 204).end());
-      }
-      return Future.succeededFuture();
-    });
-  }
-
-  private Future<Void> deleteTransformationStep(ServiceRequest request) {
-    UUID id = UUID.fromString(request.requestParam("id"));
-    ModuleStorageAccess db = request.moduleStorageAccess();
-    return db.getEntity(id, new TransformationStep()).compose(existingTsa -> {
-      if (existingTsa == null) {
-        responseText(request.routingContext, 404).end("Not found");
-      } else {
-        Integer positionOfExistingTsa = ((TransformationStep) existingTsa).getRecord().position();
-        ((TransformationStep) existingTsa).deleteTsaRepositionSteps(db.getTenantPool(), positionOfExistingTsa)
-            .onSuccess(result -> responseText(request.routingContext, 200).end());
-      }
-      return Future.succeededFuture();
-    });
-  }
-
   private Future<Void> uploadXmlSourceFile(ServiceRequest request) {
-
     final long fileStartTime = System.currentTimeMillis();
     String channelId = request.requestParam("id");
     String fileName = request.queryParam("filename", UUID.randomUUID() + ".xml");
@@ -707,125 +205,5 @@ public class ImportService implements RouterCreator, TenantInitHooks {
         }).mapEmpty();
       }
     }).mapEmpty();
-  }
-
-  private Future<Void> deployFileListener(ServiceRequest request) {
-    String channelId = request.requestParam("id");
-    return deployFileListener(request, channelId)
-        .onSuccess(response -> responseText(request.routingContext(), 200).end(response)).mapEmpty();
-  }
-
-  private Future<String> deployFileListener(ServiceRequest request, String channelId) {
-    return getChannelByTagOrUuid(request, channelId).compose(channel -> {
-      if (channel == null) {
-        return Future.succeededFuture("Could not find channel with id or tag [" + channelId + "] to deploy.");
-      } else {
-        return FileListeners.deployIfNotDeployed(request, channel);
-      }
-    });
-  }
-
-  private Future<Void> undeployFileListener(ServiceRequest request) {
-    String channelId = request.requestParam("id");
-    return getChannelByTagOrUuid(request, channelId).compose(channel -> {
-      if (channel != null) {
-        return FileListeners.undeployIfDeployed(request, channel)
-            .onSuccess(response -> responseText(request.routingContext(), 200).end(response)).mapEmpty();
-      } else {
-        return responseText(request.routingContext, 404)
-            .end("Found no channel with tag or id " + channelId + " to undeploy.").mapEmpty();
-      }
-    });
-  }
-
-  private Future<Void> recoverChannels(ServiceRequest request) {
-    return getDeployableChannels(request).compose(channels -> {
-      if (channels.isEmpty()) {
-        return responseText(request.routingContext, 200).end("Found no channels to re-deploy").mapEmpty();
-      } else {
-        List<Future<String>> deploymentFutures = new ArrayList<>();
-        for (Channel channel : channels) {
-          deploymentFutures.add(deployFileListener(request, channel.getId().toString()));
-        }
-        return Future.join(deploymentFutures)
-            .compose(deployments -> responseText(request.routingContext, 200)
-                .end("Deployed: " + deployments.list().toString()));
-      }
-    });
-  }
-
-  private Future<Void> pauseImportJob(ServiceRequest request) {
-    String channelId = request.requestParam("id");
-    return getChannelByTagOrUuid(request, channelId).compose(channel -> {
-      if (channel == null) {
-        return responseText(request.routingContext, 404)
-            .end("Found no channel with tag or id " + channelId + " to undeploy.").mapEmpty();
-      } else {
-        UUID channelUuid = channel.getId();
-        if (FileListeners.hasFileListener(request.tenant(), channelUuid.toString())) {
-          FileProcessor job = FileListeners.getFileListener(request.tenant(), channelUuid.toString()).getImportJob();
-          if (job == null) {
-            return responseText(request.routingContext(), 404)
-                .end("No current job found for this channel, [" + channelUuid + "].");
-          } else {
-            if (job.paused()) {
-              return responseText(request.routingContext(), 200)
-                  .end("The job was already paused for channel [" + channelUuid + "].");
-            } else {
-              job.pause();
-              return responseText(request.routingContext(), 200)
-                  .end("Processing paused for channel [" + channelUuid + "].");
-            }
-          }
-        } else {
-          return responseText(request.routingContext(), 200)
-              .end("Channel is not commissioned [" + channelUuid + "].");
-        }
-      }
-    });
-  }
-
-  private Future<Void> resumeImportJob(ServiceRequest request) {
-    String channelId = request.requestParam("id");
-    return getChannelByTagOrUuid(request, channelId).compose(channel -> {
-      if (channel == null) {
-        return responseText(request.routingContext, 404)
-            .end("Found no channel with tag or id " + channelId + " to undeploy.").mapEmpty();
-      } else {
-        UUID channelUuid = channel.getId();
-        if (FileListeners.hasFileListener(request.tenant(), channelUuid.toString())) {
-          FileProcessor job = FileListeners.getFileListener(request.tenant(), channelUuid.toString()).getImportJob();
-          if (job == null) {
-            return responseText(request.routingContext(), 404)
-                .end("No current job found for this channel, [" + channelUuid + "].");
-          } else {
-            if (job.paused()) {
-              job.resume();
-              return responseText(request.routingContext(), 200)
-                  .end("Processing resumed for channel [" + channelId + "].");
-            } else {
-              return responseText(request.routingContext(), 200)
-                  .end("A job is already running in channel [" + channelId + "].");
-            }
-          }
-        } else {
-          return responseText(request.routingContext(), 200)
-              .end("Channel is not commissioned [" + channelUuid + "].");
-        }
-      }
-    });
-  }
-
-  private Future<Void> initFileSystemQueue(ServiceRequest request) {
-    String channelId = request.requestParam("id");
-    return getChannelByTagOrUuid(request, channelId).compose(channel -> {
-      if (channel != null) {
-        String initMessage = new FileQueue(request, channelId).initializeQueue();
-        return responseText(request.routingContext(), 200).end(initMessage).mapEmpty();
-      } else {
-        return responseText(request.routingContext(), 404)
-            .end("Could not find channel [" + channelId + "].").mapEmpty();
-      }
-    });
   }
 }

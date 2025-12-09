@@ -1,4 +1,4 @@
-package org.folio.inventoryupdate.importing.service.fileimport.transformation;
+package org.folio.inventoryupdate.importing.service.provisioning.fileimport.transformation;
 
 import io.vertx.core.Future;
 import io.vertx.core.Promise;
@@ -23,8 +23,8 @@ import org.folio.inventoryupdate.importing.moduledata.Entity;
 import org.folio.inventoryupdate.importing.moduledata.Step;
 import org.folio.inventoryupdate.importing.moduledata.TransformationStep;
 import org.folio.inventoryupdate.importing.moduledata.database.ModuleStorageAccess;
-import org.folio.inventoryupdate.importing.service.fileimport.ProcessingRecord;
-import org.folio.inventoryupdate.importing.service.fileimport.RecordReceiver;
+import org.folio.inventoryupdate.importing.service.provisioning.fileimport.ProcessingRecord;
+import org.folio.inventoryupdate.importing.service.provisioning.fileimport.RecordReceiver;
 
 /**
  * An XSLT transformation pipeline with an XML to JSON conversion at the end.

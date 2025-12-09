@@ -1,4 +1,4 @@
-package org.folio.inventoryupdate.importing.service.fileimport.upsertclient;
+package org.folio.inventoryupdate.importing.service.provisioning.fileimport.upsertclient;
 
 import io.vertx.core.Future;
 import io.vertx.core.json.JsonArray;

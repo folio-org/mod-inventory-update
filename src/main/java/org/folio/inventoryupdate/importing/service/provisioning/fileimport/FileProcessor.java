@@ -1,4 +1,4 @@
-package org.folio.inventoryupdate.importing.service.fileimport;
+package org.folio.inventoryupdate.importing.service.provisioning.fileimport;
 
 import io.vertx.core.Future;
 import java.io.File;
@@ -6,7 +6,7 @@ import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
 import org.folio.inventoryupdate.importing.moduledata.ImportJob;
 import org.folio.inventoryupdate.importing.moduledata.database.ModuleStorageAccess;
-import org.folio.inventoryupdate.importing.service.fileimport.reporting.Reporting;
+import org.folio.inventoryupdate.importing.service.provisioning.fileimport.reporting.Reporting;
 import org.folio.inventoryupdate.importing.utils.SettableClock;
 
 public abstract class FileProcessor {

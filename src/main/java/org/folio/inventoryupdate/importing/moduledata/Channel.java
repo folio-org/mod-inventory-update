@@ -8,7 +8,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 import org.folio.inventoryupdate.importing.moduledata.database.Tables;
-import org.folio.inventoryupdate.importing.service.fileimport.FileListeners;
+import org.folio.inventoryupdate.importing.service.provisioning.fileimport.FileListeners;
 import org.folio.tlib.postgres.TenantPgPool;
 
 public class Channel extends Entity {

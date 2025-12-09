@@ -1,15 +1,15 @@
-package org.folio.inventoryupdate.importing.service.fileimport.reporting;
+package org.folio.inventoryupdate.importing.service.provisioning.fileimport.reporting;
 
-import static org.folio.inventoryupdate.importing.service.fileimport.reporting.InventoryMetrics.Entity.HOLDINGS_RECORD;
-import static org.folio.inventoryupdate.importing.service.fileimport.reporting.InventoryMetrics.Entity.INSTANCE;
-import static org.folio.inventoryupdate.importing.service.fileimport.reporting.InventoryMetrics.Entity.ITEM;
-import static org.folio.inventoryupdate.importing.service.fileimport.reporting.InventoryMetrics.Outcome.COMPLETED;
-import static org.folio.inventoryupdate.importing.service.fileimport.reporting.InventoryMetrics.Outcome.FAILED;
-import static org.folio.inventoryupdate.importing.service.fileimport.reporting.InventoryMetrics.Outcome.SKIPPED;
-import static org.folio.inventoryupdate.importing.service.fileimport.reporting.InventoryMetrics.Transaction.CREATE;
-import static org.folio.inventoryupdate.importing.service.fileimport.reporting.InventoryMetrics.Transaction.DELETE;
-import static org.folio.inventoryupdate.importing.service.fileimport.reporting.InventoryMetrics.Transaction.PROVISIONAL_INSTANCE;
-import static org.folio.inventoryupdate.importing.service.fileimport.reporting.InventoryMetrics.Transaction.UPDATE;
+import static org.folio.inventoryupdate.importing.service.provisioning.fileimport.reporting.InventoryMetrics.Entity.HOLDINGS_RECORD;
+import static org.folio.inventoryupdate.importing.service.provisioning.fileimport.reporting.InventoryMetrics.Entity.INSTANCE;
+import static org.folio.inventoryupdate.importing.service.provisioning.fileimport.reporting.InventoryMetrics.Entity.ITEM;
+import static org.folio.inventoryupdate.importing.service.provisioning.fileimport.reporting.InventoryMetrics.Outcome.COMPLETED;
+import static org.folio.inventoryupdate.importing.service.provisioning.fileimport.reporting.InventoryMetrics.Outcome.FAILED;
+import static org.folio.inventoryupdate.importing.service.provisioning.fileimport.reporting.InventoryMetrics.Outcome.SKIPPED;
+import static org.folio.inventoryupdate.importing.service.provisioning.fileimport.reporting.InventoryMetrics.Transaction.CREATE;
+import static org.folio.inventoryupdate.importing.service.provisioning.fileimport.reporting.InventoryMetrics.Transaction.DELETE;
+import static org.folio.inventoryupdate.importing.service.provisioning.fileimport.reporting.InventoryMetrics.Transaction.PROVISIONAL_INSTANCE;
+import static org.folio.inventoryupdate.importing.service.provisioning.fileimport.reporting.InventoryMetrics.Transaction.UPDATE;
 
 import io.vertx.core.json.JsonObject;
 import java.util.Arrays;

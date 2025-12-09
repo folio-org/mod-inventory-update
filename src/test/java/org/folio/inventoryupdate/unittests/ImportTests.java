@@ -12,7 +12,7 @@ import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
 import org.folio.inventoryupdate.unittests.fixtures.Service;
-import org.folio.inventoryupdate.importing.service.fileimport.transformation.InventoryXmlToInventoryJson;
+import org.folio.inventoryupdate.importing.service.provisioning.fileimport.transformation.InventoryXmlToInventoryJson;
 import org.folio.inventoryupdate.unittests.fakestorage.FakeFolioApisForImporting;
 import org.folio.inventoryupdate.unittests.fixtures.Files;
 import org.folio.inventoryupdate.importing.utils.SettableClock;

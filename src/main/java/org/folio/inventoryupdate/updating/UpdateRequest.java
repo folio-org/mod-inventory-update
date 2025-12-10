@@ -13,14 +13,6 @@ public abstract class UpdateRequest {
   protected HttpServerRequest request;
   protected String requestPath;
 
-  public Vertx vertx() {
-    return vertx;
-  }
-
-  public String tenant () {
-    return tenant;
-  }
-
   public abstract JsonObject bodyAsJson();
 
   public abstract String bodyAsString();
@@ -29,20 +21,6 @@ public abstract class UpdateRequest {
 
   public OkapiClient getOkapiClient() {
     return InventoryStorage.getOkapiClient(routingContext);
-  }
-  public String queryParam(String paramName, String defaultValue) {
-    return queryParam(paramName) == null ? defaultValue : queryParam(paramName);
-  }
-  public String getHeader(String headerName) {
-    return request.getHeader(headerName);
-  }
-
-  public String absoluteURI () {
-    return request.absoluteURI();
-  }
-
-  public String path() {
-    return requestPath;
   }
 
   public RoutingContext routingContext() {

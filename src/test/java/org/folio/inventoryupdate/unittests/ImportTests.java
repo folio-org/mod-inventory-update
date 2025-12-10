@@ -1,5 +1,13 @@
 package org.folio.inventoryupdate.unittests;
 
+import static io.restassured.RestAssured.given;
+import static org.awaitility.Awaitility.await;
+import static org.folio.inventoryupdate.unittests.fixtures.Service.BASE_URI_INVENTORY_UPDATE;
+import static org.folio.inventoryupdate.unittests.fixtures.Service.PATH_CHANNELS;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
 import io.restassured.RestAssured;
 import io.restassured.builder.RequestSpecBuilder;
 import io.restassured.config.HttpClientConfig;
@@ -11,6 +19,7 @@ import io.restassured.specification.RequestSpecification;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
+import org.folio.inventoryupdate.importing.utils.Miscellaneous;
 import org.folio.inventoryupdate.unittests.fixtures.Service;
 import org.folio.inventoryupdate.importing.service.provisioning.fileimport.transformation.InventoryXmlToInventoryJson;
 import org.folio.inventoryupdate.unittests.fakestorage.FakeFolioApisForImporting;
@@ -23,25 +32,20 @@ import org.junit.runner.RunWith;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.testcontainers.containers.PostgreSQLContainer;
-
 import java.time.Clock;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.time.Period;
 import java.time.temporal.ChronoUnit;
 import java.time.ZonedDateTime;
 import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
-
-import static io.restassured.RestAssured.given;
-import static org.awaitility.Awaitility.await;
-import static org.folio.inventoryupdate.unittests.fixtures.Service.BASE_URI_INVENTORY_UPDATE;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.*;
 
 @RunWith(VertxUnitRunner.class)
 public class ImportTests extends InventoryUpdateTestBase {
@@ -353,8 +357,6 @@ public class ImportTests extends InventoryUpdateTestBase {
         assertThat(getRecordById(Service.PATH_TSAS, tsaId4).extract().path("position"), is(3));
         assertThat(getRecordById(Service.PATH_TSAS, tsaId5).extract().path("position"), is(4));
         deleteRecord(Service.PATH_TSAS, tsaId3, 404);
-
-
     }
 
     @Test
@@ -962,6 +964,27 @@ public class ImportTests extends InventoryUpdateTestBase {
     }
 
     @Test
+    public void testPeriodUtil() {
+      record Args(String periodAsText, int defaultAmount, String defaultUnit, String expectedPeriod) {}
+      List<Args> parameters = Arrays.asList(
+          new Args("2 MONTHS", 3, "MONTHS", "P2M"),
+          new Args("2 DAYS", 3, "MONTHS", "P2D"),
+          new Args("2 WEEKS", 3, "MONTHS", "P14D"),
+          new Args("GARBAGE", 3, "MONTHS", "P3M"),
+          new Args("GARBAGE", 3, "WEEKS", "P21D"),
+          new Args("GARBAGE", 3, "DAYS", "P3D"),
+          new Args("GARBAGE", 4, "MONTHS", "P4M"),
+          new Args("GARBAGE", 4, "WEEKS", "P28D"),
+          new Args("X MONTHS", 4, "DAYS", "P4D")
+      );
+      for (Args arg : parameters) {
+        Period period = Miscellaneous.getPeriod(arg.periodAsText, arg.defaultAmount, arg.defaultUnit);
+        assertThat("Period was null", period != null);
+        assertEquals(arg.expectedPeriod, period.toString());
+      }
+    }
+
+    @Test
     public void willPurgeAgedJobLogsUsingConfigurationsEntry() {
 
         createThreeImportJobReportsMonthsApart();
@@ -997,8 +1020,26 @@ public class ImportTests extends InventoryUpdateTestBase {
         getRecords(Service.PATH_IMPORT_JOBS).body("totalRecords", is(1));
     }
 
+    @Test
+    public void unsupportedQueryReturnsBadRequest() {
+      getRecords(PATH_CHANNELS+"?query=XYZ==ABC",400);
+    }
 
-    ValidatableResponse postJsonObject(String api, JsonObject body) {
+    @Test
+    public void invalidUuidReturnsBadRequest () {
+      given()
+          .baseUri(BASE_URI_INVENTORY_UPDATE)
+          .header(Service.OKAPI_TENANT)
+          .header(Service.OKAPI_URL)
+          .body(Files.JSON_CHANNEL.copy().put("transformationId","xyz").encodePrettily())
+          .header(CONTENT_TYPE_JSON)
+          .post(PATH_CHANNELS)
+          .then()
+          .statusCode(400);
+    }
+
+
+  ValidatableResponse postJsonObject(String api, JsonObject body) {
         return given()
                 .baseUri(BASE_URI_INVENTORY_UPDATE)
                 .header(Service.OKAPI_TENANT)
@@ -1064,6 +1105,17 @@ public class ImportTests extends InventoryUpdateTestBase {
                 .then()
                 .statusCode(200);
     }
+
+  ValidatableResponse getRecords(String api, int statusCode) {
+    return given()
+        .baseUri(BASE_URI_INVENTORY_UPDATE)
+        .header(Service.OKAPI_TENANT)
+        .header(Service.OKAPI_URL)
+        .get(api)
+        .then()
+        .statusCode(statusCode);
+  }
+
 
     Integer getTotalRecords(String api) {
         return new JsonObject(

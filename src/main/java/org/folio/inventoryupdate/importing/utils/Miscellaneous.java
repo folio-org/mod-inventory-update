@@ -36,7 +36,7 @@ public final class Miscellaneous {
         } catch (NumberFormatException nfe) {
           logger.error(
               "Could not resolve period from [{}]. Expected string on the format: "
-                  + "<number> DAY(S)|TAG(E)|WEEK(S)|WOCHE(N)|MONTH(S)|MONAT(E)", periodAsText);
+                  + "<number> DAY(S)|WEEK(S)|MONTH(S)", periodAsText);
         }
       }
     }

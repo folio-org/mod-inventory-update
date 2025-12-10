@@ -92,8 +92,8 @@ paths:
               $ref: "#/components/schemas/channel"
         required: true
       responses:
-        "204":
-          description:  No content
+        "200":
+          description:  OK
         "400":
           $ref: "#/components/responses/trait_400"
         "404":

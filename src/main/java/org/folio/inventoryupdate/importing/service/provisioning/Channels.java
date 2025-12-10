@@ -63,20 +63,19 @@ public final class Channels {
                   if (channel.isEnabled() && channel.isCommissioned()) {
                     FileListener listener = FileListeners.getFileListener(request.tenant(), id.toString());
                     listener.updateChannel(channel);
-                    return responseText(request.routingContext(), 204).end();
+                    return responseText(request.routingContext(), 200).end();
                   } else if (!channel.isEnabled() && channel.isCommissioned()) {
-                    FileListener listener = FileListeners.getFileListener(request.tenant(), id.toString());
-                    return listener.undeploy().map(
-                        na -> responseText(request.routingContext(), 204).end()).mapEmpty();
+                    return FileListeners.undeployIfDeployed(request, channel).map(
+                        na -> responseText(request.routingContext(), 200).end()).mapEmpty();
                   } else if (channel.isEnabled() && !channel.isCommissioned()) {
                     return FileListeners.deployIfNotDeployed(request, channel)
                         .map(message -> responseText(request.routingContext(), 200).end(message)).mapEmpty();
                   } else {
-                    return responseText(request.routingContext(), 204).end();
+                    return responseText(request.routingContext(), 200).end();
                   }
                 });
           } else {
-            responseText(request.routingContext(), 404).end("Import config to update not found");
+            responseText(request.routingContext(), 404).end("Channel config to update not found");
           }
         }).mapEmpty();
   }
@@ -147,6 +146,7 @@ public final class Channels {
     // If channel recovery was not already requested once
     // OR if this is an explicit user request (as opposed to a system request),
     // then do attempt recovery.
+    System.out.println("current user " + request.currentUser());
     if (!channelsAlreadyBootstrapped.getAndSet(true) || request.currentUser() != null) {
       return getDeployableChannels(request).compose(channels -> {
         if (channels.isEmpty()) {

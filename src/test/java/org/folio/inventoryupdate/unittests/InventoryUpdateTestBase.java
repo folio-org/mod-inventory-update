@@ -94,13 +94,11 @@ public abstract class InventoryUpdateTestBase {
     vertx.deployVerticle(new MainVerticle(), new DeploymentOptions())
         .onComplete(testContext.asyncAssertSuccess(x ->
             fakeFolioApis = new FakeFolioApisForImporting(vertx, testContext)));
-    vertx.fileSystem().deleteRecursive(FileQueue.SOURCE_FILES_ROOT_DIR);
   }
 
   @AfterClass
   public static void tearDown(TestContext context) {
     vertx.close().onComplete(context.asyncAssertSuccess());
-    vertx.fileSystem().deleteRecursive(FileQueue.SOURCE_FILES_ROOT_DIR);
   }
 
   @Before

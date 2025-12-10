@@ -33,18 +33,21 @@
             "inventory-storage.items.item.put",
             "inventory-storage.items.item.delete",
             "inventory-storage.items.batch.post",
+            "inventory-storage.items.batch.synchronous.post",
             "inventory-storage.holdings.collection.get",
             "inventory-storage.holdings.item.get",
             "inventory-storage.holdings.item.post",
             "inventory-storage.holdings.item.put",
             "inventory-storage.holdings.item.delete",
             "inventory-storage.holdings.batch.post",
+            "inventory-storage.holdings.batch.synchronous.post",
             "inventory-storage.instances.collection.get",
             "inventory-storage.instances.item.get",
             "inventory-storage.instances.item.post",
             "inventory-storage.instances.item.put",
             "inventory-storage.instances.item.delete",
             "inventory-storage.instances.batch.post",
+            "inventory-storage.instances.batch.synchronous.post",
             "inventory-storage.locations.collection.get",
             "inventory-storage.locations.item.get",
             "inventory-storage.preceding-succeeding-titles.collection.get",
@@ -531,6 +534,18 @@
             "cron": "0 2 * * *",
             "zone": "CET"
           }
+        },
+        {
+          "methods": [
+            "POST"
+          ],
+          "pathPattern": "/inventory-import/recover-interrupted-channels",
+          "modulePermissions": [
+            "modperms.inventory-update.import"
+          ],
+          "schedule": {
+            "cron": "* * * * *"
+          }
         }
       ]
     }
@@ -853,18 +868,21 @@
         "inventory-storage.items.item.put",
         "inventory-storage.items.item.delete",
         "inventory-storage.items.batch.post",
+        "inventory-storage.items.batch.synchronous.post",
         "inventory-storage.holdings.collection.get",
         "inventory-storage.holdings.item.get",
         "inventory-storage.holdings.item.post",
         "inventory-storage.holdings.item.put",
         "inventory-storage.holdings.item.delete",
         "inventory-storage.holdings.batch.post",
+        "inventory-storage.holdings.batch.synchronous.post",
         "inventory-storage.instances.collection.get",
         "inventory-storage.instances.item.get",
         "inventory-storage.instances.item.post",
         "inventory-storage.instances.item.put",
         "inventory-storage.instances.item.delete",
         "inventory-storage.instances.batch.post",
+        "inventory-storage.instances.batch.synchronous.post",
         "inventory-storage.locations.collection.get",
         "inventory-storage.locations.item.get",
         "inventory-storage.preceding-succeeding-titles.collection.get",

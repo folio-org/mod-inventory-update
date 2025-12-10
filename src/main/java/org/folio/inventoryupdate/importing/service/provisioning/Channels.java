@@ -10,6 +10,7 @@ import io.vertx.core.Future;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicBoolean;
 import org.folio.inventoryupdate.importing.moduledata.Channel;
 import org.folio.inventoryupdate.importing.moduledata.database.ModuleStorageAccess;
 import org.folio.inventoryupdate.importing.moduledata.database.SqlQuery;
@@ -20,6 +21,8 @@ import org.folio.inventoryupdate.importing.service.provisioning.fileimport.FileL
 import org.folio.inventoryupdate.importing.service.provisioning.fileimport.FileQueue;
 
 public final class Channels {
+
+  private static final AtomicBoolean channelsAlreadyBootstrapped = new AtomicBoolean(false);
 
   private Channels() {
     throw new IllegalStateException("Static storage utilities");
@@ -141,19 +144,26 @@ public final class Channels {
   }
 
   public static Future<Void> recoverChannels(ServiceRequest request) {
-    return getDeployableChannels(request).compose(channels -> {
-      if (channels.isEmpty()) {
-        return responseText(request.routingContext(), 200).end("Found no channels to re-deploy").mapEmpty();
-      } else {
-        List<Future<String>> deploymentFutures = new ArrayList<>();
-        for (Channel channel : channels) {
-          deploymentFutures.add(deployFileListener(request, channel.getId().toString()));
+    // If channel recovery was not already requested once
+    // OR if this is an explicit user request (as opposed to a system request),
+    // then do attempt recovery.
+    if (!channelsAlreadyBootstrapped.getAndSet(true) || request.currentUser() != null) {
+      return getDeployableChannels(request).compose(channels -> {
+        if (channels.isEmpty()) {
+          return responseText(request.routingContext(), 200).end("Found no channels to re-deploy").mapEmpty();
+        } else {
+          List<Future<String>> deploymentFutures = new ArrayList<>();
+          for (Channel channel : channels) {
+            deploymentFutures.add(deployFileListener(request, channel.getId().toString()));
+          }
+          return Future.join(deploymentFutures)
+              .compose(deployments -> responseText(request.routingContext(), 200)
+                  .end("Deployed: " + deployments.list().toString()));
         }
-        return Future.join(deploymentFutures)
-            .compose(deployments -> responseText(request.routingContext(), 200)
-                .end("Deployed: " + deployments.list().toString()));
-      }
-    });
+      });
+    } else {
+      return Future.succeededFuture();
+    }
   }
 
   public static Future<Void> initFileSystemQueue(ServiceRequest request) {

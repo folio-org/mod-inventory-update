@@ -146,7 +146,6 @@ public final class Channels {
     // If channel recovery was not already requested once
     // OR if this is an explicit user request (as opposed to a system request),
     // then do attempt recovery.
-    System.out.println("current user " + request.currentUser());
     if (!channelsAlreadyBootstrapped.getAndSet(true) || request.currentUser() != null) {
       return getDeployableChannels(request).compose(channels -> {
         if (channels.isEmpty()) {

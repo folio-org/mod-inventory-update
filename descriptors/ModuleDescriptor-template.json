@@ -501,6 +501,14 @@
           ]
         },
         {
+          "methods": ["POST"],
+          "pathPattern": "/inventory-import/channels/{id}/cancel-job",
+          "permissionsRequired": ["inventory-update.import.cancel-job.post"],
+          "modulePermissions": [
+            "modperms.inventory-update.import"
+          ]
+        },
+        {
           "pathPattern": "/inventory-import/channels/{id}/init-queue",
           "methods": ["POST"],
           "permissionsRequired": ["inventory-update.import.init-queue.post"]
@@ -826,6 +834,11 @@
       "description": "Imports: Activate a paused job to resume importing from the file queue"
     },
     {
+      "permissionName": "inventory-update.import.cancel-job.post",
+      "displayName": "Cancel an import job in progress",
+      "description": "Imports: Cancel a running job"
+    },
+    {
       "permissionName": "inventory-update.import.init-queue.post",
       "displayName": "Initiate or reset source file queue for import job",
       "description": "Imports: Create new source file queue or clear existing queue for given channel configuration"
@@ -959,6 +972,7 @@
         "inventory-update.import.recover-interrupted-channels",
         "inventory-update.import.pause-job.post",
         "inventory-update.import.resume-job.post",
+        "inventory-update.import.cancel-job.post",
         "inventory-update.import.init-queue.post",
 
         "mod-settings.global.read.mod-inventory-update",

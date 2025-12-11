@@ -158,6 +158,12 @@ paths:
         description: Channel identifier (UUID)
         schema:
           type: string
+      - in: query
+        name: retainQueue
+        required: false
+        description: Use past file queue if any found in the file system, defaults to false, meaning create new empty queue.
+        schema:
+          type: string
     post:
       operationId: deployFileListener
       description: start verticle that listens for incoming source records in given channel
@@ -180,6 +186,12 @@ paths:
         name: id
         required: true
         description: Channel identifier (UUID)
+        schema:
+          type: string
+      - in: query
+        name: retainQueue
+        required: false
+        description: Keep the existing file queue and source files if any. Defaults to false, meaning delete the queue.
         schema:
           type: string
     post:
@@ -208,7 +220,7 @@ paths:
           type: string
     post:
       operationId: pauseJob
-      description: pause file processing for given config ID
+      description: pause file processing for a job in progress in the given channel
       responses:
         "200":
           description: OK
@@ -227,12 +239,36 @@ paths:
       - in: path
         name: id
         required: true
-        description: Import configuration identifier (UUID)
+        description: Channel identifier (UUID)
         schema:
           type: string
     post:
       operationId: resumeJob
-      description: resume file listening for given config ID
+      description: resume file processing for a paused job in the given channel
+      responses:
+        "200":
+          description: OK
+        "400":
+          $ref: "#/components/responses/trait_400"
+        "404":
+          $ref: "#/components/responses/trait_404"
+        "500":
+          $ref: "#/components/responses/trait_500"
+
+  /inventory-import/channels/{id}/cancel-job:
+    parameters:
+      - $ref: "#/components/parameters/okapi_tenant"
+      - $ref: "#/components/parameters/okapi_token"
+      - $ref: "#/components/parameters/okapi_url"
+      - in: path
+        name: id
+        required: true
+        description: Channel identifier (UUID)
+        schema:
+          type: string
+    post:
+      operationId: cancelJob
+      description: Not implemented (cancel a job in progress in the given channel)
       responses:
         "200":
           description: OK
@@ -256,7 +292,7 @@ paths:
           type: string
     post:
       operationId: initFileSystemQueue
-      description: create new file system queue or delete all sources files from an existing queue for the given channel
+      description: create new file system queue, possibly deleting all sources files in an existing queue for the given channel
       responses:
         "200":
           description: All files deleted from the queue
@@ -818,7 +854,7 @@ paths:
           $ref: "#/components/responses/trait_500"
     delete:
       operationId: deleteTsas
-      description: Delete all transformation step associations
+      description: Not implemented (delete all transformation step associations)
       responses:
         "204":
           description: No content

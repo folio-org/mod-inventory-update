@@ -81,10 +81,15 @@ public final class Channels {
   }
 
   public static Future<Void> deleteChannel(ServiceRequest request) {
-    return deleteEntity(request, new Channel()).compose(na -> {
-      new FileQueue(request, request.requestParam("id")).deleteDirectoriesIfExist();
-      return undeployFileListener(request);
-    }).mapEmpty();
+    String channelId = request.requestParam("id");
+    return getChannelByTagOrUuid(request, channelId).compose(channel -> {
+      if (channel == null) {
+        return responseText(request.routingContext(), 404)
+            .end("Found no channel with tag or id " + channelId + " to delete.").mapEmpty();
+      } else {
+        return deleteEntity(request, new Channel()).compose(na -> undeployFileListener(request)).mapEmpty();
+      }
+    });
   }
 
   public static Future<Void> deployFileListener(ServiceRequest request) {
@@ -96,7 +101,8 @@ public final class Channels {
   public static Future<String> deployFileListener(ServiceRequest request, String channelId) {
     return getChannelByTagOrUuid(request, channelId).compose(channel -> {
       if (channel == null) {
-        return Future.succeededFuture("Could not find channel with id or tag [" + channelId + "] to deploy.");
+        return responseText(request.routingContext(), 404)
+            .end("Found no channel with tag or id " + channelId + " to deploy.").mapEmpty();
       } else {
         return FileListeners.deployIfNotDeployed(request, channel);
       }
@@ -161,7 +167,7 @@ public final class Channels {
         }
       });
     } else {
-      return Future.succeededFuture();
+      return responseText(request.routingContext(), 200).end();
     }
   }
 

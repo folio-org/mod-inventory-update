@@ -38,9 +38,17 @@ public final class FileListeners {
 
   public static Future<String> deployIfNotDeployed(ServiceRequest request, Channel channel) {
     Promise<String> promise = Promise.promise();
+    boolean retainQueueIfAny = "true".equalsIgnoreCase(request.requestParam("retainQueue"));
     String cfgId = channel.getRecord().id().toString();
     FileListener fileListener = FileListeners.getFileListener(request.tenant(), cfgId);
     if (fileListener == null) {
+      if (retainQueueIfAny) {
+        new FileQueue(request, cfgId).createDirectoriesIfNotExist();
+      } else {
+        FileQueue queue = new FileQueue(request, cfgId);
+        queue.deleteDirectoriesIfExist();
+        queue.createDirectoriesIfNotExist();
+      }
       FileListener listenerVerticle = addFileListener(request.tenant(), cfgId, new XmlFileListener(request, channel));
       return channel.setEnabledListening(true, channel.isListeningIfEnabled(), request.moduleStorageAccess())
           .compose(na -> new ImportJob().changeRunningToInterruptedByChannelId(request.moduleStorageAccess(), cfgId))
@@ -55,13 +63,24 @@ public final class FileListeners {
     return promise.future();
   }
 
+  /**
+   * If a verticle is deployed for the channel, un-deploys the verticle, deletes the file queue,
+   * and de-registers the channel from static list of deployed verticles.
+   * @return statement about the outcome of the operation
+   */
   public static Future<String> undeployIfDeployed(ServiceRequest request, Channel channel) {
     String cfgId = channel.getRecord().id().toString();
+    boolean retainQueue = "true".equalsIgnoreCase(request.requestParam("retainQueue"));
     FileListener fileListener = FileListeners.getFileListener(request.tenant(), cfgId);
     if (fileListener != null) {
-      return fileListener.undeploy()
-          .map(na -> FILE_LISTENERS.get(request.tenant())
-              .remove(cfgId)).map("Decommissioned channel " + channel.getRecord().name());
+      return channel.setEnabledListening(false, channel.isListeningIfEnabled(), request.moduleStorageAccess())
+          .compose(na -> fileListener.undeploy())
+          .map(na -> {
+            if (!retainQueue) {
+              new FileQueue(request, cfgId).deleteDirectoriesIfExist();
+            }
+            return FILE_LISTENERS.get(request.tenant()).remove(cfgId);
+          }).map("Decommissioned channel " + channel.getRecord().name());
     } else {
       return Future.succeededFuture(
           "Did not find channel [" + channel.getRecord().name() + "] in list of commissioned channels.");

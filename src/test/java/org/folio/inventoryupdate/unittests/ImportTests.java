@@ -572,6 +572,7 @@ public class ImportTests extends InventoryUpdateTestBase {
   @Test
   public void canPostGetPutDeleteChannel() {
     postJsonObject(Service.PATH_TRANSFORMATIONS, Files.JSON_TRANSFORMATION_CONFIG);
+    // Can create enabled channel
     postJsonObject(Service.PATH_CHANNELS, Files.JSON_CHANNEL);
     getRecords(Service.PATH_CHANNELS).body("totalRecords", is(1));
     JsonObject update = Files.JSON_CHANNEL.copy();
@@ -582,6 +583,8 @@ public class ImportTests extends InventoryUpdateTestBase {
     deleteRecord(Service.PATH_CHANNELS, Files.JSON_CHANNEL.getString("id"), 200);
     getRecords(Service.PATH_CHANNELS).body("totalRecords", is(0));
     deleteRecord(Service.PATH_CHANNELS, Files.JSON_CHANNEL.getString("id"), 404);
+    // Can create disabled channel
+    postJsonObject(PATH_CHANNELS, Files.JSON_CHANNEL.copy().put("enabled", false));
   }
 
   @Test
@@ -609,6 +612,47 @@ public class ImportTests extends InventoryUpdateTestBase {
     JsonObject channelAtLast = getEntityJsonById(PATH_CHANNELS, channelId);
     assertEquals(true, channelAtLast.getBoolean("enabled"));
     assertEquals(true, channelAtLast.getBoolean("isCommissioned"));
+  }
+
+  @Test
+  public void canDeCommissionAndCommissionChannel () {
+    postJsonObject(Service.PATH_TRANSFORMATIONS, Files.JSON_TRANSFORMATION_CONFIG);
+    String channelId = Files.JSON_CHANNEL.getString("id");
+    postJsonObject(Service.PATH_CHANNELS, Files.JSON_CHANNEL);
+    assertThat(getRecordById(Service.PATH_CHANNELS, channelId).extract().path("enabled"), is(true));
+    assertThat(getRecordById(Service.PATH_CHANNELS, channelId).extract().path("isCommissioned"), is(true));
+    given()
+        .baseUri(BASE_URI_INVENTORY_UPDATE)
+        .header(Service.OKAPI_TENANT)
+        .header(Service.OKAPI_URL)
+        .header(Service.OKAPI_TOKEN)
+        .post("/inventory-import/channels/" + channelId + "/decommission")
+        .then().statusCode(200);
+    assertThat(getRecordById(Service.PATH_CHANNELS, channelId).extract().path("enabled"), is(false));
+    assertThat(getRecordById(Service.PATH_CHANNELS, channelId).extract().path("isCommissioned"), is(false));
+    given()
+        .baseUri(BASE_URI_INVENTORY_UPDATE)
+        .header(Service.OKAPI_TENANT)
+        .header(Service.OKAPI_URL)
+        .header(Service.OKAPI_TOKEN)
+        .post("/inventory-import/channels/" + channelId + "/commission")
+        .then().statusCode(200);
+    assertThat(getRecordById(Service.PATH_CHANNELS, channelId).extract().path("enabled"), is(true));
+    assertThat(getRecordById(Service.PATH_CHANNELS, channelId).extract().path("isCommissioned"), is(true));
+    given()
+        .baseUri(BASE_URI_INVENTORY_UPDATE)
+        .header(Service.OKAPI_TENANT)
+        .header(Service.OKAPI_URL)
+        .header(Service.OKAPI_TOKEN)
+        .post("/inventory-import/channels/" + UUID.randomUUID() + "/commission")
+        .then().statusCode(404);
+    given()
+        .baseUri(BASE_URI_INVENTORY_UPDATE)
+        .header(Service.OKAPI_TENANT)
+        .header(Service.OKAPI_URL)
+        .header(Service.OKAPI_TOKEN)
+        .post("/inventory-import/channels/" + UUID.randomUUID() + "/decommission")
+        .then().statusCode(404);
 
   }
 
@@ -716,8 +760,14 @@ public class ImportTests extends InventoryUpdateTestBase {
         .header(Service.OKAPI_URL)
         .header(Service.OKAPI_TOKEN)
         .post("/inventory-import/channels/" + channelId + "/init-queue")
-        .then().statusCode(200)
-        .extract().response();
+        .then().statusCode(200);
+    given()
+        .baseUri(BASE_URI_INVENTORY_UPDATE)
+        .header(Service.OKAPI_TENANT)
+        .header(Service.OKAPI_URL)
+        .header(Service.OKAPI_TOKEN)
+        .post("/inventory-import/channels/" + UUID.randomUUID() + "/init-queue")
+        .then().statusCode(404);
   }
 
   @Test
@@ -729,6 +779,15 @@ public class ImportTests extends InventoryUpdateTestBase {
         .header(Service.OKAPI_URL)
         .header(Service.OKAPI_TOKEN)
         .header(Service.OKAPI_USER_ID)
+        .post("/inventory-import/recover-interrupted-channels")
+        .then().statusCode(200)
+        .extract().response();
+    // Even if already attempted
+    given()
+        .baseUri(BASE_URI_INVENTORY_UPDATE)
+        .header(Service.OKAPI_TENANT)
+        .header(Service.OKAPI_URL)
+        .header(Service.OKAPI_TOKEN)
         .post("/inventory-import/recover-interrupted-channels")
         .then().statusCode(200)
         .extract().response();
@@ -876,9 +935,26 @@ public class ImportTests extends InventoryUpdateTestBase {
     getRecordById(Service.PATH_CHANNELS, channelId);
     getRecordById(Service.PATH_TRANSFORMATIONS, transformationId);
 
+    // Attempt to pause when there is no running job.
+    given()
+        .baseUri(BASE_URI_INVENTORY_UPDATE)
+        .header(Service.OKAPI_TENANT)
+        .header(Service.OKAPI_URL)
+        .header(Service.OKAPI_TOKEN)
+        .post(Service.PATH_CHANNELS + "/" + channelTag + "/pause-job")
+        .then().statusCode(404).extract().response().prettyPrint();
+
+    // Attempt to resume where there is no running job
+    given()
+        .baseUri(BASE_URI_INVENTORY_UPDATE)
+        .header(Service.OKAPI_TENANT)
+        .header(Service.OKAPI_URL)
+        .header(Service.OKAPI_TOKEN)
+        .post(Service.PATH_CHANNELS + "/" + channelTag + "/resume-job")
+        .then().statusCode(404).extract().response().prettyPrint();
+
     Files.filesOfInventoryXmlRecords(5, 100, "200")
         .forEach(xml -> postSourceXml(Service.PATH_CHANNELS + "/" + channelId + "/upload", xml, 200));
-
     await().until(() -> getTotalRecords(Service.PATH_IMPORT_JOBS), is(1));
     String jobId = getRecords(Service.PATH_IMPORT_JOBS).extract().path("importJobs[0].id");
     await().until(() -> getTotalRecords(Service.PATH_JOB_LOGS), greaterThan(1));
@@ -889,8 +965,16 @@ public class ImportTests extends InventoryUpdateTestBase {
         .header(Service.OKAPI_URL)
         .header(Service.OKAPI_TOKEN)
         .post(Service.PATH_CHANNELS + "/" + channelTag + "/pause-job")
-        .then().statusCode(200)
-        .extract().response();
+        .then().statusCode(200);
+
+    // Attempt to pause already paused job
+    given()
+        .baseUri(BASE_URI_INVENTORY_UPDATE)
+        .header(Service.OKAPI_TENANT)
+        .header(Service.OKAPI_URL)
+        .header(Service.OKAPI_TOKEN)
+        .post(Service.PATH_CHANNELS + "/" + channelTag + "/pause-job")
+        .then().statusCode(404);
 
     String started = getRecordById(Service.PATH_IMPORT_JOBS, jobId).extract().path("started");
     await().until(() -> getRecordById(Service.PATH_IMPORT_JOBS, jobId).extract().path("status"), is("PAUSED"));
@@ -905,28 +989,60 @@ public class ImportTests extends InventoryUpdateTestBase {
         .header(Service.OKAPI_URL)
         .header(Service.OKAPI_TOKEN)
         .post(Service.PATH_CHANNELS + "/" + channelTag + "/resume-job")
-        .then().statusCode(200)
-        .extract().response();
+        .then().statusCode(200);
 
     await().until(() -> getRecordById(Service.PATH_IMPORT_JOBS, jobId).extract().path("status"), is("RUNNING"));
     await().until(() -> getRecordById(Service.PATH_IMPORT_JOBS, jobId).extract().path("finished"), greaterThan(started));
     getRecordById(Service.PATH_IMPORT_JOBS, jobId).body("amountImported", greaterThan(499));
     assertThat("Records stored", fakeFolioApis.instanceStorage.getRecordsInternally().size(), is(500));
 
-  }
+    // Resuming and pausing for non-existing channel
+    String randomId = UUID.randomUUID().toString();
+    assertThat(
+        given()
+            .baseUri(BASE_URI_INVENTORY_UPDATE)
+            .header(Service.OKAPI_TENANT)
+            .header(Service.OKAPI_URL)
+            .header(Service.OKAPI_TOKEN)
+            .post(Service.PATH_CHANNELS + "/" + randomId + "/resume-job")
+            .then().statusCode(404)
+            .extract().response().asPrettyString(),startsWith("Found no channel"));
+    assertThat(
+        given()
+            .baseUri(BASE_URI_INVENTORY_UPDATE)
+            .header(Service.OKAPI_TENANT)
+            .header(Service.OKAPI_URL)
+            .header(Service.OKAPI_TOKEN)
+            .post(Service.PATH_CHANNELS + "/" + randomId + "/pause-job")
+            .then().statusCode(404)
+            .extract().response().asPrettyString(),startsWith("Found no channel"));
 
-  @Test
-  public void canStartFileListener() {
-    configureSamplePipeline();
-    String channelId = Files.JSON_CHANNEL.getString("tag");
+    // Resuming and pausing for de-comissioned channel
     given()
         .baseUri(BASE_URI_INVENTORY_UPDATE)
         .header(Service.OKAPI_TENANT)
         .header(Service.OKAPI_URL)
         .header(Service.OKAPI_TOKEN)
-        .post(Service.PATH_CHANNELS + "/" + channelId + "/commission")
-        .then().statusCode(200)
-        .extract().response();
+        .post("/inventory-import/channels/" + channelId + "/decommission")
+        .then().statusCode(200);
+    assertThat(
+        given()
+            .baseUri(BASE_URI_INVENTORY_UPDATE)
+            .header(Service.OKAPI_TENANT)
+            .header(Service.OKAPI_URL)
+            .header(Service.OKAPI_TOKEN)
+            .post(Service.PATH_CHANNELS + "/" + channelId + "/pause-job")
+            .then().statusCode(404)
+            .extract().response().asPrettyString(),startsWith("Channel is not"));
+    assertThat(
+        given()
+            .baseUri(BASE_URI_INVENTORY_UPDATE)
+            .header(Service.OKAPI_TENANT)
+            .header(Service.OKAPI_URL)
+            .header(Service.OKAPI_TOKEN)
+            .post(Service.PATH_CHANNELS + "/" + channelId + "/resume-job")
+            .then().statusCode(404)
+            .extract().response().asPrettyString(),startsWith("Channel is not"));
   }
 
   @Test

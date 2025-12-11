@@ -58,7 +58,7 @@ public final class Channels {
     return request.moduleStorageAccess().updateEntity(id, inputChannel.withUpdatingUser(request.currentUser()))
         .onSuccess(result -> {
           if (result.rowCount() == 1) {
-            request.moduleStorageAccess().getEntity(id, new Channel()).map(entity -> (Channel) entity)
+            request.moduleStorageAccess().getEntity(id, new Channel()).map(Channel.class::cast)
                 .compose(channel -> {
                   if (channel.isEnabled() && channel.isCommissioned()) {
                     FileListener listener = FileListeners.getFileListener(request.tenant(), id.toString());
@@ -142,7 +142,7 @@ public final class Channels {
         db.schemaDotTable(Tables.CHANNEL), new Channel().getQueryableFields());
     return db.getEntities(queryFromCql.getQueryWithLimits(), new Channel())
         .compose(entities -> {
-          List<Channel> deployableChannels = entities.stream().map(entity -> (Channel) entity)
+          List<Channel> deployableChannels = entities.stream().map(Channel.class::cast)
               .filter(channel -> !channel.isCommissioned()).toList();
           return Future.succeededFuture(deployableChannels);
         });

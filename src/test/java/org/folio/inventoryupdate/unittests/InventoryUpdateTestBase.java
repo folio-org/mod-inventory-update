@@ -1,6 +1,5 @@
 package org.folio.inventoryupdate.unittests;
 
-import org.folio.inventoryupdate.importing.service.provisioning.fileimport.FileQueue;
 import org.folio.inventoryupdate.unittests.fakestorage.FakeApis;
 import org.folio.inventoryupdate.MainVerticle;
 import org.folio.inventoryupdate.unittests.fakestorage.FakeFolioApisForImporting;

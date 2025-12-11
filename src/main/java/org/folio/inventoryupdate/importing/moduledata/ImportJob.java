@@ -138,6 +138,10 @@ public class ImportJob extends Entity {
         JobStatus.RUNNING, SettableClock.getLocalDateTime().toString(), "", 0, "");
   }
 
+  public boolean markedRunning() {
+    return theRecord.status().equals(JobStatus.RUNNING);
+  }
+
   /**
    * Implement to map from request body JSON to entity POJO.
    *

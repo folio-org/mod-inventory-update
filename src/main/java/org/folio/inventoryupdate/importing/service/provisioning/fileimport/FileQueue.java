@@ -6,6 +6,8 @@ import io.vertx.core.file.CopyOptions;
 import io.vertx.core.file.FileSystem;
 import java.io.File;
 import java.util.Comparator;
+
+import io.vertx.core.file.FileSystemException;
 import org.folio.inventoryupdate.importing.service.ServiceRequest;
 
 public class FileQueue {
@@ -92,7 +94,16 @@ public class FileQueue {
    * @return true if the processing directory is occupied, false if it's ready for next file.
    */
   public boolean processingSlotTaken() {
-    return fs.readDirBlocking(jobProcessingSlot).stream().map(File::new).anyMatch(File::isFile);
+    try {
+      return fs.readDirBlocking(jobProcessingSlot).stream().map(File::new).anyMatch(File::isFile);
+    } catch (FileSystemException fse) {
+      if (fse.getMessage().contains("Does not exist")) {
+        createDirectoriesIfNotExist();
+        return false;
+      } else {
+        throw fse;
+      }
+    }
   }
 
   public boolean hasNextFile() {

@@ -196,7 +196,7 @@ public class ImportService implements RouterCreator, TenantInitHooks {
             .end("The channel with id or tag [" + channelId + "] is not ready to accept files.").mapEmpty();
       } else if (channel.isCommissioned()) {
         new FileQueue(request, channel.getId().toString()).addNewFile(fileName, xmlContent);
-        return responseText(request.routingContext, 204).end().mapEmpty();
+        return responseText(request.routingContext, 200).end().mapEmpty();
       } else {
         return FileListeners.deployIfNotDeployed(request, channel).onSuccess(ignore -> {
           new FileQueue(request, channel.getId().toString()).addNewFile(fileName, xmlContent);

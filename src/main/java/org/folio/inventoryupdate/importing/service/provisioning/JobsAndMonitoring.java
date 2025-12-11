@@ -245,26 +245,21 @@ public final class JobsAndMonitoring {
     return getChannelByTagOrUuid(request, channelId).compose(channel -> {
       if (channel == null) {
         return responseText(request.routingContext(), 404)
-            .end("Found no channel with tag or id " + channelId + " to undeploy.").mapEmpty();
+            .end("Found no channel with ID " + channelId + " to pause job for.").mapEmpty();
       } else {
         UUID channelUuid = channel.getId();
         if (FileListeners.hasFileListener(request.tenant(), channelUuid.toString())) {
-          FileProcessor job = FileListeners.getFileListener(request.tenant(), channelUuid.toString()).getImportJob();
-          if (job == null) {
+          FileProcessor processor = FileListeners.getFileListener(request.tenant(), channelUuid.toString()).getProcessor();
+          if (processor == null || !processor.getImportJob().markedRunning()) {
             return responseText(request.routingContext(), 404)
-                .end("No current job found for this channel, [" + channelUuid + "].");
+                .end("No running job to pause found for this channel, [" + channelUuid + "].");
           } else {
-            if (job.paused()) {
-              return responseText(request.routingContext(), 200)
-                  .end("The job was already paused for channel [" + channelUuid + "].");
-            } else {
-              job.pause();
+              processor.pause();
               return responseText(request.routingContext(), 200)
                   .end("Processing paused for channel [" + channelUuid + "].");
-            }
           }
         } else {
-          return responseText(request.routingContext(), 200)
+          return responseText(request.routingContext(), 404)
               .end("Channel is not commissioned [" + channelUuid + "].");
         }
       }
@@ -276,26 +271,21 @@ public final class JobsAndMonitoring {
     return getChannelByTagOrUuid(request, channelId).compose(channel -> {
       if (channel == null) {
         return responseText(request.routingContext(), 404)
-            .end("Found no channel with tag or id " + channelId + " to undeploy.").mapEmpty();
+            .end("Found no channel with ID " + channelId + " to resume job for.").mapEmpty();
       } else {
         UUID channelUuid = channel.getId();
         if (FileListeners.hasFileListener(request.tenant(), channelUuid.toString())) {
-          FileProcessor job = FileListeners.getFileListener(request.tenant(), channelUuid.toString()).getImportJob();
-          if (job == null) {
-            return responseText(request.routingContext(), 404)
-                .end("No current job found for this channel, [" + channelUuid + "].");
+          FileProcessor processor = FileListeners.getFileListener(request.tenant(), channelUuid.toString()).getProcessor();
+          if (processor != null && processor.paused()) {
+            processor.resume();
+            return responseText(request.routingContext(), 200)
+                .end("Processing resumed for channel [" + channelId + "].");
           } else {
-            if (job.paused()) {
-              job.resume();
-              return responseText(request.routingContext(), 200)
-                  .end("Processing resumed for channel [" + channelId + "].");
-            } else {
-              return responseText(request.routingContext(), 200)
-                  .end("A job is already running in channel [" + channelId + "].");
-            }
+            return responseText(request.routingContext(), 404)
+                .end("No paused job to resume found for this channel [" + channelId + "].");
           }
         } else {
-          return responseText(request.routingContext(), 200)
+          return responseText(request.routingContext(), 404)
               .end("Channel is not commissioned [" + channelUuid + "].");
         }
       }

@@ -58,34 +58,38 @@ public final class Channels {
     return request.moduleStorageAccess().updateEntity(id, inputChannel.withUpdatingUser(request.currentUser()))
         .onSuccess(result -> {
           if (result.rowCount() == 1) {
-            request.moduleStorageAccess().getEntity(id, new Channel()).map(entity -> (Channel) entity)
+            request.moduleStorageAccess().getEntity(id, new Channel()).map(Channel.class::cast)
                 .compose(channel -> {
                   if (channel.isEnabled() && channel.isCommissioned()) {
                     FileListener listener = FileListeners.getFileListener(request.tenant(), id.toString());
                     listener.updateChannel(channel);
-                    return responseText(request.routingContext(), 204).end();
+                    return responseText(request.routingContext(), 200).end();
                   } else if (!channel.isEnabled() && channel.isCommissioned()) {
-                    FileListener listener = FileListeners.getFileListener(request.tenant(), id.toString());
-                    return listener.undeploy().map(
-                        na -> responseText(request.routingContext(), 204).end()).mapEmpty();
+                    return FileListeners.undeployIfDeployed(request, channel).map(
+                        na -> responseText(request.routingContext(), 200).end()).mapEmpty();
                   } else if (channel.isEnabled() && !channel.isCommissioned()) {
                     return FileListeners.deployIfNotDeployed(request, channel)
                         .map(message -> responseText(request.routingContext(), 200).end(message)).mapEmpty();
                   } else {
-                    return responseText(request.routingContext(), 204).end();
+                    return responseText(request.routingContext(), 200).end();
                   }
                 });
           } else {
-            responseText(request.routingContext(), 404).end("Import config to update not found");
+            responseText(request.routingContext(), 404).end("Channel config to update not found");
           }
         }).mapEmpty();
   }
 
   public static Future<Void> deleteChannel(ServiceRequest request) {
-    return deleteEntity(request, new Channel()).compose(na -> {
-      new FileQueue(request, request.requestParam("id")).deleteDirectoriesIfExist();
-      return undeployFileListener(request);
-    }).mapEmpty();
+    String channelId = request.requestParam("id");
+    return getChannelByTagOrUuid(request, channelId).compose(channel -> {
+      if (channel == null) {
+        return responseText(request.routingContext(), 404)
+            .end("Found no channel with tag or id " + channelId + " to delete.").mapEmpty();
+      } else {
+        return deleteEntity(request, new Channel()).compose(na -> undeployFileListener(request)).mapEmpty();
+      }
+    });
   }
 
   public static Future<Void> deployFileListener(ServiceRequest request) {
@@ -97,7 +101,8 @@ public final class Channels {
   public static Future<String> deployFileListener(ServiceRequest request, String channelId) {
     return getChannelByTagOrUuid(request, channelId).compose(channel -> {
       if (channel == null) {
-        return Future.succeededFuture("Could not find channel with id or tag [" + channelId + "] to deploy.");
+        return responseText(request.routingContext(), 404)
+            .end("Found no channel with tag or id " + channelId + " to deploy.").mapEmpty();
       } else {
         return FileListeners.deployIfNotDeployed(request, channel);
       }
@@ -137,7 +142,7 @@ public final class Channels {
         db.schemaDotTable(Tables.CHANNEL), new Channel().getQueryableFields());
     return db.getEntities(queryFromCql.getQueryWithLimits(), new Channel())
         .compose(entities -> {
-          List<Channel> deployableChannels = entities.stream().map(entity -> (Channel) entity)
+          List<Channel> deployableChannels = entities.stream().map(Channel.class::cast)
               .filter(channel -> !channel.isCommissioned()).toList();
           return Future.succeededFuture(deployableChannels);
         });
@@ -162,7 +167,7 @@ public final class Channels {
         }
       });
     } else {
-      return Future.succeededFuture();
+      return responseText(request.routingContext(), 200).end();
     }
   }
 

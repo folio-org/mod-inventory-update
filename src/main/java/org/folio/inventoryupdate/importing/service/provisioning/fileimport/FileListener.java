@@ -30,7 +30,7 @@ public abstract class FileListener extends VerticleBase {
   // For demarcating jobs by start/end
   protected AtomicBoolean fileQueuePassive = new AtomicBoolean(true);
 
-  public FileProcessor getImportJob() {
+  public FileProcessor getProcessor() {
     return fileProcessor;
   }
 

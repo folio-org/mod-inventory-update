@@ -249,14 +249,15 @@ public final class JobsAndMonitoring {
       } else {
         UUID channelUuid = channel.getId();
         if (FileListeners.hasFileListener(request.tenant(), channelUuid.toString())) {
-          FileProcessor processor = FileListeners.getFileListener(request.tenant(), channelUuid.toString()).getProcessor();
+          FileProcessor processor = FileListeners
+              .getFileListener(request.tenant(), channelUuid.toString()).getProcessor();
           if (processor == null || !processor.getImportJob().markedRunning()) {
             return responseText(request.routingContext(), 404)
                 .end("No running job to pause found for this channel, [" + channelUuid + "].");
           } else {
-              processor.pause();
-              return responseText(request.routingContext(), 200)
-                  .end("Processing paused for channel [" + channelUuid + "].");
+            processor.pause();
+            return responseText(request.routingContext(), 200)
+                .end("Processing paused for channel [" + channelUuid + "].");
           }
         } else {
           return responseText(request.routingContext(), 404)
@@ -275,7 +276,8 @@ public final class JobsAndMonitoring {
       } else {
         UUID channelUuid = channel.getId();
         if (FileListeners.hasFileListener(request.tenant(), channelUuid.toString())) {
-          FileProcessor processor = FileListeners.getFileListener(request.tenant(), channelUuid.toString()).getProcessor();
+          FileProcessor processor = FileListeners
+              .getFileListener(request.tenant(), channelUuid.toString()).getProcessor();
           if (processor != null && processor.paused()) {
             processor.resume();
             return responseText(request.routingContext(), 200)

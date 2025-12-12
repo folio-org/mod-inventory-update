@@ -22,7 +22,7 @@ import org.folio.inventoryupdate.importing.service.provisioning.fileimport.FileQ
 
 public final class Channels {
 
-  private static final AtomicBoolean channelsAlreadyBootstrapped = new AtomicBoolean(false);
+  private static final AtomicBoolean CHANNELS_ALREADY_BOOTSTRAPPED = new AtomicBoolean(false);
 
   private Channels() {
     throw new IllegalStateException("Static storage utilities");
@@ -87,18 +87,18 @@ public final class Channels {
         return responseText(request.routingContext(), 404)
             .end("Found no channel with tag or id " + channelId + " to delete.").mapEmpty();
       } else {
-        return deleteEntity(request, new Channel()).compose(na -> undeployFileListener(request)).mapEmpty();
+        return deleteEntity(request, new Channel()).compose(na -> decommission(request)).mapEmpty();
       }
     });
   }
 
-  public static Future<Void> deployFileListener(ServiceRequest request) {
+  public static Future<Void> commission(ServiceRequest request) {
     String channelId = request.requestParam("id");
-    return deployFileListener(request, channelId)
+    return commission(request, channelId)
         .onSuccess(response -> responseText(request.routingContext(), 200).end(response)).mapEmpty();
   }
 
-  public static Future<String> deployFileListener(ServiceRequest request, String channelId) {
+  public static Future<String> commission(ServiceRequest request, String channelId) {
     return getChannelByTagOrUuid(request, channelId).compose(channel -> {
       if (channel == null) {
         return responseText(request.routingContext(), 404)
@@ -109,7 +109,7 @@ public final class Channels {
     });
   }
 
-  public static Future<Void> undeployFileListener(ServiceRequest request) {
+  public static Future<Void> decommission(ServiceRequest request) {
     String channelId = request.requestParam("id");
     return getChannelByTagOrUuid(request, channelId).compose(channel -> {
       if (channel != null) {
@@ -152,14 +152,14 @@ public final class Channels {
     // If channel recovery was not already requested once
     // OR if this is an explicit user request (as opposed to a system request),
     // then do attempt recovery.
-    if (!channelsAlreadyBootstrapped.getAndSet(true) || request.currentUser() != null) {
+    if (!CHANNELS_ALREADY_BOOTSTRAPPED.getAndSet(true) || request.currentUser() != null) {
       return getDeployableChannels(request).compose(channels -> {
         if (channels.isEmpty()) {
           return responseText(request.routingContext(), 200).end("Found no channels to re-deploy").mapEmpty();
         } else {
           List<Future<String>> deploymentFutures = new ArrayList<>();
           for (Channel channel : channels) {
-            deploymentFutures.add(deployFileListener(request, channel.getId().toString()));
+            deploymentFutures.add(commission(request, channel.getId().toString()));
           }
           return Future.join(deploymentFutures)
               .compose(deployments -> responseText(request.routingContext(), 200)

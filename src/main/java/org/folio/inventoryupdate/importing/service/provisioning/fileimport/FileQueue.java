@@ -4,10 +4,9 @@ import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.file.CopyOptions;
 import io.vertx.core.file.FileSystem;
+import io.vertx.core.file.FileSystemException;
 import java.io.File;
 import java.util.Comparator;
-
-import io.vertx.core.file.FileSystemException;
 import org.folio.inventoryupdate.importing.service.ServiceRequest;
 
 public class FileQueue {

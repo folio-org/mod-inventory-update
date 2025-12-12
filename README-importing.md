@@ -37,9 +37,13 @@ The dynamic parts of a channel are
 - POST `/inventory-import/channels` create a channel           including 'enabled' and 'listening' settings
 - PUT `/inventory-import/channels/<channel uuid>`              update properties of a channel, including 'enabled' and 'listening'
 - POST `/inventory-import/channels/<channel id>/commission`    launch a channel, marking it enabled, same effect as setting channel.enabled=true
+                                                               Takes parameter ?retainQueue=[true|false]. When true, any file system queue that
+                                                               was left behind from a previous deployment will be kept.
 - wip POST `/inventory-import/channels/<channel id>/listen`    listen for source files in queue
 - wip POST `/inventory-import/channels/<channel id>/pause-listen`  ignore source files in queue
 - POST `/inventory-import/channels/<channel id>/decommission`  undeploy (disable) the channel, same effect as setting channel.enabled=false
+                                                               Takes parameter ?retainQueue=[true|false] (default false). When true the file
+                                                               system queue can still be there in case the module is commissioned again.
 - POST `/inventory-import/channels/<channel id>/upload`        pushes a source file to the channel, currently set accept files up to a size of 100 MB
 - POST `/inventory-import/channels/<channel id>/init-queue'    deletes all the source files in a queue (or re-establishes an empty queue structure, in case the previous queue was deleted directly in the file system for example).
 - DELETE `/inventory-import/channels/<channel uuid>` delete the channel configuration including the file queue but not its job history

@@ -51,26 +51,26 @@ public class ImportService implements RouterCreator, TenantInitHooks {
     validatingHandler(vertx, routerBuilder, "putChannel", Channels::putChannel);
     validatingHandler(vertx, routerBuilder, "deleteChannel", Channels::deleteChannel);
     validatingHandler(vertx, routerBuilder, "initFileSystemQueue", Channels::initFileSystemQueue);
-    validatingHandler(vertx, routerBuilder, "deployFileListener", Channels::deployFileListener);
-    validatingHandler(vertx, routerBuilder, "undeployFileListener", Channels::undeployFileListener);
+    validatingHandler(vertx, routerBuilder, "commission", Channels::commission);
+    validatingHandler(vertx, routerBuilder, "decommission", Channels::decommission);
 
     validatingHandler(vertx, routerBuilder, "postTransformation", Transformations::postTransformation);
-    validatingHandler(vertx, routerBuilder, "getTransformation",   Transformations::getTransformationById);
-    validatingHandler(vertx, routerBuilder, "getTransformations",   Transformations::getTransformations);
-    validatingHandler(vertx, routerBuilder, "putTransformation",   Transformations::updateTransformation);
-    validatingHandler(vertx, routerBuilder, "deleteTransformation",   Transformations::deleteTransformation);
-    validatingHandler(vertx, routerBuilder, "postStep",   Transformations::postStep);
-    validatingHandler(vertx, routerBuilder, "getSteps",   Transformations::getSteps);
-    validatingHandler(vertx, routerBuilder, "getStep",   Transformations::getStepById);
-    validatingHandler(vertx, routerBuilder, "putStep",   Transformations::putStep);
-    validatingHandler(vertx, routerBuilder, "deleteStep",   Transformations::deleteStep);
-    validatingHandler(vertx, routerBuilder, "getScript",   Transformations::getScript);
-    nonValidatingHandler(vertx, routerBuilder, "putScript",   Transformations::putScript);
-    validatingHandler(vertx, routerBuilder, "postTsa",   Transformations::postTransformationStep);
-    validatingHandler(vertx, routerBuilder, "getTsas",   Transformations::getTransformationSteps);
-    validatingHandler(vertx, routerBuilder, "getTsa",   Transformations::getTransformationStepById);
-    validatingHandler(vertx, routerBuilder, "putTsa",   Transformations::putTransformationStep);
-    validatingHandler(vertx, routerBuilder, "deleteTsa",   Transformations::deleteTransformationStep);
+    validatingHandler(vertx, routerBuilder, "getTransformation", Transformations::getTransformationById);
+    validatingHandler(vertx, routerBuilder, "getTransformations", Transformations::getTransformations);
+    validatingHandler(vertx, routerBuilder, "putTransformation", Transformations::updateTransformation);
+    validatingHandler(vertx, routerBuilder, "deleteTransformation", Transformations::deleteTransformation);
+    validatingHandler(vertx, routerBuilder, "postStep", Transformations::postStep);
+    validatingHandler(vertx, routerBuilder, "getSteps", Transformations::getSteps);
+    validatingHandler(vertx, routerBuilder, "getStep", Transformations::getStepById);
+    validatingHandler(vertx, routerBuilder, "putStep", Transformations::putStep);
+    validatingHandler(vertx, routerBuilder, "deleteStep", Transformations::deleteStep);
+    validatingHandler(vertx, routerBuilder, "getScript", Transformations::getScript);
+    nonValidatingHandler(vertx, routerBuilder, "putScript", Transformations::putScript);
+    validatingHandler(vertx, routerBuilder, "postTsa", Transformations::postTransformationStep);
+    validatingHandler(vertx, routerBuilder, "getTsas", Transformations::getTransformationSteps);
+    validatingHandler(vertx, routerBuilder, "getTsa", Transformations::getTransformationStepById);
+    validatingHandler(vertx, routerBuilder, "putTsa", Transformations::putTransformationStep);
+    validatingHandler(vertx, routerBuilder, "deleteTsa", Transformations::deleteTransformationStep);
 
     // Job handling and tracking
     validatingHandler(vertx, routerBuilder, "getImportJobs", JobsAndMonitoring::getImportJobs);
@@ -158,7 +158,8 @@ public class ImportService implements RouterCreator, TenantInitHooks {
             logger.error("Database initialization failed: {}", x.getMessage())).onSuccess(x ->
             logger.info("Tenant '{}' database initialized", tenant))
         .compose(x ->
-            clearTenantFileQueues(vertx, tenant, getTenantParameter(tenantAttributes, "clearPastFileQueues")));
+            clearTenantFileQueues(vertx, tenant, getTenantParameter(tenantAttributes, "clearPastFileQueues")))
+        .compose(na -> FileListeners.clearRegistry());
   }
 
   private static String getTenantParameter(JsonObject attributes, String parameterKey) {
@@ -198,12 +199,13 @@ public class ImportService implements RouterCreator, TenantInitHooks {
         new FileQueue(request, channel.getId().toString()).addNewFile(fileName, xmlContent);
         return responseText(request.routingContext, 200).end().mapEmpty();
       } else {
+        new FileQueue(request, channel.getId().toString()).addNewFile(fileName, xmlContent);
         return FileListeners.deployIfNotDeployed(request, channel).onSuccess(ignore -> {
           new FileQueue(request, channel.getId().toString()).addNewFile(fileName, xmlContent);
           responseText(request.routingContext, 200)
-              .end("File queued for processing in ms " + (System.currentTimeMillis() - fileStartTime));
+              .end("File queued for processing in ms " + (System.currentTimeMillis() - fileStartTime)).mapEmpty();
         }).mapEmpty();
       }
-    }).mapEmpty();
+    });
   }
 }

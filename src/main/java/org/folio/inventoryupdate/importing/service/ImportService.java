@@ -1,6 +1,6 @@
 package org.folio.inventoryupdate.importing.service;
 
-import static org.folio.inventoryupdate.importing.service.provisioning.Channels.getChannelByTagOrUuid;
+import static org.folio.inventoryupdate.importing.service.delivery.respond.Channels.getChannelByTagOrUuid;
 import static org.folio.okapi.common.HttpResponse.responseError;
 import static org.folio.okapi.common.HttpResponse.responseText;
 
@@ -18,12 +18,12 @@ import java.util.UUID;
 import java.util.function.Function;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.folio.inventoryupdate.importing.moduledata.database.ModuleStorageAccess;
-import org.folio.inventoryupdate.importing.service.provisioning.Channels;
-import org.folio.inventoryupdate.importing.service.provisioning.JobsAndMonitoring;
-import org.folio.inventoryupdate.importing.service.provisioning.Transformations;
-import org.folio.inventoryupdate.importing.service.provisioning.fileimport.FileListeners;
-import org.folio.inventoryupdate.importing.service.provisioning.fileimport.FileQueue;
+import org.folio.inventoryupdate.importing.moduledata.database.EntityStorage;
+import org.folio.inventoryupdate.importing.service.delivery.fileimport.FileListeners;
+import org.folio.inventoryupdate.importing.service.delivery.fileimport.FileQueue;
+import org.folio.inventoryupdate.importing.service.delivery.respond.Channels;
+import org.folio.inventoryupdate.importing.service.delivery.respond.JobsAndMonitoring;
+import org.folio.inventoryupdate.importing.service.delivery.respond.Transformations;
 import org.folio.tlib.RouterCreator;
 import org.folio.tlib.TenantInitHooks;
 
@@ -154,7 +154,7 @@ public class ImportService implements RouterCreator, TenantInitHooks {
 
   @Override
   public Future<Void> postInit(Vertx vertx, String tenant, JsonObject tenantAttributes) {
-    return new ModuleStorageAccess(vertx, tenant).init(tenantAttributes).onFailure(x ->
+    return new EntityStorage(vertx, tenant).init(tenantAttributes).onFailure(x ->
             logger.error("Database initialization failed: {}", x.getMessage())).onSuccess(x ->
             logger.info("Tenant '{}' database initialized", tenant))
         .compose(x ->

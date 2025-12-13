@@ -4,7 +4,6 @@ import io.vertx.core.Future;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.folio.inventoryupdate.importing.moduledata.Channel;
-import org.folio.inventoryupdate.importing.moduledata.Entity;
 import org.folio.inventoryupdate.importing.moduledata.ImportJob;
 import org.folio.inventoryupdate.importing.moduledata.LogLine;
 import org.folio.inventoryupdate.importing.moduledata.RecordFailure;

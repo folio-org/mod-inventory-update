@@ -11,8 +11,10 @@ import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
-import org.folio.inventoryupdate.importing.moduledata.database.ModuleStorageAccess;
+import org.folio.inventoryupdate.importing.moduledata.database.Entity;
+import org.folio.inventoryupdate.importing.moduledata.database.EntityStorage;
 import org.folio.inventoryupdate.importing.moduledata.database.Tables;
+import org.folio.inventoryupdate.importing.moduledata.database.Util;
 import org.folio.inventoryupdate.importing.utils.SettableClock;
 import org.folio.tlib.postgres.TenantPgPool;
 
@@ -268,7 +270,7 @@ public class ImportJob extends Entity {
         + ")";
   }
 
-  public Future<Integer> changeRunningToInterruptedByChannelId(ModuleStorageAccess db, String channelId) {
+  public Future<Integer> changeRunningToInterruptedByChannelId(EntityStorage db, String channelId) {
     String template = "UPDATE " + db.schema() + "." + table()
         + " SET "
         + dbColumnName(STATUS) + " = '"  + JobStatus.INTERRUPTED.name() + "', "
@@ -279,7 +281,7 @@ public class ImportJob extends Entity {
         .map(SqlResult::rowCount);
   }
 
-  public void logFinish(LocalDateTime finished, int recordCount, ModuleStorageAccess configStorage) {
+  public void logFinish(LocalDateTime finished, int recordCount, EntityStorage configStorage) {
     setFinished(finished, recordCount);
     configStorage.updateEntity(this.withUpdatingUser(null),
         "UPDATE " + configStorage.schema() + "." + table()
@@ -295,7 +297,7 @@ public class ImportJob extends Entity {
             + " WHERE id = #{id}");
   }
 
-  public void logHalted(LocalDateTime halted, int recordCount, ModuleStorageAccess configStorage) {
+  public void logHalted(LocalDateTime halted, int recordCount, EntityStorage configStorage) {
     setHalted(halted, recordCount);
     configStorage.updateEntity(this.withUpdatingUser(null),
         "UPDATE " + configStorage.schema() + "." + table()
@@ -323,7 +325,7 @@ public class ImportJob extends Entity {
         JobStatus.HALTED, theRecord.started, finished.toString(), recordCount, theRecord.message);
   }
 
-  public void logStatus(JobStatus status, int recordCount, ModuleStorageAccess configStorage) {
+  public void logStatus(JobStatus status, int recordCount, EntityStorage configStorage) {
     theRecord = new ImportJobRecord(theRecord.id, theRecord.channelId, theRecord.channelName, theRecord.importType,
         theRecord.transformation,
         status, theRecord.started, theRecord.finished, recordCount, theRecord.message);

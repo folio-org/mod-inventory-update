@@ -5,7 +5,7 @@ import io.vertx.core.http.HttpServerRequest;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.RoutingContext;
 import java.util.UUID;
-import org.folio.inventoryupdate.importing.moduledata.database.ModuleStorageAccess;
+import org.folio.inventoryupdate.importing.moduledata.database.EntityStorage;
 
 public abstract class ServiceRequest {
 
@@ -27,12 +27,12 @@ public abstract class ServiceRequest {
 
   public abstract String bodyAsString();
 
-  public ModuleStorageAccess moduleStorageAccess() {
-    return new ModuleStorageAccess(vertx, tenant);
+  public EntityStorage entityStorage() {
+    return new EntityStorage(vertx, tenant);
   }
 
   public String dbSchema() {
-    return moduleStorageAccess().schema();
+    return entityStorage().schema();
   }
 
   public abstract String queryParam(String paramName);

@@ -14,7 +14,9 @@ import java.util.regex.Pattern;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
-import org.folio.inventoryupdate.importing.moduledata.database.ModuleStorageAccess;
+import org.folio.inventoryupdate.importing.moduledata.database.Entity;
+import org.folio.inventoryupdate.importing.moduledata.database.EntityStorage;
+import org.folio.inventoryupdate.importing.moduledata.database.PgColumn;
 import org.folio.inventoryupdate.importing.moduledata.database.Tables;
 import org.xml.sax.SAXException;
 
@@ -177,7 +179,7 @@ public class Step extends Entity {
     theRecord = new Step.StepRecord(theRecord.id, theRecord.name, theRecord.description, theRecord.type, xslt);
   }
 
-  public Future<Void> updateScript(String xslt, ModuleStorageAccess storage) {
+  public Future<Void> updateScript(String xslt, EntityStorage storage) {
     setScript(xslt);
     return storage.updateEntity(this,
             "UPDATE " + storage.schema() + "." + table()

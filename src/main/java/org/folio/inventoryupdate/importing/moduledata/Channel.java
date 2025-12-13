@@ -8,9 +8,12 @@ import io.vertx.sqlclient.templates.TupleMapper;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
-import org.folio.inventoryupdate.importing.moduledata.database.ModuleStorageAccess;
+import org.folio.inventoryupdate.importing.moduledata.database.Entity;
+import org.folio.inventoryupdate.importing.moduledata.database.EntityStorage;
+import org.folio.inventoryupdate.importing.moduledata.database.PgColumn;
 import org.folio.inventoryupdate.importing.moduledata.database.Tables;
-import org.folio.inventoryupdate.importing.service.provisioning.fileimport.FileListeners;
+import org.folio.inventoryupdate.importing.moduledata.database.Util;
+import org.folio.inventoryupdate.importing.service.delivery.fileimport.FileListeners;
 import org.folio.tlib.postgres.TenantPgPool;
 
 public class Channel extends Entity {
@@ -177,7 +180,7 @@ public class Channel extends Entity {
     return theRecord.listening();
   }
 
-  public Future<Integer> setEnabledListening(boolean enabled, boolean listening, ModuleStorageAccess configStorage) {
+  public Future<Integer> setEnabledListening(boolean enabled, boolean listening, EntityStorage configStorage) {
     theRecord = new ChannelRecord(theRecord.id(), theRecord.name(), theRecord.tag(), theRecord.type(),
         theRecord.transformationId(), enabled, listening);
     return configStorage.updateEntity(this.withUpdatingUser(null),

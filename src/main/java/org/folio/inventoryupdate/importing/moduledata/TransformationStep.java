@@ -9,6 +9,8 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
+import org.folio.inventoryupdate.importing.moduledata.database.Entity;
+import org.folio.inventoryupdate.importing.moduledata.database.PgColumn;
 import org.folio.inventoryupdate.importing.moduledata.database.Tables;
 import org.folio.inventoryupdate.importing.service.ServiceRequest;
 import org.folio.tlib.postgres.TenantPgPool;
@@ -125,8 +127,8 @@ public class TransformationStep extends Entity {
   }
 
   public Future<Void> createTsaRepositionSteps(ServiceRequest request) {
-    return request.moduleStorageAccess().storeEntity(this.withCreatingUser(request.currentUser()))
-        .onSuccess(ignore -> executeSqlStatements(request.moduleStorageAccess().getTenantPool(),
+    return request.entityStorage().storeEntity(this.withCreatingUser(request.currentUser()))
+        .onSuccess(ignore -> executeSqlStatements(request.entityStorage().getTenantPool(),
             // Potentially adjust the positions of other steps
             "UPDATE " + this.schemaTable(request.dbSchema())
                 + " SET position = position + 1 "
@@ -137,7 +139,7 @@ public class TransformationStep extends Entity {
   }
 
   public Future<Void> updateTsaRepositionSteps(ServiceRequest request, int positionOfExistingTsa) {
-    return findPositionOfLastStepOfTransformation(request.moduleStorageAccess().getTenantPool())
+    return findPositionOfLastStepOfTransformation(request.entityStorage().getTenantPool())
         .compose(maxPosition -> {
           this.positionOfLastStepOfTransformation = maxPosition;
           this.positionOfTheExistingStep = positionOfExistingTsa;
@@ -162,9 +164,9 @@ public class TransformationStep extends Entity {
 
   public Future<Void> executeUpdateAndAdjustPositions(ServiceRequest request) {
 
-    return request.moduleStorageAccess().updateEntity(this.theRecord.id, this.withUpdatingUser(request.currentUser()))
+    return request.entityStorage().updateEntity(this.theRecord.id, this.withUpdatingUser(request.currentUser()))
         .onSuccess(ignore ->
-            executeSqlStatements(request.moduleStorageAccess().getTenantPool(),
+            executeSqlStatements(request.entityStorage().getTenantPool(),
                 // Update the one property that can change besides position.
                 "UPDATE " + schemaTable(request.dbSchema())
                     + " SET step_id = '" + theRecord.stepId + "'"
@@ -207,7 +209,7 @@ public class TransformationStep extends Entity {
   }
 
   public Future<Void> deleteStepsOfTransformation(ServiceRequest request, UUID transformationId) {
-    TenantPgPool pool = request.moduleStorageAccess().getTenantPool();
+    TenantPgPool pool = request.entityStorage().getTenantPool();
     return executeSqlStatements(pool,
         "DELETE FROM " + this.schemaTable(pool.getSchema())
             + " WHERE transformation_id = '" + transformationId.toString() + "'").mapEmpty();

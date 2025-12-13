@@ -1,6 +1,6 @@
 package org.folio.inventoryupdate.importing.moduledata;
 
-import static org.folio.inventoryupdate.importing.moduledata.Entity.DATE_FORMAT_TO_DB;
+import static org.folio.inventoryupdate.importing.moduledata.database.Entity.DATE_FORMAT_TO_DB;
 import static org.folio.inventoryupdate.importing.utils.DateTimeFormatter.formatDateTime;
 
 import io.vertx.core.json.JsonObject;

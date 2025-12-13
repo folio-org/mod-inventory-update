@@ -35,7 +35,7 @@ import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import org.folio.inventoryupdate.importing.utils.Miscellaneous;
 import org.folio.inventoryupdate.unittests.fixtures.Service;
-import org.folio.inventoryupdate.importing.service.provisioning.fileimport.transformation.InventoryXmlToInventoryJson;
+import org.folio.inventoryupdate.importing.service.delivery.fileimport.transformation.InventoryXmlToInventoryJson;
 import org.folio.inventoryupdate.unittests.fakestorage.FakeFolioApisForImporting;
 import org.folio.inventoryupdate.unittests.fixtures.Files;
 import org.folio.inventoryupdate.importing.utils.SettableClock;

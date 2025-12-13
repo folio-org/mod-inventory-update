@@ -161,11 +161,17 @@ paths:
       - in: query
         name: retainQueue
         required: false
-        description: Use past file queue if any found in the file system, defaults to false, meaning create new empty queue.
+        description: If true, Use past file queue if any found in the file system, defaults to false, meaning create new empty queue.
+        schema:
+          type: string
+      - in: query
+        name: listening
+        required: false
+        description: If true, set the channel to actively listen for source files in queue, if false, pause processing. Defaults to true.
         schema:
           type: string
     post:
-      operationId: deployFileListener
+      operationId: commission
       description: start verticle that listens for incoming source records in given channel
       responses:
         "200":
@@ -195,7 +201,7 @@ paths:
         schema:
           type: string
     post:
-      operationId: undeployFileListener
+      operationId: decommission
       description: stop verticle for given channel ID
       responses:
         "200":

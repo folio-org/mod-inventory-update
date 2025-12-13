@@ -9,6 +9,8 @@ import io.vertx.sqlclient.templates.TupleMapper;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
+import org.folio.inventoryupdate.importing.moduledata.database.Entity;
+import org.folio.inventoryupdate.importing.moduledata.database.PgColumn;
 import org.folio.inventoryupdate.importing.moduledata.database.SqlQuery;
 import org.folio.inventoryupdate.importing.moduledata.database.Tables;
 import org.folio.inventoryupdate.importing.service.ServiceRequest;

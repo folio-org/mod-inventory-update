@@ -16,6 +16,7 @@ import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
 import org.folio.inventoryupdate.importing.moduledata.database.Entity;
 import org.folio.inventoryupdate.importing.moduledata.database.EntityStorage;
+import org.folio.inventoryupdate.importing.moduledata.database.PgColumn;
 import org.folio.inventoryupdate.importing.moduledata.database.Tables;
 import org.xml.sax.SAXException;
 

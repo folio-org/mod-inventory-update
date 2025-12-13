@@ -1,4 +1,4 @@
-package org.folio.inventoryupdate.importing.moduledata;
+package org.folio.inventoryupdate.importing.moduledata.database;
 
 import org.folio.tlib.postgres.cqlfield.PgCqlFieldBase;
 import org.folio.tlib.postgres.cqlfield.PgCqlFieldNumber;

@@ -13,6 +13,7 @@ import java.util.Map;
 import java.util.UUID;
 import org.folio.inventoryupdate.importing.moduledata.database.Entity;
 import org.folio.inventoryupdate.importing.moduledata.database.EntityStorage;
+import org.folio.inventoryupdate.importing.moduledata.database.PgColumn;
 import org.folio.inventoryupdate.importing.moduledata.database.Tables;
 import org.folio.inventoryupdate.importing.moduledata.database.Util;
 import org.folio.inventoryupdate.importing.utils.SettableClock;

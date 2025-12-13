@@ -15,7 +15,6 @@ import java.util.stream.Collectors;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.folio.inventoryupdate.importing.moduledata.Metadata;
-import org.folio.inventoryupdate.importing.moduledata.PgColumn;
 import org.folio.inventoryupdate.importing.service.ServiceRequest;
 import org.folio.inventoryupdate.importing.utils.SettableClock;
 import org.folio.tlib.postgres.PgCqlDefinition;

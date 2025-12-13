@@ -23,20 +23,15 @@ public final class Miscellaneous {
         try {
           int amount = Integer.parseInt(periodAsArray[0]);
           String unit = periodAsArray[1];
-          switch (unit) {
-            case "DAY", "DAYS":
-              return Period.ofDays(amount);
-            case "WEEK", "WEEKS":
-              return Period.ofWeeks(amount);
-            case "MONTH", "MONTHS":
-              return Period.ofMonths(amount);
-            default:
-              return null;
-          }
+          return switch (unit) {
+            case "DAY", "DAYS" -> Period.ofDays(amount);
+            case "WEEK", "WEEKS" -> Period.ofWeeks(amount);
+            case "MONTH", "MONTHS" -> Period.ofMonths(amount);
+            default -> null;
+          };
         } catch (NumberFormatException nfe) {
-          logger.error(
-              "Could not resolve period from [{}]. Expected string on the format: "
-                  + "<number> DAY(S)|WEEK(S)|MONTH(S)", periodAsText);
+          logger.error("Could not resolve period from [{}]. Expected string on the format: "
+              + "<number> DAY(S)|WEEK(S)|MONTH(S)", periodAsText);
         }
       }
     }

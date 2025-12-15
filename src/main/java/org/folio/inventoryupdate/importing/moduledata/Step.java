@@ -14,6 +14,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.regex.Pattern;
+import javax.xml.XMLConstants;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
@@ -22,6 +23,7 @@ import javax.xml.transform.Source;
 import javax.xml.transform.TransformerException;
 import javax.xml.transform.TransformerFactory;
 import javax.xml.transform.stream.StreamSource;
+
 import org.folio.inventoryupdate.importing.moduledata.database.Entity;
 import org.folio.inventoryupdate.importing.moduledata.database.EntityStorage;
 import org.folio.inventoryupdate.importing.moduledata.database.PgColumn;
@@ -207,6 +209,7 @@ public class Step extends Entity {
       DocumentBuilder parser = builder.newDocumentBuilder();
       parser.parse(new ByteArrayInputStream(xslt.getBytes(StandardCharsets.UTF_8)));
       TransformerFactory transformerFactory = TransformerFactory.newInstance();
+      transformerFactory.setFeature(XMLConstants.FEATURE_SECURE_PROCESSING, true);
       transformerFactory.setErrorListener(XSLT_PARSING_ERRORS);
       transformerFactory.newTransformer();
       Source source = new StreamSource(new StringReader(xslt));

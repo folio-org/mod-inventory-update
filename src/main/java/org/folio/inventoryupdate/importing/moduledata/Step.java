@@ -66,20 +66,19 @@ public class Step extends Entity {
     final List<String> issues = new ArrayList<>();
     @Override
     public void warning(TransformerException e) throws TransformerException {
-      issues.add("Line " + e.getLocator().getLineNumber() + ": " + e.getMessage());
+      issues.add("Warning. Line " + e.getLocator().getLineNumber() + ": " + e.getMessage());
       throw e;
     }
 
     @Override
     public void error(TransformerException e) throws TransformerException {
-      System.out.println(e.getMessage());
-      issues.add("Line " + e.getLocator().getLineNumber() + ": " + e.getMessage());
+      issues.add("Error. Line " + e.getLocator().getLineNumber() + ": " + e.getMessage());
       throw e;
     }
 
     @Override
     public void fatalError(TransformerException e) throws TransformerException {
-      issues.add("Line " + e.getLocator().getLineNumber() + ": " + e.getMessage());
+      issues.add("FatalError. Line " + e.getLocator().getLineNumber() + ": " + e.getMessage());
       throw e;
     }
 

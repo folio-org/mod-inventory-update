@@ -4,6 +4,7 @@ import io.vertx.core.Future;
 import io.vertx.core.Promise;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import org.apache.logging.log4j.LogManager;
@@ -103,10 +104,10 @@ public final class FileListeners {
    */
   public static Future<Void> clearRegistry() {
     List<Future<Void>> undeployFutures = new ArrayList<>();
-    for (String tenant : FILE_LISTENERS.keySet()) {
-      for (String listenerId : FILE_LISTENERS.get(tenant).keySet()) {
-        FileListener listener = FILE_LISTENERS.get(tenant).get(listenerId);
-        undeployFutures.add(listener.deploymentVertx.undeploy(listener.deploymentId));
+    for (Map.Entry<String, ConcurrentMap<String, FileListener>> tenant : FILE_LISTENERS.entrySet()) {
+      for (ConcurrentMap.Entry<String, FileListener> listener : FILE_LISTENERS.get(tenant.getKey()).entrySet()) {
+        FileListener fileListener = FILE_LISTENERS.get(tenant.getKey()).get(listener.getKey());
+        undeployFutures.add(fileListener.deploymentVertx.undeploy(fileListener.deploymentId));
       }
     }
     return Future.all(undeployFutures).onComplete(na -> FILE_LISTENERS.clear()).mapEmpty();

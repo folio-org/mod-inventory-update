@@ -209,10 +209,8 @@ public class Step extends Entity {
       DocumentBuilder parser = builder.newDocumentBuilder();
       parser.parse(new ByteArrayInputStream(xslt.getBytes(StandardCharsets.UTF_8)));
       TransformerFactory transformerFactory = TransformerFactory.newInstance();
-      transformerFactory.setFeature("http://apache.org/xml/features/disallow-doctype-decl", true);
       transformerFactory.setFeature(XMLConstants.FEATURE_SECURE_PROCESSING, true);
       transformerFactory.setErrorListener(XSLT_PARSING_ERRORS);
-      transformerFactory.newTransformer();
       Source source = new StreamSource(new StringReader(xslt));
       transformerFactory.newTemplates(source);
     } catch (ParserConfigurationException | IOException | SAXException pe) {

@@ -8,9 +8,7 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.StringReader;
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.regex.Pattern;
@@ -27,6 +25,7 @@ import org.folio.inventoryupdate.importing.moduledata.database.Entity;
 import org.folio.inventoryupdate.importing.moduledata.database.EntityStorage;
 import org.folio.inventoryupdate.importing.moduledata.database.PgColumn;
 import org.folio.inventoryupdate.importing.moduledata.database.Tables;
+import org.folio.inventoryupdate.importing.utils.XsltParsingErrors;
 import org.xml.sax.SAXException;
 
 public class Step extends Entity {
@@ -61,35 +60,6 @@ public class Step extends Entity {
   }
 
   private static final Pattern LINEBREAK_REGEX = Pattern.compile("\\r\\n?");
-
-  private static final ErrorListener XSLT_PARSING_ERRORS = new ErrorListener() {
-    final List<String> issues = new ArrayList<>();
-    @Override
-    public void warning(TransformerException e) throws TransformerException {
-      issues.add("Warning. Line " + e.getLocator().getLineNumber() + ": " + e.getMessage());
-      throw e;
-    }
-
-    @Override
-    public void error(TransformerException e) throws TransformerException {
-      issues.add("Error. Line " + e.getLocator().getLineNumber() + ": " + e.getMessage());
-      throw e;
-    }
-
-    @Override
-    public void fatalError(TransformerException e) throws TransformerException {
-      issues.add("FatalError. Line " + e.getLocator().getLineNumber() + ": " + e.getMessage());
-      throw e;
-    }
-
-    public String toString() {
-      StringBuilder errors = new StringBuilder();
-      for (String issue : issues) {
-        errors.append(System.lineSeparator()).append(issue);
-      }
-      return errors.toString();
-    }
-  };
 
   StepRecord theRecord;
 
@@ -200,7 +170,13 @@ public class Step extends Entity {
     return validateStyleSheet(getLineSeparatedXslt());
   }
 
+  /**
+   * First validates that the stylesheet is valid XML, then checks for syntax violations.
+   * @param xslt the stylesheet to validate
+   * @return "OK" if validation passed, otherwise and error message.
+   */
   public static String validateStyleSheet(String xslt) {
+    ErrorListener errorListener = new XsltParsingErrors();
     try {
       DocumentBuilderFactory builder = DocumentBuilderFactory.newInstance();
       builder.setFeature("http://apache.org/xml/features/disallow-doctype-decl", true);
@@ -209,13 +185,13 @@ public class Step extends Entity {
       parser.parse(new ByteArrayInputStream(xslt.getBytes(StandardCharsets.UTF_8)));
       TransformerFactory transformerFactory = TransformerFactory.newInstance();
       transformerFactory.setFeature(XMLConstants.FEATURE_SECURE_PROCESSING, true);
-      transformerFactory.setErrorListener(XSLT_PARSING_ERRORS);
+      transformerFactory.setErrorListener(errorListener);
       Source source = new StreamSource(new StringReader(xslt));
       transformerFactory.newTemplates(source);
     } catch (ParserConfigurationException | IOException | SAXException pe) {
       return "Could not parse [ " + xslt + "] as XML: " + pe.getMessage();
     } catch (TransformerException tce) {
-      return tce.getMessage() + XSLT_PARSING_ERRORS;
+      return tce.getMessage() + errorListener;
     }
     return "OK";
   }

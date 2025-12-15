@@ -382,7 +382,7 @@ public class ImportTests extends InventoryUpdateTestBase {
     JsonObject step = new JsonObject();
     step.put("id", STEP_ID)
         .put("name", "test step")
-        .put("script", Files.XSLT_INVALID);
+        .put("script", Files.XSLT_INVALID_XML);
 
     given()
         .baseUri(BASE_URI_INVENTORY_UPDATE)
@@ -393,6 +393,23 @@ public class ImportTests extends InventoryUpdateTestBase {
         .post(Service.PATH_STEPS)
         .then()
         .statusCode(400);
+
+    step = new JsonObject();
+    step.put("id", STEP_ID)
+        .put("name", "test step")
+        .put("script", Files.XSLT_SYNTAX_ERROR);
+
+    given()
+        .baseUri(BASE_URI_INVENTORY_UPDATE)
+        .header(Service.OKAPI_TENANT)
+        .header(Service.OKAPI_URL)
+        .body(step.encodePrettily())
+        .header(CONTENT_TYPE_JSON)
+        .post(Service.PATH_STEPS)
+        .then()
+        .statusCode(400);
+
+
   }
 
   @Test
@@ -418,7 +435,7 @@ public class ImportTests extends InventoryUpdateTestBase {
         .baseUri(BASE_URI_INVENTORY_UPDATE)
         .header(Service.OKAPI_TENANT)
         .header(Service.OKAPI_URL)
-        .body(Files.XSLT_INVALID)
+        .body(Files.XSLT_INVALID_XML)
         .header(CONTENT_TYPE_XML)
         .put(Service.PATH_STEPS + "/" + STEP_ID + "/script")
         .then()

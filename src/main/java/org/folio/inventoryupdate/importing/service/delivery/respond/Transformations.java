@@ -18,7 +18,7 @@ public final class Transformations extends EntityResponses {
 
   public static Future<Void> postStep(ServiceRequest request) {
     Step step = new Step().fromJson(request.bodyAsJson());
-    String validationResponse = step.validateScriptAsXml();
+    String validationResponse = step.validateStyleSheet();
     if (validationResponse.equals("OK")) {
       return storeEntityRespondWith201(request, step);
     } else {
@@ -28,7 +28,7 @@ public final class Transformations extends EntityResponses {
 
   public static Future<Void> putStep(ServiceRequest request) {
     Step step = new Step().fromJson(request.bodyAsJson());
-    String validationResponse = step.validateScriptAsXml();
+    String validationResponse = step.validateStyleSheet();
     if (validationResponse.equals("OK")) {
       UUID id = UUID.fromString(request.requestParam("id"));
       return request.entityStorage().updateEntity(id, step.withUpdatingUser(request.currentUser()))
@@ -71,7 +71,7 @@ public final class Transformations extends EntityResponses {
   public static Future<Void> putScript(ServiceRequest request) {
     String id = request.requestParam("id");
     String script = request.bodyAsString();
-    String validationResponse = Step.validateScriptAsXml(script);
+    String validationResponse = Step.validateStyleSheet(script);
     if (validationResponse.equals("OK")) {
       EntityStorage db = request.entityStorage();
       return db.getEntity(UUID.fromString(id), new Step())

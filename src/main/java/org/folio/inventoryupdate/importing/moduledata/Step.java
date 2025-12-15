@@ -6,14 +6,23 @@ import io.vertx.sqlclient.templates.RowMapper;
 import io.vertx.sqlclient.templates.TupleMapper;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.io.StringReader;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.regex.Pattern;
+import javax.xml.XMLConstants;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
+import javax.xml.transform.ErrorListener;
+import javax.xml.transform.Source;
+import javax.xml.transform.TransformerException;
+import javax.xml.transform.TransformerFactory;
+import javax.xml.transform.stream.StreamSource;
 import org.folio.inventoryupdate.importing.moduledata.database.Entity;
 import org.folio.inventoryupdate.importing.moduledata.database.EntityStorage;
 import org.folio.inventoryupdate.importing.moduledata.database.PgColumn;
@@ -52,6 +61,35 @@ public class Step extends Entity {
   }
 
   private static final Pattern LINEBREAK_REGEX = Pattern.compile("\\r\\n?");
+
+  private static final ErrorListener XSLT_PARSING_ERRORS = new ErrorListener() {
+    final List<String> issues = new ArrayList<>();
+    @Override
+    public void warning(TransformerException e) throws TransformerException {
+      issues.add("Warning. Line " + e.getLocator().getLineNumber() + ": " + e.getMessage());
+      throw e;
+    }
+
+    @Override
+    public void error(TransformerException e) throws TransformerException {
+      issues.add("Error. Line " + e.getLocator().getLineNumber() + ": " + e.getMessage());
+      throw e;
+    }
+
+    @Override
+    public void fatalError(TransformerException e) throws TransformerException {
+      issues.add("FatalError. Line " + e.getLocator().getLineNumber() + ": " + e.getMessage());
+      throw e;
+    }
+
+    public String toString() {
+      StringBuilder errors = new StringBuilder();
+      for (String issue : issues) {
+        errors.append(System.lineSeparator()).append(issue);
+      }
+      return errors.toString();
+    }
+  };
 
   StepRecord theRecord;
 
@@ -158,19 +196,26 @@ public class Step extends Entity {
         });
   }
 
-  public String validateScriptAsXml() {
-    return validateScriptAsXml(getLineSeparatedXslt());
+  public String validateStyleSheet() {
+    return validateStyleSheet(getLineSeparatedXslt());
   }
 
-  public static String validateScriptAsXml(String xslt) {
+  public static String validateStyleSheet(String xslt) {
     try {
       DocumentBuilderFactory builder = DocumentBuilderFactory.newInstance();
       builder.setFeature("http://apache.org/xml/features/disallow-doctype-decl", true);
+      builder.setFeature(XMLConstants.FEATURE_SECURE_PROCESSING, true);
       DocumentBuilder parser = builder.newDocumentBuilder();
-      parser.parse(new ByteArrayInputStream(
-          LINEBREAK_REGEX.matcher(xslt).replaceAll(System.lineSeparator()).getBytes(StandardCharsets.UTF_8)));
+      parser.parse(new ByteArrayInputStream(xslt.getBytes(StandardCharsets.UTF_8)));
+      TransformerFactory transformerFactory = TransformerFactory.newInstance();
+      transformerFactory.setFeature(XMLConstants.FEATURE_SECURE_PROCESSING, true);
+      transformerFactory.setErrorListener(XSLT_PARSING_ERRORS);
+      Source source = new StreamSource(new StringReader(xslt));
+      transformerFactory.newTemplates(source);
     } catch (ParserConfigurationException | IOException | SAXException pe) {
       return "Could not parse [ " + xslt + "] as XML: " + pe.getMessage();
+    } catch (TransformerException tce) {
+      return tce.getMessage() + XSLT_PARSING_ERRORS;
     }
     return "OK";
   }

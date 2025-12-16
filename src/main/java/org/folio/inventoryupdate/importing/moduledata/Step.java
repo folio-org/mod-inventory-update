@@ -173,7 +173,7 @@ public class Step extends Entity {
   /**
    * First validates that the stylesheet is valid XML, then checks for syntax violations.
    * @param xslt the stylesheet to validate
-   * @return "OK" if validation passed, otherwise and error message.
+   * @return "OK" if validation passed, otherwise an error message.
    */
   public static String validateStyleSheet(String xslt) {
     ErrorListener errorListener = new XsltParsingErrors();

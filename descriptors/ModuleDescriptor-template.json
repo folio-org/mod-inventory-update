@@ -542,18 +542,6 @@
             "cron": "0 2 * * *",
             "zone": "CET"
           }
-        },
-        {
-          "methods": [
-            "POST"
-          ],
-          "pathPattern": "/inventory-import/recover-interrupted-channels",
-          "modulePermissions": [
-            "modperms.inventory-update.import"
-          ],
-          "schedule": {
-            "cron": "* * * * *"
-          }
         }
       ]
     }

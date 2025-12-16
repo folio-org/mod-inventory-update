@@ -1,6 +1,6 @@
 ## Using MIU for importing to inventory storage (WiP, actual implementation is both ahead of and behind this documentation)
 
-The importing component of MIU consists of 0 or more import "channels" equipped with file queues and processing pipelines.
+The importing component of MIU consists of import "channels" equipped with file queues and processing pipelines.
 
 The only existing pipeline implementation is an XSLT transformation pipeline, that takes an XML 'collection' of 'record'
 elements and -- through one or more custom written XSLT style-sheets -- transforms them into "inventory XML" that can be converted
@@ -50,8 +50,12 @@ The dynamic parts of a channel are
 
 All these requests operate on a single channel, whereas this request is applied cross-channel:
 
-- POST `/inventory-import/recover-interrupted-channels`    Will deploy all channels that are marked `enabled` but are not actually running
-wip the recovered channels can be set to not listening by /inventory-import/recover-interrupted-channels?listening=false
+- POST `/inventory-import/recover-interrupted-channels`    Will deploy all channels that are marked `enabled` but are not actually running.
+The recovered channels can be set to not listening by /inventory-import/recover-interrupted-channels?listening=false
+
+When posting new source files to a channel that was interrupted by a module restart, then the channel will automatically be recovered.
+Calling the `recover-interrupted-channels` is merely for triggering continuation of an interrupted job when there are no new source
+files coming in to the channel to trigger the recovery automatically.
 
 #### Using `tag` for channel ID
 
@@ -86,8 +90,8 @@ when cancelling the job.
 
 #### Requests operating on jobs:
 
-Channel operations will affect a current job in the channel. Besides that, there are following request that act on the
-import job directly.
+Channel operations will affect a current job in the channel. Besides that, there are following requests that act on an
+ongoing import job directly.
 
 - POST `/inventory-import/channels/<channel id>/pause-job`
 - POST `/inventory-import/channels/<channel id>/resume-job`

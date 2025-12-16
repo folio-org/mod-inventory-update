@@ -26,7 +26,8 @@ import java.util.ArrayList;
 public class Files {
 
   public static final String XSLT_EMPTY = getSampleFile("stylesheets/empty.xslt");
-  public static final String XSLT_INVALID = getSampleFile("stylesheets/invalid.xslt");
+  public static final String XSLT_INVALID_XML = getSampleFile("stylesheets/invalidXml.xslt");
+  public static final String XSLT_SYNTAX_ERROR = getSampleFile("stylesheets/xsltSyntaxError.xslt");
   public static final String XSLT_COPY_XML_DOC = getSampleFile("stylesheets/copyXmlDoc.xslt");
   private static final String INSTANCE_TYPE_ID = "30fffe0e-e985-4144-b2e2-1e8179bdb41f";
 

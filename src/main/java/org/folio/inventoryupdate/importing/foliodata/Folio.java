@@ -19,8 +19,8 @@ public final class Folio {
     if (ctx.request().getHeader("X-Okapi-Tenant") != null) {
       headers.put("X-Okapi-Tenant", ctx.request().getHeader("X-Okapi-Tenant"));
     }
-    if (ctx.request().getHeader("X-Okapi-Token") != null) {
-      headers.put("X-Okapi-Token", ctx.request().getHeader("X-Okapi-Token"));
+    if (ctx.request().getHeader(XOkapiHeaders.TOKEN) != null) {
+      headers.put(XOkapiHeaders.TOKEN, ctx.request().getHeader(XOkapiHeaders.TOKEN));
     }
     headers.put("Accept", "application/json, text/plain");
     OkapiClient client = new OkapiClient(WebClientFactory.getWebClient(ctx.vertx()), ctx);

@@ -135,7 +135,8 @@ public class TransformationStep extends Entity {
                 + " WHERE transformation_id = '" + theRecord.transformationId + "'"
                 + "   AND position >= " + this.theRecord.position
                 + "   AND id != '" + this.theRecord.id + "'"
-        )).mapEmpty();
+        ))
+        .mapEmpty();
   }
 
   public Future<Void> updateTsaRepositionSteps(ServiceRequest request, int positionOfExistingTsa) {

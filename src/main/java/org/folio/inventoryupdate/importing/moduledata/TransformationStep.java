@@ -191,11 +191,13 @@ public class TransformationStep extends Entity {
   }
 
   public Future<Void> deleteTsaRepositionSteps(TenantPgPool tenantPool, int positionOfExistingTsa) {
-    return findPositionOfLastStepOfTransformation(tenantPool).compose(maxPosition -> {
-      this.positionOfLastStepOfTransformation = maxPosition;
-      this.positionOfTheExistingStep = positionOfExistingTsa;
-      return Future.succeededFuture(this);
-    }).compose(rec -> executeDeleteAndAdjustPositions(tenantPool, rec));
+    return findPositionOfLastStepOfTransformation(tenantPool)
+      .map(maxPosition -> {
+          this.positionOfLastStepOfTransformation = maxPosition;
+          this.positionOfTheExistingStep = positionOfExistingTsa;
+          return this;
+       })
+      .compose(rec -> executeDeleteAndAdjustPositions(tenantPool, rec));
   }
 
   public Future<Void> executeDeleteAndAdjustPositions(TenantPgPool tenantPool, TransformationStep updatingTsa) {

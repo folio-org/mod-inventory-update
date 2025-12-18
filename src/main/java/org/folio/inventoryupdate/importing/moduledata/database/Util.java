@@ -6,7 +6,7 @@ import java.util.UUID;
 public final class Util {
 
   private Util() {
-    throw new IllegalStateException("Utility class");
+    throw new UnsupportedOperationException("Utility class");
   }
 
   public static UUID getUuid(JsonObject json, String propertyName, UUID def) {

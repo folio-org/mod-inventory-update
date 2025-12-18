@@ -33,13 +33,21 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
+
+import org.folio.inventoryupdate.importing.foliodata.Folio;
+import org.folio.inventoryupdate.importing.foliodata.SettingsClient;
+import org.folio.inventoryupdate.importing.moduledata.database.DatabaseInit;
+import org.folio.inventoryupdate.importing.service.delivery.fileimport.FileListeners;
+import org.folio.inventoryupdate.importing.utils.DateTimeFormatter;
 import org.folio.inventoryupdate.importing.utils.Miscellaneous;
+import org.folio.inventoryupdate.importing.utils.SecureSaxParser;
 import org.folio.inventoryupdate.unittests.fixtures.Service;
 import org.folio.inventoryupdate.importing.service.delivery.fileimport.transformation.InventoryXmlToInventoryJson;
 import org.folio.inventoryupdate.unittests.fakestorage.FakeFolioApisForImporting;
 import org.folio.inventoryupdate.unittests.fixtures.Files;
 import org.folio.inventoryupdate.importing.utils.SettableClock;
 import org.folio.okapi.common.XOkapiHeaders;
+import org.folio.okapi.testing.UtilityClassTester;
 import org.folio.tlib.postgres.testing.TenantPgPoolContainer;
 import org.junit.*;
 import org.junit.runner.RunWith;
@@ -133,7 +141,16 @@ public class ImportTests extends InventoryUpdateTestBase {
   }
 
   @Test
+  public void testUtilityMiscClasses() {
+    UtilityClassTester.assertUtilityClass(DateTimeFormatter.class);
+    UtilityClassTester.assertUtilityClass(DatabaseInit.class);
+    UtilityClassTester.assertUtilityClass(Folio.class);
+    UtilityClassTester.assertUtilityClass(FileListeners.class);
+    UtilityClassTester.assertUtilityClass(SettingsClient.class);
+  }
+  @Test
   public void testSettableClock() {
+    UtilityClassTester.assertUtilityClass(SettableClock.class);
     Instant sysNow = Instant.now();
     Clock fixedClock = Clock.fixed(sysNow, ZoneId.systemDefault());
     SettableClock.setClock(fixedClock);
@@ -425,6 +442,7 @@ public class ImportTests extends InventoryUpdateTestBase {
 
   @Test
   public void cannotUpdateStepWithInvalidXslt() {
+    UtilityClassTester.assertUtilityClass(SecureSaxParser.class);
     JsonObject step = new JsonObject();
     step.put("id", STEP_ID)
         .put("name", "test step")
@@ -1173,6 +1191,7 @@ public class ImportTests extends InventoryUpdateTestBase {
 
   @Test
   public void testPeriodUtil() {
+    UtilityClassTester.assertUtilityClass(Miscellaneous.class);
     record Args(String periodAsText, int defaultAmount, String defaultUnit, String expectedPeriod) {
     }
     List<Args> parameters = Arrays.asList(

@@ -21,7 +21,7 @@ public final class FileListeners {
       = new ConcurrentHashMap<>();
 
   private FileListeners() {
-    throw new IllegalStateException("Utility class");
+    throw new UnsupportedOperationException("Utility class");
   }
 
   public static FileListener getFileListener(String tenant, String channelId) {

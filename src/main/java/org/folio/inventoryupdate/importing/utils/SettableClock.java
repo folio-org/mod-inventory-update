@@ -14,7 +14,7 @@ public final class SettableClock {
   private static java.time.Clock clock = java.time.Clock.systemUTC();
 
   private SettableClock() {
-    throw new IllegalStateException("Utility class");
+    throw new UnsupportedOperationException("Utility class");
   }
 
   /**

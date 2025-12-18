@@ -7,7 +7,7 @@ import java.time.Period;
 public final class Miscellaneous {
 
   private Miscellaneous() {
-    throw new IllegalStateException("Utility class");
+    throw new UnsupportedOperationException("Utility class");
   }
 
   /**

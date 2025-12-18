@@ -15,7 +15,7 @@ public final class SettingsClient {
   private static final Logger logger = LogManager.getLogger(SettingsClient.class);
 
   private SettingsClient() {
-    throw new IllegalStateException("Utility class");
+    throw new UnsupportedOperationException("Utility class");
   }
 
   public static Future<String> getStringValue(RoutingContext routingContext, String scope, String key) {

@@ -10,7 +10,7 @@ import org.folio.okapi.common.XOkapiHeaders;
 public final class Folio {
 
   private Folio() {
-    throw new IllegalStateException("Utility class");
+    throw new UnsupportedOperationException("Utility class");
   }
 
   public static OkapiClient okapiClient(RoutingContext ctx) {

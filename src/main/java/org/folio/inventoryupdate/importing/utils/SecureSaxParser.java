@@ -8,6 +8,7 @@ import org.xml.sax.SAXException;
 
 public final class SecureSaxParser {
   private SecureSaxParser() {
+    throw new UnsupportedOperationException("Utility class");
   }
 
   /**

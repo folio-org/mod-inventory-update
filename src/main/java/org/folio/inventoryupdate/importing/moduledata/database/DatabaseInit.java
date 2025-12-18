@@ -17,7 +17,7 @@ public final class DatabaseInit {
   static final Logger logger = LogManager.getLogger(DatabaseInit.class);
 
   private DatabaseInit() {
-    throw new IllegalStateException("Utility class");
+    throw new UnsupportedOperationException("Utility class");
   }
 
   /**

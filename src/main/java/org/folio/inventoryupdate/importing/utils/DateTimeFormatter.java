@@ -62,7 +62,7 @@ public final class DateTimeFormatter {
   }
 
   private DateTimeFormatter() {
-    throw new IllegalStateException("Utility class");
+    throw new UnsupportedOperationException("Utility class");
   }
 
   public static String formatDateTime(ZonedDateTime dateTime) {

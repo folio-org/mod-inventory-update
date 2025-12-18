@@ -5,6 +5,7 @@ import java.util.HashMap;
 import java.util.Map;
 import org.folio.okapi.common.OkapiClient;
 import org.folio.okapi.common.WebClientFactory;
+import org.folio.okapi.common.XOkapiHeaders;
 
 public final class Folio {
 

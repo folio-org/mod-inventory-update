@@ -186,7 +186,8 @@ public class TransformationStep extends Entity {
                     + "     END "
                     + " WHERE transformation_id = '" + theRecord.transformationId + "'"
                     + "   AND position BETWEEN SYMMETRIC " + this.positionOfTheExistingStep + " AND " + this.newPosition
-            )).mapEmpty();
+            ))
+            .mapEmpty();
   }
 
   public Future<Void> deleteTsaRepositionSteps(TenantPgPool tenantPool, int positionOfExistingTsa) {

@@ -1,7 +1,6 @@
 package org.folio.inventoryupdate.importing.service.delivery.fileimport;
 
 import io.vertx.core.Future;
-import io.vertx.core.Promise;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -40,7 +39,6 @@ public final class FileListeners {
   }
 
   public static Future<String> deployIfNotDeployed(ServiceRequest request, Channel channel) {
-    Promise<String> promise = Promise.promise();
     boolean retainQueueIfAny = "true".equalsIgnoreCase(request.requestParam("retainQueue"));
     // Request parameter can override what is set on the channel record
     boolean listening = request.requestParam("listening") == null
@@ -57,19 +55,17 @@ public final class FileListeners {
         queue.createDirectoriesIfNotExist();
       }
       FileListener listenerVerticle = addFileListener(request.tenant(), cfgId, new XmlFileListener(request, channel));
-      channel.setEnabledListening(true, listening, request.entityStorage())
+      return channel.setEnabledListening(true, listening, request.entityStorage())
           .compose(na -> new ImportJob().changeRunningToInterruptedByChannelId(request.entityStorage(), cfgId))
           .compose(jobsInterrupted -> {
             String jobsMarkedInterrupted = jobsInterrupted > 0
                 ? jobsInterrupted + " previous job was marked 'RUNNING', now marked 'INTERRUPTED'. " : "";
             return listenerVerticle.deploy().map(resp -> jobsMarkedInterrupted + resp);
-          })
-          .onSuccess(promise::complete)
-          .onFailure(f -> promise.fail(f.getMessage()));
+          });
     } else {
-      promise.complete("File listener already commissioned for channel [" + channel.getRecord().name() + "].");
+      return Future.succeededFuture(
+          "File listener already commissioned for channel [" + channel.getRecord().name() + "].");
     }
-    return promise.future();
   }
 
   /**

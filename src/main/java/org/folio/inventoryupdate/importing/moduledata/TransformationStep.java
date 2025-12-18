@@ -187,17 +187,17 @@ public class TransformationStep extends Entity {
                     + " WHERE transformation_id = '" + theRecord.transformationId + "'"
                     + "   AND position BETWEEN SYMMETRIC " + this.positionOfTheExistingStep + " AND " + this.newPosition
             ))
-            .mapEmpty();
+        .mapEmpty();
   }
 
   public Future<Void> deleteTsaRepositionSteps(TenantPgPool tenantPool, int positionOfExistingTsa) {
     return findPositionOfLastStepOfTransformation(tenantPool)
-      .map(maxPosition -> {
+        .map(maxPosition -> {
           this.positionOfLastStepOfTransformation = maxPosition;
           this.positionOfTheExistingStep = positionOfExistingTsa;
           return this;
-       })
-      .compose(rec -> executeDeleteAndAdjustPositions(tenantPool, rec));
+        })
+        .compose(rec -> executeDeleteAndAdjustPositions(tenantPool, rec));
   }
 
   public Future<Void> executeDeleteAndAdjustPositions(TenantPgPool tenantPool, TransformationStep updatingTsa) {

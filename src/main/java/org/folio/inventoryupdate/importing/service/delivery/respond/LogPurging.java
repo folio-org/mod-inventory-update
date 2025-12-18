@@ -1,5 +1,7 @@
 package org.folio.inventoryupdate.importing.service.delivery.respond;
 
+import static org.folio.okapi.common.HttpResponse.responseError;
+
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
 import io.vertx.sqlclient.templates.SqlTemplate;
@@ -19,8 +21,6 @@ import org.folio.inventoryupdate.importing.service.ServiceRequest;
 import org.folio.inventoryupdate.importing.utils.Miscellaneous;
 import org.folio.inventoryupdate.importing.utils.SettableClock;
 import org.folio.tlib.postgres.TenantPgPool;
-
-import static org.folio.okapi.common.HttpResponse.responseError;
 
 public class LogPurging  {
 
@@ -60,7 +60,7 @@ public class LogPurging  {
         .compose(this::logDeletions);
   }
 
-  private Future<Void> logDeletions (String text) {
+  private Future<Void> logDeletions(String text) {
     logger.info(text);
     return Future.succeededFuture();
   }

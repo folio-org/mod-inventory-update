@@ -141,6 +141,5 @@ public class EntityStorage {
         .execute(null)
         .map(rows -> rows.iterator().next().getLong("total_records"));
   }
-
 }
 

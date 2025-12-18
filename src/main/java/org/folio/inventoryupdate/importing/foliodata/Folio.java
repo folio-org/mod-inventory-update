@@ -16,8 +16,8 @@ public final class Folio {
   public static OkapiClient okapiClient(RoutingContext ctx) {
     Map<String, String> headers = new HashMap<>();
     headers.put("Content-type", "application/json");
-    if (ctx.request().getHeader("X-Okapi-Tenant") != null) {
-      headers.put("X-Okapi-Tenant", ctx.request().getHeader("X-Okapi-Tenant"));
+    if (ctx.request().getHeader(XOkapiHeaders.TENANT) != null) {
+      headers.put(XOkapiHeaders.TENANT, ctx.request().getHeader(XOkapiHeaders.TENANT));
     }
     if (ctx.request().getHeader(XOkapiHeaders.TOKEN) != null) {
       headers.put(XOkapiHeaders.TOKEN, ctx.request().getHeader(XOkapiHeaders.TOKEN));

@@ -166,7 +166,7 @@ public class TransformationStep extends Entity {
   public Future<Void> executeUpdateAndAdjustPositions(ServiceRequest request) {
 
     return request.entityStorage().updateEntity(this.theRecord.id, this.withUpdatingUser(request.currentUser()))
-        .onSuccess(ignore ->
+        .compose(ignore ->
             executeSqlStatements(request.entityStorage().getTenantPool(),
                 // Update the one property that can change besides position.
                 "UPDATE " + schemaTable(request.dbSchema())

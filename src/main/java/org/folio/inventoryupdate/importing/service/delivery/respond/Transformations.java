@@ -13,7 +13,7 @@ import org.folio.inventoryupdate.importing.service.ServiceRequest;
 public final class Transformations extends EntityResponses {
 
   private Transformations() {
-    throw new IllegalStateException("Static storage utilities");
+    throw new UnsupportedOperationException("Static storage utilities");
   }
 
   public static Future<Void> postStep(ServiceRequest request) {

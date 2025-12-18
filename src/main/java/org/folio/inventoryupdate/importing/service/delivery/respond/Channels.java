@@ -22,7 +22,7 @@ public final class Channels extends EntityResponses {
   private static final AtomicBoolean CHANNELS_ALREADY_BOOTSTRAPPED = new AtomicBoolean(false);
 
   private Channels() {
-    throw new IllegalStateException("Static storage utilities");
+    throw new UnsupportedOperationException("Static storage utilities");
   }
 
   public static Future<Void> postChannel(ServiceRequest request) {
@@ -53,28 +53,30 @@ public final class Channels extends EntityResponses {
     Channel inputChannel = new Channel().fromJson(request.bodyAsJson());
     UUID id = UUID.fromString(request.requestParam("id"));
     return request.entityStorage().updateEntity(id, inputChannel.withUpdatingUser(request.currentUser()))
-        .onSuccess(result -> {
+        .compose(result -> {
           if (result.rowCount() == 1) {
-            request.entityStorage().getEntity(id, new Channel()).map(Channel.class::cast)
+            return request.entityStorage()
+                .getEntity(id, new Channel())
+                .map(Channel.class::cast)
                 .compose(channel -> {
                   if (channel.isEnabled() && channel.isCommissioned()) {
                     FileListener listener = FileListeners.getFileListener(request.tenant(), id.toString());
                     listener.updateChannel(channel);
-                    return responseText(request.routingContext(), 200).end();
+                    return Future.succeededFuture();
                   } else if (!channel.isEnabled() && channel.isCommissioned()) {
-                    return FileListeners.undeployIfDeployed(request, channel).map(
-                        na -> responseText(request.routingContext(), 200).end()).mapEmpty();
+                    return FileListeners.undeployIfDeployed(request, channel);
                   } else if (channel.isEnabled() && !channel.isCommissioned()) {
-                    return FileListeners.deployIfNotDeployed(request, channel)
-                        .map(message -> responseText(request.routingContext(), 200).end(message)).mapEmpty();
+                    return FileListeners.deployIfNotDeployed(request, channel);
                   } else {
-                    return responseText(request.routingContext(), 200).end();
+                    return Future.succeededFuture();
                   }
-                });
+                })
+                .compose(na -> responseText(request.routingContext(), 200).end())
+                .mapEmpty();
           } else {
-            responseText(request.routingContext(), 404).end("Channel config to update not found");
+            return responseText(request.routingContext(), 404).end("Channel config to update not found");
           }
-        }).mapEmpty();
+        });
   }
 
   public static Future<Void> deleteChannel(ServiceRequest request) {

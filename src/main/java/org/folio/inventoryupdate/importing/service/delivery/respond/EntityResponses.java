@@ -16,7 +16,9 @@ import org.folio.tlib.postgres.PgCqlException;
 
 public class EntityResponses {
 
-  public EntityResponses() {}
+  EntityResponses() {
+    throw new UnsupportedOperationException("Static storage utilities");
+  }
 
   public static Future<Void> getEntityAndRespond(ServiceRequest request, Entity entity) {
     UUID id = UUID.fromString(request.requestParam("id"));

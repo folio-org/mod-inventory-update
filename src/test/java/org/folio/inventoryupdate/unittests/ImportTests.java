@@ -38,6 +38,9 @@ import org.folio.inventoryupdate.importing.foliodata.Folio;
 import org.folio.inventoryupdate.importing.foliodata.SettingsClient;
 import org.folio.inventoryupdate.importing.moduledata.database.DatabaseInit;
 import org.folio.inventoryupdate.importing.service.delivery.fileimport.FileListeners;
+import org.folio.inventoryupdate.importing.service.delivery.respond.Channels;
+import org.folio.inventoryupdate.importing.service.delivery.respond.JobsAndMonitoring;
+import org.folio.inventoryupdate.importing.service.delivery.respond.Transformations;
 import org.folio.inventoryupdate.importing.utils.DateTimeFormatter;
 import org.folio.inventoryupdate.importing.utils.Miscellaneous;
 import org.folio.inventoryupdate.importing.utils.SecureSaxParser;
@@ -147,7 +150,11 @@ public class ImportTests extends InventoryUpdateTestBase {
     UtilityClassTester.assertUtilityClass(Folio.class);
     UtilityClassTester.assertUtilityClass(FileListeners.class);
     UtilityClassTester.assertUtilityClass(SettingsClient.class);
+    UtilityClassTester.assertUtilityClass(Channels.class);
+    UtilityClassTester.assertUtilityClass(JobsAndMonitoring.class);
+    UtilityClassTester.assertUtilityClass(Transformations.class);
   }
+
   @Test
   public void testSettableClock() {
     UtilityClassTester.assertUtilityClass(SettableClock.class);

@@ -15,7 +15,6 @@ import org.folio.inventoryupdate.importing.foliodata.SettingsClient;
 import org.folio.inventoryupdate.importing.moduledata.ImportJob;
 import org.folio.inventoryupdate.importing.moduledata.LogLine;
 import org.folio.inventoryupdate.importing.moduledata.RecordFailure;
-import org.folio.inventoryupdate.importing.moduledata.database.EntityStorage;
 import org.folio.inventoryupdate.importing.moduledata.database.Tables;
 import org.folio.inventoryupdate.importing.service.ServiceRequest;
 import org.folio.inventoryupdate.importing.utils.Miscellaneous;
@@ -24,7 +23,7 @@ import org.folio.tlib.postgres.TenantPgPool;
 
 public class LogPurging  {
 
-  protected static final Logger logger = LogManager.getLogger(EntityStorage.class);
+  protected static final Logger logger = LogManager.getLogger(LogPurging.class);
   protected final TenantPgPool pool;
   protected final String tenant;
 

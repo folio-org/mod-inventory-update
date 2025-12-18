@@ -29,7 +29,7 @@ public final class JobsAndMonitoring extends EntityResponses {
   public static final Logger logger = LogManager.getLogger("jobs-and-logging");
 
   private JobsAndMonitoring() {
-    throw new IllegalStateException("Static storage utilities");
+    throw new UnsupportedOperationException("Static storage utilities");
   }
 
   public static Future<Void> postImportJob(ServiceRequest request) {

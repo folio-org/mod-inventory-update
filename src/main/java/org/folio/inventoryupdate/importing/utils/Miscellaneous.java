@@ -27,7 +27,12 @@ public final class Miscellaneous {
             case "DAY", "DAYS" -> Period.ofDays(amount);
             case "WEEK", "WEEKS" -> Period.ofWeeks(amount);
             case "MONTH", "MONTHS" -> Period.ofMonths(amount);
-            default -> null;
+            default -> switch (defaultUnit) {
+              case "DAYS" -> Period.ofDays(defaultAmount);
+              case "WEEKS" -> Period.ofWeeks(defaultAmount);
+              case "MONTHS" -> Period.ofMonths(defaultAmount);
+              default -> Period.ofMonths(3);
+            };
           };
         } catch (NumberFormatException nfe) {
           logger.error("Could not resolve period from [{}]. Expected string on the format: "
@@ -39,7 +44,7 @@ public final class Miscellaneous {
       case "DAYS" -> Period.ofDays(defaultAmount);
       case "WEEKS" -> Period.ofWeeks(defaultAmount);
       case "MONTHS" -> Period.ofMonths(defaultAmount);
-      default -> null;
+      default -> Period.ofMonths(3);
     };
   }
 }

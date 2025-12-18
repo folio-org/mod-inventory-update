@@ -1,28 +1,23 @@
 package org.folio.inventoryupdate.importing.moduledata.database;
 
 import io.vertx.core.Future;
-import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
 import io.vertx.core.json.JsonObject;
 import io.vertx.sqlclient.RowIterator;
 import io.vertx.sqlclient.SqlResult;
 import io.vertx.sqlclient.templates.SqlTemplate;
-import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.folio.inventoryupdate.importing.moduledata.ImportJob;
-import org.folio.inventoryupdate.importing.moduledata.LogLine;
-import org.folio.inventoryupdate.importing.moduledata.RecordFailure;
 import org.folio.tlib.postgres.TenantPgPool;
 
 public class EntityStorage {
-  private static final Logger logger = LogManager.getLogger(EntityStorage.class);
-  final TenantPgPool pool;
-  String tenant;
+  protected static final Logger logger = LogManager.getLogger(EntityStorage.class);
+  protected final TenantPgPool pool;
+  protected String tenant;
 
   /**
    * Constructor.
@@ -147,55 +142,5 @@ public class EntityStorage {
         .map(rows -> rows.iterator().next().getLong("total_records"));
   }
 
-  public Future<SqlResult<Void>> purgePreviousJobsByAge(LocalDateTime untilDate) {
-    Promise<Void> promise = Promise.promise();
-    return SqlTemplate.forUpdate(pool.getPool(),
-            "DELETE FROM " + schemaDotTable(Tables.LOG_STATEMENT)
-                + " WHERE " + new LogLine().field(LogLine.IMPORT_JOB_ID).columnName()
-                + "    IN (SELECT " + new ImportJob().field(ImportJob.ID).columnName()
-                + "        FROM " + schemaDotTable(Tables.IMPORT_JOB)
-                + "        WHERE " + new ImportJob().field(ImportJob.STARTED).columnName() + " < #{untilDate} )")
-        .execute(Collections.singletonMap("untilDate", untilDate))
-        .onComplete(deletedLogs -> {
-          if (deletedLogs.succeeded()) {
-            SqlTemplate.forUpdate(pool.getPool(),
-                    "DELETE FROM " + schemaDotTable(Tables.RECORD_FAILURE)
-                        + " WHERE " + new RecordFailure().field(LogLine.IMPORT_JOB_ID).columnName()
-                        + "    IN (SELECT " + new ImportJob().field(ImportJob.ID).columnName()
-                        + "        FROM " + schemaDotTable(Tables.IMPORT_JOB)
-                        + "       WHERE " + new ImportJob().field(ImportJob.STARTED).columnName() + " < #{untilDate} )")
-                .execute(Collections.singletonMap("untilDate", untilDate))
-                .onComplete(deletedFailedRecords -> {
-                  if (deletedFailedRecords.succeeded()) {
-                    SqlTemplate.forUpdate(pool.getPool(),
-                            "DELETE FROM " + schemaDotTable(Tables.IMPORT_JOB)
-                                + " WHERE " + new ImportJob().field(ImportJob.STARTED).columnName() + "<#{untilDate} ")
-                        .execute(Collections.singletonMap("untilDate", untilDate))
-                        .onSuccess(result -> {
-                          logger.info("Timer process purged {} import jobs from before {}",
-                              result.rowCount(), untilDate);
-                          promise.complete();
-                        })
-                        .onFailure(result -> {
-                          logger.error("Timer process: Purge of previous jobs failed. {}",
-                              result.getCause().getMessage());
-                          promise.fail(String.format("Could not delete job runs with finish dates before %s %s",
-                              untilDate, result.getCause().getMessage()));
-                        });
-                  } else {
-                    logger.error("Purge of failed records failed. {}",
-                        deletedFailedRecords.cause().getMessage());
-                    promise.fail(String.format("Could not delete job runs with finish dates before  %s "
-                            + " because deletion of its failed records failed: %s",
-                        untilDate, deletedFailedRecords.cause().getMessage()));
-                  }
-                });
-          } else {
-            logger.error("Purge of log statements failed. {}", deletedLogs.cause().getMessage());
-            promise.fail("Could not delete job runs with finish dates before  " + untilDate
-                + " because deletion of its logs failed: "
-                + deletedLogs.cause().getMessage());
-          }
-        });
-  }
 }
+

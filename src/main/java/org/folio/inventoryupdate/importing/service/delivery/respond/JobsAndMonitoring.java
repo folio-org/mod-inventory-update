@@ -7,15 +7,11 @@ import static org.folio.okapi.common.HttpResponse.responseText;
 import io.vertx.core.Future;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
-import java.time.LocalDateTime;
-import java.time.Period;
-import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.folio.inventoryupdate.importing.foliodata.SettingsClient;
 import org.folio.inventoryupdate.importing.moduledata.ImportJob;
 import org.folio.inventoryupdate.importing.moduledata.LogLine;
 import org.folio.inventoryupdate.importing.moduledata.RecordFailure;
@@ -26,8 +22,6 @@ import org.folio.inventoryupdate.importing.moduledata.database.Tables;
 import org.folio.inventoryupdate.importing.service.ServiceRequest;
 import org.folio.inventoryupdate.importing.service.delivery.fileimport.FileListeners;
 import org.folio.inventoryupdate.importing.service.delivery.fileimport.FileProcessor;
-import org.folio.inventoryupdate.importing.utils.Miscellaneous;
-import org.folio.inventoryupdate.importing.utils.SettableClock;
 import org.folio.tlib.postgres.PgCqlException;
 
 public final class JobsAndMonitoring extends EntityResponses {
@@ -209,24 +203,6 @@ public final class JobsAndMonitoring extends EntityResponses {
 
   public static Future<Void> deleteRecordFailure(ServiceRequest request) {
     return deleteEntityAndRespond(request, new RecordFailure());
-  }
-
-  public static Future<Void> purgeAgedLogs(ServiceRequest request) {
-    logger.info("Running timer process: purge aged logs");
-    final String settings_scope = "mod-inventory-import";
-    final String settings_key = "PURGE_LOGS_AFTER";
-    SettingsClient.getStringValue(request.routingContext(), settings_scope, settings_key).onComplete(settingsValue -> {
-      applyPurgeOfPastJobs(request, settingsValue.result());
-    });
-    return Future.succeededFuture();
-  }
-
-  public static void applyPurgeOfPastJobs(ServiceRequest request, String purgeSetting) {
-    Period ageForDeletion = Miscellaneous.getPeriod(purgeSetting, 3, "MONTHS");
-    LocalDateTime untilDate = SettableClock.getLocalDateTime().minus(ageForDeletion).truncatedTo(ChronoUnit.MINUTES);
-    logger.info("Running timer process: purging aged logs from before {}", untilDate);
-    request.entityStorage().purgePreviousJobsByAge(untilDate)
-        .onComplete(x -> request.routingContext().response().setStatusCode(204).end()).mapEmpty();
   }
 
   public static Future<Void> pauseImportJob(ServiceRequest request) {

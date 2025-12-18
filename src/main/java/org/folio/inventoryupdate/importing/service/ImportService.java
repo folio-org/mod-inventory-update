@@ -18,6 +18,7 @@ import java.util.UUID;
 import java.util.function.Function;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.folio.inventoryupdate.importing.service.delivery.respond.LogPurging;
 import org.folio.inventoryupdate.importing.moduledata.database.EntityStorage;
 import org.folio.inventoryupdate.importing.service.delivery.fileimport.FileListeners;
 import org.folio.inventoryupdate.importing.service.delivery.fileimport.FileQueue;
@@ -86,7 +87,7 @@ public class ImportService implements RouterCreator, TenantInitHooks {
     validatingHandler(vertx, routerBuilder, "resumeJob", JobsAndMonitoring::resumeImportJob);
 
     // Systems operations
-    validatingHandler(vertx, routerBuilder, "purgeAgedLogs", JobsAndMonitoring::purgeAgedLogs);
+    validatingHandler(vertx, routerBuilder, "purgeAgedLogs", LogPurging::purgeAgedLogs);
     validatingHandler(vertx, routerBuilder, "recoverInterruptedChannels", Channels::recoverChannels);
 
     // Importing

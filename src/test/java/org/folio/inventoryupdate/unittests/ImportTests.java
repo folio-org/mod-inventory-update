@@ -1203,7 +1203,12 @@ public class ImportTests extends InventoryUpdateTestBase {
         new Args("GARBAGE", 3, "DAYS", "P3D"),
         new Args("GARBAGE", 4, "MONTHS", "P4M"),
         new Args("GARBAGE", 4, "WEEKS", "P28D"),
-        new Args("X MONTHS", 4, "DAYS", "P4D")
+        new Args("X MONTHS", 4, "DAYS", "P4D"),
+        new Args("4 SECONDS", 3, "MONTHS", "P3M"),
+        new Args("4 SECONDS", 3, "WEEKS", "P21D"),
+        new Args("4 SECONDS", 3, "DAYS", "P3D"),
+        new Args("4 SECONDS", 3, "SECONDS", "P3M"),
+        new Args("X SECONDS", 1, "GARBAGE", "P3M")
     );
     for (Args arg : parameters) {
       Period period = Miscellaneous.getPeriod(arg.periodAsText, arg.defaultAmount, arg.defaultUnit);

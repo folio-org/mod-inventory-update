@@ -23,7 +23,8 @@ public final class SettingsClient {
     return Folio.okapiClient(routingContext).get(SETTINGS_PATH
             + "?query=" + URLEncoder.encode(query, StandardCharsets.UTF_8))
         .map(response ->
-            new JsonObject(response).getJsonArray(RECORDS).getJsonObject(0).getString("value"))
+            new JsonObject(response).getJsonArray(RECORDS).isEmpty() ? null :
+                new JsonObject(response).getJsonArray(RECORDS).getJsonObject(0).getString("value"))
         .onFailure(e ->
             logger.error("Could not obtain settings by scope {} and key {}: {}",
                 scope, key, e.getMessage()));

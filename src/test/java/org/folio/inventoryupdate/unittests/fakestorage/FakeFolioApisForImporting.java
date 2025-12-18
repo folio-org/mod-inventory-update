@@ -8,7 +8,6 @@ import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.handler.BodyHandler;
 import org.folio.inventoryupdate.unittests.fixtures.Service;
-import org.folio.inventoryupdate.importing.foliodata.ConfigurationsClient;
 import org.folio.inventoryupdate.importing.foliodata.SettingsClient;
 
 public class FakeFolioApisForImporting extends FakeApis {
@@ -33,7 +32,6 @@ public class FakeFolioApisForImporting extends FakeApis {
 
 
   public FakeFolioApisForImporting(Vertx vertx, TestContext testContext) {
-        configurationStorage.attachToFakeStorage(this);
         locationStorage.attachToFakeStorage(this);
         instanceStorage.attachToFakeStorage(this);
         instanceSetview.attachToFakeStorage(this);
@@ -44,16 +42,11 @@ public class FakeFolioApisForImporting extends FakeApis {
         ordersStorage.attachToFakeStorage(this);
 
         Router router = Router.router(vertx);
-        router.get(ConfigurationsClient.CONFIGURATIONS_PATH).handler(configurationStorage::getRecords);
-        router.get(ConfigurationsClient.CONFIGURATIONS_PATH + "/:id").handler(configurationStorage::getRecordById);
         router.get(SettingsClient.SETTINGS_PATH).handler(settingsStorage::getRecords);
         router.get(SettingsClient.SETTINGS_PATH + "/:id").handler(settingsStorage::getRecordById);
         router.post("/*").handler(BodyHandler.create());
-        router.post(ConfigurationsClient.CONFIGURATIONS_PATH).handler(configurationStorage::createRecord);
         router.post(SettingsClient.SETTINGS_PATH).handler(settingsStorage::createRecord);
         router.put("/*").handler(BodyHandler.create());
-        router.put(ConfigurationsClient.CONFIGURATIONS_PATH + "/:id").handler(configurationStorage::updateRecord);
-        router.delete(ConfigurationsClient.CONFIGURATIONS_PATH + "/:id").handler(configurationStorage::deleteRecord);
         router.put(SettingsClient.SETTINGS_PATH + "/:id").handler(settingsStorage::updateRecord);
         router.delete(SettingsClient.SETTINGS_PATH + "/:id").handler(settingsStorage::deleteRecord);
         router.get(LOCATION_STORAGE_PATH).handler(locationStorage::getRecords);

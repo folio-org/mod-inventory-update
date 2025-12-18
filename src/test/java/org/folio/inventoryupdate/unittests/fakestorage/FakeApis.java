@@ -6,7 +6,6 @@ import io.vertx.core.json.JsonObject;
 import org.folio.inventoryupdate.unittests.fixtures.Service;
 
 public abstract class FakeApis {
-  public final ConfigurationStorage configurationStorage = new ConfigurationStorage();
   public final SettingsStorage settingsStorage = new SettingsStorage();
   public LocationStorage locationStorage = new LocationStorage();
   public InstanceStorage instanceStorage = new InstanceStorage();

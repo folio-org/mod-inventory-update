@@ -102,7 +102,6 @@ public abstract class InventoryUpdateTestBase {
 
   @Before
   public void resetStorage() {
-    fakeFolioApis.configurationStorage.wipeMockRecords();
     fakeFolioApis.settingsStorage.wipeMockRecords();
 
     fakeFolioApis.itemStorage.wipeMockRecords();

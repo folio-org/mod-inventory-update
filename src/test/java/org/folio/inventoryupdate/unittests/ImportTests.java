@@ -69,7 +69,6 @@ public class ImportTests extends InventoryUpdateTestBase {
     tenantOp(Service.TENANT, new JsonObject()
         .put("module_from", "mod-inventory-update-1.0.0")
         .put("purge", true), null);
-    fakeFolioApis.configurationStorage.wipeMockRecords();
     fakeFolioApis.settingsStorage.wipeMockRecords();
     super.cleanUp();
   }
@@ -1194,41 +1193,6 @@ public class ImportTests extends InventoryUpdateTestBase {
     }
   }
 
-  @Test
-  public void willPurgeAgedJobLogsUsingConfigurationsEntry() {
-
-    createThreeImportJobReportsMonthsApart();
-
-    FakeFolioApisForImporting.post("/configurations/entries",
-        new JsonObject()
-            .put("module", "mod-inventory-import")
-            .put("configName", "PURGE_LOGS_AFTER")
-            .put("value", "2 MONTHS")
-            .put("enabled", "true"));
-
-    given()
-        .baseUri(Service.BASE_URI_OKAPI)
-        .header(Service.OKAPI_TENANT)
-        .contentType(ContentType.JSON)
-        .get("configurations/entries")
-        .then().statusCode(200)
-        .body("totalRecords", is(1));
-
-    final RequestSpecification timeoutConfig = timeoutConfig(10000);
-
-    given()
-        .baseUri(BASE_URI_INVENTORY_UPDATE)
-        .header(Service.OKAPI_TENANT)
-        .header(Service.OKAPI_URL)
-        .header(Service.OKAPI_TOKEN)
-        .contentType(ContentType.JSON)
-        .header(XOkapiHeaders.REQUEST_ID, "purge-aged-logs")
-        .spec(timeoutConfig)
-        .when().post("inventory-import/purge-aged-logs")
-        .then().log().ifValidationFails().statusCode(204);
-
-    getRecords(Service.PATH_IMPORT_JOBS).body("totalRecords", is(1));
-  }
 
   @Test
   public void unsupportedQueryReturnsBadRequest() {
@@ -1247,7 +1211,6 @@ public class ImportTests extends InventoryUpdateTestBase {
         .then()
         .statusCode(400);
   }
-
 
   ValidatableResponse postJsonObject(String api, JsonObject body) {
     return given()

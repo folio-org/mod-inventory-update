@@ -15,7 +15,6 @@ import java.util.List;
 import java.util.UUID;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.folio.inventoryupdate.importing.foliodata.ConfigurationsClient;
 import org.folio.inventoryupdate.importing.foliodata.SettingsClient;
 import org.folio.inventoryupdate.importing.moduledata.ImportJob;
 import org.folio.inventoryupdate.importing.moduledata.LogLine;
@@ -217,14 +216,7 @@ public final class JobsAndMonitoring extends EntityResponses {
     final String settings_scope = "mod-inventory-import";
     final String settings_key = "PURGE_LOGS_AFTER";
     SettingsClient.getStringValue(request.routingContext(), settings_scope, settings_key).onComplete(settingsValue -> {
-      if (settingsValue.result() != null) {
-        applyPurgeOfPastJobs(request, settingsValue.result());
-      } else {
-        final String configs_module = "mod-inventory-import";
-        final String configs_config_name = "PURGE_LOGS_AFTER";
-        ConfigurationsClient.getStringValue(request.routingContext(), configs_module, configs_config_name)
-            .onComplete(configsValue -> applyPurgeOfPastJobs(request, configsValue.result()));
-      }
+      applyPurgeOfPastJobs(request, settingsValue.result());
     });
     return Future.succeededFuture();
   }

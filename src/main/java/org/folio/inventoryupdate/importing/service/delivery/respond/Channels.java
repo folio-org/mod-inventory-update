@@ -35,7 +35,8 @@ public final class Channels extends EntityResponses {
         }).compose(id -> db.getEntity(id, channel)).compose(cfg -> {
           if (((Channel) cfg).isEnabled()) {
             return FileListeners.deployIfNotDeployed(request, (Channel) cfg).map(na -> cfg)
-                .compose(na -> responseJson(request.routingContext(), 201).end(cfg.asJson().encodePrettily())).mapEmpty();
+                .compose(na -> responseJson(request.routingContext(), 201).end(cfg.asJson().encodePrettily()))
+                .mapEmpty();
           } else {
             return responseJson(request.routingContext(), 201).end(cfg.asJson().encodePrettily()).mapEmpty();
           }

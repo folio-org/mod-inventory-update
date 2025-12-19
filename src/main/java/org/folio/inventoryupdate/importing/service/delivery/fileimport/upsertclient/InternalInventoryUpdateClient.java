@@ -31,7 +31,7 @@ public class InternalInventoryUpdateClient extends InventoryUpdateClient {
     InventoryQuery queryByInstanceHrid = new QueryByHrid(theRecord.getString("hrid"));
     DeletePlan deletePlan = DeletePlanAllHRIDs.getDeletionPlan(queryByInstanceHrid);
     InternalInventoryDeleteRequest deleteRequest = new InternalInventoryDeleteRequest(vertx, routingContext, theRecord);
-    return deletePlan.runDeletionPlan(deleteRequest).compose(outcome -> {
+    return deletePlan.runDeletionPlan(deleteRequest).map(outcome -> {
       JsonObject outcomeJson = outcome.getJson();
       if (outcome.getStatusCode() == 404) {
         if (outcome.getError() != null) {
@@ -41,7 +41,7 @@ public class InternalInventoryUpdateClient extends InventoryUpdateClient {
           outcomeJson.put("errors", new JsonArray().add(new JsonObject().put("message", "No message to provide")));
         }
       }
-      return Future.succeededFuture(new UpdateResponse(outcome.getStatusCode(), outcomeJson));
+      return new UpdateResponse(outcome.getStatusCode(), outcomeJson);
     })
     .onFailure(e -> logger.error("Could not perform delete request {}", e.getMessage()));
   }
@@ -50,13 +50,13 @@ public class InternalInventoryUpdateClient extends InventoryUpdateClient {
   public Future<UpdateResponse> inventoryUpsert(JsonObject recordSets) {
     InternalInventoryUpdateRequest req = new InternalInventoryUpdateRequest(vertx, routingContext, recordSets);
     HandlersUpdating upsertMethods = new HandlersUpdating();
-    return upsertMethods.doBatchUpsert(req, new UpdatePlanAllHRIDs()).compose(
+    return upsertMethods.doBatchUpsert(req, new UpdatePlanAllHRIDs()).map(
             outcome -> {
               if (outcome.getStatusCode() == 207) {
                 logger.warn("Upsert issue: {}",
                     outcome.getErrorResponse() != null ? outcome.getErrorResponse().getShortMessage() : "");
               }
-              return Future.succeededFuture(new UpdateResponse(outcome.getStatusCode(), outcome.getJson()));
+              return new UpdateResponse(outcome.getStatusCode(), outcome.getJson());
             })
         .onFailure(e -> logger.error("Could not upsert batch: {}", e.getMessage()));
   }

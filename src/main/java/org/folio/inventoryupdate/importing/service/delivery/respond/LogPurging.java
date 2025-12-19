@@ -52,19 +52,11 @@ public class LogPurging  {
 
   private Future<Void> purgePreviousJobsByAge(LocalDateTime untilDate) {
     return deleteLogs(untilDate)
-        .compose(this::logDeletions)
         .compose(deletedLogs -> deleteFailedRecords(untilDate))
-        .compose(this::logDeletions)
-        .compose(deletedFailedRecords -> deleteImportJobs(untilDate))
-        .compose(this::logDeletions);
+        .compose(deletedFailedRecords -> deleteImportJobs(untilDate));
   }
 
-  private Future<Void> logDeletions(String text) {
-    logger.info(text);
-    return Future.succeededFuture();
-  }
-
-  private Future<String> deleteLogs(LocalDateTime untilDate) {
+  private Future<Void> deleteLogs(LocalDateTime untilDate) {
     return SqlTemplate.forUpdate(pool.getPool(),
             "DELETE FROM " + pool.getSchema() + "." + Tables.LOG_STATEMENT
                 + " WHERE " + new LogLine().field(LogLine.IMPORT_JOB_ID).columnName()
@@ -72,11 +64,12 @@ public class LogPurging  {
                 + "        FROM " + pool.getSchema() + "." + Tables.IMPORT_JOB
                 + "        WHERE " + new ImportJob().field(ImportJob.STARTED).columnName() + " < #{untilDate} )")
         .execute(Collections.singletonMap("untilDate", untilDate))
-        .map(result -> result.rowCount() + " log lines deleted.")
-        .onFailure(error -> logger.error(error.getMessage() + " (occurred when attempting to delete logs)"));
+        .onSuccess(result -> logger.info(result.rowCount() + " log lines deleted."))
+        .onFailure(error -> logger.error(error.getMessage() + " (occurred when attempting to delete logs)"))
+        .mapEmpty();
   }
 
-  private Future<String> deleteFailedRecords(LocalDateTime untilDate) {
+  private Future<Void> deleteFailedRecords(LocalDateTime untilDate) {
     return SqlTemplate.forUpdate(pool.getPool(),
             "DELETE FROM " + pool.getSchema() + "." + Tables.RECORD_FAILURE
                 + " WHERE " + new RecordFailure().field(LogLine.IMPORT_JOB_ID).columnName()
@@ -84,16 +77,18 @@ public class LogPurging  {
                 + "        FROM " + pool.getSchema() + "." + Tables.IMPORT_JOB
                 + "       WHERE " + new ImportJob().field(ImportJob.STARTED).columnName() + " < #{untilDate} )")
         .execute(Collections.singletonMap("untilDate", untilDate))
-        .map(result -> result.rowCount() + " failed records deleted.")
-        .onFailure(error -> logger.error(error.getMessage() + " (occurred when attempting to delete failed records)"));
+        .onSuccess(result -> logger.info(result.rowCount() + " failed records deleted."))
+        .onFailure(error -> logger.error(error.getMessage() + " (occurred when attempting to delete failed records)"))
+        .mapEmpty();
   }
 
-  private Future<String> deleteImportJobs(LocalDateTime untilDate) {
+  private Future<Void> deleteImportJobs(LocalDateTime untilDate) {
     return SqlTemplate.forUpdate(pool.getPool(),
             "DELETE FROM " + pool.getSchema() + "." + Tables.IMPORT_JOB
                 + " WHERE " + new ImportJob().field(ImportJob.STARTED).columnName() + " <#{untilDate} ")
         .execute(Collections.singletonMap("untilDate", untilDate))
-        .map(result -> result.rowCount() + " import jobs deleted.")
-        .onFailure(error -> logger.error(error.getMessage() + " (occurred when attempting to delete import jobs)"));
+        .onSuccess(result -> logger.info(result.rowCount() + " import jobs deleted."))
+        .onFailure(error -> logger.error(error.getMessage() + " (occurred when attempting to delete import jobs)"))
+        .mapEmpty();
   }
 }

@@ -64,8 +64,8 @@ public class LogPurging  {
                 + "        FROM " + pool.getSchema() + "." + Tables.IMPORT_JOB
                 + "        WHERE " + new ImportJob().field(ImportJob.STARTED).columnName() + " < #{untilDate} )")
         .execute(Collections.singletonMap("untilDate", untilDate))
-        .onSuccess(result -> logger.info(result.rowCount() + " log lines deleted."))
-        .onFailure(error -> logger.error(error.getMessage() + " (occurred when attempting to delete logs)"))
+        .onSuccess(result -> logger.info("{} log lines deleted", result))
+        .onFailure(error -> logger.error("{} (occurred when attempting to delete logs)", error.getMessage()))
         .mapEmpty();
   }
 
@@ -77,8 +77,8 @@ public class LogPurging  {
                 + "        FROM " + pool.getSchema() + "." + Tables.IMPORT_JOB
                 + "       WHERE " + new ImportJob().field(ImportJob.STARTED).columnName() + " < #{untilDate} )")
         .execute(Collections.singletonMap("untilDate", untilDate))
-        .onSuccess(result -> logger.info(result.rowCount() + " failed records deleted."))
-        .onFailure(error -> logger.error(error.getMessage() + " (occurred when attempting to delete failed records)"))
+        .onSuccess(result -> logger.info("{} failed records deleted", result))
+        .onFailure(error -> logger.error("{} (occurred when attempting to delete failed records)", error.getMessage()))
         .mapEmpty();
   }
 
@@ -87,8 +87,8 @@ public class LogPurging  {
             "DELETE FROM " + pool.getSchema() + "." + Tables.IMPORT_JOB
                 + " WHERE " + new ImportJob().field(ImportJob.STARTED).columnName() + " <#{untilDate} ")
         .execute(Collections.singletonMap("untilDate", untilDate))
-        .onSuccess(result -> logger.info(result.rowCount() + " import jobs deleted."))
-        .onFailure(error -> logger.error(error.getMessage() + " (occurred when attempting to delete import jobs)"))
+        .onSuccess(result -> logger.info("{} import jobs deleted", result))
+        .onFailure(error -> logger.error("{} (occurred when attempting to delete import jobs)", error.getMessage()))
         .mapEmpty();
   }
 }

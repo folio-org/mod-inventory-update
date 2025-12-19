@@ -28,17 +28,18 @@ public final class Channels extends EntityResponses {
   public static Future<Void> postChannel(ServiceRequest request) {
     Channel channel = new Channel().fromJson(request.bodyAsJson());
     EntityStorage db = request.entityStorage();
-    return db.storeEntity(channel.withCreatingUser(request.currentUser())).compose(id -> {
-      new FileQueue(request, id.toString()).createDirectoriesIfNotExist();
-      return Future.succeededFuture(id);
-    }).compose(id -> db.getEntity(id, channel)).compose(cfg -> {
-      if (((Channel) cfg).isEnabled()) {
-        return FileListeners.deployIfNotDeployed(request, (Channel) cfg).map(na -> cfg)
-            .compose(na -> responseJson(request.routingContext(), 201).end(cfg.asJson().encodePrettily())).mapEmpty();
-      } else {
-        return responseJson(request.routingContext(), 201).end(cfg.asJson().encodePrettily()).mapEmpty();
-      }
-    });
+    return db.storeEntity(channel.withCreatingUser(request.currentUser()))
+        .map(id -> {
+          new FileQueue(request, id.toString()).createDirectoriesIfNotExist();
+          return id;
+        }).compose(id -> db.getEntity(id, channel)).compose(cfg -> {
+          if (((Channel) cfg).isEnabled()) {
+            return FileListeners.deployIfNotDeployed(request, (Channel) cfg).map(na -> cfg)
+                .compose(na -> responseJson(request.routingContext(), 201).end(cfg.asJson().encodePrettily())).mapEmpty();
+          } else {
+            return responseJson(request.routingContext(), 201).end(cfg.asJson().encodePrettily()).mapEmpty();
+          }
+        });
   }
 
   public static Future<Void> getChannels(ServiceRequest request) {

@@ -120,7 +120,7 @@ public class InventoryBatchUpdater implements RecordReceiver {
       logger.info("The file processor is paused, skipping batch {}{}.",
           batch == null ? "null" : batch.getBatchNumber(),
           batch != null && batch.size() == 0 ? "+" : "");
-      turnstile.exitBatch();
+      promise.complete();
     } else if (batch != null) {
       if (batch.size() > 0) {
         long upsertStarted = System.currentTimeMillis();

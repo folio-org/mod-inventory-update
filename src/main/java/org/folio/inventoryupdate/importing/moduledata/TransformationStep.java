@@ -128,7 +128,7 @@ public class TransformationStep extends Entity {
 
   public Future<Void> createTsaRepositionSteps(ServiceRequest request) {
     return request.entityStorage().storeEntity(this.withCreatingUser(request.currentUser()))
-        .onSuccess(ignore -> executeSqlStatements(request.entityStorage().getTenantPool(),
+        .compose(ignore -> executeSqlStatements(request.entityStorage().getTenantPool(),
             // Potentially adjust the positions of other steps
             "UPDATE " + this.schemaTable(request.dbSchema())
                 + " SET position = position + 1 "

@@ -37,6 +37,7 @@ import java.util.concurrent.TimeUnit;
 import org.folio.inventoryupdate.importing.foliodata.Folio;
 import org.folio.inventoryupdate.importing.foliodata.SettingsClient;
 import org.folio.inventoryupdate.importing.moduledata.database.DatabaseInit;
+import org.folio.inventoryupdate.importing.moduledata.database.Util;
 import org.folio.inventoryupdate.importing.service.delivery.fileimport.FileListeners;
 import org.folio.inventoryupdate.importing.service.delivery.respond.Channels;
 import org.folio.inventoryupdate.importing.service.delivery.respond.JobsAndMonitoring;
@@ -153,6 +154,7 @@ public class ImportTests extends InventoryUpdateTestBase {
     UtilityClassTester.assertUtilityClass(Channels.class);
     UtilityClassTester.assertUtilityClass(JobsAndMonitoring.class);
     UtilityClassTester.assertUtilityClass(Transformations.class);
+    UtilityClassTester.assertUtilityClass(Util.class);
   }
 
   @Test

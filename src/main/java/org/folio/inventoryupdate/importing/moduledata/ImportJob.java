@@ -160,7 +160,7 @@ public class ImportJob extends Entity {
         UUID.fromString(json.getString(jsonPropertyName(CHANNEL_ID))),
         json.getString(jsonPropertyName(CHANNEL_NAME)),
         json.getString(jsonPropertyName(IMPORT_TYPE)),
-        Util.getUuid(json, jsonPropertyName(TRANSFORMATION), null),
+        Util.getUuid(json, jsonPropertyName(TRANSFORMATION)),
         JobStatus.valueOf(json.getString(jsonPropertyName(STATUS))),
         json.getString(jsonPropertyName(STARTED)),
         finished != null && started != null && started.compareTo(finished) < 0

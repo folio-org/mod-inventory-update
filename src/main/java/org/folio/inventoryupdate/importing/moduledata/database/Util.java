@@ -9,15 +9,14 @@ public final class Util {
     throw new UnsupportedOperationException("Utility class");
   }
 
-  public static UUID getUuid(JsonObject json, String propertyName, UUID def) {
+  public static UUID getUuid(JsonObject json, String propertyName) {
     if (json.containsKey(propertyName)) {
       try {
         return UUID.fromString(json.getString(propertyName));
       } catch (IllegalArgumentException iae) {
-        return def;
+        // Ignore and return null
       }
-    } else {
-      return def;
     }
+    return null;
   }
 }

@@ -81,7 +81,7 @@ public class Channel extends Entity {
         channelJson.getString(jsonPropertyName(NAME)),
         channelJson.getString(jsonPropertyName(TAG)),
         channelJson.getString(jsonPropertyName(TYPE)),
-        Util.getUuid(channelJson, jsonPropertyName(TRANSFORMATION_ID), null),
+        Util.getUuid(channelJson, jsonPropertyName(TRANSFORMATION_ID)),
         "TRUE".equalsIgnoreCase(channelJson.getString(jsonPropertyName(ENABLED))),
         "TRUE".equalsIgnoreCase(channelJson.getString(jsonPropertyName(LISTENING))));
   }

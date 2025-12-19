@@ -26,7 +26,6 @@ public final class SettingsClient {
             new JsonObject(response).getJsonArray(RECORDS).isEmpty() ? null :
                 new JsonObject(response).getJsonArray(RECORDS).getJsonObject(0).getString("value"))
         .onFailure(e ->
-            logger.error("Could not obtain settings by scope {} and key {}: {}",
-                scope, key, e.getMessage()));
+            logger.error("Could not obtain settings by scope {} and key {}: {}", scope, key, e.getMessage()));
   }
 }

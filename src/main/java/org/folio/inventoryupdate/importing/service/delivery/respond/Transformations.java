@@ -85,7 +85,7 @@ public final class Transformations extends EntityResponses {
             }
           }).mapEmpty();
     } else {
-      return Future.failedFuture(validationResponse + System.lineSeparator() + "Step ID " + id);
+      return Future.failedFuture(validationResponse + System.lineSeparator() + "Found in stylesheet for step ID " + id);
     }
   }
 

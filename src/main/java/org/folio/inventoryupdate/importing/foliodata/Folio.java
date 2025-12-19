@@ -22,6 +22,9 @@ public final class Folio {
     if (ctx.request().getHeader(XOkapiHeaders.TOKEN) != null) {
       headers.put(XOkapiHeaders.TOKEN, ctx.request().getHeader(XOkapiHeaders.TOKEN));
     }
+    if (ctx.request().getHeader(XOkapiHeaders.REQUEST_ID) != null) {
+      headers.put(XOkapiHeaders.REQUEST_ID, ctx.request().getHeader(XOkapiHeaders.REQUEST_ID));
+    }
     headers.put("Accept", "application/json, text/plain");
     OkapiClient client = new OkapiClient(WebClientFactory.getWebClient(ctx.vertx()), ctx);
     client.setHeaders(headers);

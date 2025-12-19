@@ -5,6 +5,7 @@ import io.vertx.core.http.HttpServerRequest;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.RoutingContext;
 import org.folio.okapi.common.OkapiClient;
+import org.folio.inventoryupdate.importing.foliodata.Folio;
 
 public abstract class UpdateRequest {
   protected Vertx vertx;
@@ -20,7 +21,7 @@ public abstract class UpdateRequest {
   public abstract String queryParam(String paramName);
 
   public OkapiClient getOkapiClient() {
-    return InventoryStorage.getOkapiClient(routingContext);
+    return Folio.okapiClient(routingContext);
   }
 
   public RoutingContext routingContext() {

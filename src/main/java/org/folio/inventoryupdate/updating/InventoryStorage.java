@@ -7,7 +7,6 @@ import java.util.Map;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import io.vertx.ext.web.RoutingContext;
 import org.folio.inventoryupdate.updating.entities.HoldingsRecord;
 import org.folio.inventoryupdate.updating.entities.Instance;
 import org.folio.inventoryupdate.updating.entities.InstanceReferences;
@@ -23,7 +22,6 @@ import io.vertx.core.Promise;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
-import org.folio.okapi.common.WebClientFactory;
 
 /**
  * Static methods making low level HTTP requests to create and update records in Inventory Storage.
@@ -59,10 +57,6 @@ public class InventoryStorage {
   public static final String HOLDINGS_RECORDS = "holdingsRecords";
   public static final String ITEMS = "items";
   public static final String LOCATIONS = "locations";
-
-  private static final String X_OKAPI_TOKEN = "X-Okapi-Token";
-  private static final String X_OKAPI_TENANT = "X-Okapi-Tenant";
-  private static final String X_OKAPI_REQUEST_ID = "X-Okapi-Request-Id";
 
   private InventoryStorage () {
     throw new IllegalStateException("Utility class");
@@ -428,18 +422,6 @@ public class InventoryStorage {
                     .setTransaction(transaction != null ? transaction.toString() : "")
                     .addDetail("context", contextNote)
                     .asJsonPrettily());
-  }
-
-  public static OkapiClient getOkapiClient ( RoutingContext ctx) {
-    OkapiClient client = new OkapiClient(WebClientFactory.getWebClient(ctx.vertx()), ctx);
-    Map<String, String> headers = new HashMap<>();
-    headers.put("Content-type", "application/json");
-    if (ctx.request().getHeader(X_OKAPI_TENANT) != null) headers.put(X_OKAPI_TENANT, ctx.request().getHeader(X_OKAPI_TENANT));
-    if (ctx.request().getHeader(X_OKAPI_TOKEN) != null) headers.put(X_OKAPI_TOKEN, ctx.request().getHeader(X_OKAPI_TOKEN));
-    if (ctx.request().getHeader(X_OKAPI_REQUEST_ID) != null) headers.put(X_OKAPI_REQUEST_ID, ctx.request().getHeader(X_OKAPI_REQUEST_ID));
-    headers.put("Accept", "application/json, text/plain");
-    client.setHeaders(headers);
-    return client;
   }
 
 }

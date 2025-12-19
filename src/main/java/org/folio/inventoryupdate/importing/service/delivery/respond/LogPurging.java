@@ -38,7 +38,9 @@ public class LogPurging  {
     final String settings_key = "PURGE_LOGS_AFTER";
     return SettingsClient.getStringValue(request.routingContext(), settings_scope, settings_key)
         .compose(purgeSetting ->
-            new LogPurging(request.vertx(), request.tenant()).purgePastJobsAndRespond(request, purgeSetting));
+            new LogPurging(request.vertx(), request.tenant())
+                .purgePastJobsAndRespond(request, purgeSetting))
+        .recover(error -> Future.succeededFuture()); // error response was sent by now
   }
 
   private Future<Void> purgePastJobsAndRespond(ServiceRequest request, String purgeSetting) {

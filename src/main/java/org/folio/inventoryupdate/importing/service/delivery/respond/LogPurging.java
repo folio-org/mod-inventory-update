@@ -1,7 +1,5 @@
 package org.folio.inventoryupdate.importing.service.delivery.respond;
 
-import static org.folio.okapi.common.HttpResponse.responseError;
-
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
 import io.vertx.sqlclient.templates.SqlTemplate;
@@ -33,23 +31,21 @@ public class LogPurging  {
   }
 
   public static Future<Void> purgeAgedLogs(ServiceRequest request) {
-    logger.info("Running timer process: purge aged logs");
-    final String settings_scope = "mod-inventory-import";
+    logger.info("Running process: purge aged logs");
+    final String settings_scope = "mod-inventory-update";
     final String settings_key = "PURGE_LOGS_AFTER";
     return SettingsClient.getStringValue(request.routingContext(), settings_scope, settings_key)
         .compose(purgeSetting ->
             new LogPurging(request.vertx(), request.tenant())
-                .purgePastJobsAndRespond(request, purgeSetting))
-        .recover(error -> Future.succeededFuture()); // error response was sent by now
+                .purgePastJobsBySetting(request, purgeSetting));
   }
 
-  private Future<Void> purgePastJobsAndRespond(ServiceRequest request, String purgeSetting) {
+  private Future<Void> purgePastJobsBySetting(ServiceRequest request, String purgeSetting) {
     Period ageForDeletion = Miscellaneous.getPeriod(purgeSetting, 3, "MONTHS");
     LocalDateTime untilDate = SettableClock.getLocalDateTime().minus(ageForDeletion).truncatedTo(ChronoUnit.MINUTES);
     logger.info("Purging aged logs from before {}", untilDate);
     return new LogPurging(request.vertx(), request.tenant()).purgePreviousJobsByAge(untilDate)
-        .onComplete(result -> request.routingContext().response().setStatusCode(204).end())
-        .onFailure(error -> responseError(request.routingContext(), 500, error.getMessage()));
+        .onSuccess(result -> request.routingContext().response().setStatusCode(204).end());
   }
 
   private Future<Void> purgePreviousJobsByAge(LocalDateTime untilDate) {
@@ -66,7 +62,7 @@ public class LogPurging  {
                 + "        FROM " + pool.getSchema() + "." + Tables.IMPORT_JOB
                 + "        WHERE " + new ImportJob().field(ImportJob.STARTED).columnName() + " < #{untilDate} )")
         .execute(Collections.singletonMap("untilDate", untilDate))
-        .onSuccess(result -> logger.info("{} log lines deleted", result))
+        .onSuccess(result -> logger.info("{} log lines deleted", result.rowCount()))
         .onFailure(error -> logger.error("{} (occurred when attempting to delete logs)", error.getMessage()))
         .mapEmpty();
   }
@@ -79,7 +75,7 @@ public class LogPurging  {
                 + "        FROM " + pool.getSchema() + "." + Tables.IMPORT_JOB
                 + "       WHERE " + new ImportJob().field(ImportJob.STARTED).columnName() + " < #{untilDate} )")
         .execute(Collections.singletonMap("untilDate", untilDate))
-        .onSuccess(result -> logger.info("{} failed records deleted", result))
+        .onSuccess(result -> logger.info("{} failed records deleted", result.rowCount()))
         .onFailure(error -> logger.error("{} (occurred when attempting to delete failed records)", error.getMessage()))
         .mapEmpty();
   }
@@ -89,7 +85,7 @@ public class LogPurging  {
             "DELETE FROM " + pool.getSchema() + "." + Tables.IMPORT_JOB
                 + " WHERE " + new ImportJob().field(ImportJob.STARTED).columnName() + " <#{untilDate} ")
         .execute(Collections.singletonMap("untilDate", untilDate))
-        .onSuccess(result -> logger.info("{} import jobs deleted", result))
+        .onSuccess(result -> logger.info("{} import jobs deleted", result.rowCount()))
         .onFailure(error -> logger.error("{} (occurred when attempting to delete import jobs)", error.getMessage()))
         .mapEmpty();
   }

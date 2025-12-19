@@ -1168,7 +1168,7 @@ public class ImportTests extends InventoryUpdateTestBase {
     logger.info(FakeFolioApisForImporting.post("/settings/entries",
         new JsonObject()
             .put("id", UUID.randomUUID().toString())
-            .put("scope", "mod-inventory-import")
+            .put("scope", "mod-inventory-update")
             .put("key", "PURGE_LOGS_AFTER")
             .put("value", "2 MONTHS")).encodePrettily());
 

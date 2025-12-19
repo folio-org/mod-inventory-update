@@ -22,7 +22,7 @@
     <okapi.version>7.0.0</okapi.version>
     <vertx.version>5.0.4</vertx.version>
     <mockito.version>5.18.0</mockito.version>
-    <folio-module-descriptor-validator.version>0.0.1-SNAPSHOT</folio-module-descriptor-validator.version>
+    <folio-module-descriptor-validator.version>1.0.1</folio-module-descriptor-validator.version>
   </properties>
 
   <dependencyManagement>
@@ -129,10 +129,19 @@
       <groupId>io.vertx</groupId>
       <artifactId>vertx-rx-java2</artifactId>
     </dependency>
-   <dependency>
+    <dependency>
       <groupId>io.vertx</groupId>
       <artifactId>vertx-web-client</artifactId>
     </dependency>
+    <dependency>
+      <groupId>io.vertx</groupId>
+      <artifactId>vertx-sql-client-templates</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>com.fasterxml.jackson.core</groupId>
+      <artifactId>jackson-databind</artifactId>
+    </dependency>
+
     <dependency>
       <groupId>org.apache.logging.log4j</groupId>
       <artifactId>log4j-core</artifactId>
@@ -142,9 +151,34 @@
       <artifactId>log4j-api</artifactId>
     </dependency>
     <dependency>
+        <groupId>io.netty</groupId>
+        <artifactId>netty-transport-native-epoll</artifactId>
+        <classifier>linux-x86_64</classifier>
+    </dependency>
+    <dependency>
+        <groupId>io.netty</groupId>
+        <artifactId>netty-tcnative-boringssl-static</artifactId>
+        <scope>runtime</scope>
+    </dependency>
+    <dependency>
+        <groupId>net.sf.saxon</groupId>
+        <artifactId>saxon</artifactId>
+        <version>8.7</version>
+    </dependency>
+    <dependency>
+        <groupId>net.sf.saxon</groupId>
+        <artifactId>saxon-dom</artifactId>
+        <version>8.7</version>
+    </dependency>
+    <dependency>
       <groupId>org.apache.commons</groupId>
       <artifactId>commons-lang3</artifactId>
       <version>3.18.0</version>
+    </dependency>
+    <dependency>
+      <groupId>org.folio</groupId>
+      <artifactId>mod-reservoir-util</artifactId>
+      <version>0.0.1-SNAPSHOT</version>
     </dependency>
 
     <!-- Test dependencies -->
@@ -349,7 +383,7 @@
                 <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
                   <manifestEntries>
                     <Main-Class>org.folio.okapi.common.MainLauncher</Main-Class>
-                    <Main-Verticle>org.folio.inventoryupdate.service.MainVerticle</Main-Verticle>
+                    <Main-Verticle>org.folio.inventoryupdate.MainVerticle</Main-Verticle>
                     <Multi-Release>true</Multi-Release>
                   </manifestEntries>
                 </transformer>
@@ -396,8 +430,63 @@
           <localCheckout>true</localCheckout>
         </configuration>
       </plugin>
+      <plugin>
+        <groupId>org.folio</groupId>
+        <artifactId>folio-module-descriptor-validator</artifactId>
+        <version>${folio-module-descriptor-validator.version}</version>
+        <executions>
+          <execution>
+            <goals>
+              <goal>validate</goal>
+            </goals>
+            <configuration>
+              <failOnInvalidDescriptor>false</failOnInvalidDescriptor>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-checkstyle-plugin</artifactId>
+        <version>3.6.0</version>
+        <dependencies>
+          <dependency>
+            <groupId>org.folio</groupId>
+            <artifactId>folio-java-checkstyle</artifactId>
+            <version>1.0.1</version>
+          </dependency>
+        </dependencies>
+        <configuration>
+          <configLocation>folio-checkstyle/checkstyle.xml</configLocation>
+          <violationSeverity>warning</violationSeverity>
+          <consoleOutput>false</consoleOutput>
+          <failsOnError>true</failsOnError>
+          <failOnViolation>false</failOnViolation>
+          <linkXRef>false</linkXRef>
+          <sourceDirectories>
+            <sourceDirectory>${project.build.sourceDirectory}</sourceDirectory>
+          </sourceDirectories>
+          <excludes>**/updating/**</excludes>
+        </configuration>
+        <executions>
+          <execution>
+            <id>check</id>
+            <phase>compile</phase>
+            <goals>
+              <goal>check</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
     </plugins>
   </build>
+  <pluginRepositories>
+    <pluginRepository>
+      <id>folio-nexus</id>
+      <name>FOLIO Maven repository</name>
+      <url>https://repository.folio.org/repository/maven-folio</url>
+    </pluginRepository>
+  </pluginRepositories>
 
   <repositories>
     <repository>

@@ -3,6 +3,22 @@
   "name": "Inventory Update Module",
   "provides": [
     {
+      "id": "_tenant",
+      "version": "2.0",
+      "interfaceType": "system",
+      "handlers": [
+        {
+          "methods": ["POST"],
+          "pathPattern": "/_/tenant",
+          "permissionsRequired": []
+        }, {
+          "methods": ["GET","DELETE"],
+          "pathPattern": "/_/tenant/{id}",
+          "permissionsRequired": []
+        }
+      ]
+    },
+    {
       "id": "inventory-upsert-hrid",
       "version": "3.0",
       "handlers": [
@@ -17,18 +33,21 @@
             "inventory-storage.items.item.put",
             "inventory-storage.items.item.delete",
             "inventory-storage.items.batch.post",
+            "inventory-storage.items.batch.synchronous.post",
             "inventory-storage.holdings.collection.get",
             "inventory-storage.holdings.item.get",
             "inventory-storage.holdings.item.post",
             "inventory-storage.holdings.item.put",
             "inventory-storage.holdings.item.delete",
             "inventory-storage.holdings.batch.post",
+            "inventory-storage.holdings.batch.synchronous.post",
             "inventory-storage.instances.collection.get",
             "inventory-storage.instances.item.get",
             "inventory-storage.instances.item.post",
             "inventory-storage.instances.item.put",
             "inventory-storage.instances.item.delete",
             "inventory-storage.instances.batch.post",
+            "inventory-storage.instances.batch.synchronous.post",
             "inventory-storage.locations.collection.get",
             "inventory-storage.locations.item.get",
             "inventory-storage.preceding-succeeding-titles.collection.get",
@@ -300,6 +319,231 @@
           ]
         }
       ]
+    },
+    {
+      "id": "inventory-import",
+      "version": "1.0",
+      "handlers": [
+        {
+          "methods": ["GET"],
+          "pathPattern": "/inventory-import/transformations",
+          "permissionsRequired": ["inventory-update.import.transformations.collection.get"]
+        }, {
+          "methods": ["GET"],
+          "pathPattern": "/inventory-import/transformations/{id}",
+          "permissionsRequired": ["inventory-update.import.transformations.item.get"]
+        }, {
+          "methods": ["POST"],
+          "pathPattern": "/inventory-import/transformations",
+          "permissionsRequired": ["inventory-update.import.transformations.item.post"]
+        }, {
+          "methods": ["PUT"],
+          "pathPattern": "/inventory-import/transformations/{id}",
+          "permissionsRequired": ["inventory-update.import.transformations.item.put"]
+        }, {
+          "methods": ["DELETE"],
+          "pathPattern": "/inventory-import/transformations/{id}",
+          "permissionsRequired": ["inventory-update.import.transformations.item.delete"]
+        },
+        {
+          "methods": ["GET"],
+          "pathPattern": "/inventory-import/steps",
+          "permissionsRequired": ["inventory-update.import.steps.collection.get"]
+        },{
+          "methods": ["GET"],
+          "pathPattern": "/inventory-import/steps/{id}",
+          "permissionsRequired": ["inventory-update.import.steps.item.get"]
+        }, {
+          "methods": ["POST"],
+          "pathPattern": "/inventory-import/steps",
+          "permissionsRequired": ["inventory-update.import.steps.item.post"]
+        }, {
+          "methods": ["PUT"],
+          "pathPattern": "/inventory-import/steps/{id}",
+          "permissionsRequired": ["inventory-update.import.steps.item.put"]
+        }, {
+          "methods": ["DELETE"],
+          "pathPattern": "/inventory-import/steps/{id}",
+          "permissionsRequired": ["inventory-update.import.steps.item.delete"]
+        }, {
+          "methods": ["GET"],
+          "pathPattern": "/inventory-import/steps/{id}/script",
+          "permissionsRequired": ["inventory-update.import.step-script.item.get"]
+        }, {
+          "methods": ["PUT"],
+          "pathPattern": "/inventory-import/steps/{id}/script",
+          "permissionsRequired": ["inventory-update.import.step-script.item.put"]
+        },
+        {
+          "methods": ["GET"],
+          "pathPattern": "/inventory-import/tsas",
+          "permissionsRequired": ["inventory-update.import.tsas.collection.get"]
+        }, {
+          "methods": ["GET"],
+          "pathPattern": "/inventory-import/tsas/{id}",
+          "permissionsRequired": ["inventory-update.import.tsas.item.get"]
+        }, {
+          "methods": ["POST"],
+          "pathPattern": "/inventory-import/tsas",
+          "permissionsRequired": ["inventory-update.import.tsas.item.post"]
+        }, {
+          "methods": ["PUT"],
+          "pathPattern": "/inventory-import/tsas/{id}",
+          "permissionsRequired": ["inventory-update.import.tsas.item.put"]
+        }, {
+          "methods": ["DELETE"],
+          "pathPattern": "/inventory-import/tsas/{id}",
+          "permissionsRequired": ["inventory-update.import.tsas.item.delete"]
+        }, {
+          "methods": ["DELETE"],
+          "pathPattern": "/inventory-import/tsas",
+          "permissionsRequired": ["inventory-update.import.tsas.collection.delete"]
+        },
+        {
+          "methods": ["GET"],
+          "pathPattern": "/inventory-import/channels",
+          "permissionsRequired": ["inventory-update.import.channels.collection.get"]
+        }, {
+          "methods": ["GET"],
+          "pathPattern": "/inventory-import/channels/{id}",
+          "permissionsRequired": ["inventory-update.import.channels.item.get"]
+        }, {
+          "methods": ["POST"],
+          "pathPattern": "/inventory-import/channels",
+          "permissionsRequired": ["inventory-update.import.channels.item.post"],
+          "modulePermissions": [
+            "modperms.inventory-update.import"
+          ]
+        }, {
+          "methods": ["PUT"],
+          "pathPattern": "/inventory-import/channels/{id}",
+          "permissionsRequired": ["inventory-update.import.channels.item.put"]
+        }, {
+          "methods": ["DELETE"],
+          "pathPattern": "/inventory-import/channels/{id}",
+          "permissionsRequired": ["inventory-update.import.channels.item.delete"]
+        },
+        {
+          "methods": ["GET"],
+          "pathPattern": "/inventory-import/import-jobs",
+          "permissionsRequired": ["inventory-update.import.import-jobs.collection.get"]
+        }, {
+          "methods": ["GET"],
+          "pathPattern": "/inventory-import/import-jobs/{id}",
+          "permissionsRequired": ["inventory-update.import.import-jobs.item.get"]
+        }, {
+          "methods": ["POST"],
+          "pathPattern": "/inventory-import/import-jobs",
+          "permissionsRequired": ["inventory-update.import.import-jobs.item.post"]
+        },{
+          "methods": ["DELETE"],
+          "pathPattern": "/inventory-import/import-jobs/{id}",
+          "permissionsRequired": ["inventory-update.import.import-jobs.item.delete"]
+        },
+        {
+          "methods": ["GET"],
+          "pathPattern": "/inventory-import/job-logs",
+          "permissionsRequired": ["inventory-update.import.job-logs.collection.get"]
+        }, {
+          "methods": ["POST"],
+          "pathPattern": "/inventory-import/job-logs",
+          "permissionsRequired": ["inventory-update.import.job-logs.collection.post"]
+        },
+        {
+          "methods": ["GET"],
+          "pathPattern": "/inventory-import/failed-records",
+          "permissionsRequired": ["inventory-update.import.failed-records.collection.get"]
+        }, {
+          "methods": ["GET"],
+          "pathPattern": "/inventory-import/failed-records/{id}",
+          "permissionsRequired": ["inventory-update.import.failed-records.item.get"]
+        }, {
+          "methods": ["POST"],
+          "pathPattern": "/inventory-import/failed-records",
+          "permissionsRequired": ["inventory-update.import.failed-records.collection.post"]
+        },{
+          "methods": ["DELETE"],
+          "pathPattern": "/inventory-import/failed-records/{id}",
+          "permissionsRequired": ["inventory-update.import.failed-records.item.delete"]
+        },
+        {
+          "methods": ["POST"],
+          "pathPattern": "/inventory-import/channels/{id}/upload",
+          "permissionsRequired": ["inventory-update.import.upload.post"],
+          "modulePermissions": [
+            "modperms.inventory-update.import"
+          ]
+        },
+        {
+          "methods": ["POST"],
+          "pathPattern": "/inventory-import/channels/{id}/commission",
+          "permissionsRequired": ["inventory-update.import.commission.post"],
+          "modulePermissions": [
+            "modperms.inventory-update.import"
+          ]
+        },
+        {
+          "methods": ["POST"],
+          "pathPattern": "/inventory-import/channels/{id}/decommission",
+          "permissionsRequired": ["inventory-update.import.decommission.post"]
+        },
+        {
+          "methods": ["POST"],
+          "pathPattern": "/inventory-import/channels/{id}/pause-job",
+          "permissionsRequired": ["inventory-update.import.pause-job.post"]
+        },
+        {
+          "methods": ["POST"],
+          "pathPattern": "/inventory-import/channels/{id}/resume-job",
+          "permissionsRequired": ["inventory-update.import.resume-job.post"],
+          "modulePermissions": [
+            "modperms.inventory-update.import"
+          ]
+        },
+        {
+          "methods": ["POST"],
+          "pathPattern": "/inventory-import/channels/{id}/cancel-job",
+          "permissionsRequired": ["inventory-update.import.cancel-job.post"],
+          "modulePermissions": [
+            "modperms.inventory-update.import"
+          ]
+        },
+        {
+          "pathPattern": "/inventory-import/channels/{id}/init-queue",
+          "methods": ["POST"],
+          "permissionsRequired": ["inventory-update.import.init-queue.post"]
+        },
+        {
+          "pathPattern": "/inventory-import/recover-interrupted-channels",
+          "methods": ["POST"],
+          "permissionsRequired": ["inventory-update.import.recover-interrupted-channels"],
+          "modulePermissions": [
+            "modperms.inventory-update.import"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "_timer",
+      "version": "1.0",
+      "interfaceType": "system",
+      "handlers": [
+        {
+          "methods": [
+            "POST"
+          ],
+          "pathPattern": "/inventory-import/purge-aged-logs",
+          "modulePermissions": [
+            "configuration.entries.collection.get",
+            "mod-settings.entries.collection.get",
+            "mod-settings.global.read.mod-inventory-update"
+          ],
+          "schedule": {
+            "cron": "0 2 * * *",
+            "zone": "CET"
+          }
+        }
+      ]
     }
   ],
   "requires": [
@@ -343,7 +587,16 @@
     {
       "id": "orders-storage.po-lines",
       "version": "13.0"
+    },
+    {
+      "id": "settings",
+      "version": "1.0"
+    },
+    {
+      "id": "configuration",
+      "version": "2.0"
     }
+
   ],
   "permissionSets": [
     {
@@ -395,6 +648,259 @@
       "description": "Fetching an Inventory record set including holdings, items and relations, by Instance ID or HRID"
     },
     {
+      "permissionName": "inventory-update.import.transformations.collection.get",
+      "displayName": "Get a set of transformation pipelines",
+      "description": "Import configurations: Get collection of transformation pipeline headers"
+    }, {
+      "permissionName": "inventory-update.import.transformations.item.get",
+      "displayName": "Get a single transformation pipeline",
+      "description": "Import configurations: Get a single transformation pipeline header record"
+    }, {
+      "permissionName": "inventory-update.import.transformations.item.post",
+      "displayName": "Create transformation pipeline",
+      "description": "Import configurations: Create the header of an XSLT transformation pipeline"
+    }, {
+      "permissionName": "inventory-update.import.transformations.item.put",
+      "displayName": "Update a transformation pipeline",
+      "description": "Import configurations: Update the header of a transformation pipelne"
+    }, {
+      "permissionName": "inventory-update.import.transformations.item.delete",
+      "displayName": "Delete a transformation pipeline",
+      "description": "Import configurations: Delete a transformation pipeline header and it's step associations"
+    },
+    {
+      "permissionName": "inventory-update.import.steps.collection.get",
+      "displayName": "Get a set of steps",
+      "description": "Import configurations: Get a collection of transformation steps"
+    }, {
+      "permissionName": "inventory-update.import.steps.item.get",
+      "displayName": "Get a single transformation step",
+      "description": "Import configurations: Get a single XSLT transformation step"
+    }, {
+      "permissionName": "inventory-update.import.steps.item.post",
+      "displayName": "Create a transformation step",
+      "description": "Import configurations: Create an XSLT transformation step"
+    }, {
+      "permissionName": "inventory-update.import.steps.item.put",
+      "displayName": "Update a transformation step",
+      "description": "Import configurations: Update an XSLT transformation step"
+    }, {
+      "permissionName": "inventory-update.import.steps.item.delete",
+      "displayName": "Delete a transformation step",
+      "description": "Import configurations: Delete an XSLT transformation step"
+    }, {
+      "permissionName": "inventory-update.import.step-script.item.get",
+      "displayName": "Get the XSLT of a transformation step",
+      "description": "Import configurations: Get the XSLT of a transformation step"
+    }, {
+      "permissionName": "inventory-update.import.step-script.item.put",
+      "displayName": "Update the XSLT of a transformation step",
+      "description": "Import configurations: Update the XSLT of a transformation step"
+    },
+    {
+      "permissionName": "inventory-update.import.tsas.collection.get",
+      "displayName": "Get a set of step associations",
+      "description": "Import configurations: Get a set of transformation step associations"
+    }, {
+      "permissionName": "inventory-update.import.tsas.item.get",
+      "displayName": "Get individual step association",
+      "description": "Import configurations: Get a single transformation/step association from storage"
+    }, {
+      "permissionName": "inventory-update.import.tsas.item.post",
+      "displayName": "Create individual step association",
+      "description": "Import configurations: Create a single transformation step association in storage"
+    }, {
+      "permissionName": "inventory-update.import.tsas.item.put",
+      "displayName": "Update a step association",
+      "description": "Import configurations: Modify a transformation step association"
+    }, {
+      "permissionName": "inventory-update.import.tsas.item.delete",
+      "displayName": "Delete a single step association",
+      "description": "Import configurations: Delete individual transformation step association from storage"
+    }, {
+      "permissionName": "inventory-update.import.tsas.collection.delete",
+      "displayName": "Delete all step associations",
+      "description": "Import configurations: Delete all transformation step associations from storage"
+    },
+    {
+      "permissionName": "inventory-update.import.channels.collection.get",
+      "displayName": "Get set of channel configuration records",
+      "description": "Import configurations: Get collection of channel configurations"
+    }, {
+      "permissionName": "inventory-update.import.channels.item.get",
+      "displayName": "Get single import job configuration",
+      "description": "Import configurations: Get single import job configuration"
+    }, {
+      "permissionName": "inventory-update.import.channels.item.post",
+      "displayName": "Create import job configuration",
+      "description": "Import configurations: Create an import job configuration"
+    }, {
+      "permissionName": "inventory-update.import.channels.item.put",
+      "displayName": "Update import job configuration",
+      "description": "Import configurations: Update an import job configuration"
+    }, {
+      "permissionName": "inventory-update.import.channels.item.delete",
+      "displayName": "Delete channel configuration",
+      "description": "Import configurations: Delete an import job configuration"
+    },
+    {
+      "permissionName":"inventory-update.import.import-jobs.collection.get",
+      "displayName": "Get a set of import jobs",
+      "description": "Imports: Get a collection of current and/or past import jobs"
+    }, {
+      "permissionName": "inventory-update.import.import-jobs.item.get",
+      "displayName": "Get a single import job",
+      "description": "Imports: Get a single current and/or past import job"
+    }, {
+      "permissionName": "inventory-update.import.import-jobs.item.post",
+      "displayName": "Create an import job record",
+      "description": "Imports: Create an import job record without actually running a job (for testing or transferring)"
+    }, {
+      "permissionName": "inventory-update.import.import-jobs.item.delete",
+      "displayName": "Delete an import job",
+      "description": "Imports: Delete a single import job run record"
+    },
+    {
+      "permissionName": "inventory-update.import.job-logs.collection.get",
+      "displayName": "Get a set of import jobs",
+      "description": "Imports: Get a collection of current and/or past import jobs"
+    }, {
+      "permissionName": "inventory-update.import.job-logs.collection.post",
+      "displayName": "Create a set of import jobs",
+      "description": "Imports: Insert a collection of import jobs"
+    },
+    {
+      "permissionName": "inventory-update.import.failed-records.collection.get",
+      "displayName": "Get a set of failed records.",
+      "description": "Imports: Get a collection of failed records as logged by import jobs"
+    }, {
+      "permissionName": "inventory-update.import.failed-records.item.get",
+      "displayName": "Get a single failed record",
+      "description": "Imports: Get a single failed record logged by some import job"
+    }, {
+      "permissionName": "inventory-update.import.failed-records.collection.post",
+      "displayName": "Create a set of failed records",
+      "description": "Imports: Create a set of failed records without actually running a job (for testing or transferring)"
+    }, {
+      "permissionName": "inventory-update.import.failed-records.item.delete",
+      "displayName": "Delete a failed record",
+      "description": "Imports: Delete a failed record log entry"
+    },
+    {
+      "permissionName": "inventory-update.import.upload.post",
+      "displayName": "Upload XML file for importing",
+      "description": "Imports: Upload source file to a commissioned channel. If or when the channel is listening the file will be processed."
+    },
+    {
+      "permissionName": "inventory-update.import.commission.post",
+      "displayName": "Start an import listener",
+      "description": "Imports: Launch a source file listener for a channel"
+    },
+    {
+      "permissionName": "inventory-update.import.decommission.post",
+      "displayName": "Undeploy an import listener",
+      "description": "Imports: Undeploy a source file listener"
+    },
+    {
+      "permissionName": "inventory-update.import.decommission.post",
+      "displayName": "Undeploy an import listener",
+      "description": "Imports: Undeploy a source file listener"
+    },
+    {
+      "permissionName": "inventory-update.import.recover-interrupted-channels",
+      "displayName": "Redeploy channels after a module reboot",
+      "description": "Imports: Restart channels that were interrupted by a reboot of the module."
+    },
+    {
+      "permissionName": "inventory-update.import.pause-job.post",
+      "displayName": "Temporarily stop an import job",
+      "description": "Imports: Pause a running import process until eventually resumed again"
+    },
+    {
+      "permissionName": "inventory-update.import.resume-job.post",
+      "displayName": "Resume a paused import job",
+      "description": "Imports: Activate a paused job to resume importing from the file queue"
+    },
+    {
+      "permissionName": "inventory-update.import.cancel-job.post",
+      "displayName": "Cancel an import job in progress",
+      "description": "Imports: Cancel a running job"
+    },
+    {
+      "permissionName": "inventory-update.import.init-queue.post",
+      "displayName": "Initiate or reset source file queue for import job",
+      "description": "Imports: Create new source file queue or clear existing queue for given channel configuration"
+    },
+    {
+      "permissionName": "mod-settings.global.read.mod-inventory-update",
+      "displayName": "Import admin settings - Read configuration",
+      "description": "To read the configuration from mod settings."
+    },
+    {
+      "permissionName": "inventory-import.delete-all",
+      "displayName": "Import admin - delete all configurations of given types",
+      "description": "Delete collections of channel records, transformations, steps, and transformation-steps",
+      "subPermissions": [
+        "inventory-update.import.channels.collection.delete",
+        "inventory-update.import.storages.collection.delete",
+        "inventory-update.import.transformations.collection.delete",
+        "inventory-update.import.steps.collection.delete",
+        "inventory-update.import.tsas.collection.delete"
+      ]
+    },
+    {
+      "permissionName": "mod-settings.global.read.mod-inventory-update",
+      "displayName": "Settings (import admin): read import admin settings",
+      "visible": false
+    },
+    {
+      "permissionName": "mod-settings.global.write.mod-inventory-update",
+      "displayName": "Settings (import admin): write import admin settings",
+      "visible": false
+    },
+    {
+      "permissionName": "modperms.inventory-update.import",
+      "displayName" : "module permissions for import operations",
+      "description" : "to reduce X-Okapi-Token size",
+      "subPermissions": [
+        "inventory-storage.items.collection.get",
+        "inventory-storage.items.item.get",
+        "inventory-storage.items.item.post",
+        "inventory-storage.items.item.put",
+        "inventory-storage.items.item.delete",
+        "inventory-storage.items.batch.post",
+        "inventory-storage.items.batch.synchronous.post",
+        "inventory-storage.holdings.collection.get",
+        "inventory-storage.holdings.item.get",
+        "inventory-storage.holdings.item.post",
+        "inventory-storage.holdings.item.put",
+        "inventory-storage.holdings.item.delete",
+        "inventory-storage.holdings.batch.post",
+        "inventory-storage.holdings.batch.synchronous.post",
+        "inventory-storage.instances.collection.get",
+        "inventory-storage.instances.item.get",
+        "inventory-storage.instances.item.post",
+        "inventory-storage.instances.item.put",
+        "inventory-storage.instances.item.delete",
+        "inventory-storage.instances.batch.post",
+        "inventory-storage.instances.batch.synchronous.post",
+        "inventory-storage.locations.collection.get",
+        "inventory-storage.locations.item.get",
+        "inventory-storage.preceding-succeeding-titles.collection.get",
+        "inventory-storage.preceding-succeeding-titles.item.get",
+        "inventory-storage.preceding-succeeding-titles.item.post",
+        "inventory-storage.preceding-succeeding-titles.item.put",
+        "inventory-storage.preceding-succeeding-titles.item.delete",
+        "inventory-storage.instances.preceding-succeeding-titles.collection.put",
+        "inventory-storage.instance-relationships.collection.get",
+        "inventory-storage.instance-relationships.item.post",
+        "inventory-storage.instance-relationships.item.get",
+        "inventory-storage.instance-relationships.item.put",
+        "inventory-storage.instance-relationships.item.delete",
+        "inventory-storage.inventory-view.instance-set.get"
+      ]
+    },
+    {
       "permissionName": "inventory-update.all",
       "displayName": "inventory Update module - all permissions",
       "description": "Set of permissions required to use all APIs of the inventory update module",
@@ -406,7 +912,60 @@
         "inventory-update.by-matchkey.item.put",
         "inventory-update.batch-by-matchkey.collection.put",
         "inventory-update.by-matchkey.item.delete",
-        "inventory-update.by-matchkey.item.get"
+        "inventory-update.by-matchkey.item.get",
+
+        "inventory-update.import.transformations.collection.get",
+        "inventory-update.import.transformations.item.get",
+        "inventory-update.import.transformations.item.post",
+        "inventory-update.import.transformations.item.put",
+        "inventory-update.import.transformations.item.delete",
+
+        "inventory-update.import.steps.collection.get",
+        "inventory-update.import.steps.item.get",
+        "inventory-update.import.steps.item.post",
+        "inventory-update.import.steps.item.put",
+        "inventory-update.import.steps.item.delete",
+        "inventory-update.import.step-script.item.get",
+        "inventory-update.import.step-script.item.put",
+
+        "inventory-update.import.tsas.collection.get",
+        "inventory-update.import.tsas.item.get",
+        "inventory-update.import.tsas.item.post",
+        "inventory-update.import.tsas.item.put",
+        "inventory-update.import.tsas.item.delete",
+        "inventory-update.import.tsas.collection.delete",
+
+        "inventory-update.import.channels.collection.get",
+        "inventory-update.import.channels.item.get",
+        "inventory-update.import.channels.item.post",
+        "inventory-update.import.channels.item.put",
+        "inventory-update.import.channels.item.delete",
+
+        "inventory-update.import.import-jobs.collection.get",
+        "inventory-update.import.import-jobs.item.get",
+        "inventory-update.import.import-jobs.item.post",
+        "inventory-update.import.import-jobs.item.delete",
+
+        "inventory-update.import.job-logs.collection.get",
+        "inventory-update.import.job-logs.collection.post",
+
+        "inventory-update.import.failed-records.collection.get",
+        "inventory-update.import.failed-records.item.get",
+        "inventory-update.import.failed-records.collection.post",
+        "inventory-update.import.failed-records.item.delete",
+
+        "inventory-update.import.upload.post",
+        "inventory-update.import.commission.post",
+        "inventory-update.import.decommission.post",
+        "inventory-update.import.recover-interrupted-channels",
+        "inventory-update.import.pause-job.post",
+        "inventory-update.import.resume-job.post",
+        "inventory-update.import.cancel-job.post",
+        "inventory-update.import.init-queue.post",
+
+        "mod-settings.global.read.mod-inventory-update",
+        "mod-settings.global.write.mod-inventory-update"
+
       ]
     }
   ],

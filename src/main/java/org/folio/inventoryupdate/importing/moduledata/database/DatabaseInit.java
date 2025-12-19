@@ -1,0 +1,95 @@
+package org.folio.inventoryupdate.importing.moduledata.database;
+
+import io.vertx.core.Future;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.folio.inventoryupdate.importing.moduledata.Channel;
+import org.folio.inventoryupdate.importing.moduledata.ImportJob;
+import org.folio.inventoryupdate.importing.moduledata.LogLine;
+import org.folio.inventoryupdate.importing.moduledata.RecordFailure;
+import org.folio.inventoryupdate.importing.moduledata.Step;
+import org.folio.inventoryupdate.importing.moduledata.Transformation;
+import org.folio.inventoryupdate.importing.moduledata.TransformationStep;
+import org.folio.tlib.postgres.TenantPgPool;
+
+public final class DatabaseInit {
+
+  static final Logger logger = LogManager.getLogger(DatabaseInit.class);
+
+  private DatabaseInit() {
+    throw new UnsupportedOperationException("Utility class");
+  }
+
+  /**
+   * Creates tables and views.
+   */
+  public static Future<Void> createDatabase(TenantPgPool pool) {
+    return create(new Step(), pool)
+        .compose(na -> create(new Transformation(), pool))
+        .compose(na -> create(new Channel(), pool))
+        .compose(na -> create(new ImportJob(), pool))
+        .compose(na -> create(new RecordFailure(), pool))
+        .compose(na -> create(new LogLine(), pool))
+        .compose(na -> create(new TransformationStep(), pool))
+        .compose(na -> pool.query(createRecordFailureView(pool.getSchema())).execute())
+        .compose(na -> pool.query(createJobLogsView(pool.getSchema())).execute()).mapEmpty();
+  }
+
+  /**
+   * Creates database objects for an entity.
+   *
+   * @param entity the domain object to persist
+   * @param pool   the tenant specific Postgres pool.
+   */
+  public static Future<Void> create(Entity entity, TenantPgPool pool) {
+    return entity.createDatabase(pool)
+        .onFailure(e -> logger.error("Error creating table [{}] or related objects: {}",
+            entity.table(), e.getMessage()));
+  }
+
+  /**
+   * Creates custom views.
+   */
+  public static String createRecordFailureView(String schema) {
+    String ddl;
+    ddl = "CREATE OR REPLACE VIEW " + schema + "." + Tables.RECORD_FAILURE_VIEW
+        + " AS SELECT rf.id AS id, "
+        + "          rf.import_job_Id AS import_job_id, "
+        + "          ij.channel_id AS channel_id, "
+        + "          ij.channel_name AS channel_name, "
+        + "          rf.record_number AS record_number, "
+        + "          rf.time_stamp AS time_stamp, "
+        + "          rf.record_errors AS record_errors, "
+        + "          rf.original_record AS original_record, "
+        + "          rf.transformed_record AS transformed_record, "
+        + "          rf.source_file_name as source_file_name, "
+        + "          rf.created_date as created_date, "
+        + "          rf.created_by_user_id as created_by_user_id, "
+        + "          rf.updated_date as updated_date, "
+        + "          rf.updated_by_user_id as updated_by_user_id "
+        + "  FROM " + schema + "." + Tables.RECORD_FAILURE + " AS rf, "
+        + "       " + schema + "." + Tables.IMPORT_JOB + " as ij "
+        + "  WHERE rf.import_job_id = ij.id";
+    return ddl;
+  }
+
+  public static String createJobLogsView(String schema) {
+    String ddl;
+    ddl = "CREATE OR REPLACE VIEW " + schema + "." + Tables.JOB_LOG_VIEW
+        + " AS SELECT ls.id AS id, "
+        + "          ls.import_job_Id AS import_job_id, "
+        + "          ij.channel_id AS channel_id, "
+        + "          ij.channel_name AS channel_name, "
+        + "          ls.time_stamp AS time_stamp, "
+        + "          ls.job_label AS job_label, "
+        + "          ls.statement AS statement, "
+        + "          ls.created_date as created_date, "
+        + "          ls.created_by_user_id as created_by_user_id, "
+        + "          ls.updated_date as updated_date, "
+        + "          ls.updated_by_user_id as updated_by_user_id "
+        + "  FROM " + schema + "." + Tables.LOG_STATEMENT + " AS ls, "
+        + "       " + schema + "." + Tables.IMPORT_JOB + " as ij "
+        + "  WHERE ls.import_job_id = ij.id";
+    return ddl;
+  }
+}

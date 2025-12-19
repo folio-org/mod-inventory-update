@@ -1,0 +1,1292 @@
+{
+  "failedRecords" : [ {
+    "id" : "cea83fe2-48cf-40ab-acb3-cc7f31bd6b36",
+    "importJobId" : "42ae09ec-8afd-41dc-b529-ac112a607271",
+    "recordNumber" : "022560084",
+    "timeStamp" : "2024-05-07T14:19:35",
+    "recordErrors" : [ {
+      "error" : {
+        "label" : "Error encountered during upsert of Inventory record set",
+        "entity" : {
+          "id" : "b799081c-9e97-4fc3-9c20-19b5d7a79359",
+          "hrid" : "576745545",
+          "status" : {
+            "name" : "Available"
+          },
+          "volume" : null,
+          "chronology" : null,
+          "copyNumber" : null,
+          "enumeration" : null,
+          "materialTypeId" : "1a54b431-2e4f-452d-9cae-9cee66c9a892",
+          "accessionNumber" : null,
+          "holdingsRecordId" : "2d026f8c-7d7f-494f-9f03-26380e7db4f3",
+          "discoverySuppress" : "false",
+          "descriptionOfPieces" : null,
+          "permanentLoanTypeId" : "a8cacfd0-b284-47ae-b5fa-235d768411e7"
+        },
+        "message" : {
+          "errors" : [ {
+            "code" : "-1",
+            "type" : "1",
+            "message" : "lower(jsonb ->> 'barcode'::text) value already exists in table item: 7/037$00321583",
+            "parameters" : [ {
+              "key" : "lower(jsonb ->> 'barcode'::text)",
+              "value" : "7/037$00321583"
+            } ]
+          } ]
+        },
+        "transaction" : "",
+        "typeOfError" : {
+          "errors" : [ {
+            "code" : "-1",
+            "type" : "1",
+            "message" : "lower(jsonb ->> 'barcode'::text) value already exists in table item: 7/037$00321583",
+            "parameters" : [ {
+              "key" : "lower(jsonb ->> 'barcode'::text)",
+              "value" : "7/037$00321583"
+            } ]
+          } ]
+        },
+        "typeOfRecord" : "ITEM"
+      }
+    } ],
+    "originalRecord" : "<?xml version=\"1.0\" encoding=\"UTF-8\"?><original>\n  <collection count=\"47\">\n    <record>\n      <status>upsert</status>\n      <hrid>022560084</hrid>\n      <metadata>\n        <datafield fulltag=\"001@\" tag=\"001@\">\n          <subfield code=\"0\">20-22,24,40,72,130,285</subfield>\n        </datafield>\n        <datafield fulltag=\"001A\" tag=\"001A\">\n          <subfield code=\"0\">2000:08-12-89</subfield>\n        </datafield>\n        <datafield fulltag=\"001B\" tag=\"001B\">\n          <subfield code=\"0\">1999:07-05-24</subfield>\n          <subfield code=\"t\">14:19:06.000</subfield>\n        </datafield>\n        <datafield fulltag=\"001D\" tag=\"001D\">\n          <subfield code=\"0\">9999:99-99-99</subfield>\n        </datafield>\n        <datafield fulltag=\"001U\" tag=\"001U\">\n          <subfield code=\"0\">utf8</subfield>\n        </datafield>\n        <datafield fulltag=\"001X\" tag=\"001X\">\n          <subfield code=\"0\">0</subfield>\n        </datafield>\n        <datafield fulltag=\"002@\" tag=\"002@\">\n          <subfield code=\"0\">Aau</subfield>\n        </datafield>\n        <datafield fulltag=\"002C\" tag=\"002C\">\n          <subfield code=\"a\">Text</subfield>\n          <subfield code=\"b\">txt</subfield>\n        </datafield>\n        <datafield fulltag=\"002D\" tag=\"002D\">\n          <subfield code=\"a\">ohne Hilfsmittel zu benutzen</subfield>\n          <subfield code=\"b\">n</subfield>\n        </datafield>\n        <datafield fulltag=\"002E\" tag=\"002E\">\n          <subfield code=\"a\">Band</subfield>\n          <subfield code=\"b\">nc</subfield>\n        </datafield>\n        <datafield fulltag=\"003@\" tag=\"003@\">\n          <subfield code=\"0\">022560084</subfield>\n        </datafield>\n        <datafield fulltag=\"003O\" tag=\"003O\">\n          <subfield code=\"a\">OCoLC</subfield>\n          <subfield code=\"0\">174329348</subfield>\n          <subfield code=\"v\">2012-12-31</subfield>\n        </datafield>\n        <datafield fulltag=\"006G\" tag=\"006G\">\n          <subfield code=\"0\">481141375</subfield>\n        </datafield>\n        <datafield fulltag=\"007G\" tag=\"007G\">\n          <subfield code=\"i\">GBV</subfield>\n          <subfield code=\"0\">022560084</subfield>\n        </datafield>\n        <datafield fulltag=\"007Y\" tag=\"007Y\">\n          <subfield code=\"i\">Hochschulschriftennummer</subfield>\n          <subfield code=\"0\">U 62.3728</subfield>\n        </datafield>\n        <datafield fulltag=\"010@\" tag=\"010@\">\n          <subfield code=\"a\">ger</subfield>\n        </datafield>\n        <datafield fulltag=\"011@\" tag=\"011@\">\n          <subfield code=\"a\">1962</subfield>\n        </datafield>\n        <datafield fulltag=\"013D\" tag=\"013D\">\n          <subfield code=\"9\">105825778</subfield>\n          <subfield code=\"8\">Hochschulschrift ; ID: gnd/4113937-9</subfield>\n        </datafield>\n        <datafield fulltag=\"019@\" tag=\"019@\">\n          <subfield code=\"a\">XA-DE</subfield>\n        </datafield>\n        <datafield fulltag=\"021A\" tag=\"021A\">\n          <subfield code=\"a\">Die @Idee des Föderalismus in der Verfassung der UdSSR von 1936</subfield>\n          <subfield code=\"h\">von Hans-Georg Belz</subfield>\n        </datafield>\n        <datafield fulltag=\"028A\" tag=\"028A\">\n          <subfield code=\"9\">861809122</subfield>\n          <subfield code=\"8\">Belz, Hans-Georg *1936-* ; ID: gnd/1104384175</subfield>\n          <subfield code=\"k\">cgwrk</subfield>\n          <subfield code=\"v\">2024-03-09</subfield>\n        </datafield>\n        <datafield fulltag=\"033D\" tag=\"033D\">\n          <subfield code=\"p\">Göttingen</subfield>\n          <subfield code=\"4\">uvp</subfield>\n        </datafield>\n        <datafield fulltag=\"034D\" tag=\"034D\">\n          <subfield code=\"a\">129 S.</subfield>\n        </datafield>\n        <datafield fulltag=\"037C\" tag=\"037C\">\n          <subfield code=\"a\">Göttingen, Univ., Diss., 1962</subfield>\n        </datafield>\n        <datafield fulltag=\"045M/10\" occurrence=\"10\" tag=\"045M\">\n          <subfield code=\"i\">8</subfield>\n          <subfield code=\"a\">retro004</subfield>\n        </datafield>\n        <datafield fulltag=\"045Q/01\" occurrence=\"01\" tag=\"045Q\">\n          <subfield code=\"9\">106422499</subfield>\n          <subfield code=\"8\">86.10 Recht einzelner Länder, Gebiete und Völker</subfield>\n        </datafield>\n        <datafield fulltag=\"045Q/01\" occurrence=\"01\" tag=\"045Q\">\n          <subfield code=\"9\">10642260X</subfield>\n          <subfield code=\"8\">86.44 Staatsrecht Verfassungsrecht: Allgemeines</subfield>\n        </datafield>\n        <item epn=\"576745545\">\n          <datafield fulltag=\"201B/01\" occurrence=\"01\" tag=\"201B\">\n            <subfield code=\"0\">27-12-10</subfield>\n            <subfield code=\"t\">19:57:41.000</subfield>\n          </datafield>\n          <datafield fulltag=\"201U/01\" occurrence=\"01\" tag=\"201U\">\n            <subfield code=\"0\">utf8</subfield>\n          </datafield>\n          <datafield fulltag=\"202D/01\" occurrence=\"01\" tag=\"202D\">\n            <subfield code=\"0\">27-12-10</subfield>\n            <subfield code=\"b\">r40sel2</subfield>\n            <subfield code=\"a\">0007</subfield>\n          </datafield>\n          <datafield fulltag=\"203@/01\" occurrence=\"01\" tag=\"203@\">\n            <subfield code=\"0\">576745545</subfield>\n          </datafield>\n          <datafield fulltag=\"208@/01\" occurrence=\"01\" tag=\"208@\">\n            <subfield code=\"a\">01-11-02</subfield>\n            <subfield code=\"b\">xsn</subfield>\n          </datafield>\n          <datafield fulltag=\"209A/01\" occurrence=\"01\" tag=\"209A\">\n            <subfield code=\"a\">8 U 62.3728</subfield>\n            <subfield code=\"d\">u</subfield>\n            <subfield code=\"x\">00</subfield>\n          </datafield>\n        </item>\n        <item epn=\"263483789\">\n          <datafield fulltag=\"201B/02\" occurrence=\"02\" tag=\"201B\">\n            <subfield code=\"0\">23-07-18</subfield>\n            <subfield code=\"t\">20:37:50.000</subfield>\n          </datafield>\n          <datafield fulltag=\"201U/02\" occurrence=\"02\" tag=\"201U\">\n            <subfield code=\"0\">utf8</subfield>\n          </datafield>\n          <datafield fulltag=\"202D/02\" occurrence=\"02\" tag=\"202D\">\n            <subfield code=\"0\">23-07-18</subfield>\n            <subfield code=\"b\">1910</subfield>\n            <subfield code=\"a\">0007/0037</subfield>\n          </datafield>\n          <datafield fulltag=\"203@/02\" occurrence=\"02\" tag=\"203@\">\n            <subfield code=\"0\">263483789</subfield>\n          </datafield>\n          <datafield fulltag=\"208@/02\" occurrence=\"02\" tag=\"208@\">\n            <subfield code=\"a\">07-11-97</subfield>\n            <subfield code=\"b\">ki037</subfield>\n          </datafield>\n          <datafield fulltag=\"209A/02\" occurrence=\"02\" tag=\"209A\">\n            <subfield code=\"b\">7</subfield>\n            <subfield code=\"j\">45</subfield>\n            <subfield code=\"f\">7/037</subfield>\n            <subfield code=\"a\">XXIX, 100</subfield>\n            <subfield code=\"d\">i</subfield>\n            <subfield code=\"i\">c</subfield>\n            <subfield code=\"x\">00</subfield>\n          </datafield>\n          <datafield fulltag=\"209C/02\" occurrence=\"02\" tag=\"209C\">\n            <subfield code=\"a\">5379</subfield>\n            <subfield code=\"x\">00</subfield>\n          </datafield>\n          <datafield fulltag=\"209G/02\" occurrence=\"02\" tag=\"209G\">\n            <subfield code=\"a\">7/037$00321583</subfield>\n          </datafield>\n          <datafield fulltag=\"237A/02\" occurrence=\"02\" tag=\"237A\">\n            <subfield code=\"a\">Mikrokopie - Promotionsjahr 1961</subfield>\n          </datafield>\n          <datafield fulltag=\"237A/02\" occurrence=\"02\" tag=\"237A\">\n            <subfield code=\"a\">Göttinger Dissertationen, Bd. 197. Sammelband 1 A - D (1962)</subfield>\n          </datafield>\n        </item>\n        <item epn=\"274840278\">\n          <datafield fulltag=\"201B/03\" occurrence=\"03\" tag=\"201B\">\n            <subfield code=\"0\">05-10-11</subfield>\n            <subfield code=\"t\">13:45:14.000</subfield>\n          </datafield>\n          <datafield fulltag=\"201U/03\" occurrence=\"03\" tag=\"201U\">\n            <subfield code=\"0\">utf8</subfield>\n          </datafield>\n          <datafield fulltag=\"202D/03\" occurrence=\"03\" tag=\"202D\">\n            <subfield code=\"0\">05-10-11</subfield>\n            <subfield code=\"b\">1929</subfield>\n            <subfield code=\"a\">0007/0200</subfield>\n          </datafield>\n          <datafield fulltag=\"203@/03\" occurrence=\"03\" tag=\"203@\">\n            <subfield code=\"0\">274840278</subfield>\n          </datafield>\n          <datafield fulltag=\"208@/03\" occurrence=\"03\" tag=\"208@\">\n            <subfield code=\"a\">27-02-98</subfield>\n            <subfield code=\"b\">zi200</subfield>\n          </datafield>\n          <datafield fulltag=\"209A/03\" occurrence=\"03\" tag=\"209A\">\n            <subfield code=\"b\">7</subfield>\n            <subfield code=\"j\">45</subfield>\n            <subfield code=\"f\">7/200</subfield>\n            <subfield code=\"a\">13 VII 1</subfield>\n            <subfield code=\"d\">i</subfield>\n            <subfield code=\"x\">00</subfield>\n          </datafield>\n          <datafield fulltag=\"209C/03\" occurrence=\"03\" tag=\"209C\">\n            <subfield code=\"a\">A 1831/62</subfield>\n            <subfield code=\"x\">00</subfield>\n          </datafield>\n        </item>\n      </metadata>\n      <rawrecord>001@ ƒ020-22,24,40,72,130,285\n001A ƒ02000:08-12-89\n001B ƒ01999:07-05-24ƒt14:19:06.000\n001D ƒ09999:99-99-99\n001U ƒ0utf8\n001X ƒ00\n002@ ƒ0Aau\n002C ƒaTextƒbtxt\n002D ƒaohne Hilfsmittel zu benutzenƒbn\n002E ƒaBandƒbnc\n003@ ƒ0022560084\n003O ƒaOCoLCƒ0174329348ƒv2012-12-31\n006G ƒ0481141375\n007G ƒiGBVƒ0022560084\n007Y ƒiHochschulschriftennummerƒ0U 62.3728\n010@ ƒager\n011@ ƒa1962\n013D ƒ9105825778ƒ8Hochschulschrift ; ID: gnd/4113937-9\n019@ ƒaXA-DE\n021A ƒaDie @Idee des Föderalismus in der Verfassung der UdSSR von 1936ƒhvon Hans-Georg Belz\n028A ƒ9861809122ƒ8Belz, Hans-Georg *1936-* ; ID: gnd/1104384175ƒkcgwrkƒv2024-03-09\n033D ƒpGöttingenƒ4uvp\n034D ƒa129 S.\n037C ƒaGöttingen, Univ., Diss., 1962\n045M/10 ƒi8ƒaretro004\n045Q/01 ƒ9106422499ƒ886.10$jRecht einzelner Länder, Gebiete und Völker\n045Q/01 ƒ910642260Xƒ886.44$jStaatsrecht$jVerfassungsrecht: Allgemeines\n\n201B/01 ƒ027-12-10ƒt19:57:41.000\n201U/01 ƒ0utf8\n202D/01 ƒ027-12-10ƒbr40sel2ƒa0007\n203@/01 ƒ0576745545\n208@/01 ƒa01-11-02ƒbxsn\n209A/01 ƒa8 U 62.3728ƒduƒx00\n\n201B/02 ƒ023-07-18ƒt20:37:50.000\n201U/02 ƒ0utf8\n202D/02 ƒ023-07-18ƒb1910ƒa0007/0037\n203@/02 ƒ0263483789\n208@/02 ƒa07-11-97ƒbki037\n209A/02 ƒb7ƒj45ƒf7/037ƒaXXIX, 100ƒdiƒicƒx00\n209C/02 ƒa5379ƒx00\n209G/02 ƒa7/037$00321583\n237A/02 ƒaMikrokopie - Promotionsjahr 1961\n237A/02 ƒaGöttinger Dissertationen, Bd. 197. Sammelband 1 A - D (1962)\n\n201B/03 ƒ005-10-11ƒt13:45:14.000\n201U/03 ƒ0utf8\n202D/03 ƒ005-10-11ƒb1929ƒa0007/0200\n203@/03 ƒ0274840278\n208@/03 ƒa27-02-98ƒbzi200\n209A/03 ƒb7ƒj45ƒf7/200ƒa13 VII 1ƒdiƒx00\n209C/03 ƒaA 1831/62ƒx00\n\n</rawrecord>\n    </record>\n  </collection>\n</original>\n",
+    "transformedRecord" : {
+      "instance" : {
+        "hrid" : "022560084",
+        "notes" : [ {
+          "note" : "Göttingen, Univ., Diss., 1962",
+          "instanceNoteTypeId" : "b73cc9c2-c9fa-49aa-964f-5ae1aa754ecd"
+        } ],
+        "title" : "Die Idee des Föderalismus in der Verfassung der UdSSR von 1936 / von Hans-Georg Belz",
+        "series" : null,
+        "source" : "K10plus",
+        "languages" : [ "ger" ],
+        "indexTitle" : "Idee des Föderalismus in der Verfassung der UdSSR von 1936 von HansGeorg Belz",
+        "identifiers" : [ {
+          "value" : "022560084",
+          "identifierTypeId" : "1d5cb40c-508f-451b-8952-87c92be4255a"
+        }, {
+          "value" : "174329348",
+          "identifierTypeId" : "439bfbae-75bc-4f74-9fc7-b2a2d47ce3ef"
+        }, {
+          "value" : "481141375",
+          "identifierTypeId" : "63fd8fa0-a939-4d1e-869c-6dcc24c9d507"
+        }, {
+          "value" : "GBV: 022560084",
+          "identifierTypeId" : "8e33c1be-e2c4-43ac-a975-8fb50f71137a"
+        } ],
+        "publication" : [ ],
+        "contributors" : [ {
+          "name" : "Belz, Hans-Georg *1936-*",
+          "primary" : "true",
+          "contributorNameTypeId" : "2b94c631-fca9-4892-a730-03ee529ffe2a"
+        } ],
+        "instanceTypeId" : "6312d172-f0cf-40f6-b27d-9fa8feaf332f",
+        "electronicAccess" : [ ],
+        "modeOfIssuanceId" : "9d18a02f-5897-4c31-9106-c9abb5c7ae8b",
+        "alternativeTitles" : [ ],
+        "instanceFormatIds" : [ "8d511d33-5e85-4c5d-9bce-6e3c9cd0c324" ],
+        "administrativeNotes" : [ "Aau (0500: Bibliografische Gattung)", "07.05.24, 14:19 (0210: Datum der letzten Änderung)" ],
+        "physicalDescriptions" : [ "129 S." ],
+        "natureOfContentTermIds" : [ "94f6d06a-61e0-47c1-bbcb-6186989e6040" ]
+      },
+      "processing" : {
+        "item" : {
+          "status" : {
+            "policy" : "overwrite",
+            "ifStatusWas" : [ {
+              "name" : "On order"
+            }, {
+              "name" : "Available"
+            }, {
+              "name" : "Intellectual item"
+            }, {
+              "name" : "Missing"
+            }, {
+              "name" : "Restricted"
+            }, {
+              "name" : "Unknown"
+            } ]
+          },
+          "retainOmittedRecord" : {
+            "ifField" : "hrid",
+            "matchesPattern" : "\\D+.*"
+          },
+          "retainExistingValues" : {
+            "forOmittedProperties" : "true"
+          }
+        },
+        "batchIndex" : 9,
+        "holdingsRecord" : {
+          "retainOmittedRecord" : {
+            "ifField" : "hrid",
+            "matchesPattern" : "\\D+.*"
+          },
+          "retainExistingValues" : {
+            "forOmittedProperties" : "true"
+          }
+        }
+      },
+      "holdingsRecords" : [ {
+        "hrid" : "576745545",
+        "items" : [ {
+          "hrid" : "576745545",
+          "status" : {
+            "name" : "Available"
+          },
+          "volume" : null,
+          "chronology" : null,
+          "copyNumber" : null,
+          "enumeration" : null,
+          "materialTypeId" : "1a54b431-2e4f-452d-9cae-9cee66c9a892",
+          "accessionNumber" : null,
+          "discoverySuppress" : "false",
+          "descriptionOfPieces" : null,
+          "permanentLoanTypeId" : "a8cacfd0-b284-47ae-b5fa-235d768411e7"
+        } ],
+        "notes" : [ ],
+        "sourceId" : "fa687f33-aab5-4119-b0ad-05afe8de4d92",
+        "callNumber" : "8 U 62.3728",
+        "illPolicyId" : null,
+        "holdingsTypeId" : "0c422f92-0f4d-4d32-8cbe-390ebc33a3e5",
+        "callNumberPrefix" : null,
+        "electronicAccess" : [ ],
+        "discoverySuppress" : "false",
+        "holdingsStatements" : null,
+        "administrativeNotes" : [ "27-12-10, 19:57 (7903: Datum und Uhrzeit der letzten Änderung)" ],
+        "permanentLocationId" : "78091d58-5057-4f5d-bbcc-ca07eafd8cc1"
+      }, {
+        "hrid" : "263483789",
+        "items" : [ {
+          "hrid" : "263483789",
+          "status" : {
+            "name" : "Available"
+          },
+          "volume" : null,
+          "barcode" : "7/037$00321583",
+          "chronology" : null,
+          "copyNumber" : null,
+          "enumeration" : null,
+          "materialTypeId" : "1a54b431-2e4f-452d-9cae-9cee66c9a892",
+          "accessionNumber" : "5379",
+          "discoverySuppress" : "false",
+          "descriptionOfPieces" : null,
+          "permanentLoanTypeId" : "3ef6d652-2e02-4561-8f7b-720cbccde87f"
+        } ],
+        "notes" : [ {
+          "note" : "Mikrokopie - Promotionsjahr 1961",
+          "staffOnly" : "false",
+          "holdingsNoteTypeId" : "84472b16-e66e-47d7-8ae9-f9720bc971f8"
+        }, {
+          "note" : "Göttinger Dissertationen, Bd. 197. Sammelband 1 A - D (1962)",
+          "staffOnly" : "false",
+          "holdingsNoteTypeId" : "84472b16-e66e-47d7-8ae9-f9720bc971f8"
+        } ],
+        "sourceId" : "fa687f33-aab5-4119-b0ad-05afe8de4d92",
+        "callNumber" : "XXIX, 100",
+        "illPolicyId" : null,
+        "holdingsTypeId" : "0c422f92-0f4d-4d32-8cbe-390ebc33a3e5",
+        "callNumberPrefix" : "7/037",
+        "electronicAccess" : [ ],
+        "discoverySuppress" : "false",
+        "holdingsStatements" : null,
+        "administrativeNotes" : [ "23-07-18, 20:37 (7903: Datum und Uhrzeit der letzten Änderung)" ],
+        "permanentLocationId" : "e418d287-5e5d-41a9-bf4a-a90d369417f5"
+      }, {
+        "hrid" : "274840278",
+        "items" : [ {
+          "hrid" : "274840278",
+          "status" : {
+            "name" : "Available"
+          },
+          "volume" : null,
+          "chronology" : null,
+          "copyNumber" : null,
+          "enumeration" : null,
+          "materialTypeId" : "1a54b431-2e4f-452d-9cae-9cee66c9a892",
+          "accessionNumber" : "A 1831/62",
+          "discoverySuppress" : "false",
+          "descriptionOfPieces" : null,
+          "permanentLoanTypeId" : "3ef6d652-2e02-4561-8f7b-720cbccde87f"
+        } ],
+        "notes" : [ ],
+        "sourceId" : "fa687f33-aab5-4119-b0ad-05afe8de4d92",
+        "callNumber" : "13 VII 1",
+        "illPolicyId" : null,
+        "holdingsTypeId" : "0c422f92-0f4d-4d32-8cbe-390ebc33a3e5",
+        "callNumberPrefix" : "7/200",
+        "electronicAccess" : [ ],
+        "discoverySuppress" : "false",
+        "holdingsStatements" : null,
+        "administrativeNotes" : [ "05-10-11, 13:45 (7903: Datum und Uhrzeit der letzten Änderung)" ],
+        "permanentLocationId" : "82aabbe5-bbc0-4c1e-a8cd-a8c1f34729ce"
+      } ]
+    }
+  },
+  {
+      "id": "4bac651e-365b-4428-b2ea-ddc1b99c15b0",
+      "importJobId": "42ae09ec-8afd-41dc-b529-ac112a607271",
+      "recordNumber": "022560017",
+      "timeStamp": "2024-05-07T14:19:35",
+      "recordErrors": [
+        {
+          "error": {
+            "label": "Error encountered during upsert of Inventory record set",
+            "entity": {
+              "id": "f2b6c811-0973-4e22-b96f-72735495c828",
+              "hrid": "274375206",
+              "status": {
+                "name": "Available"
+              },
+              "volume": null,
+              "barcode": "7$104879262",
+              "chronology": null,
+              "copyNumber": null,
+              "enumeration": null,
+              "materialTypeId": "1a54b431-2e4f-452d-9cae-9cee66c9a892",
+              "accessionNumber": null,
+              "holdingsRecordId": "87812bad-ec24-44a4-ac54-570757ec606d",
+              "discoverySuppress": "false",
+              "descriptionOfPieces": null,
+              "permanentLoanTypeId": "a8cacfd0-b284-47ae-b5fa-235d768411e7"
+            },
+            "message": {
+              "errors": [
+                {
+                  "code": "-1",
+                  "type": "1",
+                  "message": "lower(jsonb ->> 'barcode'::text) value already exists in table item: 7/037$00539678",
+                  "parameters": [
+                    {
+                      "key": "lower(jsonb ->> 'barcode'::text)",
+                      "value": "7/037$00539678"
+                    }
+                  ]
+                }
+              ]
+            },
+            "transaction": "",
+            "typeOfError": {
+              "errors": [
+                {
+                  "code": "-1",
+                  "type": "1",
+                  "message": "lower(jsonb ->> 'barcode'::text) value already exists in table item: 7/037$00539678",
+                  "parameters": [
+                    {
+                      "key": "lower(jsonb ->> 'barcode'::text)",
+                      "value": "7/037$00539678"
+                    }
+                  ]
+                }
+              ]
+            },
+            "typeOfRecord": "ITEM"
+          }
+        }
+      ],
+      "originalRecord": "<?xml version=\"1.0\" encoding=\"UTF-8\"?><original>\n  <collection count=\"47\">\n    <record>\n      <status>upsert</status>\n      <hrid>022560017</hrid>\n      <metadata>\n        <datafield fulltag=\"001@\" tag=\"001@\">\n          <subfield code=\"0\">11,20-22,24,40,62,72,130,666</subfield>\n        </datafield>\n        <datafield fulltag=\"001A\" tag=\"001A\">\n          <subfield code=\"0\">2000:08-12-89</subfield>\n        </datafield>\n        <datafield fulltag=\"001B\" tag=\"001B\">\n          <subfield code=\"0\">1999:07-05-24</subfield>\n          <subfield code=\"t\">14:19:05.000</subfield>\n        </datafield>\n        <datafield fulltag=\"001D\" tag=\"001D\">\n          <subfield code=\"0\">0018:30-07-01</subfield>\n        </datafield>\n        <datafield fulltag=\"001U\" tag=\"001U\">\n          <subfield code=\"0\">utf8</subfield>\n        </datafield>\n        <datafield fulltag=\"001X\" tag=\"001X\">\n          <subfield code=\"0\">0</subfield>\n        </datafield>\n        <datafield fulltag=\"002@\" tag=\"002@\">\n          <subfield code=\"0\">Aau</subfield>\n        </datafield>\n        <datafield fulltag=\"002C\" tag=\"002C\">\n          <subfield code=\"a\">Text</subfield>\n          <subfield code=\"b\">txt</subfield>\n        </datafield>\n        <datafield fulltag=\"002D\" tag=\"002D\">\n          <subfield code=\"a\">ohne Hilfsmittel zu benutzen</subfield>\n          <subfield code=\"b\">n</subfield>\n        </datafield>\n        <datafield fulltag=\"002E\" tag=\"002E\">\n          <subfield code=\"a\">Band</subfield>\n          <subfield code=\"b\">nc</subfield>\n        </datafield>\n        <datafield fulltag=\"003@\" tag=\"003@\">\n          <subfield code=\"0\">022560017</subfield>\n        </datafield>\n        <datafield fulltag=\"003D\" tag=\"003D\">\n          <subfield code=\"0\">428746411</subfield>\n        </datafield>\n        <datafield fulltag=\"003O\" tag=\"003O\">\n          <subfield code=\"a\">OCoLC</subfield>\n          <subfield code=\"0\">256052975</subfield>\n          <subfield code=\"v\">2012-12-31</subfield>\n        </datafield>\n        <datafield fulltag=\"006G\" tag=\"006G\">\n          <subfield code=\"0\">730588114</subfield>\n        </datafield>\n        <datafield fulltag=\"006U\" tag=\"006U\">\n          <subfield code=\"0\">73,H06,0042</subfield>\n        </datafield>\n        <datafield fulltag=\"007G\" tag=\"007G\">\n          <subfield code=\"i\">GBV</subfield>\n          <subfield code=\"0\">022560017</subfield>\n        </datafield>\n        <datafield fulltag=\"010@\" tag=\"010@\">\n          <subfield code=\"a\">ger</subfield>\n        </datafield>\n        <datafield fulltag=\"011@\" tag=\"011@\">\n          <subfield code=\"a\">1972</subfield>\n        </datafield>\n        <datafield fulltag=\"013D\" tag=\"013D\">\n          <subfield code=\"9\">105825778</subfield>\n          <subfield code=\"8\">Hochschulschrift ; ID: gnd/4113937-9</subfield>\n        </datafield>\n        <datafield fulltag=\"019@\" tag=\"019@\">\n          <subfield code=\"a\">XA-DE</subfield>\n        </datafield>\n        <datafield fulltag=\"021A\" tag=\"021A\">\n          <subfield code=\"a\">Die @Beteiligungsrechte der Arbeitnehmer in den nordischen Rechten</subfield>\n          <subfield code=\"h\">vorgelegt von Hans-Harald Fitschen</subfield>\n        </datafield>\n        <datafield fulltag=\"028A\" tag=\"028A\">\n          <subfield code=\"9\">691002010</subfield>\n          <subfield code=\"8\">Fitschen, Hans-Harald *1943-* ; ID: gnd/108302113</subfield>\n          <subfield code=\"k\">cgwrk</subfield>\n          <subfield code=\"v\">2024-03-09</subfield>\n        </datafield>\n        <datafield fulltag=\"033D\" tag=\"033D\">\n          <subfield code=\"p\">Göttingen</subfield>\n          <subfield code=\"4\">uvp</subfield>\n        </datafield>\n        <datafield fulltag=\"034D\" tag=\"034D\">\n          <subfield code=\"a\">XVIII, 164 S</subfield>\n        </datafield>\n        <datafield fulltag=\"037C\" tag=\"037C\">\n          <subfield code=\"a\">Göttingen, Univ., Diss., 1972</subfield>\n        </datafield>\n        <datafield fulltag=\"045E\" tag=\"045E\">\n          <subfield code=\"a\">04a</subfield>\n        </datafield>\n        <datafield fulltag=\"045M/10\" occurrence=\"10\" tag=\"045M\">\n          <subfield code=\"i\">8</subfield>\n          <subfield code=\"a\">jus 941.200 Skandinavien</subfield>\n        </datafield>\n        <datafield fulltag=\"045M/10\" occurrence=\"10\" tag=\"045M\">\n          <subfield code=\"i\">8</subfield>\n          <subfield code=\"a\">reg 25.1 Nordische Staaten, mehrere Länder</subfield>\n        </datafield>\n        <datafield fulltag=\"045M/10\" occurrence=\"10\" tag=\"045M\">\n          <subfield code=\"i\">8</subfield>\n          <subfield code=\"a\">jus 941 Skandinavien</subfield>\n        </datafield>\n        <datafield fulltag=\"045M/10\" occurrence=\"10\" tag=\"045M\">\n          <subfield code=\"i\">8</subfield>\n          <subfield code=\"a\">jus 941.200$jSkandinavien$jStaatsrecht$jVerwaltungsrecht</subfield>\n        </datafield>\n        <datafield fulltag=\"045M/10\" occurrence=\"10\" tag=\"045M\">\n          <subfield code=\"i\">8</subfield>\n          <subfield code=\"a\">reg 25.1$jNordische Staaten, mehrere Länder</subfield>\n        </datafield>\n        <datafield fulltag=\"045M/10\" occurrence=\"10\" tag=\"045M\">\n          <subfield code=\"i\">8</subfield>\n          <subfield code=\"a\">jus 941$jSkandinavien$jRecht$j(allg.)</subfield>\n        </datafield>\n        <datafield fulltag=\"045V\" tag=\"045V\">\n          <subfield code=\"a\">7,22</subfield>\n        </datafield>\n        <datafield fulltag=\"045Y\" tag=\"045Y\">\n          <subfield code=\"a\">sca</subfield>\n        </datafield>\n        <item epn=\"274375206\">\n          <datafield fulltag=\"201B/01\" occurrence=\"01\" tag=\"201B\">\n            <subfield code=\"0\">13-06-18</subfield>\n            <subfield code=\"t\">17:19:47.000</subfield>\n          </datafield>\n          <datafield fulltag=\"201U/01\" occurrence=\"01\" tag=\"201U\">\n            <subfield code=\"0\">utf8</subfield>\n          </datafield>\n          <datafield fulltag=\"202D/01\" occurrence=\"01\" tag=\"202D\">\n            <subfield code=\"0\">13-06-18</subfield>\n            <subfield code=\"b\">1910</subfield>\n            <subfield code=\"a\">0007/0037</subfield>\n          </datafield>\n          <datafield fulltag=\"203@/01\" occurrence=\"01\" tag=\"203@\">\n            <subfield code=\"0\">274375206</subfield>\n          </datafield>\n          <datafield fulltag=\"208@/01\" occurrence=\"01\" tag=\"208@\">\n            <subfield code=\"a\">24-02-98</subfield>\n            <subfield code=\"b\">xsn</subfield>\n          </datafield>\n          <datafield fulltag=\"209A/01\" occurrence=\"01\" tag=\"209A\">\n            <subfield code=\"a\">DISS 72 A 6100</subfield>\n            <subfield code=\"d\">u</subfield>\n            <subfield code=\"x\">00</subfield>\n          </datafield>\n          <datafield fulltag=\"209G/01\" occurrence=\"01\" tag=\"209G\">\n            <subfield code=\"a\">7$104879262</subfield>\n          </datafield>\n        </item>\n        <item epn=\"262069849\">\n          <datafield fulltag=\"201B/02\" occurrence=\"02\" tag=\"201B\">\n            <subfield code=\"0\">13-06-18</subfield>\n            <subfield code=\"t\">17:19:47.000</subfield>\n          </datafield>\n          <datafield fulltag=\"201U/02\" occurrence=\"02\" tag=\"201U\">\n            <subfield code=\"0\">utf8</subfield>\n          </datafield>\n          <datafield fulltag=\"202D/02\" occurrence=\"02\" tag=\"202D\">\n            <subfield code=\"0\">13-06-18</subfield>\n            <subfield code=\"b\">1910</subfield>\n            <subfield code=\"a\">0007/0037</subfield>\n          </datafield>\n          <datafield fulltag=\"203@/02\" occurrence=\"02\" tag=\"203@\">\n            <subfield code=\"0\">262069849</subfield>\n          </datafield>\n          <datafield fulltag=\"208@/02\" occurrence=\"02\" tag=\"208@\">\n            <subfield code=\"a\">24-10-97</subfield>\n            <subfield code=\"b\">ki037</subfield>\n          </datafield>\n          <datafield fulltag=\"209A/02\" occurrence=\"02\" tag=\"209A\">\n            <subfield code=\"b\">7</subfield>\n            <subfield code=\"j\">45</subfield>\n            <subfield code=\"f\">7/037</subfield>\n            <subfield code=\"a\">XXIX, 100</subfield>\n            <subfield code=\"d\">i</subfield>\n            <subfield code=\"i\">c</subfield>\n            <subfield code=\"x\">00</subfield>\n          </datafield>\n          <datafield fulltag=\"209C/02\" occurrence=\"02\" tag=\"209C\">\n            <subfield code=\"a\">9761</subfield>\n            <subfield code=\"x\">00</subfield>\n          </datafield>\n          <datafield fulltag=\"209G/02\" occurrence=\"02\" tag=\"209G\">\n            <subfield code=\"a\">7/037$00539678</subfield>\n          </datafield>\n          <datafield fulltag=\"237A/02\" occurrence=\"02\" tag=\"237A\">\n            <subfield code=\"a\">Göttinger Dissertationen, Bd. 295. Sammelband 3 Du - Gq (1972)</subfield>\n          </datafield>\n        </item>\n        <item epn=\"277026776\">\n          <datafield fulltag=\"201B/03\" occurrence=\"03\" tag=\"201B\">\n            <subfield code=\"0\">21-11-09</subfield>\n            <subfield code=\"t\">04:44:39.000</subfield>\n          </datafield>\n          <datafield fulltag=\"201U/03\" occurrence=\"03\" tag=\"201U\">\n            <subfield code=\"0\">utf8</subfield>\n          </datafield>\n          <datafield fulltag=\"202D/03\" occurrence=\"03\" tag=\"202D\">\n            <subfield code=\"0\">21-11-09</subfield>\n            <subfield code=\"b\">movjura</subfield>\n            <subfield code=\"a\">0007</subfield>\n          </datafield>\n          <datafield fulltag=\"203@/03\" occurrence=\"03\" tag=\"203@\">\n            <subfield code=\"0\">277026776</subfield>\n          </datafield>\n          <datafield fulltag=\"208@/03\" occurrence=\"03\" tag=\"208@\">\n            <subfield code=\"a\">19-03-98</subfield>\n            <subfield code=\"b\">ki200</subfield>\n          </datafield>\n          <datafield fulltag=\"209A/03\" occurrence=\"03\" tag=\"209A\">\n            <subfield code=\"b\">7</subfield>\n            <subfield code=\"j\">45</subfield>\n            <subfield code=\"f\">7/200</subfield>\n            <subfield code=\"a\">270 VIII 1</subfield>\n            <subfield code=\"d\">i</subfield>\n            <subfield code=\"x\">00</subfield>\n          </datafield>\n          <datafield fulltag=\"209C/03\" occurrence=\"03\" tag=\"209C\">\n            <subfield code=\"a\">A 7689/72</subfield>\n            <subfield code=\"x\">00</subfield>\n          </datafield>\n        </item>\n      </metadata>\n      <rawrecord>001@ ƒ011,20-22,24,40,62,72,130,666\n001A ƒ02000:08-12-89\n001B ƒ01999:07-05-24ƒt14:19:05.000\n001D ƒ00018:30-07-01\n001U ƒ0utf8\n001X ƒ00\n002@ ƒ0Aau\n002C ƒaTextƒbtxt\n002D ƒaohne Hilfsmittel zu benutzenƒbn\n002E ƒaBandƒbnc\n003@ ƒ0022560017\n003D ƒ0428746411\n003O ƒaOCoLCƒ0256052975ƒv2012-12-31\n006G ƒ0730588114\n006U ƒ073,H06,0042\n007G ƒiGBVƒ0022560017\n010@ ƒager\n011@ ƒa1972\n013D ƒ9105825778ƒ8Hochschulschrift ; ID: gnd/4113937-9\n019@ ƒaXA-DE\n021A ƒaDie @Beteiligungsrechte der Arbeitnehmer in den nordischen Rechtenƒhvorgelegt von Hans-Harald Fitschen\n028A ƒ9691002010ƒ8Fitschen, Hans-Harald *1943-* ; ID: gnd/108302113ƒkcgwrkƒv2024-03-09\n033D ƒpGöttingenƒ4uvp\n034D ƒaXVIII, 164 S\n037C ƒaGöttingen, Univ., Diss., 1972\n045E ƒa04a\n045M/10 ƒi8ƒajus 941.200 Skandinavien\n045M/10 ƒi8ƒareg 25.1 Nordische Staaten, mehrere Länder\n045M/10 ƒi8ƒajus 941 Skandinavien\n045M/10 ƒi8ƒajus 941.200$jSkandinavien$jStaatsrecht$jVerwaltungsrecht\n045M/10 ƒi8ƒareg 25.1$jNordische Staaten, mehrere Länder\n045M/10 ƒi8ƒajus 941$jSkandinavien$jRecht$j(allg.)\n045V ƒa7,22\n045Y ƒasca\n\n201B/01 ƒ013-06-18ƒt17:19:47.000\n201U/01 ƒ0utf8\n202D/01 ƒ013-06-18ƒb1910ƒa0007/0037\n203@/01 ƒ0274375206\n208@/01 ƒa24-02-98ƒbxsn\n209A/01 ƒaDISS 72 A 6100ƒduƒx00\n209G/01 ƒa7$104879262\n\n201B/02 ƒ013-06-18ƒt17:19:47.000\n201U/02 ƒ0utf8\n202D/02 ƒ013-06-18ƒb1910ƒa0007/0037\n203@/02 ƒ0262069849\n208@/02 ƒa24-10-97ƒbki037\n209A/02 ƒb7ƒj45ƒf7/037ƒaXXIX, 100ƒdiƒicƒx00\n209C/02 ƒa9761ƒx00\n209G/02 ƒa7/037$00539678\n237A/02 ƒaGöttinger Dissertationen, Bd. 295. Sammelband 3 Du - Gq (1972)\n\n201B/03 ƒ021-11-09ƒt04:44:39.000\n201U/03 ƒ0utf8\n202D/03 ƒ021-11-09ƒbmovjuraƒa0007\n203@/03 ƒ0277026776\n208@/03 ƒa19-03-98ƒbki200\n209A/03 ƒb7ƒj45ƒf7/200ƒa270 VIII 1ƒdiƒx00\n209C/03 ƒaA 7689/72ƒx00\n\n</rawrecord>\n    </record>\n  </collection>\n</original>\n",
+      "transformedRecord": {
+        "instance": {
+          "hrid": "022560017",
+          "notes": [
+            {
+              "note": "Göttingen, Univ., Diss., 1972",
+              "instanceNoteTypeId": "b73cc9c2-c9fa-49aa-964f-5ae1aa754ecd"
+            }
+          ],
+          "title": "Die Beteiligungsrechte der Arbeitnehmer in den nordischen Rechten / vorgelegt von Hans-Harald Fitschen",
+          "series": null,
+          "source": "K10plus",
+          "languages": [
+            "ger"
+          ],
+          "indexTitle": "Beteiligungsrechte der Arbeitnehmer in den nordischen Rechten vorgelegt von HansHarald Fitschen",
+          "identifiers": [
+            {
+              "value": "022560017",
+              "identifierTypeId": "1d5cb40c-508f-451b-8952-87c92be4255a"
+            },
+            {
+              "value": "428746411",
+              "identifierTypeId": "1035a102-9fdd-4556-9efd-bf9308e035f6"
+            },
+            {
+              "value": "256052975",
+              "identifierTypeId": "439bfbae-75bc-4f74-9fc7-b2a2d47ce3ef"
+            },
+            {
+              "value": "730588114",
+              "identifierTypeId": "63fd8fa0-a939-4d1e-869c-6dcc24c9d507"
+            },
+            {
+              "value": "73,H06,0042",
+              "identifierTypeId": "217a56e1-5e45-4253-b942-d2199cca183e"
+            },
+            {
+              "value": "GBV: 022560017",
+              "identifierTypeId": "8e33c1be-e2c4-43ac-a975-8fb50f71137a"
+            }
+          ],
+          "publication": [],
+          "contributors": [
+            {
+              "name": "Fitschen, Hans-Harald *1943-*",
+              "primary": "true",
+              "contributorNameTypeId": "2b94c631-fca9-4892-a730-03ee529ffe2a"
+            }
+          ],
+          "instanceTypeId": "6312d172-f0cf-40f6-b27d-9fa8feaf332f",
+          "electronicAccess": [],
+          "modeOfIssuanceId": "9d18a02f-5897-4c31-9106-c9abb5c7ae8b",
+          "alternativeTitles": [],
+          "instanceFormatIds": [
+            "8d511d33-5e85-4c5d-9bce-6e3c9cd0c324"
+          ],
+          "administrativeNotes": [
+            "Aau (0500: Bibliografische Gattung)",
+            "07.05.24, 14:19 (0210: Datum der letzten Änderung)"
+          ],
+          "physicalDescriptions": [
+            "XVIII, 164 S"
+          ],
+          "natureOfContentTermIds": [
+            "94f6d06a-61e0-47c1-bbcb-6186989e6040"
+          ]
+        },
+        "processing": {
+          "item": {
+            "status": {
+              "policy": "overwrite",
+              "ifStatusWas": [
+                {
+                  "name": "On order"
+                },
+                {
+                  "name": "Available"
+                },
+                {
+                  "name": "Intellectual item"
+                },
+                {
+                  "name": "Missing"
+                },
+                {
+                  "name": "Restricted"
+                },
+                {
+                  "name": "Unknown"
+                }
+              ]
+            },
+            "retainOmittedRecord": {
+              "ifField": "hrid",
+              "matchesPattern": "\\D+.*"
+            },
+            "retainExistingValues": {
+              "forOmittedProperties": "true"
+            }
+          },
+          "batchIndex": 26,
+          "holdingsRecord": {
+            "retainOmittedRecord": {
+              "ifField": "hrid",
+              "matchesPattern": "\\D+.*"
+            },
+            "retainExistingValues": {
+              "forOmittedProperties": "true"
+            }
+          }
+        },
+        "holdingsRecords": [
+          {
+            "hrid": "274375206",
+            "items": [
+              {
+                "hrid": "274375206",
+                "status": {
+                  "name": "Available"
+                },
+                "volume": null,
+                "barcode": "7$104879262",
+                "chronology": null,
+                "copyNumber": null,
+                "enumeration": null,
+                "materialTypeId": "1a54b431-2e4f-452d-9cae-9cee66c9a892",
+                "accessionNumber": null,
+                "discoverySuppress": "false",
+                "descriptionOfPieces": null,
+                "permanentLoanTypeId": "a8cacfd0-b284-47ae-b5fa-235d768411e7"
+              }
+            ],
+            "notes": [],
+            "sourceId": "fa687f33-aab5-4119-b0ad-05afe8de4d92",
+            "callNumber": "DISS 72 A 6100",
+            "illPolicyId": null,
+            "holdingsTypeId": "0c422f92-0f4d-4d32-8cbe-390ebc33a3e5",
+            "callNumberPrefix": null,
+            "electronicAccess": [],
+            "discoverySuppress": "false",
+            "holdingsStatements": null,
+            "administrativeNotes": [
+              "13-06-18, 17:19 (7903: Datum und Uhrzeit der letzten Änderung)"
+            ],
+            "permanentLocationId": "78091d58-5057-4f5d-bbcc-ca07eafd8cc1"
+          },
+          {
+            "hrid": "262069849",
+            "items": [
+              {
+                "hrid": "262069849",
+                "status": {
+                  "name": "Available"
+                },
+                "volume": null,
+                "barcode": "7/037$00539678",
+                "chronology": null,
+                "copyNumber": null,
+                "enumeration": null,
+                "materialTypeId": "1a54b431-2e4f-452d-9cae-9cee66c9a892",
+                "accessionNumber": "9761",
+                "discoverySuppress": "false",
+                "descriptionOfPieces": null,
+                "permanentLoanTypeId": "3ef6d652-2e02-4561-8f7b-720cbccde87f"
+              }
+            ],
+            "notes": [
+              {
+                "note": "Göttinger Dissertationen, Bd. 295. Sammelband 3 Du - Gq (1972)",
+                "staffOnly": "false",
+                "holdingsNoteTypeId": "84472b16-e66e-47d7-8ae9-f9720bc971f8"
+              }
+            ],
+            "sourceId": "fa687f33-aab5-4119-b0ad-05afe8de4d92",
+            "callNumber": "XXIX, 100",
+            "illPolicyId": null,
+            "holdingsTypeId": "0c422f92-0f4d-4d32-8cbe-390ebc33a3e5",
+            "callNumberPrefix": "7/037",
+            "electronicAccess": [],
+            "discoverySuppress": "false",
+            "holdingsStatements": null,
+            "administrativeNotes": [
+              "13-06-18, 17:19 (7903: Datum und Uhrzeit der letzten Änderung)"
+            ],
+            "permanentLocationId": "e418d287-5e5d-41a9-bf4a-a90d369417f5"
+          },
+          {
+            "hrid": "277026776",
+            "items": [
+              {
+                "hrid": "277026776",
+                "status": {
+                  "name": "Available"
+                },
+                "volume": null,
+                "chronology": null,
+                "copyNumber": null,
+                "enumeration": null,
+                "materialTypeId": "1a54b431-2e4f-452d-9cae-9cee66c9a892",
+                "accessionNumber": "A 7689/72",
+                "discoverySuppress": "false",
+                "descriptionOfPieces": null,
+                "permanentLoanTypeId": "3ef6d652-2e02-4561-8f7b-720cbccde87f"
+              }
+            ],
+            "notes": [],
+            "sourceId": "fa687f33-aab5-4119-b0ad-05afe8de4d92",
+            "callNumber": "270 VIII 1",
+            "illPolicyId": null,
+            "holdingsTypeId": "0c422f92-0f4d-4d32-8cbe-390ebc33a3e5",
+            "callNumberPrefix": "7/200",
+            "electronicAccess": [],
+            "discoverySuppress": "false",
+            "holdingsStatements": null,
+            "administrativeNotes": [
+              "21-11-09, 04:44 (7903: Datum und Uhrzeit der letzten Änderung)"
+            ],
+            "permanentLocationId": "82aabbe5-bbc0-4c1e-a8cd-a8c1f34729ce"
+          }
+        ]
+      }
+    },
+    {
+      "id": "47798a4e-9fcd-47c8-9f6e-64bf95afca3d",
+      "importJobId": "42ae09ec-8afd-41dc-b529-ac112a607271",
+      "recordNumber": "022563733",
+      "timeStamp": "2024-05-07T14:19:35",
+      "recordErrors": [
+        {
+          "error": {
+            "label": "Error encountered during upsert of Inventory record set",
+            "entity": {
+              "id": "4d99462d-3ed0-48b6-8f55-f8b842730192",
+              "hrid": "928067785",
+              "status": {
+                "name": "Available"
+              },
+              "volume": null,
+              "chronology": null,
+              "copyNumber": null,
+              "enumeration": null,
+              "materialTypeId": "1a54b431-2e4f-452d-9cae-9cee66c9a892",
+              "accessionNumber": null,
+              "holdingsRecordId": "c4da710d-e660-485e-9181-51bd9abcf85c",
+              "discoverySuppress": "false",
+              "descriptionOfPieces": null,
+              "permanentLoanTypeId": "a8cacfd0-b284-47ae-b5fa-235d768411e7"
+            },
+            "message": {
+              "errors": [
+                {
+                  "code": "-1",
+                  "type": "1",
+                  "message": "lower(jsonb ->> 'barcode'::text) value already exists in table item: 7/037$00313548",
+                  "parameters": [
+                    {
+                      "key": "lower(jsonb ->> 'barcode'::text)",
+                      "value": "7/037$00313548"
+                    }
+                  ]
+                }
+              ]
+            },
+            "transaction": "",
+            "typeOfError": {
+              "errors": [
+                {
+                  "code": "-1",
+                  "type": "1",
+                  "message": "lower(jsonb ->> 'barcode'::text) value already exists in table item: 7/037$00313548",
+                  "parameters": [
+                    {
+                      "key": "lower(jsonb ->> 'barcode'::text)",
+                      "value": "7/037$00313548"
+                    }
+                  ]
+                }
+              ]
+            },
+            "typeOfRecord": "ITEM"
+          }
+        }
+      ],
+      "originalRecord": "<?xml version=\"1.0\" encoding=\"UTF-8\"?><original>\n  <collection count=\"47\">\n    <record>\n      <status>upsert</status>\n      <hrid>022563733</hrid>\n      <metadata>\n        <datafield fulltag=\"001@\" tag=\"001@\">\n          <subfield code=\"0\">22,24,40,65,130</subfield>\n        </datafield>\n        <datafield fulltag=\"001A\" tag=\"001A\">\n          <subfield code=\"0\">2000:14-12-89</subfield>\n        </datafield>\n        <datafield fulltag=\"001B\" tag=\"001B\">\n          <subfield code=\"0\">1999:07-05-24</subfield>\n          <subfield code=\"t\">14:19:09.000</subfield>\n        </datafield>\n        <datafield fulltag=\"001D\" tag=\"001D\">\n          <subfield code=\"0\">9999:99-99-99</subfield>\n        </datafield>\n        <datafield fulltag=\"001U\" tag=\"001U\">\n          <subfield code=\"0\">utf8</subfield>\n        </datafield>\n        <datafield fulltag=\"001X\" tag=\"001X\">\n          <subfield code=\"0\">0</subfield>\n        </datafield>\n        <datafield fulltag=\"002@\" tag=\"002@\">\n          <subfield code=\"0\">Aau</subfield>\n        </datafield>\n        <datafield fulltag=\"002C\" tag=\"002C\">\n          <subfield code=\"a\">Text</subfield>\n          <subfield code=\"b\">txt</subfield>\n        </datafield>\n        <datafield fulltag=\"002D\" tag=\"002D\">\n          <subfield code=\"a\">ohne Hilfsmittel zu benutzen</subfield>\n          <subfield code=\"b\">n</subfield>\n        </datafield>\n        <datafield fulltag=\"002E\" tag=\"002E\">\n          <subfield code=\"a\">Band</subfield>\n          <subfield code=\"b\">nc</subfield>\n        </datafield>\n        <datafield fulltag=\"003@\" tag=\"003@\">\n          <subfield code=\"0\">022563733</subfield>\n        </datafield>\n        <datafield fulltag=\"003O\" tag=\"003O\">\n          <subfield code=\"a\">OCoLC</subfield>\n          <subfield code=\"0\">163276689</subfield>\n          <subfield code=\"v\">2012-12-31</subfield>\n        </datafield>\n        <datafield fulltag=\"006G\" tag=\"006G\">\n          <subfield code=\"0\">480064075</subfield>\n        </datafield>\n        <datafield fulltag=\"007G\" tag=\"007G\">\n          <subfield code=\"i\">GBV</subfield>\n          <subfield code=\"0\">022563733</subfield>\n        </datafield>\n        <datafield fulltag=\"010@\" tag=\"010@\">\n          <subfield code=\"a\">ger</subfield>\n        </datafield>\n        <datafield fulltag=\"011@\" tag=\"011@\">\n          <subfield code=\"a\">1959</subfield>\n        </datafield>\n        <datafield fulltag=\"013D\" tag=\"013D\">\n          <subfield code=\"9\">105825778</subfield>\n          <subfield code=\"8\">Hochschulschrift ; ID: gnd/4113937-9</subfield>\n        </datafield>\n        <datafield fulltag=\"019@\" tag=\"019@\">\n          <subfield code=\"a\">XA-DE</subfield>\n        </datafield>\n        <datafield fulltag=\"021A\" tag=\"021A\">\n          <subfield code=\"a\">Die @Rechtfertigungs- und Schuldausschließungsgründe</subfield>\n          <subfield code=\"d\">nach dem griechischen StGB und dem deutschen Entwurf eines neuen StGB</subfield>\n          <subfield code=\"h\">von Dimitrios Wallindras</subfield>\n        </datafield>\n        <datafield fulltag=\"028A\" tag=\"028A\">\n          <subfield code=\"9\">1800488238</subfield>\n          <subfield code=\"8\">Wallindras, Dimitrios *1919-* ; ID: gnd/1256378046</subfield>\n          <subfield code=\"k\">cgwrk</subfield>\n          <subfield code=\"v\">2024-03-09</subfield>\n        </datafield>\n        <datafield fulltag=\"033D\" tag=\"033D\">\n          <subfield code=\"p\">München</subfield>\n          <subfield code=\"4\">uvp</subfield>\n        </datafield>\n        <datafield fulltag=\"034D\" tag=\"034D\">\n          <subfield code=\"a\">83 S</subfield>\n        </datafield>\n        <datafield fulltag=\"037C\" tag=\"037C\">\n          <subfield code=\"a\">München, Univ., Diss. : 1959</subfield>\n        </datafield>\n        <datafield fulltag=\"045R\" tag=\"045R\">\n          <subfield code=\"9\">1272127109</subfield>\n          <subfield code=\"8\">PH 6264: P Rechtswissenschaft / PH Strafrecht, Strafverfahrensrecht, Kriminologie / PH 6000-PH 7305 Vergleichendes und ausländisches Straf- und Strafprozessrecht einschliesslich Strafvollzug / PH 6100-PH 7305 Ausländisches Recht - Einzelne Länder / PH 6230-PH 6285 Südeuropa / PH 6260-PH 6265 Griechenland / Einzeldarstellungen zum materiellen Strafrecht</subfield>\n        </datafield>\n        <datafield fulltag=\"045R\" tag=\"045R\">\n          <subfield code=\"9\">1271783711</subfield>\n          <subfield code=\"8\">PH 3110: P Rechtswissenschaft / PH Strafrecht, Strafverfahrensrecht, Kriminologie / PH 2500-PH 3980 Strafrecht / PH 3100-PH 3110 Rechtswidrigkeit / Rechtfertigungsgründe</subfield>\n        </datafield>\n        <datafield fulltag=\"045R\" tag=\"045R\">\n          <subfield code=\"9\">1271677091</subfield>\n          <subfield code=\"8\">PH 3130: P Rechtswissenschaft / PH Strafrecht, Strafverfahrensrecht, Kriminologie / PH 2500-PH 3980 Strafrecht / PH 3120-PH 3130 Schuld / Schuldfähigkeit, Unrechtsbewusstsein, Entschuldigungsgründe</subfield>\n        </datafield>\n        <datafield fulltag=\"046X\" tag=\"046X\">\n          <subfield code=\"a\">eb</subfield>\n          <subfield code=\"c\">20240324</subfield>\n          <subfield code=\"f\">DE-4165</subfield>\n          <subfield code=\"z\">2</subfield>\n        </datafield>\n        <item epn=\"928067785\">\n          <datafield fulltag=\"201B/01\" occurrence=\"01\" tag=\"201B\">\n            <subfield code=\"0\">02-01-11</subfield>\n            <subfield code=\"t\">03:02:49.000</subfield>\n          </datafield>\n          <datafield fulltag=\"201U/01\" occurrence=\"01\" tag=\"201U\">\n            <subfield code=\"0\">utf8</subfield>\n          </datafield>\n          <datafield fulltag=\"202D/01\" occurrence=\"01\" tag=\"202D\">\n            <subfield code=\"0\">02-01-11</subfield>\n            <subfield code=\"b\">r40sel2</subfield>\n            <subfield code=\"a\">0007</subfield>\n          </datafield>\n          <datafield fulltag=\"203@/01\" occurrence=\"01\" tag=\"203@\">\n            <subfield code=\"0\">928067785</subfield>\n          </datafield>\n          <datafield fulltag=\"208@/01\" occurrence=\"01\" tag=\"208@\">\n            <subfield code=\"a\">02-04-09</subfield>\n            <subfield code=\"b\">xsn</subfield>\n          </datafield>\n          <datafield fulltag=\"209A/01\" occurrence=\"01\" tag=\"209A\">\n            <subfield code=\"a\">8 U 59.6026</subfield>\n            <subfield code=\"d\">u</subfield>\n            <subfield code=\"x\">00</subfield>\n          </datafield>\n        </item>\n        <item epn=\"264123026\">\n          <datafield fulltag=\"201B/02\" occurrence=\"02\" tag=\"201B\">\n            <subfield code=\"0\">02-04-21</subfield>\n            <subfield code=\"t\">04:06:26.000</subfield>\n          </datafield>\n          <datafield fulltag=\"201U/02\" occurrence=\"02\" tag=\"201U\">\n            <subfield code=\"0\">utf8</subfield>\n          </datafield>\n          <datafield fulltag=\"202D/02\" occurrence=\"02\" tag=\"202D\">\n            <subfield code=\"0\">02-04-21</subfield>\n            <subfield code=\"b\">rep_cbs1420</subfield>\n            <subfield code=\"a\">1999</subfield>\n          </datafield>\n          <datafield fulltag=\"203@/02\" occurrence=\"02\" tag=\"203@\">\n            <subfield code=\"0\">264123026</subfield>\n          </datafield>\n          <datafield fulltag=\"208@/02\" occurrence=\"02\" tag=\"208@\">\n            <subfield code=\"a\">13-11-97</subfield>\n            <subfield code=\"b\">ki037</subfield>\n          </datafield>\n          <datafield fulltag=\"209A/02\" occurrence=\"02\" tag=\"209A\">\n            <subfield code=\"b\">7</subfield>\n            <subfield code=\"j\">45</subfield>\n            <subfield code=\"f\">7/037</subfield>\n            <subfield code=\"a\">XXIX, 102</subfield>\n            <subfield code=\"d\">i</subfield>\n            <subfield code=\"i\">c</subfield>\n            <subfield code=\"x\">00</subfield>\n          </datafield>\n          <datafield fulltag=\"209C/02\" occurrence=\"02\" tag=\"209C\">\n            <subfield code=\"a\">5650</subfield>\n            <subfield code=\"x\">00</subfield>\n          </datafield>\n          <datafield fulltag=\"209G/02\" occurrence=\"02\" tag=\"209G\">\n            <subfield code=\"a\">7/037$00313548</subfield>\n          </datafield>\n          <datafield fulltag=\"237A/02\" occurrence=\"02\" tag=\"237A\">\n            <subfield code=\"a\">Münchner Dissertationen, Sammelband O –Z (1959)</subfield>\n          </datafield>\n          <datafield fulltag=\"237A/02\" occurrence=\"02\" tag=\"237A\">\n            <subfield code=\"a\">Promotionsjahr 1959</subfield>\n          </datafield>\n        </item>\n        <item epn=\"34565708X\">\n          <datafield fulltag=\"201B/03\" occurrence=\"03\" tag=\"201B\">\n            <subfield code=\"0\">13-07-22</subfield>\n            <subfield code=\"t\">13:47:08.000</subfield>\n          </datafield>\n          <datafield fulltag=\"201U/03\" occurrence=\"03\" tag=\"201U\">\n            <subfield code=\"0\">utf8</subfield>\n          </datafield>\n          <datafield fulltag=\"202D/03\" occurrence=\"03\" tag=\"202D\">\n            <subfield code=\"0\">13-07-22</subfield>\n            <subfield code=\"b\">1913</subfield>\n            <subfield code=\"a\">0007/0118</subfield>\n          </datafield>\n          <datafield fulltag=\"203@/03\" occurrence=\"03\" tag=\"203@\">\n            <subfield code=\"0\">34565708X</subfield>\n          </datafield>\n          <datafield fulltag=\"208@/03\" occurrence=\"03\" tag=\"208@\">\n            <subfield code=\"a\">01-07-99</subfield>\n            <subfield code=\"b\">ki118</subfield>\n          </datafield>\n          <datafield fulltag=\"209A/03\" occurrence=\"03\" tag=\"209A\">\n            <subfield code=\"b\">7</subfield>\n            <subfield code=\"j\">45</subfield>\n            <subfield code=\"f\">7/118</subfield>\n            <subfield code=\"a\">29,345</subfield>\n            <subfield code=\"d\">i</subfield>\n            <subfield code=\"x\">00</subfield>\n          </datafield>\n          <datafield fulltag=\"209C/03\" occurrence=\"03\" tag=\"209C\">\n            <subfield code=\"a\">Lw 105</subfield>\n            <subfield code=\"x\">00</subfield>\n          </datafield>\n          <datafield fulltag=\"209G/03\" occurrence=\"03\" tag=\"209G\">\n            <subfield code=\"a\">7/118$00167010</subfield>\n          </datafield>\n        </item>\n      </metadata>\n      <rawrecord>001@ ƒ022,24,40,65,130\n001A ƒ02000:14-12-89\n001B ƒ01999:07-05-24ƒt14:19:09.000\n001D ƒ09999:99-99-99\n001U ƒ0utf8\n001X ƒ00\n002@ ƒ0Aau\n002C ƒaTextƒbtxt\n002D ƒaohne Hilfsmittel zu benutzenƒbn\n002E ƒaBandƒbnc\n003@ ƒ0022563733\n003O ƒaOCoLCƒ0163276689ƒv2012-12-31\n006G ƒ0480064075\n007G ƒiGBVƒ0022563733\n010@ ƒager\n011@ ƒa1959\n013D ƒ9105825778ƒ8Hochschulschrift ; ID: gnd/4113937-9\n019@ ƒaXA-DE\n021A ƒaDie @Rechtfertigungs- und Schuldausschließungsgründeƒdnach dem griechischen StGB und dem deutschen Entwurf eines neuen StGBƒhvon Dimitrios Wallindras\n028A ƒ91800488238ƒ8Wallindras, Dimitrios *1919-* ; ID: gnd/1256378046ƒkcgwrkƒv2024-03-09\n033D ƒpMünchenƒ4uvp\n034D ƒa83 S\n037C ƒaMünchen, Univ., Diss. : 1959\n045R ƒ91272127109ƒ8PH 6264: P$jRechtswissenschaft / PH$jStrafrecht, Strafverfahrensrecht, Kriminologie / PH 6000-PH 7305$jVergleichendes und ausländisches Straf- und Strafprozessrecht einschliesslich Strafvollzug / PH 6100-PH 7305$jAusländisches Recht - Einzelne Länder / PH 6230-PH 6285$jSüdeuropa / PH 6260-PH 6265$jGriechenland / Einzeldarstellungen zum materiellen Strafrecht\n045R ƒ91271783711ƒ8PH 3110: P$jRechtswissenschaft / PH$jStrafrecht, Strafverfahrensrecht, Kriminologie / PH 2500-PH 3980$jStrafrecht / PH 3100-PH 3110$jRechtswidrigkeit / Rechtfertigungsgründe\n045R ƒ91271677091ƒ8PH 3130: P$jRechtswissenschaft / PH$jStrafrecht, Strafverfahrensrecht, Kriminologie / PH 2500-PH 3980$jStrafrecht / PH 3120-PH 3130$jSchuld / Schuldfähigkeit, Unrechtsbewusstsein, Entschuldigungsgründe\n046X ƒaebƒc20240324ƒfDE-4165ƒz2\n\n201B/01 ƒ002-01-11ƒt03:02:49.000\n201U/01 ƒ0utf8\n202D/01 ƒ002-01-11ƒbr40sel2ƒa0007\n203@/01 ƒ0928067785\n208@/01 ƒa02-04-09ƒbxsn\n209A/01 ƒa8 U 59.6026ƒduƒx00\n\n201B/02 ƒ002-04-21ƒt04:06:26.000\n201U/02 ƒ0utf8\n202D/02 ƒ002-04-21ƒbrep_cbs1420ƒa1999\n203@/02 ƒ0264123026\n208@/02 ƒa13-11-97ƒbki037\n209A/02 ƒb7ƒj45ƒf7/037ƒaXXIX, 102ƒdiƒicƒx00\n209C/02 ƒa5650ƒx00\n209G/02 ƒa7/037$00313548\n237A/02 ƒaMünchner Dissertationen, Sammelband O –Z (1959)\n237A/02 ƒaPromotionsjahr 1959\n\n201B/03 ƒ013-07-22ƒt13:47:08.000\n201U/03 ƒ0utf8\n202D/03 ƒ013-07-22ƒb1913ƒa0007/0118\n203@/03 ƒ034565708X\n208@/03 ƒa01-07-99ƒbki118\n209A/03 ƒb7ƒj45ƒf7/118ƒa29,345ƒdiƒx00\n209C/03 ƒaLw 105ƒx00\n209G/03 ƒa7/118$00167010\n\n</rawrecord>\n    </record>\n  </collection>\n</original>\n",
+      "transformedRecord": {
+        "instance": {
+          "hrid": "022563733",
+          "notes": [
+            {
+              "note": "München, Univ., Diss. : 1959",
+              "instanceNoteTypeId": "b73cc9c2-c9fa-49aa-964f-5ae1aa754ecd"
+            }
+          ],
+          "title": "Die Rechtfertigungs- und Schuldausschließungsgründe : nach dem griechischen StGB und dem deutschen Entwurf eines neuen StGB / von Dimitrios Wallindras",
+          "series": null,
+          "source": "K10plus",
+          "languages": [
+            "ger"
+          ],
+          "indexTitle": "Rechtfertigungs und Schuldausschließungsgründe nach dem griechischen StGB und dem deutschen Entwurf eines neuen StGB von Dimitrios Wallindras",
+          "identifiers": [
+            {
+              "value": "022563733",
+              "identifierTypeId": "1d5cb40c-508f-451b-8952-87c92be4255a"
+            },
+            {
+              "value": "163276689",
+              "identifierTypeId": "439bfbae-75bc-4f74-9fc7-b2a2d47ce3ef"
+            },
+            {
+              "value": "480064075",
+              "identifierTypeId": "63fd8fa0-a939-4d1e-869c-6dcc24c9d507"
+            },
+            {
+              "value": "GBV: 022563733",
+              "identifierTypeId": "8e33c1be-e2c4-43ac-a975-8fb50f71137a"
+            }
+          ],
+          "publication": [],
+          "contributors": [
+            {
+              "name": "Wallindras, Dimitrios *1919-*",
+              "primary": "true",
+              "contributorNameTypeId": "2b94c631-fca9-4892-a730-03ee529ffe2a"
+            }
+          ],
+          "instanceTypeId": "6312d172-f0cf-40f6-b27d-9fa8feaf332f",
+          "electronicAccess": [],
+          "modeOfIssuanceId": "9d18a02f-5897-4c31-9106-c9abb5c7ae8b",
+          "alternativeTitles": [],
+          "instanceFormatIds": [
+            "8d511d33-5e85-4c5d-9bce-6e3c9cd0c324"
+          ],
+          "administrativeNotes": [
+            "Aau (0500: Bibliografische Gattung)",
+            "07.05.24, 14:19 (0210: Datum der letzten Änderung)"
+          ],
+          "physicalDescriptions": [
+            "83 S"
+          ],
+          "natureOfContentTermIds": [
+            "94f6d06a-61e0-47c1-bbcb-6186989e6040"
+          ]
+        },
+        "processing": {
+          "item": {
+            "status": {
+              "policy": "overwrite",
+              "ifStatusWas": [
+                {
+                  "name": "On order"
+                },
+                {
+                  "name": "Available"
+                },
+                {
+                  "name": "Intellectual item"
+                },
+                {
+                  "name": "Missing"
+                },
+                {
+                  "name": "Restricted"
+                },
+                {
+                  "name": "Unknown"
+                }
+              ]
+            },
+            "retainOmittedRecord": {
+              "ifField": "hrid",
+              "matchesPattern": "\\D+.*"
+            },
+            "retainExistingValues": {
+              "forOmittedProperties": "true"
+            }
+          },
+          "batchIndex": 14,
+          "holdingsRecord": {
+            "retainOmittedRecord": {
+              "ifField": "hrid",
+              "matchesPattern": "\\D+.*"
+            },
+            "retainExistingValues": {
+              "forOmittedProperties": "true"
+            }
+          }
+        },
+        "holdingsRecords": [
+          {
+            "hrid": "928067785",
+            "items": [
+              {
+                "hrid": "928067785",
+                "status": {
+                  "name": "Available"
+                },
+                "volume": null,
+                "chronology": null,
+                "copyNumber": null,
+                "enumeration": null,
+                "materialTypeId": "1a54b431-2e4f-452d-9cae-9cee66c9a892",
+                "accessionNumber": null,
+                "discoverySuppress": "false",
+                "descriptionOfPieces": null,
+                "permanentLoanTypeId": "a8cacfd0-b284-47ae-b5fa-235d768411e7"
+              }
+            ],
+            "notes": [],
+            "sourceId": "fa687f33-aab5-4119-b0ad-05afe8de4d92",
+            "callNumber": "8 U 59.6026",
+            "illPolicyId": null,
+            "holdingsTypeId": "0c422f92-0f4d-4d32-8cbe-390ebc33a3e5",
+            "callNumberPrefix": null,
+            "electronicAccess": [],
+            "discoverySuppress": "false",
+            "holdingsStatements": null,
+            "administrativeNotes": [
+              "02-01-11, 03:02 (7903: Datum und Uhrzeit der letzten Änderung)"
+            ],
+            "permanentLocationId": "78091d58-5057-4f5d-bbcc-ca07eafd8cc1"
+          },
+          {
+            "hrid": "264123026",
+            "items": [
+              {
+                "hrid": "264123026",
+                "status": {
+                  "name": "Available"
+                },
+                "volume": null,
+                "barcode": "7/037$00313548",
+                "chronology": null,
+                "copyNumber": null,
+                "enumeration": null,
+                "materialTypeId": "1a54b431-2e4f-452d-9cae-9cee66c9a892",
+                "accessionNumber": "5650",
+                "discoverySuppress": "false",
+                "descriptionOfPieces": null,
+                "permanentLoanTypeId": "3ef6d652-2e02-4561-8f7b-720cbccde87f"
+              }
+            ],
+            "notes": [
+              {
+                "note": "Münchner Dissertationen, Sammelband O –Z (1959)",
+                "staffOnly": "false",
+                "holdingsNoteTypeId": "84472b16-e66e-47d7-8ae9-f9720bc971f8"
+              },
+              {
+                "note": "Promotionsjahr 1959",
+                "staffOnly": "false",
+                "holdingsNoteTypeId": "84472b16-e66e-47d7-8ae9-f9720bc971f8"
+              }
+            ],
+            "sourceId": "fa687f33-aab5-4119-b0ad-05afe8de4d92",
+            "callNumber": "XXIX, 102",
+            "illPolicyId": null,
+            "holdingsTypeId": "0c422f92-0f4d-4d32-8cbe-390ebc33a3e5",
+            "callNumberPrefix": "7/037",
+            "electronicAccess": [],
+            "discoverySuppress": "false",
+            "holdingsStatements": null,
+            "administrativeNotes": [
+              "02-04-21, 04:06 (7903: Datum und Uhrzeit der letzten Änderung)"
+            ],
+            "permanentLocationId": "e418d287-5e5d-41a9-bf4a-a90d369417f5"
+          },
+          {
+            "hrid": "34565708X",
+            "items": [
+              {
+                "hrid": "34565708X",
+                "status": {
+                  "name": "Available"
+                },
+                "volume": null,
+                "barcode": "7/118$00167010",
+                "chronology": null,
+                "copyNumber": null,
+                "enumeration": null,
+                "materialTypeId": "1a54b431-2e4f-452d-9cae-9cee66c9a892",
+                "accessionNumber": "Lw 105",
+                "discoverySuppress": "false",
+                "descriptionOfPieces": null,
+                "permanentLoanTypeId": "3ef6d652-2e02-4561-8f7b-720cbccde87f"
+              }
+            ],
+            "notes": [],
+            "sourceId": "fa687f33-aab5-4119-b0ad-05afe8de4d92",
+            "callNumber": "29,345",
+            "illPolicyId": null,
+            "holdingsTypeId": "0c422f92-0f4d-4d32-8cbe-390ebc33a3e5",
+            "callNumberPrefix": "7/118",
+            "electronicAccess": [],
+            "discoverySuppress": "false",
+            "holdingsStatements": null,
+            "administrativeNotes": [
+              "13-07-22, 13:47 (7903: Datum und Uhrzeit der letzten Änderung)"
+            ],
+            "permanentLocationId": "82aabbe5-bbc0-4c1e-a8cd-a8c1f34729ce"
+          }
+        ]
+      }
+    },
+    {
+      "id": "0711a2d1-a54f-469f-a3ba-3e3110d40516",
+      "importJobId": "42ae09ec-8afd-41dc-b529-ac112a607271",
+      "recordNumber": "022563717",
+      "timeStamp": "2024-05-07T14:19:35",
+      "recordErrors": [
+        {
+          "error": {
+            "label": "Error encountered during upsert of Inventory record set",
+            "entity": {
+              "id": "7ccdea5c-3472-4e4d-8148-0ca063332c61",
+              "hrid": "842248587",
+              "status": {
+                "name": "Available"
+              },
+              "volume": null,
+              "chronology": null,
+              "copyNumber": null,
+              "enumeration": null,
+              "materialTypeId": "1a54b431-2e4f-452d-9cae-9cee66c9a892",
+              "accessionNumber": null,
+              "holdingsRecordId": "0daad7d5-45d8-4027-a41b-d7b59308cde4",
+              "discoverySuppress": "false",
+              "descriptionOfPieces": null,
+              "permanentLoanTypeId": "a8cacfd0-b284-47ae-b5fa-235d768411e7"
+            },
+            "message": {
+              "errors": [
+                {
+                  "code": "-1",
+                  "type": "1",
+                  "message": "lower(jsonb ->> 'barcode'::text) value already exists in table item: 7/037$00323926",
+                  "parameters": [
+                    {
+                      "key": "lower(jsonb ->> 'barcode'::text)",
+                      "value": "7/037$00323926"
+                    }
+                  ]
+                }
+              ]
+            },
+            "transaction": "",
+            "typeOfError": {
+              "errors": [
+                {
+                  "code": "-1",
+                  "type": "1",
+                  "message": "lower(jsonb ->> 'barcode'::text) value already exists in table item: 7/037$00323926",
+                  "parameters": [
+                    {
+                      "key": "lower(jsonb ->> 'barcode'::text)",
+                      "value": "7/037$00323926"
+                    }
+                  ]
+                }
+              ]
+            },
+            "typeOfRecord": "ITEM"
+          }
+        }
+      ],
+      "originalRecord": "<?xml version=\"1.0\" encoding=\"UTF-8\"?><original>\n  <collection count=\"47\">\n    <record>\n      <status>upsert</status>\n      <hrid>022563717</hrid>\n      <metadata>\n        <datafield fulltag=\"001@\" tag=\"001@\">\n          <subfield code=\"0\">22,24,40,130</subfield>\n        </datafield>\n        <datafield fulltag=\"001A\" tag=\"001A\">\n          <subfield code=\"0\">2000:14-12-89</subfield>\n        </datafield>\n        <datafield fulltag=\"001B\" tag=\"001B\">\n          <subfield code=\"0\">1999:07-05-24</subfield>\n          <subfield code=\"t\">14:19:09.000</subfield>\n        </datafield>\n        <datafield fulltag=\"001D\" tag=\"001D\">\n          <subfield code=\"0\">0008:22-03-00</subfield>\n        </datafield>\n        <datafield fulltag=\"001U\" tag=\"001U\">\n          <subfield code=\"0\">utf8</subfield>\n        </datafield>\n        <datafield fulltag=\"001X\" tag=\"001X\">\n          <subfield code=\"0\">0</subfield>\n        </datafield>\n        <datafield fulltag=\"002@\" tag=\"002@\">\n          <subfield code=\"0\">Aau</subfield>\n        </datafield>\n        <datafield fulltag=\"002C\" tag=\"002C\">\n          <subfield code=\"a\">Text</subfield>\n          <subfield code=\"b\">txt</subfield>\n        </datafield>\n        <datafield fulltag=\"002D\" tag=\"002D\">\n          <subfield code=\"a\">ohne Hilfsmittel zu benutzen</subfield>\n          <subfield code=\"b\">n</subfield>\n        </datafield>\n        <datafield fulltag=\"002E\" tag=\"002E\">\n          <subfield code=\"a\">Band</subfield>\n          <subfield code=\"b\">nc</subfield>\n        </datafield>\n        <datafield fulltag=\"003@\" tag=\"003@\">\n          <subfield code=\"0\">022563717</subfield>\n        </datafield>\n        <datafield fulltag=\"003O\" tag=\"003O\">\n          <subfield code=\"a\">OCoLC</subfield>\n          <subfield code=\"0\">183919533</subfield>\n          <subfield code=\"v\">2012-12-31</subfield>\n        </datafield>\n        <datafield fulltag=\"006G\" tag=\"006G\">\n          <subfield code=\"0\">481082808</subfield>\n        </datafield>\n        <datafield fulltag=\"007G\" tag=\"007G\">\n          <subfield code=\"i\">GBV</subfield>\n          <subfield code=\"0\">022563717</subfield>\n        </datafield>\n        <datafield fulltag=\"007Y\" tag=\"007Y\">\n          <subfield code=\"i\">Hochschulschriftennummer</subfield>\n          <subfield code=\"0\">U 61.7062</subfield>\n        </datafield>\n        <datafield fulltag=\"010@\" tag=\"010@\">\n          <subfield code=\"a\">ger</subfield>\n        </datafield>\n        <datafield fulltag=\"011@\" tag=\"011@\">\n          <subfield code=\"a\">1961</subfield>\n        </datafield>\n        <datafield fulltag=\"013D\" tag=\"013D\">\n          <subfield code=\"9\">105825778</subfield>\n          <subfield code=\"8\">Hochschulschrift ; ID: gnd/4113937-9</subfield>\n        </datafield>\n        <datafield fulltag=\"019@\" tag=\"019@\">\n          <subfield code=\"a\">XA-DE</subfield>\n        </datafield>\n        <datafield fulltag=\"021A\" tag=\"021A\">\n          <subfield code=\"a\">Das @Verhältnis von Amtsunterschlagung zu einfacher Unterschlagung</subfield>\n          <subfield code=\"h\">vorgelegt von Werner Pusinelli</subfield>\n        </datafield>\n        <datafield fulltag=\"028A\" tag=\"028A\">\n          <subfield code=\"9\">697444317</subfield>\n          <subfield code=\"8\">Pusinelli, Werner *1935-* ; ID: gnd/172507294</subfield>\n          <subfield code=\"k\">cgwrk</subfield>\n          <subfield code=\"v\">2024-03-09</subfield>\n        </datafield>\n        <datafield fulltag=\"033D\" tag=\"033D\">\n          <subfield code=\"p\">München</subfield>\n          <subfield code=\"4\">uvp</subfield>\n        </datafield>\n        <datafield fulltag=\"034D\" tag=\"034D\">\n          <subfield code=\"a\">59 S</subfield>\n        </datafield>\n        <datafield fulltag=\"037C\" tag=\"037C\">\n          <subfield code=\"a\">München, Univ., Diss., 1961</subfield>\n        </datafield>\n        <datafield fulltag=\"046X\" tag=\"046X\">\n          <subfield code=\"a\">eb</subfield>\n          <subfield code=\"c\">20240324</subfield>\n          <subfield code=\"f\">DE-4165</subfield>\n          <subfield code=\"z\">2</subfield>\n        </datafield>\n        <item epn=\"842248587\">\n          <datafield fulltag=\"201B/01\" occurrence=\"01\" tag=\"201B\">\n            <subfield code=\"0\">01-01-11</subfield>\n            <subfield code=\"t\">19:24:46.000</subfield>\n          </datafield>\n          <datafield fulltag=\"201U/01\" occurrence=\"01\" tag=\"201U\">\n            <subfield code=\"0\">utf8</subfield>\n          </datafield>\n          <datafield fulltag=\"202D/01\" occurrence=\"01\" tag=\"202D\">\n            <subfield code=\"0\">01-01-11</subfield>\n            <subfield code=\"b\">r40sel2</subfield>\n            <subfield code=\"a\">0007</subfield>\n          </datafield>\n          <datafield fulltag=\"203@/01\" occurrence=\"01\" tag=\"203@\">\n            <subfield code=\"0\">842248587</subfield>\n          </datafield>\n          <datafield fulltag=\"208@/01\" occurrence=\"01\" tag=\"208@\">\n            <subfield code=\"a\">30-10-07</subfield>\n            <subfield code=\"b\">xsn</subfield>\n          </datafield>\n          <datafield fulltag=\"209A/01\" occurrence=\"01\" tag=\"209A\">\n            <subfield code=\"a\">8 U 61.7062</subfield>\n            <subfield code=\"d\">u</subfield>\n            <subfield code=\"x\">00</subfield>\n          </datafield>\n        </item>\n        <item epn=\"264125126\">\n          <datafield fulltag=\"201B/02\" occurrence=\"02\" tag=\"201B\">\n            <subfield code=\"0\">02-04-21</subfield>\n            <subfield code=\"t\">04:06:26.000</subfield>\n          </datafield>\n          <datafield fulltag=\"201U/02\" occurrence=\"02\" tag=\"201U\">\n            <subfield code=\"0\">utf8</subfield>\n          </datafield>\n          <datafield fulltag=\"202D/02\" occurrence=\"02\" tag=\"202D\">\n            <subfield code=\"0\">02-04-21</subfield>\n            <subfield code=\"b\">rep_cbs1420</subfield>\n            <subfield code=\"a\">1999</subfield>\n          </datafield>\n          <datafield fulltag=\"203@/02\" occurrence=\"02\" tag=\"203@\">\n            <subfield code=\"0\">264125126</subfield>\n          </datafield>\n          <datafield fulltag=\"208@/02\" occurrence=\"02\" tag=\"208@\">\n            <subfield code=\"a\">13-11-97</subfield>\n            <subfield code=\"b\">ki037</subfield>\n          </datafield>\n          <datafield fulltag=\"209A/02\" occurrence=\"02\" tag=\"209A\">\n            <subfield code=\"b\">7</subfield>\n            <subfield code=\"j\">45</subfield>\n            <subfield code=\"f\">7/037</subfield>\n            <subfield code=\"a\">XXIX, 102</subfield>\n            <subfield code=\"d\">i</subfield>\n            <subfield code=\"i\">c</subfield>\n            <subfield code=\"x\">00</subfield>\n          </datafield>\n          <datafield fulltag=\"209C/02\" occurrence=\"02\" tag=\"209C\">\n            <subfield code=\"a\">5699</subfield>\n            <subfield code=\"x\">00</subfield>\n          </datafield>\n          <datafield fulltag=\"209G/02\" occurrence=\"02\" tag=\"209G\">\n            <subfield code=\"a\">7/037$00323926</subfield>\n          </datafield>\n          <datafield fulltag=\"237A/02\" occurrence=\"02\" tag=\"237A\">\n            <subfield code=\"a\">Münchner Dissertationen, Sammelband J - P (1961)</subfield>\n          </datafield>\n          <datafield fulltag=\"237A/02\" occurrence=\"02\" tag=\"237A\">\n            <subfield code=\"a\">Promotionsjahr 1961</subfield>\n          </datafield>\n        </item>\n      </metadata>\n      <rawrecord>001@ ƒ022,24,40,130\n001A ƒ02000:14-12-89\n001B ƒ01999:07-05-24ƒt14:19:09.000\n001D ƒ00008:22-03-00\n001U ƒ0utf8\n001X ƒ00\n002@ ƒ0Aau\n002C ƒaTextƒbtxt\n002D ƒaohne Hilfsmittel zu benutzenƒbn\n002E ƒaBandƒbnc\n003@ ƒ0022563717\n003O ƒaOCoLCƒ0183919533ƒv2012-12-31\n006G ƒ0481082808\n007G ƒiGBVƒ0022563717\n007Y ƒiHochschulschriftennummerƒ0U 61.7062\n010@ ƒager\n011@ ƒa1961\n013D ƒ9105825778ƒ8Hochschulschrift ; ID: gnd/4113937-9\n019@ ƒaXA-DE\n021A ƒaDas @Verhältnis von Amtsunterschlagung zu einfacher Unterschlagungƒhvorgelegt von Werner Pusinelli\n028A ƒ9697444317ƒ8Pusinelli, Werner *1935-* ; ID: gnd/172507294ƒkcgwrkƒv2024-03-09\n033D ƒpMünchenƒ4uvp\n034D ƒa59 S\n037C ƒaMünchen, Univ., Diss., 1961\n046X ƒaebƒc20240324ƒfDE-4165ƒz2\n\n201B/01 ƒ001-01-11ƒt19:24:46.000\n201U/01 ƒ0utf8\n202D/01 ƒ001-01-11ƒbr40sel2ƒa0007\n203@/01 ƒ0842248587\n208@/01 ƒa30-10-07ƒbxsn\n209A/01 ƒa8 U 61.7062ƒduƒx00\n\n201B/02 ƒ002-04-21ƒt04:06:26.000\n201U/02 ƒ0utf8\n202D/02 ƒ002-04-21ƒbrep_cbs1420ƒa1999\n203@/02 ƒ0264125126\n208@/02 ƒa13-11-97ƒbki037\n209A/02 ƒb7ƒj45ƒf7/037ƒaXXIX, 102ƒdiƒicƒx00\n209C/02 ƒa5699ƒx00\n209G/02 ƒa7/037$00323926\n237A/02 ƒaMünchner Dissertationen, Sammelband J - P (1961)\n237A/02 ƒaPromotionsjahr 1961\n\n</rawrecord>\n    </record>\n  </collection>\n</original>\n",
+      "transformedRecord": {
+        "instance": {
+          "hrid": "022563717",
+          "notes": [
+            {
+              "note": "München, Univ., Diss., 1961",
+              "instanceNoteTypeId": "b73cc9c2-c9fa-49aa-964f-5ae1aa754ecd"
+            }
+          ],
+          "title": "Das Verhältnis von Amtsunterschlagung zu einfacher Unterschlagung / vorgelegt von Werner Pusinelli",
+          "series": null,
+          "source": "K10plus",
+          "languages": [
+            "ger"
+          ],
+          "indexTitle": "Verhältnis von Amtsunterschlagung zu einfacher Unterschlagung vorgelegt von Werner Pusinelli",
+          "identifiers": [
+            {
+              "value": "022563717",
+              "identifierTypeId": "1d5cb40c-508f-451b-8952-87c92be4255a"
+            },
+            {
+              "value": "183919533",
+              "identifierTypeId": "439bfbae-75bc-4f74-9fc7-b2a2d47ce3ef"
+            },
+            {
+              "value": "481082808",
+              "identifierTypeId": "63fd8fa0-a939-4d1e-869c-6dcc24c9d507"
+            },
+            {
+              "value": "GBV: 022563717",
+              "identifierTypeId": "8e33c1be-e2c4-43ac-a975-8fb50f71137a"
+            }
+          ],
+          "publication": [],
+          "contributors": [
+            {
+              "name": "Pusinelli, Werner *1935-*",
+              "primary": "true",
+              "contributorNameTypeId": "2b94c631-fca9-4892-a730-03ee529ffe2a"
+            }
+          ],
+          "instanceTypeId": "6312d172-f0cf-40f6-b27d-9fa8feaf332f",
+          "electronicAccess": [],
+          "modeOfIssuanceId": "9d18a02f-5897-4c31-9106-c9abb5c7ae8b",
+          "alternativeTitles": [],
+          "instanceFormatIds": [
+            "8d511d33-5e85-4c5d-9bce-6e3c9cd0c324"
+          ],
+          "administrativeNotes": [
+            "Aau (0500: Bibliografische Gattung)",
+            "07.05.24, 14:19 (0210: Datum der letzten Änderung)"
+          ],
+          "physicalDescriptions": [
+            "59 S"
+          ],
+          "natureOfContentTermIds": [
+            "94f6d06a-61e0-47c1-bbcb-6186989e6040"
+          ]
+        },
+        "processing": {
+          "item": {
+            "status": {
+              "policy": "overwrite",
+              "ifStatusWas": [
+                {
+                  "name": "On order"
+                },
+                {
+                  "name": "Available"
+                },
+                {
+                  "name": "Intellectual item"
+                },
+                {
+                  "name": "Missing"
+                },
+                {
+                  "name": "Restricted"
+                },
+                {
+                  "name": "Unknown"
+                }
+              ]
+            },
+            "retainOmittedRecord": {
+              "ifField": "hrid",
+              "matchesPattern": "\\D+.*"
+            },
+            "retainExistingValues": {
+              "forOmittedProperties": "true"
+            }
+          },
+          "batchIndex": 23,
+          "holdingsRecord": {
+            "retainOmittedRecord": {
+              "ifField": "hrid",
+              "matchesPattern": "\\D+.*"
+            },
+            "retainExistingValues": {
+              "forOmittedProperties": "true"
+            }
+          }
+        },
+        "holdingsRecords": [
+          {
+            "hrid": "842248587",
+            "items": [
+              {
+                "hrid": "842248587",
+                "status": {
+                  "name": "Available"
+                },
+                "volume": null,
+                "chronology": null,
+                "copyNumber": null,
+                "enumeration": null,
+                "materialTypeId": "1a54b431-2e4f-452d-9cae-9cee66c9a892",
+                "accessionNumber": null,
+                "discoverySuppress": "false",
+                "descriptionOfPieces": null,
+                "permanentLoanTypeId": "a8cacfd0-b284-47ae-b5fa-235d768411e7"
+              }
+            ],
+            "notes": [],
+            "sourceId": "fa687f33-aab5-4119-b0ad-05afe8de4d92",
+            "callNumber": "8 U 61.7062",
+            "illPolicyId": null,
+            "holdingsTypeId": "0c422f92-0f4d-4d32-8cbe-390ebc33a3e5",
+            "callNumberPrefix": null,
+            "electronicAccess": [],
+            "discoverySuppress": "false",
+            "holdingsStatements": null,
+            "administrativeNotes": [
+              "01-01-11, 19:24 (7903: Datum und Uhrzeit der letzten Änderung)"
+            ],
+            "permanentLocationId": "78091d58-5057-4f5d-bbcc-ca07eafd8cc1"
+          },
+          {
+            "hrid": "264125126",
+            "items": [
+              {
+                "hrid": "264125126",
+                "status": {
+                  "name": "Available"
+                },
+                "volume": null,
+                "barcode": "7/037$00323926",
+                "chronology": null,
+                "copyNumber": null,
+                "enumeration": null,
+                "materialTypeId": "1a54b431-2e4f-452d-9cae-9cee66c9a892",
+                "accessionNumber": "5699",
+                "discoverySuppress": "false",
+                "descriptionOfPieces": null,
+                "permanentLoanTypeId": "3ef6d652-2e02-4561-8f7b-720cbccde87f"
+              }
+            ],
+            "notes": [
+              {
+                "note": "Münchner Dissertationen, Sammelband J - P (1961)",
+                "staffOnly": "false",
+                "holdingsNoteTypeId": "84472b16-e66e-47d7-8ae9-f9720bc971f8"
+              },
+              {
+                "note": "Promotionsjahr 1961",
+                "staffOnly": "false",
+                "holdingsNoteTypeId": "84472b16-e66e-47d7-8ae9-f9720bc971f8"
+              }
+            ],
+            "sourceId": "fa687f33-aab5-4119-b0ad-05afe8de4d92",
+            "callNumber": "XXIX, 102",
+            "illPolicyId": null,
+            "holdingsTypeId": "0c422f92-0f4d-4d32-8cbe-390ebc33a3e5",
+            "callNumberPrefix": "7/037",
+            "electronicAccess": [],
+            "discoverySuppress": "false",
+            "holdingsStatements": null,
+            "administrativeNotes": [
+              "02-04-21, 04:06 (7903: Datum und Uhrzeit der letzten Änderung)"
+            ],
+            "permanentLocationId": "e418d287-5e5d-41a9-bf4a-a90d369417f5"
+          }
+        ]
+      }
+    },
+    {
+      "id": "92022e06-1cb2-4b8f-9c48-dc867baa9644",
+      "importJobId": "42ae09ec-8afd-41dc-b529-ac112a607271",
+      "recordNumber": "022566759",
+      "timeStamp": "2024-05-07T14:19:35",
+      "recordErrors": [
+        {
+          "error": {
+            "label": "Error encountered during upsert of Inventory record set",
+            "entity": {
+              "id": "46301cb1-b7b7-4183-b166-b18f2850e759",
+              "hrid": "862772354",
+              "status": {
+                "name": "Available"
+              },
+              "volume": null,
+              "chronology": null,
+              "copyNumber": null,
+              "enumeration": null,
+              "materialTypeId": "1a54b431-2e4f-452d-9cae-9cee66c9a892",
+              "accessionNumber": null,
+              "holdingsRecordId": "42b7f123-450d-458d-9bd4-bfaa917d16e9",
+              "discoverySuppress": "false",
+              "descriptionOfPieces": null,
+              "permanentLoanTypeId": "a8cacfd0-b284-47ae-b5fa-235d768411e7"
+            },
+            "message": {
+              "errors": [
+                {
+                  "code": "-1",
+                  "type": "1",
+                  "message": "lower(jsonb ->> 'barcode'::text) value already exists in table item: 7/037$00315389",
+                  "parameters": [
+                    {
+                      "key": "lower(jsonb ->> 'barcode'::text)",
+                      "value": "7/037$00315389"
+                    }
+                  ]
+                }
+              ]
+            },
+            "transaction": "",
+            "typeOfError": {
+              "errors": [
+                {
+                  "code": "-1",
+                  "type": "1",
+                  "message": "lower(jsonb ->> 'barcode'::text) value already exists in table item: 7/037$00315389",
+                  "parameters": [
+                    {
+                      "key": "lower(jsonb ->> 'barcode'::text)",
+                      "value": "7/037$00315389"
+                    }
+                  ]
+                }
+              ]
+            },
+            "typeOfRecord": "ITEM"
+          }
+        }
+      ],
+      "originalRecord": "<?xml version=\"1.0\" encoding=\"UTF-8\"?><original>\n  <collection count=\"33\">\n    <record>\n      <status>upsert</status>\n      <hrid>022566759</hrid>\n      <metadata>\n        <datafield fulltag=\"001@\" tag=\"001@\">\n          <subfield code=\"0\">22,24,40,130,902</subfield>\n        </datafield>\n        <datafield fulltag=\"001A\" tag=\"001A\">\n          <subfield code=\"0\">2000:21-12-89</subfield>\n        </datafield>\n        <datafield fulltag=\"001B\" tag=\"001B\">\n          <subfield code=\"0\">1999:07-05-24</subfield>\n          <subfield code=\"t\">14:19:13.000</subfield>\n        </datafield>\n        <datafield fulltag=\"001D\" tag=\"001D\">\n          <subfield code=\"0\">9999:99-99-99</subfield>\n        </datafield>\n        <datafield fulltag=\"001U\" tag=\"001U\">\n          <subfield code=\"0\">utf8</subfield>\n        </datafield>\n        <datafield fulltag=\"001X\" tag=\"001X\">\n          <subfield code=\"0\">0</subfield>\n        </datafield>\n        <datafield fulltag=\"002@\" tag=\"002@\">\n          <subfield code=\"0\">Aau</subfield>\n        </datafield>\n        <datafield fulltag=\"002C\" tag=\"002C\">\n          <subfield code=\"a\">Text</subfield>\n          <subfield code=\"b\">txt</subfield>\n        </datafield>\n        <datafield fulltag=\"002D\" tag=\"002D\">\n          <subfield code=\"a\">ohne Hilfsmittel zu benutzen</subfield>\n          <subfield code=\"b\">n</subfield>\n        </datafield>\n        <datafield fulltag=\"002E\" tag=\"002E\">\n          <subfield code=\"a\">Band</subfield>\n          <subfield code=\"b\">nc</subfield>\n        </datafield>\n        <datafield fulltag=\"003@\" tag=\"003@\">\n          <subfield code=\"0\">022566759</subfield>\n        </datafield>\n        <datafield fulltag=\"003O\" tag=\"003O\">\n          <subfield code=\"a\">OCoLC</subfield>\n          <subfield code=\"0\">256056668</subfield>\n          <subfield code=\"v\">2012-12-31</subfield>\n        </datafield>\n        <datafield fulltag=\"006G\" tag=\"006G\">\n          <subfield code=\"0\">481082867</subfield>\n        </datafield>\n        <datafield fulltag=\"006Y\" tag=\"006Y\">\n          <subfield code=\"0\">0008149540</subfield>\n        </datafield>\n        <datafield fulltag=\"007G\" tag=\"007G\">\n          <subfield code=\"i\">GBV</subfield>\n          <subfield code=\"0\">022566759</subfield>\n        </datafield>\n        <datafield fulltag=\"010@\" tag=\"010@\">\n          <subfield code=\"a\">ger</subfield>\n        </datafield>\n        <datafield fulltag=\"011@\" tag=\"011@\">\n          <subfield code=\"a\">1960</subfield>\n        </datafield>\n        <datafield fulltag=\"013D\" tag=\"013D\">\n          <subfield code=\"9\">105825778</subfield>\n          <subfield code=\"8\">Hochschulschrift ; ID: gnd/4113937-9</subfield>\n        </datafield>\n        <datafield fulltag=\"019@\" tag=\"019@\">\n          <subfield code=\"a\">XA-DE</subfield>\n        </datafield>\n        <datafield fulltag=\"021A\" tag=\"021A\">\n          <subfield code=\"a\">Das @prozessuale Verhalten des Angeklagten als Strafzumessungsgrund</subfield>\n          <subfield code=\"h\">vorgelegt von Freya Schleutker</subfield>\n        </datafield>\n        <datafield fulltag=\"028A\" tag=\"028A\">\n          <subfield code=\"9\">697338827</subfield>\n          <subfield code=\"8\">Schleutker, Freya *1933-* ; ID: gnd/172396972</subfield>\n          <subfield code=\"k\">cgwrk</subfield>\n          <subfield code=\"v\">2024-03-09</subfield>\n        </datafield>\n        <datafield fulltag=\"033D\" tag=\"033D\">\n          <subfield code=\"p\">München</subfield>\n          <subfield code=\"4\">uvp</subfield>\n        </datafield>\n        <datafield fulltag=\"034D\" tag=\"034D\">\n          <subfield code=\"a\">XXXI, 167 S</subfield>\n        </datafield>\n        <datafield fulltag=\"037C\" tag=\"037C\">\n          <subfield code=\"a\">München, Univ., Diss., 1961</subfield>\n        </datafield>\n        <datafield fulltag=\"045A\" tag=\"045A\">\n          <subfield code=\"a\">MLCS 85/03668 (K)</subfield>\n        </datafield>\n        <datafield fulltag=\"046X\" tag=\"046X\">\n          <subfield code=\"a\">eb</subfield>\n          <subfield code=\"c\">20240324</subfield>\n          <subfield code=\"f\">DE-4165</subfield>\n          <subfield code=\"z\">2</subfield>\n        </datafield>\n        <item epn=\"862772354\">\n          <datafield fulltag=\"201B/01\" occurrence=\"01\" tag=\"201B\">\n            <subfield code=\"0\">02-01-11</subfield>\n            <subfield code=\"t\">02:14:02.000</subfield>\n          </datafield>\n          <datafield fulltag=\"201U/01\" occurrence=\"01\" tag=\"201U\">\n            <subfield code=\"0\">utf8</subfield>\n          </datafield>\n          <datafield fulltag=\"202D/01\" occurrence=\"01\" tag=\"202D\">\n            <subfield code=\"0\">02-01-11</subfield>\n            <subfield code=\"b\">r40sel2</subfield>\n            <subfield code=\"a\">0007</subfield>\n          </datafield>\n          <datafield fulltag=\"203@/01\" occurrence=\"01\" tag=\"203@\">\n            <subfield code=\"0\">862772354</subfield>\n          </datafield>\n          <datafield fulltag=\"208@/01\" occurrence=\"01\" tag=\"208@\">\n            <subfield code=\"a\">04-03-08</subfield>\n            <subfield code=\"b\">xsn</subfield>\n          </datafield>\n          <datafield fulltag=\"209A/01\" occurrence=\"01\" tag=\"209A\">\n            <subfield code=\"a\">8 U 61.7068</subfield>\n            <subfield code=\"d\">u</subfield>\n            <subfield code=\"x\">00</subfield>\n          </datafield>\n        </item>\n        <item epn=\"264125231\">\n          <datafield fulltag=\"201B/02\" occurrence=\"02\" tag=\"201B\">\n            <subfield code=\"0\">02-04-21</subfield>\n            <subfield code=\"t\">04:06:37.000</subfield>\n          </datafield>\n          <datafield fulltag=\"201U/02\" occurrence=\"02\" tag=\"201U\">\n            <subfield code=\"0\">utf8</subfield>\n          </datafield>\n          <datafield fulltag=\"202D/02\" occurrence=\"02\" tag=\"202D\">\n            <subfield code=\"0\">02-04-21</subfield>\n            <subfield code=\"b\">rep_cbs1420</subfield>\n            <subfield code=\"a\">1999</subfield>\n          </datafield>\n          <datafield fulltag=\"203@/02\" occurrence=\"02\" tag=\"203@\">\n            <subfield code=\"0\">264125231</subfield>\n          </datafield>\n          <datafield fulltag=\"208@/02\" occurrence=\"02\" tag=\"208@\">\n            <subfield code=\"a\">13-11-97</subfield>\n            <subfield code=\"b\">ki037</subfield>\n          </datafield>\n          <datafield fulltag=\"209A/02\" occurrence=\"02\" tag=\"209A\">\n            <subfield code=\"b\">7</subfield>\n            <subfield code=\"j\">45</subfield>\n            <subfield code=\"f\">7/037</subfield>\n            <subfield code=\"a\">XXIX, 102</subfield>\n            <subfield code=\"d\">i</subfield>\n            <subfield code=\"i\">c</subfield>\n            <subfield code=\"x\">00</subfield>\n          </datafield>\n          <datafield fulltag=\"209C/02\" occurrence=\"02\" tag=\"209C\">\n            <subfield code=\"a\">5701</subfield>\n            <subfield code=\"x\">00</subfield>\n          </datafield>\n          <datafield fulltag=\"209G/02\" occurrence=\"02\" tag=\"209G\">\n            <subfield code=\"a\">7/037$00315389</subfield>\n          </datafield>\n          <datafield fulltag=\"237A/02\" occurrence=\"02\" tag=\"237A\">\n            <subfield code=\"a\">Münchner Dissertationen, Sammelband Q - Z (1961)</subfield>\n          </datafield>\n          <datafield fulltag=\"237A/02\" occurrence=\"02\" tag=\"237A\">\n            <subfield code=\"a\">Promotionsjahr 1961</subfield>\n          </datafield>\n        </item>\n      </metadata>\n      <rawrecord>001@ ƒ022,24,40,130,902\n001A ƒ02000:21-12-89\n001B ƒ01999:07-05-24ƒt14:19:13.000\n001D ƒ09999:99-99-99\n001U ƒ0utf8\n001X ƒ00\n002@ ƒ0Aau\n002C ƒaTextƒbtxt\n002D ƒaohne Hilfsmittel zu benutzenƒbn\n002E ƒaBandƒbnc\n003@ ƒ0022566759\n003O ƒaOCoLCƒ0256056668ƒv2012-12-31\n006G ƒ0481082867\n006Y ƒ00008149540\n007G ƒiGBVƒ0022566759\n010@ ƒager\n011@ ƒa1960\n013D ƒ9105825778ƒ8Hochschulschrift ; ID: gnd/4113937-9\n019@ ƒaXA-DE\n021A ƒaDas @prozessuale Verhalten des Angeklagten als Strafzumessungsgrundƒhvorgelegt von Freya Schleutker\n028A ƒ9697338827ƒ8Schleutker, Freya *1933-* ; ID: gnd/172396972ƒkcgwrkƒv2024-03-09\n033D ƒpMünchenƒ4uvp\n034D ƒaXXXI, 167 S\n037C ƒaMünchen, Univ., Diss., 1961\n045A ƒaMLCS 85/03668 (K)\n046X ƒaebƒc20240324ƒfDE-4165ƒz2\n\n201B/01 ƒ002-01-11ƒt02:14:02.000\n201U/01 ƒ0utf8\n202D/01 ƒ002-01-11ƒbr40sel2ƒa0007\n203@/01 ƒ0862772354\n208@/01 ƒa04-03-08ƒbxsn\n209A/01 ƒa8 U 61.7068ƒduƒx00\n\n201B/02 ƒ002-04-21ƒt04:06:37.000\n201U/02 ƒ0utf8\n202D/02 ƒ002-04-21ƒbrep_cbs1420ƒa1999\n203@/02 ƒ0264125231\n208@/02 ƒa13-11-97ƒbki037\n209A/02 ƒb7ƒj45ƒf7/037ƒaXXIX, 102ƒdiƒicƒx00\n209C/02 ƒa5701ƒx00\n209G/02 ƒa7/037$00315389\n237A/02 ƒaMünchner Dissertationen, Sammelband Q - Z (1961)\n237A/02 ƒaPromotionsjahr 1961\n\n</rawrecord>\n    </record>\n  </collection>\n</original>\n",
+      "transformedRecord": {
+        "instance": {
+          "hrid": "022566759",
+          "notes": [
+            {
+              "note": "München, Univ., Diss., 1961",
+              "instanceNoteTypeId": "b73cc9c2-c9fa-49aa-964f-5ae1aa754ecd"
+            }
+          ],
+          "title": "Das prozessuale Verhalten des Angeklagten als Strafzumessungsgrund / vorgelegt von Freya Schleutker",
+          "series": null,
+          "source": "K10plus",
+          "languages": [
+            "ger"
+          ],
+          "indexTitle": "prozessuale Verhalten des Angeklagten als Strafzumessungsgrund vorgelegt von Freya Schleutker",
+          "identifiers": [
+            {
+              "value": "022566759",
+              "identifierTypeId": "1d5cb40c-508f-451b-8952-87c92be4255a"
+            },
+            {
+              "value": "256056668",
+              "identifierTypeId": "439bfbae-75bc-4f74-9fc7-b2a2d47ce3ef"
+            },
+            {
+              "value": "481082867",
+              "identifierTypeId": "63fd8fa0-a939-4d1e-869c-6dcc24c9d507"
+            },
+            {
+              "value": "GBV: 022566759",
+              "identifierTypeId": "8e33c1be-e2c4-43ac-a975-8fb50f71137a"
+            }
+          ],
+          "publication": [],
+          "contributors": [
+            {
+              "name": "Schleutker, Freya *1933-*",
+              "primary": "true",
+              "contributorNameTypeId": "2b94c631-fca9-4892-a730-03ee529ffe2a"
+            }
+          ],
+          "instanceTypeId": "6312d172-f0cf-40f6-b27d-9fa8feaf332f",
+          "electronicAccess": [],
+          "modeOfIssuanceId": "9d18a02f-5897-4c31-9106-c9abb5c7ae8b",
+          "alternativeTitles": [],
+          "instanceFormatIds": [
+            "8d511d33-5e85-4c5d-9bce-6e3c9cd0c324"
+          ],
+          "administrativeNotes": [
+            "Aau (0500: Bibliografische Gattung)",
+            "07.05.24, 14:19 (0210: Datum der letzten Änderung)"
+          ],
+          "physicalDescriptions": [
+            "XXXI, 167 S"
+          ],
+          "natureOfContentTermIds": [
+            "94f6d06a-61e0-47c1-bbcb-6186989e6040"
+          ]
+        },
+        "processing": {
+          "item": {
+            "status": {
+              "policy": "overwrite",
+              "ifStatusWas": [
+                {
+                  "name": "On order"
+                },
+                {
+                  "name": "Available"
+                },
+                {
+                  "name": "Intellectual item"
+                },
+                {
+                  "name": "Missing"
+                },
+                {
+                  "name": "Restricted"
+                },
+                {
+                  "name": "Unknown"
+                }
+              ]
+            },
+            "retainOmittedRecord": {
+              "ifField": "hrid",
+              "matchesPattern": "\\D+.*"
+            },
+            "retainExistingValues": {
+              "forOmittedProperties": "true"
+            }
+          },
+          "batchIndex": 37,
+          "holdingsRecord": {
+            "retainOmittedRecord": {
+              "ifField": "hrid",
+              "matchesPattern": "\\D+.*"
+            },
+            "retainExistingValues": {
+              "forOmittedProperties": "true"
+            }
+          }
+        },
+        "holdingsRecords": [
+          {
+            "hrid": "862772354",
+            "items": [
+              {
+                "hrid": "862772354",
+                "status": {
+                  "name": "Available"
+                },
+                "volume": null,
+                "chronology": null,
+                "copyNumber": null,
+                "enumeration": null,
+                "materialTypeId": "1a54b431-2e4f-452d-9cae-9cee66c9a892",
+                "accessionNumber": null,
+                "discoverySuppress": "false",
+                "descriptionOfPieces": null,
+                "permanentLoanTypeId": "a8cacfd0-b284-47ae-b5fa-235d768411e7"
+              }
+            ],
+            "notes": [],
+            "sourceId": "fa687f33-aab5-4119-b0ad-05afe8de4d92",
+            "callNumber": "8 U 61.7068",
+            "illPolicyId": null,
+            "holdingsTypeId": "0c422f92-0f4d-4d32-8cbe-390ebc33a3e5",
+            "callNumberPrefix": null,
+            "electronicAccess": [],
+            "discoverySuppress": "false",
+            "holdingsStatements": null,
+            "administrativeNotes": [
+              "02-01-11, 02:14 (7903: Datum und Uhrzeit der letzten Änderung)"
+            ],
+            "permanentLocationId": "78091d58-5057-4f5d-bbcc-ca07eafd8cc1"
+          },
+          {
+            "hrid": "264125231",
+            "items": [
+              {
+                "hrid": "264125231",
+                "status": {
+                  "name": "Available"
+                },
+                "volume": null,
+                "barcode": "7/037$00315389",
+                "chronology": null,
+                "copyNumber": null,
+                "enumeration": null,
+                "materialTypeId": "1a54b431-2e4f-452d-9cae-9cee66c9a892",
+                "accessionNumber": "5701",
+                "discoverySuppress": "false",
+                "descriptionOfPieces": null,
+                "permanentLoanTypeId": "3ef6d652-2e02-4561-8f7b-720cbccde87f"
+              }
+            ],
+            "notes": [
+              {
+                "note": "Münchner Dissertationen, Sammelband Q - Z (1961)",
+                "staffOnly": "false",
+                "holdingsNoteTypeId": "84472b16-e66e-47d7-8ae9-f9720bc971f8"
+              },
+              {
+                "note": "Promotionsjahr 1961",
+                "staffOnly": "false",
+                "holdingsNoteTypeId": "84472b16-e66e-47d7-8ae9-f9720bc971f8"
+              }
+            ],
+            "sourceId": "fa687f33-aab5-4119-b0ad-05afe8de4d92",
+            "callNumber": "XXIX, 102",
+            "illPolicyId": null,
+            "holdingsTypeId": "0c422f92-0f4d-4d32-8cbe-390ebc33a3e5",
+            "callNumberPrefix": "7/037",
+            "electronicAccess": [],
+            "discoverySuppress": "false",
+            "holdingsStatements": null,
+            "administrativeNotes": [
+              "02-04-21, 04:06 (7903: Datum und Uhrzeit der letzten Änderung)"
+            ],
+            "permanentLocationId": "e418d287-5e5d-41a9-bf4a-a90d369417f5"
+          }
+        ]
+      }
+    }],
+  "totalRecords" : 5
+}

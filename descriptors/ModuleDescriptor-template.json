@@ -489,6 +489,16 @@
         },
         {
           "methods": ["POST"],
+          "pathPattern": "/inventory-import/channels/{id}/listen",
+          "permissionsRequired": ["inventory-update.import.channel.listen.post"]
+        },
+        {
+          "methods": ["POST"],
+          "pathPattern": "/inventory-import/channels/{id}/no-listen",
+          "permissionsRequired": ["inventory-update.import.channel.no-listen.post"]
+        },
+        {
+          "methods": ["POST"],
           "pathPattern": "/inventory-import/channels/{id}/pause-job",
           "permissionsRequired": ["inventory-update.import.pause-job.post"]
         },
@@ -802,9 +812,14 @@
       "description": "Imports: Undeploy a source file listener"
     },
     {
-      "permissionName": "inventory-update.import.decommission.post",
-      "displayName": "Undeploy an import listener",
-      "description": "Imports: Undeploy a source file listener"
+      "permissionName": "inventory-update.import.channel.listen.post",
+      "displayName": "Set channel to listen",
+      "description": "Set channel to listen for source when it is enabled"
+    },
+    {
+      "permissionName": "inventory-update.import.channel.no-listen.post",
+      "displayName": "Set channel to not listen for source files",
+      "description": "Set channel to not listen for source even if channel is enabled"
     },
     {
       "permissionName": "inventory-update.import.recover-interrupted-channels",
@@ -957,6 +972,8 @@
         "inventory-update.import.upload.post",
         "inventory-update.import.commission.post",
         "inventory-update.import.decommission.post",
+        "inventory-update.import.channel.listen.post",
+        "inventory-update.import.channel.no-listen.post",
         "inventory-update.import.recover-interrupted-channels",
         "inventory-update.import.pause-job.post",
         "inventory-update.import.resume-job.post",

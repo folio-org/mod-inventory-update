@@ -54,6 +54,8 @@ public class ImportService implements RouterCreator, TenantInitHooks {
     validatingHandler(vertx, routerBuilder, "initFileSystemQueue", Channels::initFileSystemQueue);
     validatingHandler(vertx, routerBuilder, "commission", Channels::commission);
     validatingHandler(vertx, routerBuilder, "decommission", Channels::decommission);
+    validatingHandler(vertx, routerBuilder, "listen", Channels::listen);
+    validatingHandler(vertx, routerBuilder, "noListen", Channels::noListen);
 
     validatingHandler(vertx, routerBuilder, "postTransformation", Transformations::postTransformation);
     validatingHandler(vertx, routerBuilder, "getTransformation", Transformations::getTransformationById);

@@ -213,6 +213,54 @@ paths:
         "500":
           $ref: "#/components/responses/trait_500"
 
+  /inventory-import/channels/{id}/listen:
+    parameters:
+      - $ref: "#/components/parameters/okapi_tenant"
+      - $ref: "#/components/parameters/okapi_token"
+      - $ref: "#/components/parameters/okapi_url"
+      - in: path
+        name: id
+        required: true
+        description: Channel identifier
+        schema:
+          type: string
+    post:
+      operationId: listen
+      description: make channel listen for source file when commissioned
+      responses:
+        "200":
+          description: OK
+        "400":
+          $ref: "#/components/responses/trait_400"
+        "404":
+          $ref: "#/components/responses/trait_404"
+        "500":
+          $ref: "#/components/responses/trait_500"
+
+  /inventory-import/channels/{id}/no-listen:
+    parameters:
+      - $ref: "#/components/parameters/okapi_tenant"
+      - $ref: "#/components/parameters/okapi_token"
+      - $ref: "#/components/parameters/okapi_url"
+      - in: path
+        name: id
+        required: true
+        description: Channel identifier
+        schema:
+          type: string
+    post:
+      operationId: noListen
+      description: make channel listen for source file when commissioned
+      responses:
+        "200":
+          description: OK
+        "400":
+          $ref: "#/components/responses/trait_400"
+        "404":
+          $ref: "#/components/responses/trait_404"
+        "500":
+          $ref: "#/components/responses/trait_500"
+
   /inventory-import/channels/{id}/pause-job:
     parameters:
       - $ref: "#/components/parameters/okapi_tenant"
@@ -1347,22 +1395,18 @@ components:
         text/plain:
           schema:
             type: string
-            example: Invalid JSON in request
         application/json:
           schema:
             type: object
-            example: {"error":"Invalid JSON in request"}
     trait_404:
       description: Bad request
       content:
         text/plain:
           schema:
             type: string
-            example: Not found
     trait_500:
       description: Internal error
       content:
         text/plain:
           schema:
             type: string
-            example: Internal server error, contact administrator

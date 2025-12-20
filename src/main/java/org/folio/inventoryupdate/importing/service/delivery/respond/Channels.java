@@ -123,6 +123,48 @@ public final class Channels extends EntityResponses {
     });
   }
 
+  public static Future<Void> listen(ServiceRequest request) {
+    String channelId = request.requestParam("id");
+    return getChannelByTagOrUuid(request, channelId).compose(channel -> {
+      if (channel != null) {
+        return channel.setListening(true, request.entityStorage())
+            .compose(na -> {
+              FileListener listener = FileListeners.getFileListener(request.tenant(), channel.getId().toString());
+              if (listener != null) {
+                listener.updateChannel(channel);
+              }
+              return Future.succeededFuture();
+            })
+            .onSuccess(response -> responseText(request.routingContext(), 200)
+                .end("Channel " + channelId + " set to listen for source files.")).mapEmpty();
+      } else {
+        return responseText(request.routingContext(), 404)
+            .end("Found no channel with tag or id " + channelId + " to turn listening on for.").mapEmpty();
+      }
+    });
+  }
+
+  public static Future<Void> noListen(ServiceRequest request) {
+    String channelId = request.requestParam("id");
+    return getChannelByTagOrUuid(request, channelId).compose(channel -> {
+      if (channel != null) {
+        return channel.setListening(false, request.entityStorage())
+            .compose(na -> {
+              FileListener listener = FileListeners.getFileListener(request.tenant(), channel.getId().toString());
+              if (listener != null) {
+                listener.updateChannel(channel);
+              }
+              return Future.succeededFuture();
+            })
+            .onSuccess(response -> responseText(request.routingContext(), 200)
+                .end("Channel " + channelId + " set to not listen for source files.")).mapEmpty();
+      } else {
+        return responseText(request.routingContext(), 404)
+            .end("Found no channel with tag or id " + channelId + " to turn listening off for.").mapEmpty();
+      }
+    });
+  }
+
   public static Future<Channel> getChannelByTagOrUuid(ServiceRequest request, String channelIdentifier) {
     EntityStorage db = request.entityStorage();
     SqlQuery queryFromCql = new Channel().cqlToSql(

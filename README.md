@@ -4,35 +4,114 @@ Copyright (C) 2019-2023 The Open Library Foundation
 
 This software is distributed under the terms of the Apache License, Version 2.0. See the file "[LICENSE](LICENSE)" for
 more information.
+<!-- TOC -->
+* [mod-inventory-update (MIU)](#mod-inventory-update-miu)
+  * [Purpose](#purpose)
+  * [How to use MIU](#how-to-use-miu)
+    * [The relevant "upsert" APIs](#the-relevant-upsert-apis)
+    * [What the APIs do with the inventory record set](#what-the-apis-do-with-the-inventory-record-set)
+      * [Detect if holdings records or items should be deleted](#detect-if-holdings-records-or-items-should-be-deleted)
+      * [Control record overlay on updates.](#control-record-overlay-on-updates)
+        * [Prevent MIU from override existing values](#prevent-miu-from-override-existing-values)
+        * [Instruct MIU to leave the item status unmodified under certain circumstance.](#instruct-miu-to-leave-the-item-status-unmodified-under-certain-circumstance)
+        * [Instruct MIU to avoid deleting items even though they are missing from the input](#instruct-miu-to-avoid-deleting-items-even-though-they-are-missing-from-the-input)
+        * [Retain omitted items if the status indicates that they are still circulating](#retain-omitted-items-if-the-status-indicates-that-they-are-still-circulating)
+      * [Provisional Instance created when related Instance doesn't exist yet](#provisional-instance-created-when-related-instance-doesnt-exist-yet)
+      * [Deletion of Instance-to-Instance relations](#deletion-of-instance-to-instance-relations)
+      * [Instance DELETE requests](#instance-delete-requests)
+        * [Protecting certain items or holdings records from deletion in DELETE requests](#protecting-certain-items-or-holdings-records-from-deletion-in-delete-requests)
+      * [Statistical coding of delete protection events](#statistical-coding-of-delete-protection-events)
+    * [Additional info about the batch version of upserts `/inventory-batch-upsert-hrid`](#additional-info-about-the-batch-version-of-upserts-inventory-batch-upsert-hrid)
+  * [Importing XML source files to Inventory Storage](#importing-xml-source-files-to-inventory-storage)
+  * [The importing component](#the-importing-component)
+    * [Channels](#channels)
+      * [Requests operating on a given channel](#requests-operating-on-a-given-channel)
+      * [Importing](#importing)
+      * [Request operating on multiple channels](#request-operating-on-multiple-channels)
+      * [Using `tag` for channel ID](#using-tag-for-channel-id)
+    * [The "import job"](#the-import-job)
+      * [Requests operating on jobs:](#requests-operating-on-jobs)
+  * [Miscellaneous](#miscellaneous)
+    * [`/shared-inventory-upsert-matchkey`](#shared-inventory-upsert-matchkey)
+    * [APIs for fetching an Inventory record set](#apis-for-fetching-an-inventory-record-set)
+      * [Fetching an Inventory record set from `inventory-upsert-hrid/fetch`](#fetching-an-inventory-record-set-from-inventory-upsert-hridfetch)
+      * [The _version fields and optimistic locking](#the-_version-fields-and-optimistic-locking)
+  * [Prerequisites](#prerequisites)
+  * [Git Submodules](#git-submodules)
+  * [Building](#building)
+  * [Additional information](#additional-information)
+    * [Other documentation](#other-documentation)
+    * [Code of Conduct](#code-of-conduct)
+    * [Issue tracker](#issue-tracker)
+    * [ModuleDescriptor](#moduledescriptor)
+    * [API documentation](#api-documentation)
+    * [Code analysis](#code-analysis)
+    * [Download and configuration](#download-and-configuration)
+<!-- TOC -->
 
 ## Purpose
 
-Mod-inventory-update (MIU) is an Okapi service that can be put in front of mod-inventory-storage (Inventory Storage) for
-populating the storage with Instances, holdings and items according to one of multiple different update schemes.
+Mod-inventory-update (MIU) is module for importing XML and JSON sources files into Inventory
+Storage; creating, updating or deleting instances, holdings records, and items in the storage.
 
-## API
+## How to use MIU
 
-MIU so far supports two different update schemes implemented by two different end-points, which both
-accept PUT requests with a payload of an [Inventory Record Set JSON body](ramls/inventory-record-set.json)
-, `inventor-upsert-hrid` and `shared-inventory-upsert-matchkey`. An
-inventory record set is a set of records including an Inventory Instance, and an array of holdings records with embedded
-arrays of items.
+Mod-inventory-update operates with a dedicated, module specific composite JSON object containing Inventory records like instances,
+holdings and items, called an "inventory record set" (IRS) .
 
-Both upsert APIs have a batch equivalent, `inventory-batch-upsert-hrid`, and `shared-inventory-batch-upsert-matchkey`
-respectively. The batch APIs take arrays of inventory record sets and utilizes Inventory Storage's batch upsert APIs
-with
-a significant improvement in overall data import performance compared to the record-by-record updates of the single
-record APIs.
+Only the JSON based APIs take this format as input but even if using the module's XML import APIs, it is
+important to know the format. That is because the XML importing works by transforming the incoming XML of
+and arbitrary format into XML versions of that same structure and then converting the XML to JSON for further processing by the upsert APIs.
+Since the stylesheets implementing the XML transformations are custom provided, the XSLT author must know what
+XML structure, and ultimately JSON structure, the transformations are aiming for.
 
-Refer to the [API documentation](#api-documentation) section, and to the following explanation sections:
+The high level structure of an inventory record set is
 
-### `/inventory-upsert-hrid`
+ - Inventory instance {hrid and other properties}
+ - holdings records (optional)
+   - Inventory holdings record {hrid and other properties}
+     - items (optional)
+       - Inventory item {hrid and other properties}
+       - item
+       - ...
+   - Holdings record
+     - items
+       - item
+       - item
+       - ...
+   - ...
+ - instance relations (optional)
+ - processing (optional)
 
-Updates an Instance as well as its associated holdings and items based on incoming HRIDs on all three record types. If
+We will describe that in detail below. See also the OpenAPI spec for more details: [Upsert APIs](src/main/resources/openapi/inventory-update-5.0.yaml).
+
+### The relevant "upsert" APIs
+
+They main JSON based APIs of interest are `inventory-upsert-hrid` and `inventory-batch-upsert-hrid`. They consume JSON files
+containing one or more inventory record sets.
+
+Only the instance object and the hrid properties are required by the upsert API itself, but in order for the
+records to be successfully created or updated in storage, they must comply with the schema for Inventory Storage.
+
+Upserts can be done in batches, but deletion of instances is done one instance at a time through the API
+DELETE /inventory-upsert-hrid with a JSON payload of  { "hrid": "the id" }
+
+There are a few more APIs listed in the spec. The ones named something with `matchkey` are supported but no longer in use.
+
+### What the APIs do with the inventory record set
+
+The following is a walk-through of what happens to the records in Inventory Storage when an inventory record set is
+pushed to mod-inventory-update. This applies directly to the upsert APIs, but also indirectly to the XML importing
+APIs since they will utilize the exact same mechanics after the incoming XML has been transformed to XML IRS and
+converted to JSON IRS.
+
+The upsert APIs will update an Instance as well as its associated holdings and items based on incoming HRIDs on all three record types. If
 an instance with the incoming HRID does not exist in storage already, the new Instance is inserted, otherwise the
 existing instance is updated - thus the term 'upsert'.
 
 This means that HRIDs are required to be present from the client side in all three record types.
+
+#### Detect if holdings records or items should be deleted
 
 The API will detect if holdings and/or items have disappeared from the Instance since last update and in that case
 remove them from storage. Note, however, that there is a distinction between a request with no `holdingsRecords`
@@ -55,14 +134,14 @@ The default behavior of MIU is to simply replace the entire record on updates, f
 holdingsRecord, with the input JSON it receives from the client, except for the ID (UUID) and version.
 
 The default behavior can be changed per request using structures
-in [`processing`](ramls/instructions/processing-upsert.json).
+in the processing element.
 
 ##### Prevent MIU from override existing values
 
 MIU can be instructed to leave certain properties in place when updating Instances, holdings records, and Items.
 
 For example, to retain all existing Item properties that are not included in the request body to MIU, use
-the `retainExistingValues` [schema](ramls/instructions/properties-retention.json).
+the `retainExistingValues`.
 
 ```
 "processing": {
@@ -198,7 +277,7 @@ means that any existing relationships will be left untouched by the update reque
 #### Instance DELETE requests
 
 The API supports DELETE requests, which would delete the Instance with all of its associated holdings records and items
-and any relations it might have to other Instances. 
+and any relations it might have to other Instances.
 
 To delete an instance record with all its holdings and items, send a DELETE request to `/inventory-upsert-hrid` with a payload like this:
 
@@ -208,7 +287,7 @@ To delete an instance record with all its holdings and items, send a DELETE requ
 }
 ```
 
-Note that deleting any relations that the Instance had to other instances only cuts those links between them but does not otherwise affect those other instances. 
+Note that deleting any relations that the Instance had to other instances only cuts those links between them but does not otherwise affect those other instances.
 
 ##### Protecting certain items or holdings records from deletion in DELETE requests
 
@@ -302,7 +381,8 @@ Set all available codes on all record types. This means not just setting the cod
 
 Lift all codes up on the instance level, even if the primarily protected record was a holdings record or an item:
 
-```{
+```
+{
   "hrid": "in001",
   "processing": {
     "item": {
@@ -395,38 +475,7 @@ For example:
 }
 ```
 
-### `/shared-inventory-upsert-matchkey`
-
-Inserts or updates an Instance based on whether an Instance with the same matchKey exists in storage already. The
-matchKey is typically generated from a combination of metadata in the bibliographic record, and the API has logic for
-that, but if an Instance comes in with a ready-made `matchKey`, the end-point will use that instead.
-
-This API will replace (not update) existing holdings and items on the Instance, when updating the Instance. Clients
-using this end-point must in other words expect the UUIDs of previously existing holdings records and items to be lost
-on Instance update. The scheme updates a so-called shared Inventory, that is, an Inventory shared by multiple
-institutions that have agreed on this matchKey mechanism to identify "same" Instances. The end-point will mark the
-shared Instance with an identifier for each Institution that contributed to the Instance. When updating an Instance from
-one of the institutions, the end-point will take care to replace only those existing holdings records and items that
-came from that particular institution before.
-
-This API does not support Instance-to-Instance relationships.
-
-The API supports DELETE requests as well, but the shared Instance is not deleted on DELETE requests; rather the data
-coming from a given library that contributed to that Instance are removed - like the local record identifier from that
-library on the Instance as well as any holdings and items previously attached to the Instance from that library.
-
-#### Details of the matching mechanism using a match key
-
-Based on select properties of the incoming Instance, the API will construct a match key and query Inventory Storage for
-it to determine if an instance with that key already exists.
-
-The match logic currently considers title, year, publisher, pagination, edition and SUDOC classification.
-
-If it does not find a matching title, a new Instance will be created. If it finds one, the existing Instance will be
-replaced by the incoming Instance, except, the HRID (human-readable ID) of the original Instance will be retained, as
-well as the resource identifiers from any of the other libraries that contributed that Instance.
-
-### Batch APIs `/inventory-batch-upsert-hrid` and `/shared-inventory-batch-upsert-matchkey`
+### Additional info about the batch version of upserts `/inventory-batch-upsert-hrid`
 
 A client can send arrays of inventory record sets to the batch APIs with significant improvement to overall throughput
 compared to the single record APIs.
@@ -435,11 +484,9 @@ These APIs utilize Inventory Storage's batch upsert APIs for Instances, holdings
 
 In case of data problems in either type of entity (referential constraint errors, missing mandatory properties, etc),
 the entire batch of the given entity will fail. For example if an Item fails all Items fail. At this point all the
-Instances and
-holdings records are presumably persisted. The module aims to recover from such inconsistent states by
+Instances and holdings records are presumably persisted. The module aims to recover from such inconsistent states by
 switching from batch processing to record-by-record updates in case of errors so that, in this example, all the good
-Items can be persisted. The
-response on a request with one or more errors, that didn't prevent the entire request from being processed, will be
+Items can be persisted. The response on a request with one or more errors, that didn't prevent the entire request from being processed, will be
 a `207` `Multi-Status`, and the one or more error that were found will be returned with the
 response JSON, together with the summarized update statistics ("metrics).
 
@@ -581,6 +628,126 @@ batch, the module will fall back to record-by-record updates and process the rec
 Same
 for the upsert by match-key, if any match-key appears twice in the batch.
 
+
+
+## Importing XML source files to Inventory Storage
+
+The importing component of MIU consists of import "channels" equipped with file queues and processing pipelines.
+
+The only existing pipeline implementation is an XSLT transformation pipeline. It takes an XML 'collection' of 'record'
+elements and -- through custom provided XSLT style-sheets -- transforms them into inventory record set XML. The
+XML is converted to batches of inventory record set JSON records and processed through MIU's inventory upsert APIs.
+
+To use the XML importing API, the channels must first be configured with a pipeline, which happens through the provided
+configuration APIs.
+
+## The importing component
+
+The main elements of the importing component are
+
+- a "channel" with an associated file queue
+- a processing pipeline, called a "transformation"
+- the "transformation"  has an ordered set of "transformation steps" with XSLT style-sheets, that ends with a crosswalk of the XML to JSON.
+- the "transformation" also has a "target" for its JSON results, which is a component that will batch and persist the results to inventory storage.
+
+See also the OpenAPI spec for further details [XML importing APIs](src/main/resources/openapi/inventory-import-1.0.yaml).
+
+### Channels
+
+The static parts of the channel itself are
+- a name for channel
+- a reference to the "transformation" that processes the incoming source files
+- two flags that indicates if the channel is deployed (or is to be deployed after an interruption), and is actively listening
+
+The dynamic parts of a channel are
+
+- a dedicated process (a worker verticle in Vert.x terms) that listens for incoming files
+- file queue: a set of filesystem directories that acts as a queue for incoming files
+- "importJob":  if there are any incoming files, and the channel is actively listening, it will automatically launch an "import job",
+  using its associated "transformation", and the progress of that process will be logged in the objects "importJob",
+  "logLines", and "failedRecords"
+- when the last file in the queue is processed, the job will finish, but the channel will keep listening
+  until paused or decommissioned or until MIU is uninstalled or redeployed.
+
+#### Requests operating on a given channel
+
+| API                                                           | Feature                                                                                                                                                                                                                                                                                                                                          |
+|---------------------------------------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| POST `/inventory-import/channels`                             | Create a channel, with `enabled` and `listening` settings                                                                                                                                                                                                                                                                                        |
+| PUT `/inventory-import/channels/<channel uuid>`               | Update properties of a channel, like `name`, `tag`, `enabled`, and `listening`                                                                                                                                                                                                                                                                   |
+| POST `/inventory-import/channels/<channel id>/commission`     | Launch a channel, marking it enabled. <br/>This has the same effect as setting the channel property `channel.enabled`=`true`. However, the command takes an additional parameter `?retainQueue`=[true,false] (default `false`). When `true`, any filesystem queue that was left behind from a previous deployment for this channel will be kept. |
+| POST `/inventory-import/channels/<channel id>/decommission`   | Undeploy (disable) the channel, has the same effect as setting the channel property `channel.enabled`=`false`, but the command takes an extra parameter `?retainQueue`=[true,false] (default `false`). When set to `true`, the file system queue for this channel is kept and potentially still available if the channel is deployed again.      |
+| POST `/inventory-import/channels/<channel id>/listen`         | Listen for source files in queue, same effect as setting `channel.listening`=`true`                                                                                                                                                                                                                                                              |
+| POST `/inventory-import/channels/<channel id>/no-listen`      | Ignore source files in queue, same effect as setting `channel.listening`=`false`                                                                                                                                                                                                                                                                 |
+| POST `/inventory-import/channels/<channel id>/init-queue`     | Delete all the source files in a queue (or re-establish an empty queue structure, in case the previous queue was deleted directly in the file system for example).                                                                                                                                                                               |
+| DELETE `/inventory-import/channels/<channel uuid>`            | Delete the channel configuration, including the file queue but not the channel's job history                                                                                                                                                                                                                                                     |
+| POST `/inventory-import/channels/<channel id>/upload`         | Push a source file to the channel, currently set to accept files up to a size of 100 MB                                                                                                                                                                                                                                                          |
+
+#### Importing
+
+| API                                                    | Feature                                                                                                                                                                                                                                                                                                                                                                     |
+|--------------------------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| POST `/inventory-import/channels/<channel id>/upload`  | Push a source file to the channel. <br/>If the channel is not enabled the upload is refused. If the channel is enabled but not listening, the file will enter the queue. If the channel is listening the file will enter the queue and be imported to Inventory in turn, barring any errors. <br/>The service is currently hardcoded to accept files up to a size of 100 MB |
+
+#### Request operating on multiple channels
+
+| API                                                    | Feature                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
+|--------------------------------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| POST `/inventory-import/recover-interrupted-channels`  | Deploy ("commission") all channels that are marked `enabled` but are not actually running. This is a scenario that would presumably only occur if the module was restarted while channels were enabled. The command takes a paramter `?listening=false` to enable the channels but not start actual importing right away. <br/> Notice that when posting a source file to a channel that is `enabled` but not deployed (not "commissioned") then the channel will be implicitly commissioned by that post. Explicitly recovering channels by this command is merely to ensure completion of already existing file queues for which processing was interrupted by a module restart. |
+
+
+#### Using `tag` for channel ID
+
+The <channel id> in the paths can either be the UUID of the channel record (`channel.id`) or the value of the property
+`channel.tag`. The tag is an optional, unique, max 24 character long string without spaces. If it's set on a channel,
+that channel can be referenced by the tag in the various channel commands. The basic REST requests (GET, PUT, DELETE channel)
+use the UUID like standard FOLIO APIs.
+
+### The "import job"
+
+A "job" is a continuous processing of source files that starts when a channel with an empty queue receives a new source
+file, and the job ends when the file queue is once again empty. When the job ends, some metrics are calculated
+covering the span of the job. There can thus only be zero or one job in a channel at any time.
+
+A job is in other words a mostly automatic entity that primarily exists in order to organise the counting of record processes.
+There are some ways for the operator to handle jobs, though. The start of a job can be controlled, if desired, by pausing the
+channel listener while uploading source files to the channel. When the listener is restarted, this will trigger a
+new job. A running job can also be paused and resumed if needed.
+
+If a fatal error occurs while a job is running, the module will attempt to gracefully pause the job, so that it can potentially
+be resumed.
+
+Finally a job can be cancelled. This command will include
+
+- stop the channel listener to prevent more files from entering the job
+- calculating metrics for the duration of the job and mark the job cancelled
+- empty the file queue
+
+After cancelling the job, the operator must reactivate the listener to allow a new job to start. If some external process is still
+uploading files to the queue, the queue will be populated when the listener is started even though the file queue was emptied
+when cancelling the job.
+
+#### Requests operating on jobs:
+
+Channel operations will affect a current job in the channel. Besides that, there are following requests that act on an
+ongoing import job directly.
+
+- POST `/inventory-import/channels/<channel id>/pause-job`
+- POST `/inventory-import/channels/<channel id>/resume-job`
+- wip - POST `/inventory-import/channels/<channel id>/cancel-job`
+
+
+
+## Miscellaneous
+
+### `/shared-inventory-upsert-matchkey`
+
+Currently obsolete.
+
+Inserts or updates an Instance based on whether an Instance with the same matchKey exists in storage already. The
+matchKey is typically generated from a combination of metadata in the bibliographic record, and the API has logic for
+that, but if an Instance comes in with a ready-made `matchKey`, the end-point will use that instead.
+
 ### APIs for fetching an Inventory record set
 
 There are two REST paths for retrieving single Inventory record sets by ID: `/inventory-upsert-hrid/fetch/{id}`
@@ -666,26 +833,6 @@ course deals with the UUIDs).
 The client of the API is responsible for knowing what the HRIDs for the records are and for ensuring that the
 provided IDs are indeed unique.
 
-#### Fetching an Inventory record set from `shared-inventory-upsert-matchkey/fetch`
-
-For consistency, it is also possible to fetch a record set from the shared inventory API like from the HRID based API.
-Similarly, it's possible to PUT the record set back to the API, though in reality, it probably will not make sense to
-update a shared Inventory like that. With a shared Inventory, updates should probably always come from the catalogs that
-participate in the shared index.
-
-#### Avoiding cross-PUTting between the two APIs
-
-If a GET request is issued to an Inventory that is in fact not a shared Inventory and therefore has no matchKeys in the
-instances, the GET will fail. This is basically just to separate the two update and fetch schemes some.
-
-Generally speaking, it does not make sense to mix the two APIs even though it's technically possible to fetch from one
-and put to the other. If the module is used with a regular Inventory (non-shared) it could be feasible to disable the
-shared Inventory APIs by not giving users the permissions required to use it. For a regular Inventory, one or both of
-the permissions `inventory-upsert-hrid.item.get`
-and `inventory-upsert-hrid.item.put` might be assigned, while the permissions for the shared
-Inventory, `shared-inventory-upsert-matchkey.item.put` and `shared-inventory-upsert-matchkey.item.get`, could be left
-out.
-
 #### The _version fields and optimistic locking
 
 The `_version` fields for optimistic locking can be seen in the output above. These values would have no effect in a PUT
@@ -693,23 +840,6 @@ to the upsert API. As the service receives the record set JSON in a PUT request,
 entities from storage and get the latest version numbers from that anyway.
 
        | 2.2.0                          |
-
-## Planned developments
-
-* Support handling of bound-with and analytics relationships. This is currently being developed with German GBV as the
-  primary stakeholder.
-
-* Possibly check for dependent records in other FOLIO modules, specifically before deleting Inventory records. This
-  could be implemented by declaring optional dependencies of those external modules, meaning that dependency checks
-  would only be performed if those modules were present in the installation. It might additionally be required to have a
-  configuration setting to turn off the dependency checks entirely, for the performance of an initial data load for
-  example, where it's already known that no dependent records exist yet.
-
-More Inventory update schemes might be added, specifically an end-point that support Instance identification by
-matchKey _and_ holdings records and items identification by HRID for shared-inventory libraries that can provide such
-unique local identifiers for their records, for example:
-
-* `/shared-inventory-upsert-matchkey-and-hrid`
 
 ## Prerequisites
 
@@ -754,10 +884,8 @@ for the interfaces that this module requires and provides, the permissions, and 
 
 ### API documentation
 
-API descriptions:
-
-* [RAML](ramls/)
-* [Schemas](ramls/)
+* [Updating (OpenAPI)](src/main/resources/openapi/inventory-update-5.0.yaml)
+* [Importing (OpenAPI)](src/main/resources/openapi/inventory-import-1.0.yaml)
 
 Generated [API documentation](https://dev.folio.org/reference/api/#mod-inventory-update).
 

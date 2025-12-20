@@ -194,6 +194,18 @@ public class Channel extends Entity {
             + " WHERE id = #{id}").map(SqlResult::rowCount);
   }
 
+  public Future<Integer> setListening(boolean listening, EntityStorage configStorage) {
+    theRecord = new ChannelRecord(theRecord.id(), theRecord.name(), theRecord.tag(), theRecord.type(),
+        theRecord.transformationId(), theRecord.enabled(), listening);
+    return configStorage.updateEntity(this.withUpdatingUser(null),
+        "UPDATE " + configStorage.schema() + "." + table()
+            + " SET "
+            + dbColumnName(LISTENING) + " = #{" + dbColumnName(LISTENING) + "} "
+            + ", "
+            + metadata.updateClauseColumnTemplates()
+            + " WHERE id = #{id}").map(SqlResult::rowCount);
+  }
+
   // Import config record, the entity data.
   public record ChannelRecord(UUID id, String name, String tag, String type, UUID transformationId,
                               boolean enabled, boolean listening) {}

@@ -527,7 +527,6 @@ public class ImportTests extends InventoryUpdateTestBase {
     JsonObject step2 = new JsonObject();
     step2.put("id", STEP_ID_2)
         .put("name", "test step 2")
-
         .put("script", Files.XSLT_COPY_XML_DOC);
     postJsonObject(Service.PATH_STEPS, step2);
     JsonObject transformation = Files.JSON_TRANSFORMATION_CONFIG.copy();
@@ -696,7 +695,58 @@ public class ImportTests extends InventoryUpdateTestBase {
         .header(Service.OKAPI_TOKEN)
         .post("/inventory-import/channels/" + UUID.randomUUID() + "/decommission")
         .then().statusCode(404);
+  }
 
+  @Test
+  public void canSwitchChannelListeningOnOff() {
+    postJsonObject(Service.PATH_TRANSFORMATIONS, Files.JSON_TRANSFORMATION_CONFIG);
+    String channelId = Files.JSON_CHANNEL.getString("id");
+    postJsonObject(Service.PATH_CHANNELS, Files.JSON_CHANNEL);
+    assertThat(getRecordById(Service.PATH_CHANNELS, channelId).extract().path("enabled"), is(true));
+    assertThat(getRecordById(Service.PATH_CHANNELS, channelId).extract().path("isCommissioned"), is(true));
+    assertThat(getRecordById(Service.PATH_CHANNELS, channelId).extract().path("listening"), is(true));
+    given()
+        .baseUri(BASE_URI_INVENTORY_UPDATE)
+        .header(Service.OKAPI_TENANT)
+        .header(Service.OKAPI_URL)
+        .header(Service.OKAPI_TOKEN)
+        .post("/inventory-import/channels/" + channelId + "/no-listen")
+        .then().statusCode(200);
+    assertThat(getRecordById(Service.PATH_CHANNELS, channelId).extract().path("listening"), is(false));
+    Files.filesOfInventoryXmlRecords(5, 100, "204")
+        .forEach(xml -> postSourceXml(Service.PATH_CHANNELS + "/" + channelId + "/upload", xml, 200));
+    await().atLeast(500, TimeUnit.MILLISECONDS);
+    getRecords(Service.PATH_JOB_LOGS)
+        .body("totalRecords", is(0));
+    getRecords(Service.PATH_IMPORT_JOBS)
+        .body("totalRecords", is(0));
+    given()
+        .baseUri(BASE_URI_INVENTORY_UPDATE)
+        .header(Service.OKAPI_TENANT)
+        .header(Service.OKAPI_URL)
+        .header(Service.OKAPI_TOKEN)
+        .post("/inventory-import/channels/" + channelId + "/listen")
+        .then().statusCode(200);
+    await().until(() -> getTotalRecords(Service.PATH_IMPORT_JOBS), is(1));
+    await().until(() -> getTotalRecords(Service.PATH_JOB_LOGS), greaterThan(4));
+  }
+
+  @Test
+  public void cannotSetListeningOnOffForNonExistingChannel() {
+    given()
+        .baseUri(BASE_URI_INVENTORY_UPDATE)
+        .header(Service.OKAPI_TENANT)
+        .header(Service.OKAPI_URL)
+        .header(Service.OKAPI_TOKEN)
+        .post("/inventory-import/channels/channelX/listen")
+        .then().statusCode(404);
+    given()
+        .baseUri(BASE_URI_INVENTORY_UPDATE)
+        .header(Service.OKAPI_TENANT)
+        .header(Service.OKAPI_URL)
+        .header(Service.OKAPI_TOKEN)
+        .post("/inventory-import/channels/channelX/no-listen")
+        .then().statusCode(404);
   }
 
   @Test

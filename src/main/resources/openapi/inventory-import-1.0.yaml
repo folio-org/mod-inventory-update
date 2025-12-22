@@ -147,6 +147,42 @@ paths:
         "500":
           $ref: "#/components/responses/trait_500"
 
+  /inventory-import/channels/{id}/try-transformation:
+    parameters:
+      - $ref: "#/components/parameters/okapi_tenant"
+      - $ref: "#/components/parameters/okapi_token"
+      - $ref: "#/components/parameters/okapi_url"
+      - in: path
+        name: id
+        required: true
+        description: Channel identifier
+        schema:
+          type: string
+      - in: query
+        name: format
+        required: false
+        description: Response with XML or JSON, Default JSON. To view XML, specify ?format=xml
+        schema:
+          type: string
+    post:
+      operationId: echoTransformation
+      description: Transform XML document synchronously
+      requestBody:
+        content:
+          text/plain:
+            schema:
+              type: string
+        required: true
+      responses:
+        "200":
+          description: Source file processed
+        "400":
+          $ref: "#/components/responses/trait_400"
+        "404":
+          $ref: "#/components/responses/trait_404"
+        "500":
+          $ref: "#/components/responses/trait_500"
+
   /inventory-import/channels/{id}/commission:
     parameters:
       - $ref: "#/components/parameters/okapi_tenant"

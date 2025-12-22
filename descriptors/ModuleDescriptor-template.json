@@ -476,6 +476,11 @@
         },
         {
           "methods": ["POST"],
+          "pathPattern": "/inventory-import/channels/{id}/try-transformation",
+          "permissionsRequired": ["inventory-update.import.try-transformation.post"]
+        },
+        {
+          "methods": ["POST"],
           "pathPattern": "/inventory-import/channels/{id}/commission",
           "permissionsRequired": ["inventory-update.import.commission.post"],
           "modulePermissions": [
@@ -802,6 +807,11 @@
       "description": "Imports: Upload source file to a commissioned channel. If or when the channel is listening the file will be processed."
     },
     {
+      "permissionName": "inventory-update.import.try-transformation.post",
+      "displayName": "Upload XML file for synchronous test run",
+      "description": "Imports: Upload source file for synchronous test run"
+    },
+    {
       "permissionName": "inventory-update.import.commission.post",
       "displayName": "Start an import listener",
       "description": "Imports: Launch a source file listener for a channel"
@@ -970,6 +980,7 @@
         "inventory-update.import.failed-records.item.delete",
 
         "inventory-update.import.upload.post",
+        "inventory-update.import.try-transformation.post",
         "inventory-update.import.commission.post",
         "inventory-update.import.decommission.post",
         "inventory-update.import.channel.listen.post",

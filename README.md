@@ -1,4 +1,4 @@
-# mod-inventory-update (MIU)
+# (under construction) mod-inventory-update (MIU)
 
 Copyright (C) 2019-2023 The Open Library Foundation
 

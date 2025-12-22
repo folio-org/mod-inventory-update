@@ -25,7 +25,7 @@ public class XmlTransformationEcho implements RecordReceiver {
 
   @Override
   public void endOfDocument() {
-
+    // Noop, only interested in echoing a single record
   }
 
   @Override

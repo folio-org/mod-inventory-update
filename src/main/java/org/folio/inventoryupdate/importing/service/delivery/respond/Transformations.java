@@ -195,11 +195,7 @@ public final class Transformations extends EntityResponses {
             .compose(pipeline -> {
               pipeline.withXmlToJsonConversion(!output.equalsIgnoreCase("xml"));
               pipeline.withTarget(new XmlTransformationEcho(request.routingContext()));
-              try {
-                new XmlRecordsReader(xmlContent.toString(StandardCharsets.UTF_8), pipeline).provideRecords();
-              } catch (Exception e) {
-                System.out.println("Exception when trying to transform " + e.getMessage());
-              }
+              new XmlRecordsReader(xmlContent.toString(StandardCharsets.UTF_8), pipeline).provideRecords();
               return Future.succeededFuture(pipeline);
             }).mapEmpty();
       }

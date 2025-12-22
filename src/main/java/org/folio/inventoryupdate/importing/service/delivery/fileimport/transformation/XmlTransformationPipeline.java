@@ -1,7 +1,6 @@
 package org.folio.inventoryupdate.importing.service.delivery.fileimport.transformation;
 
 import io.vertx.core.Future;
-import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
@@ -73,9 +72,7 @@ public final class XmlTransformationPipeline implements RecordReceiver {
           }
           return new XmlTransformationPipeline(json);
         })
-        .onFailure(handler -> {
-          logger.error("Problem retrieving steps {}", handler.getMessage());
-        });
+        .onFailure(handler -> logger.error("Problem retrieving steps {}", handler.getMessage()));
   }
 
   private String transform(String xmlRecord) {

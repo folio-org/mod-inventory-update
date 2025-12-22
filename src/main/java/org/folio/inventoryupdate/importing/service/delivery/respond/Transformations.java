@@ -1,14 +1,20 @@
 package org.folio.inventoryupdate.importing.service.delivery.respond;
 
+import static org.folio.inventoryupdate.importing.service.delivery.respond.Channels.getChannelByTagOrUuid;
 import static org.folio.okapi.common.HttpResponse.responseText;
 
 import io.vertx.core.Future;
+import io.vertx.core.buffer.Buffer;
+import java.nio.charset.StandardCharsets;
 import java.util.UUID;
 import org.folio.inventoryupdate.importing.moduledata.Step;
 import org.folio.inventoryupdate.importing.moduledata.Transformation;
 import org.folio.inventoryupdate.importing.moduledata.TransformationStep;
 import org.folio.inventoryupdate.importing.moduledata.database.EntityStorage;
 import org.folio.inventoryupdate.importing.service.ServiceRequest;
+import org.folio.inventoryupdate.importing.service.delivery.fileimport.transformation.XmlRecordsReader;
+import org.folio.inventoryupdate.importing.service.delivery.fileimport.transformation.XmlTransformationEcho;
+import org.folio.inventoryupdate.importing.service.delivery.fileimport.transformation.XmlTransformationPipeline;
 
 public final class Transformations extends EntityResponses {
 
@@ -171,6 +177,28 @@ public final class Transformations extends EntityResponses {
             .onSuccess(result -> responseText(request.routingContext(), 200).end());
       }
       return Future.succeededFuture();
+    });
+  }
+
+  public static Future<Void> tryTransformation(ServiceRequest request) {
+    String channelId = request.requestParam("id");
+    String output = request.queryParam("output", "json");
+    Buffer xmlContent = Buffer.buffer(request.bodyAsString());
+    return getChannelByTagOrUuid(request, channelId).compose(channel -> {
+      if (channel == null) {
+        return responseText(request.routingContext(), 404)
+            .end("Could not find channel with id or tag [" + channelId + "] to try transformation in.").mapEmpty();
+      } else {
+
+        return XmlTransformationPipeline
+            .create(request.vertx(), request.tenant(), channel.getTransformationId())
+            .compose(pipeline -> {
+              pipeline.withXmlToJsonConversion(!output.equalsIgnoreCase("xml"));
+              pipeline.withTarget(new XmlTransformationEcho(request.routingContext()));
+              new XmlRecordsReader(xmlContent.toString(StandardCharsets.UTF_8), pipeline).provideRecords();
+              return Future.succeededFuture(pipeline);
+            }).mapEmpty();
+      }
     });
   }
 }

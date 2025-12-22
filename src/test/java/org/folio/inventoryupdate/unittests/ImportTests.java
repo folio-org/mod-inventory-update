@@ -833,6 +833,24 @@ public class ImportTests extends InventoryUpdateTestBase {
   }
 
   @Test
+  public void canTestTransformationOfExistingChannel() {
+    configureSamplePipeline();
+    String channelId = Files.JSON_CHANNEL.getString("id");
+    String channelTag = Files.JSON_CHANNEL.getString("tag");
+    String transformationId = Files.JSON_TRANSFORMATION_CONFIG.getString("id");
+    getRecordById(Service.PATH_CHANNELS, channelId);
+    getRecordById(Service.PATH_TRANSFORMATIONS, transformationId);
+    // Default response should be transformed to JSON
+    assert(postSourceXml(Service.PATH_CHANNELS + "/" + channelTag + "/try-transformation",
+        Files.XML_INVENTORY_RECORD_SET, 200).extract().asPrettyString().startsWith("{"));
+    // Should be possible to ask for XML only
+    assert(postSourceXml(Service.PATH_CHANNELS + "/" + channelTag + "/try-transformation?output=xml",
+        Files.XML_INVENTORY_RECORD_SET, 200).extract().asPrettyString().startsWith("<"));
+    postSourceXml(PATH_CHANNELS +"/not-a-channel/try-transformation?output=xml",
+        Files.XML_INVENTORY_RECORD_SET,404);
+  }
+
+  @Test
   public void cannotUploadSourceXmlToDisabledChannel() {
     configureSamplePipeline();
     String channelId = Files.JSON_CHANNEL.getString("id");

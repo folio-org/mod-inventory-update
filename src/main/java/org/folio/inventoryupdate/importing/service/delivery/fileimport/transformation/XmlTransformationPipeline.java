@@ -1,7 +1,6 @@
 package org.folio.inventoryupdate.importing.service.delivery.fileimport.transformation;
 
 import io.vertx.core.Future;
-import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
@@ -33,44 +32,47 @@ public final class XmlTransformationPipeline implements RecordReceiver {
 
   public static final Logger logger = LogManager.getLogger("TransformationPipeline");
   private final List<Templates> listOfTemplates = new ArrayList<>();
-  private RecordReceiver inventoryUpdater;
+  private RecordReceiver receiverOfTransformedRecord;
   private int records = 0;
   private long transformationTime = 0;
+  private boolean convertToJson = true;
 
   private XmlTransformationPipeline(JsonObject transformation) {
     setTemplates(transformation);
   }
 
-  public XmlTransformationPipeline withTarget(RecordReceiver inventoryUpdater) {
-    this.inventoryUpdater = inventoryUpdater;
+  public XmlTransformationPipeline withTarget(RecordReceiver receiver) {
+    this.receiverOfTransformedRecord = receiver;
     records = 0;
     transformationTime = 0;
     return this;
   }
 
+  public XmlTransformationPipeline withXmlToJsonConversion(boolean convert) {
+    convertToJson = convert;
+    return this;
+  }
+
   public static Future<XmlTransformationPipeline> create(Vertx vertx, String tenant, UUID transformationId) {
-    Promise<XmlTransformationPipeline> promise = Promise.promise();
     EntityStorage access = new EntityStorage(vertx, tenant);
     TransformationStep tsasDef = new TransformationStep();
     Step stepDef = new Step();
-    access.getEntities("SELECT step.* "
+    return access.getEntities("SELECT step.* "
             + " FROM " + stepDef.schemaTable(access.schema()) + " as step,"
             + "      " + tsasDef.schemaTable(access.schema()) + " as tsa "
             + "  WHERE step.id = tsa.step_id "
             + "    AND tsa.transformation_id = '" + transformationId.toString() + "'"
             + "  ORDER BY tsa.position", stepDef)
-        .onSuccess(steps -> {
+        .map(steps -> {
           JsonObject json = new JsonObject().put("stepAssociations", new JsonArray());
           for (Entity step : steps) {
             JsonObject o = new JsonObject().put("step", step.asJson());
             o.getJsonObject("step").put("entityType", "xmlTransformationStep");
             json.getJsonArray("stepAssociations").add(o);
           }
-          XmlTransformationPipeline pipeline = new XmlTransformationPipeline(json);
-          promise.complete(pipeline);
+          return new XmlTransformationPipeline(json);
         })
         .onFailure(handler -> logger.error("Problem retrieving steps {}", handler.getMessage()));
-    return promise.future();
   }
 
   private String transform(String xmlRecord) {
@@ -121,16 +123,20 @@ public final class XmlTransformationPipeline implements RecordReceiver {
     final long transformationStarted = System.currentTimeMillis();
     records++;
     String transformedXmlRecord = transform("<collection>" + processingRecord.getRecordAsString() + "</collection>");
-    JsonObject jsonRecord = convertToJson(transformedXmlRecord);
-    processingRecord.setIsDeletion(jsonRecord.containsKey("delete"));
-    processingRecord.update(jsonRecord.encodePrettily());
+    if (convertToJson) {
+      JsonObject jsonRecord = convertToJson(transformedXmlRecord);
+      processingRecord.setIsDeletion(jsonRecord.containsKey("delete"));
+      processingRecord.update(jsonRecord.encodePrettily());
+    } else {
+      processingRecord.update(transformedXmlRecord);
+    }
     transformationTime += System.currentTimeMillis() - transformationStarted;
-    inventoryUpdater.put(processingRecord);
+    receiverOfTransformedRecord.put(processingRecord);
   }
 
   @Override
   public void endOfDocument() {
-    inventoryUpdater.endOfDocument();
+    receiverOfTransformedRecord.endOfDocument();
   }
 
   @Override

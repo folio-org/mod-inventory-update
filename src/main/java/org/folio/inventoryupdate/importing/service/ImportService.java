@@ -94,6 +94,8 @@ public class ImportService implements RouterCreator, TenantInitHooks {
 
     // Importing
     nonValidatingHandler(vertx, routerBuilder, "uploadXmlRecords", this::uploadXmlSourceFile);
+    // Dry run
+    nonValidatingHandler(vertx, routerBuilder, "echoTransformation", Transformations::tryTransformation);
   }
 
   private void validatingHandler(Vertx vertx, RouterBuilder routerBuilder, String operation,

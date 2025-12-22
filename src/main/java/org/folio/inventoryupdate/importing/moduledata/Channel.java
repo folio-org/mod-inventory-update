@@ -180,6 +180,10 @@ public class Channel extends Entity {
     return theRecord.listening();
   }
 
+  public UUID getTransformationId() {
+    return theRecord.transformationId;
+  }
+
   public Future<Integer> setEnabledListening(boolean enabled, boolean listening, EntityStorage configStorage) {
     theRecord = new ChannelRecord(theRecord.id(), theRecord.name(), theRecord.tag(), theRecord.type(),
         theRecord.transformationId(), enabled, listening);

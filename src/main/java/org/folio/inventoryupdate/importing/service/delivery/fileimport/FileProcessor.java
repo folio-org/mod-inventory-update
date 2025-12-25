@@ -45,13 +45,14 @@ public abstract class FileProcessor {
 
   public void pause() {
     paused = true;
-    importJob.logStatus(ImportJob.JobStatus.PAUSED, reporting.getRecordsProcessed(), configStorage);
+    importJob.logStatus(ImportJob.JobStatus.PAUSED,
+        "On operator's request", reporting.getRecordsProcessed(), configStorage);
     reporting.log("Job paused");
     reporting.reportFileStats();
   }
 
   public void resume() {
-    importJob.logStatus(ImportJob.JobStatus.RUNNING, reporting.getRecordsProcessed(), configStorage);
+    importJob.logStatus(ImportJob.JobStatus.RUNNING, "", reporting.getRecordsProcessed(), configStorage);
     paused = false;
     isResuming(true);
   }
@@ -67,9 +68,9 @@ public abstract class FileProcessor {
   public void halt(String errorMessage) {
     paused = true;
     reporting.log(errorMessage);
-    importJob.logHalted(SettableClock.getLocalDateTime(), reporting.getRecordsProcessed(), configStorage);
+    importJob.logStatus(ImportJob.JobStatus.PAUSED, errorMessage, reporting.getRecordsProcessed(), configStorage);
     reporting.reportFileStats();
-    reporting.reportFileQueueStats(true);
+    reporting.reportFileQueueStats(false);
   }
 
   public boolean fileQueueDone(boolean atEndOfCurrentFile) {

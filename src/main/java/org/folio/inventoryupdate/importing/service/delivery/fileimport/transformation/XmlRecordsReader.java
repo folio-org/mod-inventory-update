@@ -8,6 +8,7 @@ import java.util.concurrent.Callable;
 import javax.xml.parsers.ParserConfigurationException;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.folio.inventoryupdate.importing.service.delivery.fileimport.ProcessingException;
 import org.folio.inventoryupdate.importing.service.delivery.fileimport.ProcessingRecord;
 import org.folio.inventoryupdate.importing.service.delivery.fileimport.RecordProvider;
 import org.folio.inventoryupdate.importing.service.delivery.fileimport.RecordReceiver;
@@ -30,12 +31,13 @@ public class XmlRecordsReader extends DefaultHandler implements RecordProvider, 
   }
 
   @Override
-  public void provideRecords() {
+  public void provideRecords() throws ProcessingException {
     try {
       InputStream inputStream = new ByteArrayInputStream(xmlCollectionOfRecords.getBytes(StandardCharsets.UTF_8));
       SecureSaxParser.get().parse(inputStream, this);
     } catch (ParserConfigurationException | SAXException | IOException e) {
-      logger.error("SaxParsing, produceRecords, error: {}", e.getMessage());
+      logger.error("SaxParsing error: {}", e.getMessage());
+      throw new ProcessingException("XML parsing error when reading source records " + e.getMessage());
     }
   }
 
@@ -76,7 +78,7 @@ public class XmlRecordsReader extends DefaultHandler implements RecordProvider, 
   }
 
   @Override
-  public Void call() {
+  public Void call() throws Exception {
     provideRecords();
     return null;
   }

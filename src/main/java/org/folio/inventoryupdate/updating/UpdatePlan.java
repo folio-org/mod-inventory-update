@@ -175,12 +175,12 @@ public abstract class UpdatePlan {
     }
 
     public Future<Void> buildRepositoryFromStorage (UpdateRequest request) {
-        long buildRepoStart = System.currentTimeMillis();
+        long buildRepoStart = System.nanoTime();
         Promise<Void> promise = Promise.promise();
         repository.buildRepositoryFromStorage(request).onComplete(repositoryBuilt -> {
             if (repositoryBuilt.succeeded()) {
-                long builtMs = System.currentTimeMillis() - buildRepoStart;
-                logger.debug("Repo built in {} ms.", builtMs);
+                long builtMs = System.nanoTime() - buildRepoStart;
+                logger.debug("Repo built in {} ms.", builtMs/1000000L);
                 promise.complete();
             } else {
                 promise.fail(repositoryBuilt.cause().getMessage());

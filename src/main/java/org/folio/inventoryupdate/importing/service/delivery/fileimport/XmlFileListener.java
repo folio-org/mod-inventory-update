@@ -44,7 +44,7 @@ public class XmlFileListener extends FileListener {
           // Continue existing job if any (not activating), or instantiate a new (activating).
           getFileProcessor(queueWentFromPassiveToActive)
               .compose(fileProcessor -> fileProcessor.processFile(currentFile))
-              .onComplete(na -> {
+              .onSuccess(na -> {
                 if (!importJobPaused()) { // if paused mid-file, keep file to resume
                   fileQueue.deleteFile(currentFile);
                 }

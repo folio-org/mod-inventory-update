@@ -5,7 +5,7 @@ Copyright (C) 2019-2025 The Open Library Foundation
 This software is distributed under the terms of the Apache License, Version 2.0. See the file "[LICENSE](LICENSE)" for
 more information.
 <!-- TOC -->
-* [mod-inventory-update (MIU)](#mod-inventory-update-miu)
+* [(under construction) mod-inventory-update (MIU)](#under-construction-mod-inventory-update-miu)
   * [Purpose](#purpose)
   * [How to use MIU](#how-to-use-miu)
     * [The relevant "upsert" APIs](#the-relevant-upsert-apis)
@@ -56,17 +56,24 @@ Storage; creating, updating or deleting instances, holdings records, and items i
 
 ## How to use MIU
 
-Mod-inventory-update operates with a dedicated, module specific composite JSON object containing Inventory records like instances,
+Mod-inventory-update operates with a dedicated, module specific JSON object containing Inventory records like instances,
 holdings and items, called an "inventory record set" (IRS) .
 
 Only the JSON based APIs take this format as input but even if using the module's XML import APIs, it is
 important to know the format. That is because the XML importing works by transforming the incoming XML of
-and arbitrary format into XML versions of that same structure and then converting the XML to JSON for further processing by the upsert APIs.
+an (almost) arbitrary format into XML versions of that same structure and then converting the XML to JSON for further processing by the upsert APIs.
 Since the stylesheets implementing the XML transformations are custom provided, the XSLT author must know what
 XML structure, and ultimately JSON structure, the transformations are aiming for.
 
-The high level structure of an inventory record set is
+The JSON based upsert APIs are synchronous, processing the input and returning a response right away, once done.
+The XML based import APIs on the other hand work asynchronously, and will put the file in queue and return a response that
+this has been done. But feedback regarding the processing and its outcomes is logged in the module, to be retrieved later
+through the APIs.
 
+<img alt="Diagram of MIU APIs" src="doc/diagram-of-miu-import.jpg" width="1123" title="Upsert and import APIs"/>
+
+The high level structure of an inventory record set is
+```
  - Inventory instance {hrid and other properties}
  - holdings records (optional)
    - Inventory holdings record {hrid and other properties}
@@ -82,8 +89,10 @@ The high level structure of an inventory record set is
    - ...
  - instance relations (optional)
  - processing (optional)
+```
 
-We will describe that in detail below. See also the OpenAPI spec for more details: [Upsert APIs](src/main/resources/openapi/inventory-update-5.0.yaml).
+The details of this structure are described below. See also the OpenAPI spec for more details:
+[Upsert APIs](src/main/resources/openapi/inventory-update-5.0.yaml).
 
 ### The relevant "upsert" APIs
 
@@ -480,7 +489,7 @@ For example:
 A client can send arrays of inventory record sets to the batch APIs with significant improvement to overall throughput
 compared to the single record APIs.
 
-These APIs utilize Inventory Storage's batch upsert APIs for Instances, holdings records and Items.
+These APIs utilise Inventory Storage's batch upsert APIs for Instances, holdings records and Items.
 
 In case of data problems in either type of entity (referential constraint errors, missing mandatory properties, etc),
 the entire batch of the given entity will fail. For example if an Item fails all Items fail. At this point all the

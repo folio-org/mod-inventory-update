@@ -21,9 +21,9 @@ import org.folio.inventoryupdate.importing.service.delivery.fileimport.transform
  * File processing is made up of following components, listed in the order of processing.
  * <li>a queue of source files (in VertX file system, synchronous access)</li>
  * <li>a file listener (a verticle) that feeds files from the queue to the processor</li>
- * <li>a SAX parser splitting a file of records into individual xml records (synchronous)</li>
+ * <li>a SAX parser splitting a file of records into individual XML records (synchronous)</li>
  * <li>an XSLT transformation pipeline and an XML to JSON converter, handling individual xml records (synchronous)</li>
- * <li>a client that collects records into sets of 100 json objects and pushes the result to Inventory Update, one
+ * <li>a client that collects records into sets of 100 JSON objects and pushes the result to Inventory Update, one
  * batch at a time (asynchronous)</li>
  * <p/>The import process additionally uses a logging component for reporting status and errors.
  */
@@ -52,7 +52,7 @@ public class XmlFileProcessor extends FileProcessor {
   public Future<XmlFileProcessor> withProcessingPipeline(String tenant, UUID channelId, Vertx vertx,
                                                          InventoryBatchUpdater inventoryBatchUpdater) {
     return configStorage.getEntity(channelId, new Channel())
-        .map(cfg -> ((Channel) cfg).getRecord().transformationId())
+        .map(cfg -> ((Channel) cfg).getTransformationId())
         .compose(transformationId -> XmlTransformationPipeline.create(vertx, tenant, transformationId))
         .compose(pipelineCreated -> {
           inventoryBatchUpdater.forFileProcessor(this);
@@ -95,6 +95,7 @@ public class XmlFileProcessor extends FileProcessor {
               promise.complete();
             } else {
               logger.error("Processing failed with {}", processing.cause().getMessage());
+              halt("Processing failed with " + processing.cause().getMessage());
               promise.complete();
             }
           });
@@ -110,10 +111,10 @@ public class XmlFileProcessor extends FileProcessor {
         + ".";
     if (transformationPipeline.getRecordsProcessed() > 0 && inventoryBatchUpdater.getRecordsProcessed() > 0) {
       stats += " Transformation: "
-          + (transformationPipeline.getRecordsProcessed() * 1000L / transformationPipeline.getProcessingTime())
+          + (transformationPipeline.getRecordsProcessed() * 1000000000L / transformationPipeline.getProcessingTime())
           + " recs/s."
           + " Upserting: "
-          + (inventoryBatchUpdater.getRecordsProcessed() * 1000L / inventoryBatchUpdater.getProcessingTime())
+          + (inventoryBatchUpdater.getRecordsProcessed() * 1000000000L / inventoryBatchUpdater.getProcessingTime())
           + " recs/s.";
     }
     return stats;

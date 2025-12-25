@@ -259,7 +259,7 @@ public class UpdatePlanSharedInventory extends UpdatePlan {
 
   @Override
   public Future<Void> doInventoryUpdates(OkapiClient okapiClient) {
-    long startUpdates = System.currentTimeMillis();
+    long startUpdates = System.nanoTime();
     logger.debug("Doing Inventory updates using repository");
     Promise<Void> promise = Promise.promise();
     doDeleteRelationsItemsHoldings(okapiClient).onComplete(deletes -> {
@@ -273,8 +273,8 @@ public class UpdatePlanSharedInventory extends UpdatePlan {
                               && instanceAndHoldingsUpdates.succeeded()
                               && itemUpdates.succeeded()
                               && itemCreates.succeeded()) {
-                            long updatesDone = System.currentTimeMillis() - startUpdates;
-                            logger.debug("Updates performed in {} ms.", updatesDone);
+                            long updatesDone = System.nanoTime() - startUpdates;
+                            logger.debug("Updates performed in {} ms.", updatesDone/1000000L);
                             promise.complete();
                           } else {
                             String error = "";

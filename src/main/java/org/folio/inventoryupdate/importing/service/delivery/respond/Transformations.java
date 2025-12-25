@@ -180,7 +180,7 @@ public final class Transformations extends EntityResponses {
     });
   }
 
-  public static Future<Void> tryTransformation(ServiceRequest request) {
+  public static Future<Void> tryTransformation(ServiceRequest request)  {
     String channelId = request.requestParam("id");
     String output = request.queryParam("output", "json");
     Buffer xmlContent = Buffer.buffer(request.bodyAsString());
@@ -195,7 +195,11 @@ public final class Transformations extends EntityResponses {
             .compose(pipeline -> {
               pipeline.withXmlToJsonConversion(!output.equalsIgnoreCase("xml"));
               pipeline.withTarget(new XmlTransformationEcho(request.routingContext()));
-              new XmlRecordsReader(xmlContent.toString(StandardCharsets.UTF_8), pipeline).provideRecords();
+              try {
+                new XmlRecordsReader(xmlContent.toString(StandardCharsets.UTF_8), pipeline).provideRecords();
+              } catch (Exception e) {
+                return Future.failedFuture(e.getMessage());
+              }
               return Future.succeededFuture(pipeline);
             }).mapEmpty();
       }

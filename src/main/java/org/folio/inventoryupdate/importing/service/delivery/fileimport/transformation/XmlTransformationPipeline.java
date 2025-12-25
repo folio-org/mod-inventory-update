@@ -120,7 +120,7 @@ public final class XmlTransformationPipeline implements RecordReceiver {
 
   @Override
   public void put(ProcessingRecord processingRecord) {
-    final long transformationStarted = System.currentTimeMillis();
+    final long transformationStarted = System.nanoTime();
     records++;
     String transformedXmlRecord = transform("<collection>" + processingRecord.getRecordAsString() + "</collection>");
     if (convertToJson) {
@@ -130,7 +130,7 @@ public final class XmlTransformationPipeline implements RecordReceiver {
     } else {
       processingRecord.update(transformedXmlRecord);
     }
-    transformationTime += System.currentTimeMillis() - transformationStarted;
+    transformationTime += System.nanoTime() - transformationStarted;
     receiverOfTransformedRecord.put(processingRecord);
   }
 

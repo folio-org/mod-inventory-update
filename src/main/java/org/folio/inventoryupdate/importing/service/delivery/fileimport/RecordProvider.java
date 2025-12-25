@@ -1,5 +1,5 @@
 package org.folio.inventoryupdate.importing.service.delivery.fileimport;
 
 public interface RecordProvider {
-  void provideRecords();
+  void provideRecords() throws ProcessingException;
 }

@@ -123,9 +123,9 @@ public class InventoryBatchUpdater implements RecordReceiver {
       promise.complete();
     } else if (batch != null) {
       if (batch.size() > 0) {
-        long upsertStarted = System.currentTimeMillis();
+        long upsertStarted = System.nanoTime();
         updateClient.inventoryUpsert(batch.getUpsertRequestBody()).onSuccess(upsert -> {
-          processingTime += System.currentTimeMillis() - upsertStarted;
+          processingTime += System.nanoTime() - upsertStarted;
           if (upsert.statusCode() >= 400) {
             logger.error("Fatal error when updating inventory, status code: {}", upsert.statusCode());
             promise.fail("Inventory update failed with status code " + upsert.statusCode());
@@ -170,10 +170,12 @@ public class InventoryBatchUpdater implements RecordReceiver {
    * @param promise The promise of persistBatch
    */
   private void persistDeletion(BatchOfRecords batch, Promise<Void> promise) {
+    long deletionStarted = System.nanoTime();
     JsonObject deletionRecord = batch.getDeletingRecord().getRecordAsJson().getJsonObject("delete");
     updateClient.inventoryDeletion(deletionRecord)
         .onSuccess(deletion -> {
           fileProcessor.reporting.incrementRecordsProcessed(1);
+          processingTime += System.nanoTime() - deletionStarted;
           if (deletion.statusCode() != 200) {
             logger.warn("No deletion performed with request {}, status code: {} due to {}",
                 deletionRecord.encode(), deletion.statusCode(), deletion.getErrors());

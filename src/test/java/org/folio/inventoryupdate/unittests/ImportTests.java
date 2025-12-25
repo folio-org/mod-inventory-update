@@ -1038,6 +1038,30 @@ public class ImportTests extends InventoryUpdateTestBase {
   }
 
   @Test
+  public void badSourceFileXmlWillHaltProcessing() {
+    configureSamplePipeline();
+    String channelId = Files.JSON_CHANNEL.getString("id");
+    String transformationId = Files.JSON_TRANSFORMATION_CONFIG.getString("id");
+    getRecordById(Service.PATH_CHANNELS, channelId);
+    getRecordById(Service.PATH_TRANSFORMATIONS, transformationId);
+
+    ArrayList<String> sourceFiles = Files.filesOfInventoryXmlRecords(3, 100, "204");
+    ArrayList<String> badSourceFiles = Files.filesOfInventoryXmlRecords(1, 100, "204");
+    String badSourceFile = badSourceFiles.getFirst().replace("</record>", "<record>");
+    sourceFiles.add(badSourceFile);
+    sourceFiles.addAll(Files.filesOfInventoryXmlRecords(2, 100, "204"));
+    sourceFiles.forEach(xml -> postSourceXml(Service.PATH_CHANNELS + "/" + channelId + "/upload", xml, 200));
+    await().until(() -> getTotalRecords(Service.PATH_IMPORT_JOBS), is(1));
+    String jobId = getRecords(Service.PATH_IMPORT_JOBS).extract().path("importJobs[0].id");
+    await().until(() -> getTotalRecords(Service.PATH_IMPORT_JOBS), is(1));
+    await().until(() -> getRecordById(Service.PATH_IMPORT_JOBS, jobId).extract().path("status"), is("PAUSED"));
+    getRecordById(Service.PATH_IMPORT_JOBS, jobId).body("amountImported", is(300));
+    getRecordById(Service.PATH_IMPORT_JOBS, jobId).body("finished", is(nullValue()));
+
+    assertThat("Instances in storage", fakeFolioApis.instanceStorage.getRecords().size(), is(300));
+  }
+
+  @Test
   public void canPauseAndResumeImportJob() {
     configureSamplePipeline();
     String channelId = Files.JSON_CHANNEL.getString("id");

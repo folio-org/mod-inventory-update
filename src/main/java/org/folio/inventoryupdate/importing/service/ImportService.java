@@ -188,7 +188,7 @@ public class ImportService implements RouterCreator, TenantInitHooks {
   }
 
   private Future<Void> uploadXmlSourceFile(ServiceRequest request) {
-    final long fileStartTime = System.currentTimeMillis();
+    final long fileStartTime = System.nanoTime();
     String channelId = request.requestParam("id");
     String fileName = request.queryParam("filename", UUID.randomUUID() + ".xml");
     Buffer xmlContent = Buffer.buffer(request.bodyAsString());
@@ -208,7 +208,7 @@ public class ImportService implements RouterCreator, TenantInitHooks {
         return FileListeners.deployIfNotDeployed(request, channel).onSuccess(ignore -> {
           new FileQueue(request, channel.getId().toString()).addNewFile(fileName, xmlContent);
           responseText(request.routingContext, 200)
-              .end("File queued for processing in ms " + (System.currentTimeMillis() - fileStartTime)).mapEmpty();
+              .end("File queued for processing in ms " + (System.nanoTime() - fileStartTime) / 1000000L);
         }).mapEmpty();
       }
     });

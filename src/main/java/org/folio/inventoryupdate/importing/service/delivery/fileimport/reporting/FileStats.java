@@ -10,7 +10,7 @@ public class FileStats {
 
   public FileStats(String fileName) {
     this.fileName = fileName;
-    startTime = System.currentTimeMillis();
+    startTime = System.nanoTime();
     metrics = new InventoryMetrics();
   }
 
@@ -27,7 +27,7 @@ public class FileStats {
   }
 
   public long processingTime() {
-    return System.currentTimeMillis() - startTime;
+    return System.nanoTime() - startTime;
   }
 
   public String getFileName() {

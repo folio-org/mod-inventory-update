@@ -34,7 +34,7 @@ public class Reporting {
 
   public Reporting(FileProcessor handler, String tenant, Vertx vertx) {
     this.fileProcessor = handler;
-    this.startTime = System.currentTimeMillis();
+    this.startTime = System.nanoTime();
     this.storage = new EntityStorage(vertx, tenant);
   }
 
@@ -106,19 +106,20 @@ public class Reporting {
   }
 
   public void reportFileQueueStats(boolean queueDone) {
-    long processingTime = System.currentTimeMillis() - startTime;
-    log((queueDone ? "Done processing queue. " : "") + filesProcessed + " file(s) with " + recordsProcessed.get()
+    long processingTime = System.nanoTime() - startTime;
+    log((queueDone ? "Done processing queue. " : "Queue partially processed. ")
+        + filesProcessed + " file(s) with " + recordsProcessed.get()
         + " records processed in " + processingTimeAsString(processingTime) + " ("
-        + (recordsProcessed.get() * 1000L / processingTime) + " recs/s.)")
-        .compose(na -> queueDone ? log("File queue: " + inventoryMetrics.report()) : null);
+        + (recordsProcessed.get() * 1000000000L / processingTime) + " recs/s.)")
+        .compose(na -> queueDone ? log("File queue: " + inventoryMetrics.report())
+            : log("File queue (partial report): " + inventoryMetrics.report()));
     if (queueDone) {
       fileProcessor.logFinish(recordsProcessed.get());
-
-      logger.info("Done processing queue. {} file(s) with {} records processed in {} ({} recs/s.) ",
-          filesProcessed, recordsProcessed.get(), processingTimeAsString(processingTime),
-          recordsProcessed.get() * 1000L / processingTime);
-      logger.info(fileProcessor.getStats());
     }
+    logger.info("{} file(s) with {} records processed in {} ({} recs/s.) ",
+        filesProcessed, recordsProcessed.get(), processingTimeAsString(processingTime),
+        recordsProcessed.get() * 1000000000L / processingTime);
+    logger.info(fileProcessor.getStats());
   }
 
   public Future<Void> reportErrors(BatchOfRecords batch) {
@@ -169,8 +170,9 @@ public class Reporting {
   }
 
   private static String processingTimeAsString(long processingTime) {
-    int hours = (int) processingTime / (1000 * 60 * 60);
-    long remainingMs = processingTime % (1000 * 60 * 60);
+    long timeMillis = processingTime / 1000000L;
+    int hours = (int) timeMillis / (1000 * 60 * 60);
+    long remainingMs = timeMillis % (1000 * 60 * 60);
     int minutes = (int) remainingMs / (1000 * 60);
     remainingMs = remainingMs % (1000 * 60);
     int seconds = (int) remainingMs / 1000;

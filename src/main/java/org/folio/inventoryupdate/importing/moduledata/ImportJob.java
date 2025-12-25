@@ -298,42 +298,22 @@ public class ImportJob extends Entity {
             + " WHERE id = #{id}");
   }
 
-  public void logHalted(LocalDateTime halted, int recordCount, EntityStorage configStorage) {
-    setHalted(halted, recordCount);
-    configStorage.updateEntity(this.withUpdatingUser(null),
-        "UPDATE " + configStorage.schema() + "." + table()
-            + " SET "
-            + dbColumnName(FINISHED)
-            + " = TO_TIMESTAMP(#{" + dbColumnName(FINISHED) + "}, '" + DATE_FORMAT_TO_DB + "') "
-            + ", "
-            + dbColumnName(STATUS) + " = #{" + dbColumnName(STATUS) + "} "
-            + ", "
-            + dbColumnName(AMOUNT_IMPORTED) + " = #{" + dbColumnName(AMOUNT_IMPORTED) + "}"
-            + ", "
-            + metadata.updateClauseColumnTemplates()
-            + " WHERE id = #{id}");
-  }
-
   private void setFinished(LocalDateTime finished, int recordCount) {
     theRecord = new ImportJobRecord(theRecord.id, theRecord.channelId, theRecord.channelName, theRecord.importType,
         theRecord.transformation,
         JobStatus.DONE, theRecord.started, finished.toString(), recordCount, theRecord.message);
   }
 
-  private void setHalted(LocalDateTime finished, int recordCount) {
+  public void logStatus(JobStatus status, String message, int recordCount, EntityStorage configStorage) {
     theRecord = new ImportJobRecord(theRecord.id, theRecord.channelId, theRecord.channelName, theRecord.importType,
         theRecord.transformation,
-        JobStatus.HALTED, theRecord.started, finished.toString(), recordCount, theRecord.message);
-  }
-
-  public void logStatus(JobStatus status, int recordCount, EntityStorage configStorage) {
-    theRecord = new ImportJobRecord(theRecord.id, theRecord.channelId, theRecord.channelName, theRecord.importType,
-        theRecord.transformation,
-        status, theRecord.started, theRecord.finished, recordCount, theRecord.message);
+        status, theRecord.started, theRecord.finished, recordCount, message);
     configStorage.updateEntity(this.withUpdatingUser(null),
         "UPDATE " + configStorage.schema() + "." + table()
             + " SET "
             + dbColumnName(STATUS) + " = #{" + dbColumnName(STATUS) + "} "
+            + ", "
+            + dbColumnName(MESSAGE) + " = #{" + dbColumnName(MESSAGE) + "} "
             + ", "
             + dbColumnName(AMOUNT_IMPORTED) + " = #{" + dbColumnName(AMOUNT_IMPORTED) + "}"
             + ", "

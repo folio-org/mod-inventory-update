@@ -3,6 +3,7 @@ package org.folio.inventoryupdate.importing.service;
 import io.vertx.core.Vertx;
 import io.vertx.core.http.HttpServerRequest;
 import io.vertx.core.json.JsonObject;
+import io.vertx.ext.web.RequestBody;
 import io.vertx.ext.web.RoutingContext;
 import java.util.UUID;
 import org.folio.inventoryupdate.importing.moduledata.database.EntityStorage;
@@ -24,6 +25,8 @@ public abstract class ServiceRequest {
   }
 
   public abstract JsonObject bodyAsJson();
+
+  public abstract RequestBody body();
 
   public abstract String bodyAsString();
 

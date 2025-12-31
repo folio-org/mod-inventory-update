@@ -19,6 +19,7 @@ import io.restassured.specification.RequestSpecification;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
+import java.io.File;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -823,7 +824,25 @@ public class ImportTests extends InventoryUpdateTestBase {
     getRecordById(Service.PATH_CHANNELS, channelId);
     getRecordById(Service.PATH_TRANSFORMATIONS, transformationId);
     postSourceXml(Service.PATH_CHANNELS + "/" + channelTag + "/upload", Files.XML_INVENTORY_RECORD_SET, 200);
+
+    await().until(() -> getTotalRecords(Service.PATH_IMPORT_JOBS), is(1));
+    String jobId = getRecords(Service.PATH_IMPORT_JOBS).extract().path("importJobs[0].id");
+    String started = getRecordById(Service.PATH_IMPORT_JOBS, jobId).extract().path("started");
+    await().until(() -> getRecordById(Service.PATH_IMPORT_JOBS, jobId).extract().path("finished"), greaterThan(started));
+    await().until(() -> getTotalRecords(Service.PATH_JOB_LOGS), is(4));
+  }
+
+  @Test
+  public void canImportSourceMarc() {
+    configureSamplePipeline();
+    putXml(Service.PATH_STEPS + "/" + STEP_ID + "/script", Files.XSLT_MARC_TO_INSTANCE);
+    String channelId = Files.JSON_CHANNEL.getString("id");
+    String channelTag = Files.JSON_CHANNEL.getString("tag");
+    String transformationId = Files.JSON_TRANSFORMATION_CONFIG.getString("id");
+
+    getRecordById(Service.PATH_CHANNELS, channelId);
     getRecordById(Service.PATH_TRANSFORMATIONS, transformationId);
+    postMarcFile(PATH_CHANNELS + "/" + channelTag + "/upload/marc", Files.MARC_FILE, 200);
 
     await().until(() -> getTotalRecords(Service.PATH_IMPORT_JOBS), is(1));
     String jobId = getRecords(Service.PATH_IMPORT_JOBS).extract().path("importJobs[0].id");
@@ -859,6 +878,17 @@ public class ImportTests extends InventoryUpdateTestBase {
     channelUpdate.put("enabled", false);
     putJsonObject(Service.PATH_CHANNELS + "/" + channelId, channelUpdate, 200);
     postSourceXml(Service.PATH_CHANNELS + "/" + channelTag + "/upload", Files.XML_INVENTORY_RECORD_SET, 403);
+  }
+
+  @Test
+  public void cannotUploadMarcToDisabledChannel() {
+    configureSamplePipeline();
+    String channelId = Files.JSON_CHANNEL.getString("id");
+    String channelTag = Files.JSON_CHANNEL.getString("tag");
+    JsonObject channelUpdate = getEntityJsonById(Service.PATH_CHANNELS, channelId);
+    channelUpdate.put("enabled", false);
+    putJsonObject(Service.PATH_CHANNELS + "/" + channelId, channelUpdate, 200);
+    postMarcFile(Service.PATH_CHANNELS + "/" + channelTag + "/upload/marc", Files.MARC_FILE, 403);
   }
 
   @Test
@@ -904,11 +934,19 @@ public class ImportTests extends InventoryUpdateTestBase {
         .extract().response();
 
   }
+
   @Test
   public void cannotUploadSourceXmlToNonExistingChannel() {
     configureSamplePipeline();
     UUID randomId = UUID.randomUUID();
     postSourceXml(Service.PATH_CHANNELS + "/" + randomId + "/upload", Files.XML_INVENTORY_RECORD_SET, 404);
+  }
+
+  @Test
+  public void cannotUploadMarcToNonExistingChannel() {
+    configureSamplePipeline();
+    UUID randomId = UUID.randomUUID();
+    postMarcFile(Service.PATH_CHANNELS + "/" + randomId + "/upload/marc", Files.MARC_FILE, 404);
   }
 
   @Test
@@ -1369,6 +1407,18 @@ public class ImportTests extends InventoryUpdateTestBase {
         .header(Service.OKAPI_URL)
         .body(xmlContent)
         .header(CONTENT_TYPE_XML)
+        .post(api)
+        .then()
+        .statusCode(expectedStatus);
+  }
+
+  ValidatableResponse postMarcFile(String api, File marcFile, int expectedStatus) {
+    return given()
+        .baseUri(BASE_URI_INVENTORY_UPDATE)
+        .header(Service.OKAPI_TENANT)
+        .header(Service.OKAPI_URL)
+        .body(marcFile)
+        .header(CONTENT_TYPE_BINARY)
         .post(api)
         .then()
         .statusCode(expectedStatus);

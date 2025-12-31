@@ -15,10 +15,13 @@ public class FileQueue {
   public static final String TENANT_DIR_PREFIX = "TENANT_";
   public static final String CHANNEL_PREFIX = "CHANNEL_";
   public static final String DIRECTORY_OF_CURRENTLY_PROCESSING_FILE = ".processing";
+  public static final String PREPROCESSING_DIR = ".preprocess";
   public static final String TMP_DIR = ".tmp";
   private final String jobPath;
   private final String jobTmpDir;
   private final String jobProcessingSlot;
+  private final String jobPreprocessingPath;
+  private final String jobPreprocessingTmpDir;
   private final FileSystem fs;
 
   public FileQueue(ServiceRequest request, String configId) {
@@ -27,6 +30,8 @@ public class FileQueue {
     jobPath = new File(tenantRootDir, CHANNEL_PREFIX + configId).getPath();
     jobProcessingSlot = new File(jobPath, DIRECTORY_OF_CURRENTLY_PROCESSING_FILE).getPath();
     jobTmpDir = new File(jobPath, TMP_DIR).getPath();
+    jobPreprocessingPath = new File(jobPath, PREPROCESSING_DIR).getPath();
+    jobPreprocessingTmpDir = new File(jobPreprocessingPath, TMP_DIR).getPath();
   }
 
   public static void clearTenantQueues(Vertx vertx, String tenant) {
@@ -41,6 +46,9 @@ public class FileQueue {
     }
     if (!fs.existsBlocking(jobTmpDir)) {
       fs.mkdirsBlocking(jobTmpDir);
+    }
+    if (!fs.existsBlocking(jobPreprocessingTmpDir)) {
+      fs.mkdirsBlocking(jobPreprocessingTmpDir);
     }
   }
 
@@ -86,6 +94,20 @@ public class FileQueue {
             new CopyOptions().setReplaceExisting(true));
   }
 
+  public void addFileToPreprocessing(String fileName, Buffer file) {
+    fs.writeFileBlocking(jobPreprocessingTmpDir + "/" + fileName, file)
+        .move(jobPreprocessingTmpDir + "/" + fileName, jobPreprocessingPath + "/" + fileName,
+            new CopyOptions().setReplaceExisting(true));
+  }
+
+  public void fromTmpToQueue(String fileName) {
+    fs.move(jobTmpDir + "/" + fileName, jobPath + "/" + fileName, new CopyOptions().setReplaceExisting(true));
+  }
+
+  public String getJobTmpDir() {
+    return jobTmpDir;
+  }
+
   /**
    * Checks if there is a file in the processing directory for the
    * given job ID (or if it's empty and thus available for the next file to import).
@@ -107,6 +129,15 @@ public class FileQueue {
 
   public boolean hasNextFile() {
     return fs.readDirBlocking(jobPath).stream().map(File::new).anyMatch(File::isFile);
+  }
+
+  public boolean hasFilesForPreprocessing() {
+    return fs.readDirBlocking(jobPreprocessingPath).stream().map(File::new).anyMatch(File::isFile);
+  }
+
+  public File nextFileForPreprocessing() {
+    return fs.readDirBlocking(jobPreprocessingPath).stream().map(File::new).filter(File::isFile)
+        .min(Comparator.comparing(File::lastModified)).orElse(null);
   }
 
   /**
@@ -138,6 +169,10 @@ public class FileQueue {
    */
   public File currentlyPromotedFile() {
     return fs.readDirBlocking(jobProcessingSlot).stream().map(File::new).filter(File::isFile).findFirst().orElse(null);
+  }
+
+  public Buffer readFile(File file) {
+    return fs.readFileBlocking(file.getPath());
   }
 
   public void deleteFile(File file) {

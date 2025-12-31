@@ -147,6 +147,43 @@ paths:
         "500":
           $ref: "#/components/responses/trait_500"
 
+  /inventory-import/channels/{id}/upload/marc:
+    parameters:
+      - $ref: "#/components/parameters/okapi_tenant"
+      - $ref: "#/components/parameters/okapi_token"
+      - $ref: "#/components/parameters/okapi_url"
+      - in: path
+        name: id
+        required: true
+        description: Channel identifier
+        schema:
+          type: string
+      - in: query
+        name: filename
+        required: false
+        description: Name of the file to be shown in log statements or failed records. If not provided, a random file name is assigned.
+        schema:
+          type: string
+    post:
+      operationId: uploadMarcFile
+      description: Load binary MARC to given import channel
+      requestBody:
+        content:
+          text/plain:
+            schema:
+              type: string
+        required: true
+      responses:
+        "200":
+          description: MARC source file uploaded
+        "400":
+          $ref: "#/components/responses/trait_400"
+        "404":
+          $ref: "#/components/responses/trait_404"
+        "500":
+          $ref: "#/components/responses/trait_500"
+
+
   /inventory-import/channels/{id}/try-transformation:
     parameters:
       - $ref: "#/components/parameters/okapi_tenant"

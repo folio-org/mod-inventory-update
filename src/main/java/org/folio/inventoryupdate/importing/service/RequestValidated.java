@@ -2,6 +2,7 @@ package org.folio.inventoryupdate.importing.service;
 
 import io.vertx.core.Vertx;
 import io.vertx.core.json.JsonObject;
+import io.vertx.ext.web.RequestBody;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.openapi.router.RouterBuilder;
 import io.vertx.openapi.validation.ValidatedRequest;
@@ -33,6 +34,10 @@ public class RequestValidated extends ServiceRequest {
       return validatedRequest.getBody().getJsonObject();
     }
     return new JsonObject();
+  }
+
+  public RequestBody body() {
+    throw new UnsupportedOperationException("Getting RequestBody not supported for validated requests.");
   }
 
   public String bodyAsString() {

@@ -26,6 +26,7 @@ public abstract class FileListener extends VerticleBase {
   protected FileQueue fileQueue;
   protected Vertx deploymentVertx;
   protected String deploymentId;
+  protected MarcPreprocessor marcPreprocessor;
 
   // For demarcating jobs by start/end
   protected AtomicBoolean fileQueuePassive = new AtomicBoolean(true);
@@ -106,8 +107,8 @@ public abstract class FileListener extends VerticleBase {
         new DeploymentOptions()
             .setWorkerPoolSize(4)
             .setInstances(1)
-            .setMaxWorkerExecuteTime(10)
             .setThreadingModel(ThreadingModel.WORKER)
+            .setMaxWorkerExecuteTime(10)
             .setMaxWorkerExecuteTimeUnit(TimeUnit.MINUTES)).onComplete(started -> {
               if (started.succeeded()) {
                 deploymentId = started.result();

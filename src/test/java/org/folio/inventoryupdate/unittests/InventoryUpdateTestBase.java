@@ -49,6 +49,7 @@ public abstract class InventoryUpdateTestBase {
   public static final Header OKAPI_TOKEN_HEADER = new Header(XOkapiHeaders.TOKEN,"eyJhbGciOiJIUzUxMiJ9eyJzdWIiOiJhZG1pbiIsInVzZXJfaWQiOiI3OWZmMmE4Yi1kOWMzLTViMzktYWQ0YS0wYTg0MDI1YWIwODUiLCJ0ZW5hbnQiOiJ0ZXN0X3RlbmFudCJ9BShwfHcNClt5ZXJ8ImQTMQtAM1sQEnhsfWNmXGsYVDpuaDN3RVQ9");
   public static final Header CONTENT_TYPE_XML = new Header("Content-Type", "application/xml");
   public static final Header CONTENT_TYPE_JSON = new Header("Content-Type", "application/json");
+  public static final Header CONTENT_TYPE_BINARY = new Header("Content-Type", "application/octet-stream");
 
   public static final Header ACCEPT_TEXT = new Header("Accept", "text/plain");
 

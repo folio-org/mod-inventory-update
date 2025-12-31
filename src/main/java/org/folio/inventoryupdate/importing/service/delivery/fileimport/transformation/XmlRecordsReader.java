@@ -4,6 +4,8 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.Callable;
 import javax.xml.parsers.ParserConfigurationException;
 import org.apache.logging.log4j.LogManager;
@@ -24,6 +26,7 @@ public class XmlRecordsReader extends DefaultHandler implements RecordProvider, 
   StringBuilder theRecord = new StringBuilder();
   RecordReceiver target;
   final String xmlCollectionOfRecords;
+  private final Map<String, String> prefixMappings = new HashMap<>();
 
   public XmlRecordsReader(String recordsSource, RecordReceiver target) {
     this.xmlCollectionOfRecords = recordsSource;
@@ -42,9 +45,13 @@ public class XmlRecordsReader extends DefaultHandler implements RecordProvider, 
   }
 
   @Override
-  public void startElement(String uri, String localName, String qqName, Attributes attributes) {
+  public void startPrefixMapping(String prefix, String uri) {
+    prefixMappings.put(prefix, uri);
+  }
 
-    if (qqName.equalsIgnoreCase("record")) {
+  @Override
+  public void startElement(String uri, String localName, String qqName, Attributes attributes) {
+    if (localName.equalsIgnoreCase("record")) {
       theRecord = new StringBuilder();
     }
     theRecord.append("<").append(qqName);
@@ -65,8 +72,8 @@ public class XmlRecordsReader extends DefaultHandler implements RecordProvider, 
   public void endElement(String uri, String localName, String qqName) {
     if (theRecord != null) {
       theRecord.append("</").append(qqName).append(">");
-      if (qqName.equals("record")) {
-        target.put(new ProcessingRecord(theRecord.toString()));
+      if (localName.equals("record")) {
+        target.put(new ProcessingRecord(theRecord.toString(), prefixMappings));
         theRecord = new StringBuilder();
       }
     }

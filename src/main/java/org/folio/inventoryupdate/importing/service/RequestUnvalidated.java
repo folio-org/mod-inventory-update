@@ -2,6 +2,7 @@ package org.folio.inventoryupdate.importing.service;
 
 import io.vertx.core.Vertx;
 import io.vertx.core.json.JsonObject;
+import io.vertx.ext.web.RequestBody;
 import io.vertx.ext.web.RoutingContext;
 import org.folio.tlib.util.TenantUtil;
 
@@ -23,6 +24,10 @@ public class RequestUnvalidated extends ServiceRequest {
   @Override
   public String bodyAsString() {
     return routingContext.body().asString();
+  }
+
+  public RequestBody body() {
+    return routingContext.body();
   }
 
   @Override

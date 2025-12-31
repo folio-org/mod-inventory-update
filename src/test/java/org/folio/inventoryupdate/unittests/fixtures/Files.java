@@ -25,20 +25,22 @@ import java.util.ArrayList;
 
 public class Files {
 
-  public static final String XSLT_EMPTY = getSampleFile("stylesheets/empty.xslt");
-  public static final String XSLT_INVALID_XML = getSampleFile("stylesheets/invalidXml.xslt");
-  public static final String XSLT_SYNTAX_ERROR = getSampleFile("stylesheets/xsltSyntaxError.xslt");
-  public static final String XSLT_COPY_XML_DOC = getSampleFile("stylesheets/copyXmlDoc.xslt");
+  public static final String XSLT_EMPTY = getSampleFileAsString("stylesheets/empty.xslt");
+  public static final String XSLT_INVALID_XML = getSampleFileAsString("stylesheets/invalidXml.xslt");
+  public static final String XSLT_SYNTAX_ERROR = getSampleFileAsString("stylesheets/xsltSyntaxError.xslt");
+  public static final String XSLT_COPY_XML_DOC = getSampleFileAsString("stylesheets/copyXmlDoc.xslt");
+  public static final String XSLT_MARC_TO_INSTANCE = getSampleFileAsString("stylesheets/marcxml-to-instance.xslt");
   private static final String INSTANCE_TYPE_ID = "30fffe0e-e985-4144-b2e2-1e8179bdb41f";
 
-  public static final String XML_INVENTORY_RECORD_SET = getSampleFile("samplesourcefiles/inventoryRecordSet.xml");
-  public static final String TWO_XML_INVENTOR_RECORD_SETS = getSampleFile("samplesourcefiles/twoInventoryRecordSets.xml");
-  public static final JsonObject JSON_TRANSFORMATION_CONFIG = new JsonObject(Objects.requireNonNull(getSampleFile("configs/transformation.json")));
-  public static final JsonObject JSON_CHANNEL = new JsonObject(Objects.requireNonNull(getSampleFile("configs/channel.json")));
-  public static final JsonObject JSON_IMPORT_JOB = new JsonObject(Objects.requireNonNull(getSampleFile("jobs/importJob.json")));
-  public static final JsonObject JSON_FAILED_RECORDS = new JsonObject(Objects.requireNonNull(getSampleFile("jobs/failed-records.json")));
+  public static final String XML_INVENTORY_RECORD_SET = getSampleFileAsString("samplesourcefiles/inventoryRecordSet.xml");
+  public static final String TWO_XML_INVENTOR_RECORD_SETS = getSampleFileAsString("samplesourcefiles/twoInventoryRecordSets.xml");
+  public static final JsonObject JSON_TRANSFORMATION_CONFIG = new JsonObject(Objects.requireNonNull(getSampleFileAsString("configs/transformation.json")));
+  public static final JsonObject JSON_CHANNEL = new JsonObject(Objects.requireNonNull(getSampleFileAsString("configs/channel.json")));
+  public static final JsonObject JSON_IMPORT_JOB = new JsonObject(Objects.requireNonNull(getSampleFileAsString("jobs/importJob.json")));
+  public static final JsonObject JSON_FAILED_RECORDS = new JsonObject(Objects.requireNonNull(getSampleFileAsString("jobs/failed-records.json")));
+  public static final File MARC_FILE = getSampleFile("samplesourcefiles/marc3.marc");
 
-  private static String getSampleFile(String filename) {
+  private static String getSampleFileAsString(String filename) {
     try {
       return FileUtils.readFileToString(
               new File("src/test/resources/fixtures/" + filename), "UTF-8");
@@ -46,6 +48,10 @@ public class Files {
       ImportTests.logger.error(fnfe.getMessage());
       return null;
     }
+  }
+
+  private static File getSampleFile(String filename) {
+    return new File("src/test/resources/fixtures/" + filename);
   }
 
   /**

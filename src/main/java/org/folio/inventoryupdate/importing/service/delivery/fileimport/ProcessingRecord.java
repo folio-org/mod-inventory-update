@@ -1,15 +1,18 @@
 package org.folio.inventoryupdate.importing.service.delivery.fileimport;
 
 import io.vertx.core.json.JsonObject;
+import java.util.Map;
 
 public class ProcessingRecord {
   private final String original;
   private String theRecord;
   private boolean isDeletion = false;
+  private final Map<String, String> prefixMappings;
 
-  public ProcessingRecord(String original) {
+  public ProcessingRecord(String original, Map<String, String> prefixes) {
     this.original = original;
     theRecord = original;
+    prefixMappings = prefixes;
   }
 
   public void update(String theRecord) {
@@ -18,6 +21,17 @@ public class ProcessingRecord {
 
   public String getRecordAsString() {
     return theRecord;
+  }
+
+  public String getCollectionOfOneRecordAsString() {
+    StringBuilder collection = new StringBuilder();
+    collection.append("<collection ");
+    // Add namespaces
+    for (Map.Entry<String, String> entry : prefixMappings.entrySet()) {
+      collection.append("xmlns:").append(entry.getKey()).append("=\"").append(entry.getValue()).append("\"");
+    }
+    collection.append(">");
+    return collection.append(theRecord).append("</collection>").toString();
   }
 
   public JsonObject getRecordAsJson() {

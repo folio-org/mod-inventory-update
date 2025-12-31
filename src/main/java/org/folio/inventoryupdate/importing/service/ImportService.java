@@ -21,6 +21,7 @@ import org.apache.logging.log4j.Logger;
 import org.folio.inventoryupdate.importing.moduledata.database.EntityStorage;
 import org.folio.inventoryupdate.importing.service.delivery.fileimport.FileListeners;
 import org.folio.inventoryupdate.importing.service.delivery.fileimport.FileQueue;
+import org.folio.inventoryupdate.importing.service.delivery.fileimport.MarcPreprocessor;
 import org.folio.inventoryupdate.importing.service.delivery.respond.Channels;
 import org.folio.inventoryupdate.importing.service.delivery.respond.JobsAndMonitoring;
 import org.folio.inventoryupdate.importing.service.delivery.respond.LogPurging;
@@ -94,6 +95,7 @@ public class ImportService implements RouterCreator, TenantInitHooks {
 
     // Importing
     nonValidatingHandler(vertx, routerBuilder, "uploadXmlRecords", this::uploadXmlSourceFile);
+    nonValidatingHandler(vertx, routerBuilder, "uploadMarcFile", this::uploadMarcFile);
     // Dry run
     nonValidatingHandler(vertx, routerBuilder, "echoTransformation", Transformations::tryTransformation);
   }
@@ -206,7 +208,32 @@ public class ImportService implements RouterCreator, TenantInitHooks {
       } else {
         new FileQueue(request, channel.getId().toString()).addNewFile(fileName, xmlContent);
         return FileListeners.deployIfNotDeployed(request, channel).onSuccess(ignore -> {
-          new FileQueue(request, channel.getId().toString()).addNewFile(fileName, xmlContent);
+          responseText(request.routingContext, 200)
+              .end("File queued for processing in ms " + (System.nanoTime() - fileStartTime) / 1000000L);
+        }).mapEmpty();
+      }
+    });
+  }
+
+  private Future<Void> uploadMarcFile(ServiceRequest request) {
+    final long fileStartTime = System.nanoTime();
+    String channelId = request.requestParam("id");
+    String fileName = request.queryParam("filename", UUID.randomUUID() + ".xml");
+    Buffer marcContent = request.body().buffer();
+
+    return getChannelByTagOrUuid(request, channelId).compose(channel -> {
+      if (channel == null) {
+        return responseText(request.routingContext, 404)
+            .end("Could not find channel with id or tag [" + channelId + "] to upload file to.").mapEmpty();
+      } else if (!channel.isEnabled()) {
+        return responseText(request.routingContext, 403)
+            .end("The channel with id or tag [" + channelId + "] is not ready to accept files.").mapEmpty();
+      } else if (channel.isCommissioned()) {
+        new MarcPreprocessor(new FileQueue(request, channel.getId().toString())).addFile(fileName, marcContent);
+        return responseText(request.routingContext, 200).end().mapEmpty();
+      } else {
+        new MarcPreprocessor(new FileQueue(request, channel.getId().toString())).addFile(fileName, marcContent);
+        return FileListeners.deployIfNotDeployed(request, channel).onSuccess(ignore -> {
           responseText(request.routingContext, 200)
               .end("File queued for processing in ms " + (System.nanoTime() - fileStartTime) / 1000000L);
         }).mapEmpty();

@@ -476,6 +476,15 @@
         },
         {
           "methods": ["POST"],
+          "pathPattern": "/inventory-import/channels/{id}/upload/marc",
+          "permissionsRequired": ["inventory-update.import.upload.marc.post"],
+          "modulePermissions": [
+            "modperms.inventory-update.import"
+          ]
+        },
+
+        {
+          "methods": ["POST"],
           "pathPattern": "/inventory-import/channels/{id}/try-transformation",
           "permissionsRequired": ["inventory-update.import.try-transformation.post"]
         },
@@ -807,6 +816,11 @@
       "description": "Imports: Upload source file to a commissioned channel. If or when the channel is listening the file will be processed."
     },
     {
+      "permissionName": "inventory-update.import.upload.marc.post",
+      "displayName": "Upload MARC file for importing",
+      "description": "Imports: Upload MARC source file to a commissioned channel. If or when the channel is listening the file will be processed."
+    },
+    {
       "permissionName": "inventory-update.import.try-transformation.post",
       "displayName": "Upload XML file for synchronous test run",
       "description": "Imports: Upload source file for synchronous test run"
@@ -980,6 +994,7 @@
         "inventory-update.import.failed-records.item.delete",
 
         "inventory-update.import.upload.post",
+        "inventory-update.import.upload.marc.post",
         "inventory-update.import.try-transformation.post",
         "inventory-update.import.commission.post",
         "inventory-update.import.decommission.post",

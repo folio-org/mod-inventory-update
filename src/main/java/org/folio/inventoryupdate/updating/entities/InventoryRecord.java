@@ -265,12 +265,12 @@ public abstract class InventoryRecord {
     }
 
     public void logError (String error, int statusCode, ErrorReport.ErrorCategory category, JsonObject originJson) {
-        Object message = maybeJson(error);
+        Object message = messageAsJson(error);
         logError(error, statusCode, category, findShortMessage(message), originJson);
     }
 
     public void logError (String error, int statusCode, ErrorReport.ErrorCategory category, String shortMessage, JsonObject originJson) {
-        Object message = maybeJson(error);
+        Object message = messageAsJson(error);
         this.error = new ErrorReport(
                 category,
                 UNPROCESSABLE_ENTITY,
@@ -283,11 +283,11 @@ public abstract class InventoryRecord {
                 .setRequestJson(originJson);
     }
 
-    protected static Object maybeJson (String message) {
+    protected static JsonObject messageAsJson(String message) {
         try {
           return  new JsonObject(message);
         } catch (DecodeException de) {
-            return message;
+          return new JsonObject().put("errors",new JsonArray().add(new JsonObject().put("message",message)));
         }
     }
 
@@ -340,22 +340,15 @@ public abstract class InventoryRecord {
     public abstract void skipDependants ();
 
     public static InventoryRecord.Entity getEntityTypeFromString (String entityType) {
-        switch (entityType.toUpperCase()) {
-            case "INSTANCE":
-                return InventoryRecord.Entity.INSTANCE;
-            case "ITEM":
-                return InventoryRecord.Entity.ITEM;
-            case "HOLDINGS_RECORD":
-                return InventoryRecord.Entity.HOLDINGS_RECORD;
-            case "INSTANCE_RELATIONSHIP":
-                return InventoryRecord.Entity.INSTANCE_RELATIONSHIP;
-            case "INSTANCE_TITLE_SUCCESSION":
-                return InventoryRecord.Entity.INSTANCE_TITLE_SUCCESSION;
-            case "LOCATION":
-                return InventoryRecord.Entity.LOCATION;
-            default:
-                return null;
-        }
+      return switch (entityType.toUpperCase()) {
+        case "INSTANCE" -> Entity.INSTANCE;
+        case "ITEM" -> Entity.ITEM;
+        case "HOLDINGS_RECORD" -> Entity.HOLDINGS_RECORD;
+        case "INSTANCE_RELATIONSHIP" -> Entity.INSTANCE_RELATIONSHIP;
+        case "INSTANCE_TITLE_SUCCESSION" -> Entity.INSTANCE_TITLE_SUCCESSION;
+        case "LOCATION" -> Entity.LOCATION;
+        default -> null;
+      };
     }
 
 }

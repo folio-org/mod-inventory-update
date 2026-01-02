@@ -206,8 +206,8 @@ public class ImportService implements RouterCreator, TenantInitHooks {
         new FileQueue(request, channel.getId().toString()).addNewFile(fileName, xmlContent);
         return responseText(request.routingContext, 200).end().mapEmpty();
       } else {
-        new FileQueue(request, channel.getId().toString()).addNewFile(fileName, xmlContent);
         return FileListeners.deployIfNotDeployed(request, channel).onSuccess(ignore -> {
+          new FileQueue(request, channel.getId().toString()).addNewFile(fileName, xmlContent);
           responseText(request.routingContext, 200)
               .end("File queued for processing in ms " + (System.nanoTime() - fileStartTime) / 1000000L);
         }).mapEmpty();
@@ -224,16 +224,17 @@ public class ImportService implements RouterCreator, TenantInitHooks {
     return getChannelByTagOrUuid(request, channelId).compose(channel -> {
       if (channel == null) {
         return responseText(request.routingContext, 404)
-            .end("Could not find channel with id or tag [" + channelId + "] to upload file to.").mapEmpty();
+            .end("Could not find channel with id or tag [" + channelId + "] to upload file to.");
       } else if (!channel.isEnabled()) {
         return responseText(request.routingContext, 403)
-            .end("The channel with id or tag [" + channelId + "] is not ready to accept files.").mapEmpty();
+            .end("The channel with id or tag [" + channelId + "] is not ready to accept files.");
       } else if (channel.isCommissioned()) {
         new MarcPreprocessor(new FileQueue(request, channel.getId().toString())).addFile(fileName, marcContent);
-        return responseText(request.routingContext, 200).end().mapEmpty();
+        return responseText(request.routingContext, 200)
+            .end("File queued for processing in ms " + (System.nanoTime() - fileStartTime) / 1000000L);
       } else {
-        new MarcPreprocessor(new FileQueue(request, channel.getId().toString())).addFile(fileName, marcContent);
         return FileListeners.deployIfNotDeployed(request, channel).onSuccess(ignore -> {
+          new MarcPreprocessor(new FileQueue(request, channel.getId().toString())).addFile(fileName, marcContent);
           responseText(request.routingContext, 200)
               .end("File queued for processing in ms " + (System.nanoTime() - fileStartTime) / 1000000L);
         }).mapEmpty();

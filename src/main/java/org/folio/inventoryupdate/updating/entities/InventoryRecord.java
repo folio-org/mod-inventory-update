@@ -57,7 +57,7 @@ public abstract class InventoryRecord {
       ITEM_PATTERN_MATCH
     }
 
-    protected JsonObject jsonRecord;
+    protected JsonObject jsonRecord = new JsonObject();
     protected JsonObject originJson;
     public static final String VERSION = "_version";
     protected ErrorReport error;
@@ -222,11 +222,7 @@ public abstract class InventoryRecord {
     }
 
     public String asJsonString() {
-        if (jsonRecord != null) {
-            return jsonRecord.toString();
-        } else {
-            return "{}";
-        }
+      return jsonRecord.toString();
     }
 
     public Entity entityType () {
@@ -265,7 +261,7 @@ public abstract class InventoryRecord {
     }
 
     public void logError (String error, int statusCode, ErrorReport.ErrorCategory category, JsonObject originJson) {
-        Object message = messageAsJson(error);
+        JsonObject message = messageAsJson(error);
         logError(error, statusCode, category, findShortMessage(message), originJson);
     }
 
@@ -291,26 +287,15 @@ public abstract class InventoryRecord {
         }
     }
 
-    protected String findShortMessage (Object inventoryMessage) {
-        String shortMessage;
-        if (inventoryMessage instanceof JsonObject jsonFormattedError) {
-          if (jsonFormattedError.containsKey(ERRORS) && jsonFormattedError.getValue(ERRORS) instanceof JsonArray) {
+    protected String findShortMessage (JsonObject errorMessage) {
+        String shortMessage = "Error: " + getTransaction() + " of " + entityType();
+          if (errorMessage.containsKey(ERRORS) && errorMessage.getValue(ERRORS) instanceof JsonArray) {
                 // Looks like FOLIO json schema validation error
-                shortMessage = getMessageFromFolioSchemaValidationError(jsonFormattedError);
-            } else if (jsonFormattedError.containsKey(MESSAGE)) {
+                shortMessage = getMessageFromFolioSchemaValidationError(errorMessage);
+            } else if (errorMessage.containsKey(MESSAGE)) {
                 // Name of the essential message property in raw PostgreSQL error messages
-                shortMessage = jsonFormattedError.getString(MESSAGE);
-            } else {
-                // fallback
-                shortMessage = "Error: " + getTransaction() + " of " + entityType();
+                shortMessage = errorMessage.getString(MESSAGE);
             }
-        } else if (inventoryMessage instanceof String && inventoryMessage.toString().length()>1) {
-            // In some error scenarios, Inventory just returns a simple string.
-            shortMessage = inventoryMessage.toString().substring(0, Math.min(inventoryMessage.toString().length(),60));
-        } else {
-            // fallback
-            shortMessage = "Error: " + getTransaction() + " of " + entityType();
-        }
         return shortMessage;
     }
 

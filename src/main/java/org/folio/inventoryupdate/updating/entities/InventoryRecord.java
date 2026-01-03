@@ -265,7 +265,7 @@ public abstract class InventoryRecord {
     }
 
     public void logError (String error, int statusCode, ErrorReport.ErrorCategory category, JsonObject originJson) {
-        Object message = messageAsJson(error);
+        JsonObject message = messageAsJson(error);
         logError(error, statusCode, category, findShortMessage(message), originJson);
     }
 

@@ -5,7 +5,7 @@ import io.restassured.response.Response;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.unit.TestContext;
-import io.vertx.ext.unit.junit.VertxUnitRunner;
+import java.util.Arrays;
 import org.folio.inventoryupdate.unittests.fakestorage.FakeFolioApisForImporting;
 import org.folio.inventoryupdate.unittests.fakestorage.entities.BatchOfInventoryRecordSets;
 import org.folio.inventoryupdate.unittests.fakestorage.entities.InputHoldingsRecord;
@@ -18,9 +18,6 @@ import org.folio.inventoryupdate.updating.instructions.ProcessingInstructionsUps
 import org.folio.inventoryupdate.unittests.fakestorage.DeleteProcessingInstructions;
 import org.folio.inventoryupdate.unittests.fakestorage.InputProcessingInstructions;
 import org.junit.Test;
-import org.junit.runner.RunWith;
-
-import java.util.Arrays;
 
 import static org.folio.inventoryupdate.unittests.fakestorage.FakeApis.post;
 import static org.folio.inventoryupdate.unittests.fakestorage.FakeFolioApisForImporting.HOLDINGS_STORAGE_PATH;

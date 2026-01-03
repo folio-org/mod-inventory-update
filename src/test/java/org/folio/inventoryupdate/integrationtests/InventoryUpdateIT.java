@@ -2,6 +2,7 @@ package org.folio.inventoryupdate.integrationtests;
 
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.empty;
+import static org.hamcrest.Matchers.notNullValue;
 
 import io.restassured.RestAssured;
 import io.restassured.http.ContentType;
@@ -186,6 +187,23 @@ class InventoryUpdateIT {
     .then()
     .statusCode(200);
   }
+
+  @Test
+  void willWrapPlainTextOrgFolioRestJaxRsSerializationErrorInJsonErrorsArray() {
+    given()
+        .body("""
+        {
+          "inventoryRecordSets": [
+            {"instance": {"title": "bar", "hrid": "in2", "source": "test", "instanceTypeId": "###", "subjects": ["topic3", "topic4"]}}
+          ]
+        }
+        """.replace("###", TEXT_INSTANCE_TYPE_ID))
+        .put("/inventory-batch-upsert-hrid")
+        .then()
+        .statusCode(207)
+        .body("errors[0].message.errors[0].message", is(notNullValue()));
+  }
+
 
   private static RequestSpecification given() {
     return RestAssured.given()

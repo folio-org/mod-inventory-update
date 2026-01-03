@@ -57,7 +57,7 @@ public abstract class InventoryRecord {
       ITEM_PATTERN_MATCH
     }
 
-    protected JsonObject jsonRecord;
+    protected JsonObject jsonRecord = new JsonObject();
     protected JsonObject originJson;
     public static final String VERSION = "_version";
     protected ErrorReport error;
@@ -222,11 +222,7 @@ public abstract class InventoryRecord {
     }
 
     public String asJsonString() {
-        if (jsonRecord != null) {
-            return jsonRecord.toString();
-        } else {
-            return "{}";
-        }
+      return jsonRecord.toString();
     }
 
     public Entity entityType () {
@@ -265,12 +261,12 @@ public abstract class InventoryRecord {
     }
 
     public void logError (String error, int statusCode, ErrorReport.ErrorCategory category, JsonObject originJson) {
-        Object message = maybeJson(error);
+        JsonObject message = messageAsJson(error);
         logError(error, statusCode, category, findShortMessage(message), originJson);
     }
 
     public void logError (String error, int statusCode, ErrorReport.ErrorCategory category, String shortMessage, JsonObject originJson) {
-        Object message = maybeJson(error);
+        Object message = messageAsJson(error);
         this.error = new ErrorReport(
                 category,
                 UNPROCESSABLE_ENTITY,
@@ -283,34 +279,23 @@ public abstract class InventoryRecord {
                 .setRequestJson(originJson);
     }
 
-    protected static Object maybeJson (String message) {
+    protected static JsonObject messageAsJson(String message) {
         try {
           return  new JsonObject(message);
         } catch (DecodeException de) {
-            return message;
+          return new JsonObject().put("errors",new JsonArray().add(new JsonObject().put("message",message)));
         }
     }
 
-    protected String findShortMessage (Object inventoryMessage) {
-        String shortMessage;
-        if (inventoryMessage instanceof JsonObject jsonFormattedError) {
-          if (jsonFormattedError.containsKey(ERRORS) && jsonFormattedError.getValue(ERRORS) instanceof JsonArray) {
+    protected String findShortMessage (JsonObject errorMessage) {
+        String shortMessage = "Error: " + getTransaction() + " of " + entityType();
+          if (errorMessage.containsKey(ERRORS) && errorMessage.getValue(ERRORS) instanceof JsonArray) {
                 // Looks like FOLIO json schema validation error
-                shortMessage = getMessageFromFolioSchemaValidationError(jsonFormattedError);
-            } else if (jsonFormattedError.containsKey(MESSAGE)) {
+                shortMessage = getMessageFromFolioSchemaValidationError(errorMessage);
+            } else if (errorMessage.containsKey(MESSAGE)) {
                 // Name of the essential message property in raw PostgreSQL error messages
-                shortMessage = jsonFormattedError.getString(MESSAGE);
-            } else {
-                // fallback
-                shortMessage = "Error: " + getTransaction() + " of " + entityType();
+                shortMessage = errorMessage.getString(MESSAGE);
             }
-        } else if (inventoryMessage instanceof String && inventoryMessage.toString().length()>1) {
-            // In some error scenarios, Inventory just returns a simple string.
-            shortMessage = inventoryMessage.toString().substring(0, Math.min(inventoryMessage.toString().length(),60));
-        } else {
-            // fallback
-            shortMessage = "Error: " + getTransaction() + " of " + entityType();
-        }
         return shortMessage;
     }
 
@@ -340,22 +325,15 @@ public abstract class InventoryRecord {
     public abstract void skipDependants ();
 
     public static InventoryRecord.Entity getEntityTypeFromString (String entityType) {
-        switch (entityType.toUpperCase()) {
-            case "INSTANCE":
-                return InventoryRecord.Entity.INSTANCE;
-            case "ITEM":
-                return InventoryRecord.Entity.ITEM;
-            case "HOLDINGS_RECORD":
-                return InventoryRecord.Entity.HOLDINGS_RECORD;
-            case "INSTANCE_RELATIONSHIP":
-                return InventoryRecord.Entity.INSTANCE_RELATIONSHIP;
-            case "INSTANCE_TITLE_SUCCESSION":
-                return InventoryRecord.Entity.INSTANCE_TITLE_SUCCESSION;
-            case "LOCATION":
-                return InventoryRecord.Entity.LOCATION;
-            default:
-                return null;
-        }
+      return switch (entityType.toUpperCase()) {
+        case "INSTANCE" -> Entity.INSTANCE;
+        case "ITEM" -> Entity.ITEM;
+        case "HOLDINGS_RECORD" -> Entity.HOLDINGS_RECORD;
+        case "INSTANCE_RELATIONSHIP" -> Entity.INSTANCE_RELATIONSHIP;
+        case "INSTANCE_TITLE_SUCCESSION" -> Entity.INSTANCE_TITLE_SUCCESSION;
+        case "LOCATION" -> Entity.LOCATION;
+        default -> null;
+      };
     }
 
 }

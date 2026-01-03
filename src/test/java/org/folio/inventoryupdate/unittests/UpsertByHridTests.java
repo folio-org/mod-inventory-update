@@ -5,7 +5,7 @@ import io.restassured.response.Response;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.unit.TestContext;
-import io.vertx.ext.unit.junit.VertxUnitRunner;
+import java.util.Arrays;
 import org.folio.inventoryupdate.unittests.fakestorage.FakeFolioApisForImporting;
 import org.folio.inventoryupdate.unittests.fakestorage.entities.BatchOfInventoryRecordSets;
 import org.folio.inventoryupdate.unittests.fakestorage.entities.InputHoldingsRecord;
@@ -18,9 +18,6 @@ import org.folio.inventoryupdate.updating.instructions.ProcessingInstructionsUps
 import org.folio.inventoryupdate.unittests.fakestorage.DeleteProcessingInstructions;
 import org.folio.inventoryupdate.unittests.fakestorage.InputProcessingInstructions;
 import org.junit.Test;
-import org.junit.runner.RunWith;
-
-import java.util.Arrays;
 
 import static org.folio.inventoryupdate.unittests.fakestorage.FakeApis.post;
 import static org.folio.inventoryupdate.unittests.fakestorage.FakeFolioApisForImporting.HOLDINGS_STORAGE_PATH;
@@ -29,8 +26,8 @@ import static org.folio.inventoryupdate.unittests.fakestorage.FakeFolioApisForIm
 import static org.folio.inventoryupdate.unittests.fakestorage.FakeFolioApisForImporting.ORDER_LINES_STORAGE_PATH;
 import static org.folio.inventoryupdate.unittests.fakestorage.FakeFolioApisForImporting.RESULT_SET_HOLDINGS_RECORDS;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.fail;
 
-@RunWith(VertxUnitRunner.class)
 public class UpsertByHridTests extends InventoryUpdateTestBase {
 
   @Test
@@ -483,7 +480,10 @@ public class UpsertByHridTests extends InventoryUpdateTestBase {
         .put(PROCESSING, new InputProcessingInstructions()
             .setRetainOmittedInstanceProperties(true)
             .setRetainOmittedHoldingsRecordProperties(true)
-            .setRetainOmittedItemProperties(true).getJson()));
+            .setRetainOmittedItemProperties(true)
+            .setInstancePropertiesToRetain("instanceTypeId")
+            .setHoldingsRecordPropertiesToRetain("shelvingTitle","someOtherProp")
+            .setItemPropertiesToRetain("someProp","yearCaption").getJson()));
 
     getRecordsFromStorage(INSTANCE_STORAGE_PATH,null).getJsonArray("instances").stream()
         .forEach(instance -> testContext.assertEquals(((JsonObject)instance).getJsonArray("editions").getString(0), "retainMe",
@@ -2830,6 +2830,30 @@ public class UpsertByHridTests extends InventoryUpdateTestBase {
     testContext.assertEquals(getMetric(responseJson, ITEM, CREATE , FAILED), 3,
         "Upsert metrics response should report [3] item record create failures (forced) " + responseJson.encodePrettily());
 
+  }
+
+  @Test
+  public void plainTextErrorFromStorageIsWrappedAsJson (TestContext testContext) {
+    fakeFolioApis.itemStorage.failOnCreate = true;
+    Response response = upsertByHrid(207,new JsonObject()
+        .put("instance",
+            new InputInstance().setTitle("Initial InputInstance").setInstanceTypeId("12345").setHrid("001").setSource("test").getJson())
+        .put("holdingsRecords", new JsonArray()
+            .add(new InputHoldingsRecord().setHrid("HOL-001").setPermanentLocationId(LOCATION_ID_1).setCallNumber("test-cn-1").getJson()
+                .put("items", new JsonArray()
+                    .add(new InputItem().setHrid("ITM-001")
+                        .setStatus(STATUS_UNKNOWN)
+                        .setMaterialTypeId(MATERIAL_TYPE_TEXT)
+                        .setBarcode("BC-001").getJson())))));
+
+    JsonObject responseJson = new JsonObject(response.getBody().asString());
+    try {
+      testContext.assertTrue(responseJson.containsKey("errors")
+          && !responseJson.getJsonArray("errors").isEmpty()
+          && responseJson.getJsonArray("errors").getJsonObject(0).getJsonObject("message") != null);
+    } catch (Exception e) {
+      fail("Error message should be JsonObject, but:   " + e.getMessage());
+    }
   }
 
   @Test

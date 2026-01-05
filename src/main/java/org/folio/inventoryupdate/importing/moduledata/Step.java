@@ -31,13 +31,13 @@ import org.xml.sax.SAXException;
 public class Step extends Entity {
   // Static map of Entity Fields.
   public static final String ID = "ID";
-  public static final String NAME = "NAME";
-  public static final String ENABLED = "ENABLED";
-  public static final String TYPE = "TYPE";
-  public static final String DESCRIPTION = "DESCRIPTION";
-  public static final String INPUT_FORMAT = "INPUT_FORMAT";
-  public static final String OUTPUT_FORMAT = "OUTPUT_FORMAT";
-  public static final String SCRIPT = "SCRIPT";
+  private static final String NAME = "NAME";
+  private static final String ENABLED = "ENABLED";
+  private static final String TYPE = "TYPE";
+  private static final String DESCRIPTION = "DESCRIPTION";
+  private static final String INPUT_FORMAT = "INPUT_FORMAT";
+  private static final String OUTPUT_FORMAT = "OUTPUT_FORMAT";
+  private static final String SCRIPT = "SCRIPT";
   private static final Map<String, Field> FIELDS = new HashMap<>();
 
   static {

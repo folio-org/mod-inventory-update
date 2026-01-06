@@ -24,7 +24,9 @@ import org.folio.inventoryupdate.importing.utils.SettableClock;
 public class Reporting {
 
   public static final Logger logger = LogManager.getLogger("reporting");
-  private final long startTime;
+  private static final long NANOS_PER_SECOND = 1000000000L;
+  private static final long NANOS_PER_MILLI = 1000000L;
+  private final long startTimeNanos;
   private final AtomicInteger filesProcessed = new AtomicInteger(0);
   private final AtomicInteger recordsProcessed = new AtomicInteger(0);
   private final InventoryMetrics inventoryMetrics = new InventoryMetrics();
@@ -34,7 +36,7 @@ public class Reporting {
 
   public Reporting(FileProcessor handler, String tenant, Vertx vertx) {
     this.fileProcessor = handler;
-    this.startTime = System.nanoTime();
+    this.startTimeNanos = System.nanoTime();
     this.storage = new EntityStorage(vertx, tenant);
   }
 
@@ -92,8 +94,8 @@ public class Reporting {
         FileStats stats = fileStats.peek();
         assert stats != null;
         log("File #" + filesProcessed.get() + " (" + stats.getFileName() + ") "
-            + stats.getRecordsProcessed() + " records in " + processingTimeAsString(stats.processingTime())
-            + " (" + (stats.getRecordsProcessed() * 1000L / stats.processingTime()) + " recs/s.)")
+            + stats.getRecordsProcessed() + " records in " + processingTimeAsString(stats.processingTimeNanos())
+            + " (" + (stats.getRecordsProcessed() * NANOS_PER_SECOND / stats.processingTimeNanos()) + " recs/s.)")
             .compose(na -> log("File: " + stats.getInventoryMetrics().report()));
         fileStats.take();
       } else {
@@ -106,19 +108,19 @@ public class Reporting {
   }
 
   public void reportFileQueueStats(boolean queueDone) {
-    long processingTime = System.nanoTime() - startTime;
+    long processingTimeNanos = System.nanoTime() - startTimeNanos;
     log((queueDone ? "Done processing queue. " : "Queue partially processed. ")
         + filesProcessed + " file(s) with " + recordsProcessed.get()
-        + " records processed in " + processingTimeAsString(processingTime) + " ("
-        + (recordsProcessed.get() * 1000000000L / processingTime) + " recs/s.)")
+        + " records processed in " + processingTimeAsString(processingTimeNanos) + " ("
+        + (recordsProcessed.get() * NANOS_PER_SECOND / processingTimeNanos) + " recs/s.)")
         .compose(na -> queueDone ? log("File queue: " + inventoryMetrics.report())
             : log("File queue (partial report): " + inventoryMetrics.report()));
     if (queueDone) {
       fileProcessor.logFinish(recordsProcessed.get());
     }
     logger.info("{} file(s) with {} records processed in {} ({} recs/s.) ",
-        filesProcessed, recordsProcessed.get(), processingTimeAsString(processingTime),
-        recordsProcessed.get() * 1000000000L / processingTime);
+        filesProcessed, recordsProcessed.get(), processingTimeAsString(processingTimeNanos),
+        recordsProcessed.get() * NANOS_PER_SECOND / processingTimeNanos);
     logger.info(fileProcessor.getStats());
   }
 
@@ -169,8 +171,8 @@ public class Reporting {
     }
   }
 
-  private static String processingTimeAsString(long processingTime) {
-    long timeMillis = processingTime / 1000000L;
+  private static String processingTimeAsString(long processingTimeNanos) {
+    long timeMillis = processingTimeNanos / NANOS_PER_MILLI;
     int hours = (int) timeMillis / (1000 * 60 * 60);
     long remainingMs = timeMillis % (1000 * 60 * 60);
     int minutes = (int) remainingMs / (1000 * 60);

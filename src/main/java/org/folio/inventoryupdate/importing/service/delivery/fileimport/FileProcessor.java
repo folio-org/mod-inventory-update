@@ -74,7 +74,7 @@ public abstract class FileProcessor {
   }
 
   public boolean fileQueueDone(boolean atEndOfCurrentFile) {
-    if (atEndOfCurrentFile && fileListener.fileQueueIsEmpty() && !reporting.pendingFileStats()) {
+    if (atEndOfCurrentFile && fileListener.queueIsEmpty() && !reporting.pendingFileStats()) {
       fileListener.markFileQueuePassive();
     }
     return fileListener.fileQueueIsPassive();

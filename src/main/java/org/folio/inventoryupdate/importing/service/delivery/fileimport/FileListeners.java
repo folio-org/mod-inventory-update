@@ -48,11 +48,9 @@ public final class FileListeners {
     FileListener fileListener = FileListeners.getFileListener(request.tenant(), cfgId);
     if (fileListener == null) {
       if (retainQueueIfAny) {
-        new FileQueue(request, cfgId).createDirectoriesIfNotExist();
+        FileQueue.get(request, cfgId).createDirectoriesIfNotExist();
       } else {
-        FileQueue queue = new FileQueue(request, cfgId);
-        queue.deleteDirectoriesIfExist();
-        queue.createDirectoriesIfNotExist();
+        FileQueue.get(request, cfgId).initialize();
       }
       FileListener listenerVerticle = addFileListener(request.tenant(), cfgId, new XmlFileListener(request, channel));
       return channel.setEnabledListening(true, listening, request.entityStorage())
@@ -83,10 +81,10 @@ public final class FileListeners {
           .compose(na -> fileListener.undeploy())
           .map(na -> {
             if (!retainQueue) {
-              new FileQueue(request, cfgId).deleteDirectoriesIfExist();
+              FileQueue.get(request, cfgId).deleteDirectoriesIfExist();
             }
             return FILE_LISTENERS.get(request.tenant()).remove(cfgId);
-          }).map("Decommissioned channel " + channel.getRecord().name());
+          }).map("Channel decommissioned." + channel.getRecord().name());
     } else {
       return Future.succeededFuture(
           "Did not find channel [" + channel.getRecord().name() + "] in list of commissioned channels.");

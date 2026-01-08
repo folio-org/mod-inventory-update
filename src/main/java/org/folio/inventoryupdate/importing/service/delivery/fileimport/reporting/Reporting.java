@@ -24,8 +24,8 @@ import org.folio.inventoryupdate.importing.utils.SettableClock;
 public class Reporting {
 
   public static final Logger logger = LogManager.getLogger("reporting");
-  private static final long NANOS_PER_SECOND = 1000000000L;
-  private static final long NANOS_PER_MILLI = 1000000L;
+  private static final long NANOS_PER_SECOND = 1_000_000_000L;
+  private static final long NANOS_PER_MILLI = 1_000_000L;
   private final long startTimeNanos;
   private final AtomicInteger filesProcessed = new AtomicInteger(0);
   private final AtomicInteger recordsProcessed = new AtomicInteger(0);

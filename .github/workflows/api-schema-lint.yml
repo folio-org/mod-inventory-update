@@ -1,13 +1,9 @@
-name: api-lint
+name: api-schema-lint
 
-# https://dev.folio.org/guides/api-lint/
+# https://dev.folio.org/guides/describe-schema/
 
-# API_TYPES: string: The space-separated list of types to consider.
-# One or more of 'RAML OAS'.
-# e.g. 'OAS'
-#
 # API_DIRECTORIES: string: The space-separated list of directories to search
-# for API description files.
+# for JSON Schema files.
 # e.g. 'src/main/resources/openapi'
 # NOTE: -- Also add each separate path to each of the "on: paths:" sections.
 # e.g. 'src/main/resources/openapi/**'
@@ -15,16 +11,10 @@ name: api-lint
 # API_EXCLUDES: string: The space-separated list of directories and files
 # to exclude from traversal, in addition to the default exclusions.
 # e.g. ''
-#
-# API_WARNINGS: boolean: Whether to cause Warnings to be displayed,
-# and to fail the workflow.
-# e.g. false
 
 env:
-  API_TYPES: 'OAS'
   API_DIRECTORIES: 'src/main/resources/openapi'
-  API_EXCLUDES: ''
-  API_WARNINGS: false
+  API_EXCLUDES: 'example'
 
 on:
   workflow_dispatch:
@@ -36,7 +26,7 @@ on:
       - 'src/main/resources/openapi/**'
 
 jobs:
-  api-lint:
+  api-schema-lint:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -46,21 +36,12 @@ jobs:
       - name: Prepare folio-tools
         run: |
           git clone https://github.com/folio-org/folio-tools
-          cd folio-tools/api-lint \
+          cd folio-tools/api-schema-lint \
             && yarn install \
             && pip3 install -r requirements.txt
-      - name: Configure default options
+      - name: Do api-schema-lint
         run: |
-          echo "OPTION_WARNINGS=''" >> $GITHUB_ENV
-      - name: Configure option warnings
-        if: ${{ env.API_WARNINGS == 'true' }}
-        run: |
-          echo "OPTION_WARNINGS=--warnings" >> $GITHUB_ENV
-      - name: Do api-lint
-        run: |
-          python3 folio-tools/api-lint/api_lint.py \
+          python3 folio-tools/api-schema-lint/api_schema_lint.py \
             --loglevel info \
-            --types ${{ env.API_TYPES }} \
             --directories ${{ env.API_DIRECTORIES }} \
-            --excludes ${{ env.API_EXCLUDES }} \
-            ${{ env.OPTION_WARNINGS }}
+            --excludes ${{ env.API_EXCLUDES }}

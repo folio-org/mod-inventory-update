@@ -212,8 +212,8 @@ public class ImportTests extends InventoryUpdateTestBase {
     postJsonObject(Service.PATH_STEPS, step);
     JsonObject tsa = new JsonObject();
     tsa.put("id", tsaId);
-    tsa.put("step", new JsonObject().put("id", stepId));
-    tsa.put("transformation", transformationId);
+    tsa.put("stepId", stepId);
+    tsa.put("transformationId", transformationId);
     tsa.put("position", "1");
     String id = tsa.getString("id");
 
@@ -260,8 +260,8 @@ public class ImportTests extends InventoryUpdateTestBase {
       postJsonObject(Service.PATH_STEPS, step);
       JsonObject tsa = new JsonObject();
       tsa.put("id", tsaIds.get(i));
-      tsa.put("step", new JsonObject().put("id", stepIds.get(i)));
-      tsa.put("transformation", transformationId);
+      tsa.put("stepId", stepIds.get(i));
+      tsa.put("transformationId", transformationId);
       tsa.put("position", String.valueOf(i + 1));
       postJsonObject(Service.PATH_TSAS, tsa);
     }
@@ -319,8 +319,8 @@ public class ImportTests extends InventoryUpdateTestBase {
     for (int i = 0; i < 4; i++) {
       JsonObject tsa = new JsonObject();
       tsa.put("id", tsaIds.get(i));
-      tsa.put("step", new JsonObject().put("id", stepIds.get(i)));
-      tsa.put("transformation", transformationId);
+      tsa.put("stepId", stepIds.get(i));
+      tsa.put("transformationId", transformationId);
       tsa.put("position", String.valueOf(i + 1));
       postJsonObject(Service.PATH_TSAS, tsa);
     }
@@ -330,8 +330,8 @@ public class ImportTests extends InventoryUpdateTestBase {
     // Insert step at position 2
     JsonObject tsa = new JsonObject();
     tsa.put("id", tsaId5);
-    tsa.put("step", new JsonObject().put("id", stepIds.get(4)));
-    tsa.put("transformation", transformationId);
+    tsa.put("stepId", stepIds.get(4));
+    tsa.put("transformationId", transformationId);
     tsa.put("position", String.valueOf(2));
     postJsonObject(Service.PATH_TSAS, tsa);
 
@@ -370,8 +370,8 @@ public class ImportTests extends InventoryUpdateTestBase {
       postJsonObject(Service.PATH_STEPS, step);
       JsonObject tsa = new JsonObject();
       tsa.put("id", tsaIds.get(i));
-      tsa.put("step", new JsonObject().put("id", stepIds.get(i)));
-      tsa.put("transformation", transformationId);
+      tsa.put("stepId", stepIds.get(i));
+      tsa.put("transformationId", transformationId);
       tsa.put("position", String.valueOf(i + 1));
       postJsonObject(Service.PATH_TSAS, tsa);
     }

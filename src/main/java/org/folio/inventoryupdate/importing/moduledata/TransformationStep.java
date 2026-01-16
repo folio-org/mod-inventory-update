@@ -72,12 +72,8 @@ public class TransformationStep extends Entity {
   public TransformationStep fromJson(JsonObject json) {
     return new TransformationStep(
         getUuidOrGenerate(json.getString(jsonPropertyName(ID))),
-        json.containsKey(jsonPropertyName(TRANSFORMATION_ID))
-            ? UUID.fromString(json.getString(jsonPropertyName(TRANSFORMATION_ID)))
-            : UUID.fromString(json.getString("transformation")), // legacy Harvester schema
-        json.containsKey(jsonPropertyName(STEP_ID))
-            ? UUID.fromString(json.getString(jsonPropertyName(STEP_ID)))
-            : UUID.fromString(json.getJsonObject("step").getString("id")), // legacy Harvester schema
+        UUID.fromString(json.getString(jsonPropertyName(TRANSFORMATION_ID))),
+        UUID.fromString(json.getString(jsonPropertyName(STEP_ID))),
         Integer.parseInt(json.getString(jsonPropertyName(POSITION))));
   }
 

@@ -1152,16 +1152,11 @@ components:
           description: The position of the step amongst other steps in the pipeline.
         metadata:
           $ref: "#/components/schemas/metadata"
+      required:
+        - stepId
+        - transformationId
+        - position
       additionalProperties: false
-      anyOf:
-        - required:
-          - stepId
-          - transformationId
-          - position
-        - required:
-          - step
-          - transformation
-          - position
     logLines:
       description: Job log statements as JSON.
       type: object

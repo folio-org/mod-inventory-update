@@ -4,13 +4,13 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 public class FileStats {
   private final String fileName;
-  private final long startTime;
+  private final long startTimeNanos;
   private final InventoryMetrics metrics;
   private final AtomicInteger recordsProcessed = new AtomicInteger(0);
 
   public FileStats(String fileName) {
     this.fileName = fileName;
-    startTime = System.nanoTime();
+    startTimeNanos = System.nanoTime();
     metrics = new InventoryMetrics();
   }
 
@@ -26,8 +26,8 @@ public class FileStats {
     return metrics;
   }
 
-  public long processingTime() {
-    return System.nanoTime() - startTime;
+  public long processingTimeNanos() {
+    return System.nanoTime() - startTimeNanos;
   }
 
   public String getFileName() {

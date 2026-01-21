@@ -1,5 +1,6 @@
 package org.folio.inventoryupdate.importing.moduledata;
 
+import io.vertx.core.Future;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.sqlclient.templates.RowMapper;
@@ -12,6 +13,7 @@ import java.util.UUID;
 import org.folio.inventoryupdate.importing.moduledata.database.Entity;
 import org.folio.inventoryupdate.importing.moduledata.database.PgColumn;
 import org.folio.inventoryupdate.importing.moduledata.database.Tables;
+import org.folio.tlib.postgres.TenantPgPool;
 
 public class Transformation extends Entity {
 
@@ -30,7 +32,7 @@ public class Transformation extends Entity {
   }
 
   TransformationRecord theRecord;
-  private JsonArray stepsArray;
+  private JsonArray stepsArray = new JsonArray();
 
   public Transformation() {
   }
@@ -73,7 +75,7 @@ public class Transformation extends Entity {
         getUuidOrGenerate(json.getString(jsonPropertyName(ID))),
         json.getString(jsonPropertyName(NAME)),
         json.getString(jsonPropertyName(DESCRIPTION)))
-        .setStepsArray(json.getJsonArray("steps"));
+        .setStepsArray(json.getJsonArray("steps", new JsonArray()));
   }
 
   public Transformation setStepsArray(JsonArray steps) {
@@ -82,7 +84,7 @@ public class Transformation extends Entity {
   }
 
   public boolean containsListOfSteps() {
-    return stepsArray != null;
+    return !stepsArray.isEmpty();
   }
 
   public List<Entity> getListOfTransformationSteps() {
@@ -107,6 +109,7 @@ public class Transformation extends Entity {
     json.put(jsonPropertyName(ID), theRecord.id);
     json.put(jsonPropertyName(NAME), theRecord.name);
     json.put(jsonPropertyName(DESCRIPTION), theRecord.description);
+    json.put("steps", stepsArray);
     putMetadata(json);
     return json;
   }
@@ -134,6 +137,17 @@ public class Transformation extends Entity {
         });
   }
 
+
   public record TransformationRecord(UUID id, String name, String description) {
+  }
+
+  public Future<Transformation> fetchTransformationSteps(TenantPgPool pool) {
+    return new TransformationStep().fetchTransformationStepsByTransformationId(pool, this.getId())
+        .map(steps -> {
+          for (JsonObject step : steps) {
+            stepsArray.add(step);
+          }
+          return this;
+        });
   }
 }

@@ -18,7 +18,6 @@ import io.restassured.response.ValidatableResponse;
 import io.restassured.specification.RequestSpecification;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
-import io.vertx.ext.unit.junit.VertxUnitRunner;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -54,13 +53,11 @@ import org.folio.okapi.common.XOkapiHeaders;
 import org.folio.okapi.testing.UtilityClassTester;
 import org.folio.tlib.postgres.testing.TenantPgPoolContainer;
 import org.junit.*;
-import org.junit.runner.RunWith;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.testcontainers.containers.PostgreSQLContainer;
 
 
-@RunWith(VertxUnitRunner.class)
 public class ImportTests extends InventoryUpdateTestBase {
   public static final Logger logger = LoggerFactory.getLogger(ImportTests.class);
 
@@ -384,7 +381,40 @@ public class ImportTests extends InventoryUpdateTestBase {
     assertThat(getRecordById(Service.PATH_TSAS, tsaId4).extract().path("position"), is(3));
     assertThat(getRecordById(Service.PATH_TSAS, tsaId5).extract().path("position"), is(4));
     deleteRecord(Service.PATH_TSAS, tsaId3, 404);
+
+    assertThat((getEntityJsonById(Service.PATH_TRANSFORMATIONS,transformationId)).getJsonArray("steps").size(), is(4));
   }
+
+  @Test
+  public void canOrganizeStepsThroughTransformationEntity() {
+    JsonObject transformation = Files.JSON_TRANSFORMATION_CONFIG.copy();
+    String transformationId = "61f55639-17d6-417a-9d44-ffb4226ad020";
+    transformation.put("steps", new JsonArray());
+    for (String stepId : Arrays.asList("10000000-0000-4000-8000-000000000000",
+        "20000000-0000-4000-8000-000000000000", "30000000-0000-4000-8000-000000000000")) {
+      JsonObject step = new JsonObject();
+      step.put("id", stepId)
+          .put("name", "test step " + stepId)
+          .put("script", Files.XSLT_COPY_XML_DOC);
+      postJsonObject(Service.PATH_STEPS, step);
+      transformation.getJsonArray("steps").add(new JsonObject().put("id", stepId));
+    }
+    transformation.put("id", transformationId);
+    System.out.println(transformation.encodePrettily());
+    postJsonObject(Service.PATH_TRANSFORMATIONS, transformation);
+    assertThat(getTotalRecords(Service.PATH_TSAS),is(3));
+    assertThat((getEntityJsonById(Service.PATH_TRANSFORMATIONS,transformationId)).getJsonArray("steps").size(), is(3));
+    assertThat(getTotalRecords(Service.PATH_TSAS + "?query=stepId=20000000-0000-4000-8000-000000000000"),is(1));
+
+    transformation.getJsonArray("steps").remove(1);
+    putJsonObject(Service.PATH_TRANSFORMATIONS + "/" + transformationId, transformation, 204);
+
+    assertThat(getTotalRecords(Service.PATH_TSAS),is(2));
+    assertThat((getEntityJsonById(Service.PATH_TRANSFORMATIONS,transformationId)).getJsonArray("steps").size(), is(2));
+    assertThat(getTotalRecords(Service.PATH_TSAS + "?query=stepId=20000000-0000-4000-8000-000000000000"),is(0));
+
+  }
+
 
   @Test
   public void canPostGetPutStepGetXsltDelete() {

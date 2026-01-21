@@ -400,10 +400,12 @@ public class ImportTests extends InventoryUpdateTestBase {
       transformation.getJsonArray("steps").add(new JsonObject().put("id", stepId));
     }
     transformation.put("id", transformationId);
-    System.out.println(transformation.encodePrettily());
+
     postJsonObject(Service.PATH_TRANSFORMATIONS, transformation);
     assertThat(getTotalRecords(Service.PATH_TSAS),is(3));
-    assertThat((getEntityJsonById(Service.PATH_TRANSFORMATIONS,transformationId)).getJsonArray("steps").size(), is(3));
+    assertThat((getEntityJsonById(Service.PATH_TRANSFORMATIONS, transformationId)).getJsonArray("steps").size(), is(3));
+    assertThat((getEntityJsonById(Service.PATH_TRANSFORMATIONS, transformationId)).getJsonArray("steps")
+        .getJsonObject(0).getString("name"),startsWith("test step"));
     assertThat(getTotalRecords(Service.PATH_TSAS + "?query=stepId=20000000-0000-4000-8000-000000000000"),is(1));
 
     transformation.getJsonArray("steps").remove(1);

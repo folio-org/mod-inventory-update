@@ -1139,44 +1139,28 @@ components:
           type: string
           format: uuid
           description: Unique identifier for the association.
-        stepId:
-          type: string
-          format: uuid
-          description: UUID referencing a transformation step.
         transformationId:
           type: string
           format: uuid
           description: UUID referencing a transformation pipeline.
+        stepId:
+           type: string
+           format: uuid
+           description: UUID referencing a transformation step.
+        stepName:
+           type: string
+           description: optional, read-only name of the step
+           readOnly: true
         position:
           type: string
           description: The position of the step amongst other steps in the pipeline.
-        step:
-          type: object
-          description: DEPRECATED, legacy Harvester schema for identifying step
-          properties:
-            id:
-              type: string
-              format: uuid
-              description: Id of the step associated with a pipeline.
-            name:
-              type: string
-              description: Name for the step associated with a pipeline.
-          additionalProperties: true
-        transformation:
-          type: string
-          description: DEPRECATED, legacy Harvester schema for identifying transformation pipeline.
         metadata:
           $ref: "#/components/schemas/metadata"
+      required:
+        - stepId
+        - transformationId
+        - position
       additionalProperties: false
-      anyOf:
-        - required:
-          - stepId
-          - transformationId
-          - position
-        - required:
-          - step
-          - transformation
-          - position
     logLines:
       description: Job log statements as JSON.
       type: object
@@ -1249,6 +1233,15 @@ components:
           type: string
           description: The name of the channel at the time the job was run.
           readOnly: true
+        recordNumber:
+          type: string
+          description: The identifier assigned to this error report by Inventory Import.
+        timeStamp:
+          type: string
+          description: The date and time the error occurred.
+        sourceFileName:
+          type: string
+          description: The name of the uploaded source file containing the error, if filename provider by the uploader.
         recordErrors:
           type: array
           description: List of errors encountered during upsert or delete.
@@ -1284,12 +1277,6 @@ components:
         transformedRecord:
           type: object
           description: The JSON outcome of the transformation of the original record.
-        timeStamp:
-          type: string
-          description: The date and time the error occurred.
-        recordNumber:
-          type: string
-          description: The identifier assigned to this error report by Inventory Import.
         metadata:
           $ref: "#/components/schemas/metadata"
 
@@ -1320,6 +1307,16 @@ components:
         type:
           type: string
           description: Type of import channel, only bulk XML, 'XML', supported.
+        enabled:
+          type: boolean
+          description: Set to true to indicate that the channel should be deployed for use.
+        isCommissioned:
+          type: boolean
+          description: Indicates if the channel is actually deployed.
+          readOnly: true
+        listening:
+          type: boolean
+          description: Set to true to make an enabled channel actively listen for source files to process.
         transformationId:
           type: string
           format: uuid

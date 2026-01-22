@@ -1147,6 +1147,10 @@ components:
            type: string
            format: uuid
            description: UUID referencing a transformation step.
+        stepName:
+           type: string
+           description: optional, read-only name of the step
+           readOnly: true
         position:
           type: string
           description: The position of the step amongst other steps in the pipeline.

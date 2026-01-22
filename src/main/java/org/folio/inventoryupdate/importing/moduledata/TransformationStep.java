@@ -5,8 +5,10 @@ import io.vertx.core.json.JsonObject;
 import io.vertx.sqlclient.templates.RowMapper;
 import io.vertx.sqlclient.templates.SqlTemplate;
 import io.vertx.sqlclient.templates.TupleMapper;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import org.folio.inventoryupdate.importing.moduledata.database.Entity;
@@ -22,6 +24,8 @@ public class TransformationStep extends Entity {
   public static final String STEP_ID = "STEP_ID";
   public static final String POSITION = "POSITION";
   private static final Map<String, Field> FIELDS = new HashMap<>();
+  public static final String STEP_NAME = "STEP_NAME";
+  private String stepName = "";
 
   static {
     FIELDS.put(ID,
@@ -32,6 +36,8 @@ public class TransformationStep extends Entity {
         new Field("stepId", "step_id", PgColumn.Type.UUID, true, true));
     FIELDS.put(POSITION,
         new Field("position", "position", PgColumn.Type.INTEGER, false, true));
+    FIELDS.put("STEP_NAME",
+        new Field("stepName", "step_name", PgColumn.Type.TEXT, true, false).isVirtual());
   }
 
   TransformationStepRecord theRecord;
@@ -68,6 +74,11 @@ public class TransformationStep extends Entity {
     return "Transformation-step association";
   }
 
+  public TransformationStep withStepName(String stepName) {
+    this.stepName = stepName;
+    return this;
+  }
+
   @Override
   public TransformationStep fromJson(JsonObject json) {
     return new TransformationStep(
@@ -84,6 +95,7 @@ public class TransformationStep extends Entity {
     json.put(jsonPropertyName(TRANSFORMATION_ID), theRecord.transformationId);
     json.put(jsonPropertyName(STEP_ID), theRecord.stepId);
     json.put(jsonPropertyName(POSITION), theRecord.position);
+    json.put(jsonPropertyName(STEP_NAME), this.stepName);
     putMetadata(json);
     return json;
   }
@@ -95,6 +107,16 @@ public class TransformationStep extends Entity {
         row.getUUID(dbColumnName(TRANSFORMATION_ID)),
         row.getUUID(dbColumnName(STEP_ID)),
         row.getInteger(dbColumnName(POSITION))).withMetadata(row);
+  }
+
+  public RowMapper<Entity> fromRowWithStepName() {
+    return row -> new TransformationStep(
+        row.getUUID(dbColumnName(ID)),
+        row.getUUID(dbColumnName(TRANSFORMATION_ID)),
+        row.getUUID(dbColumnName(STEP_ID)),
+        row.getInteger(dbColumnName(POSITION)))
+        .withStepName(row.getString(dbColumnName(STEP_NAME)))
+        .withMetadata(row);
   }
 
   @Override
@@ -120,6 +142,14 @@ public class TransformationStep extends Entity {
   @Override
   public UUID getId() {
     return theRecord == null ? null : theRecord.id();
+  }
+
+  public UUID getStepId() {
+    return theRecord == null ? null : theRecord.stepId();
+  }
+
+  public String getStepName() {
+    return stepName;
   }
 
   public Future<Void> createTsaRepositionSteps(ServiceRequest request) {
@@ -157,6 +187,26 @@ public class TransformationStep extends Entity {
                 + "WHERE transformation_id = #{transformationId}")
         .execute(Collections.singletonMap("transformationId", theRecord.transformationId))
         .map(rows -> rows.iterator().next().getInteger("last_position"));
+  }
+
+  public Future<List<JsonObject>> fetchTransformationStepsByTransformationId(TenantPgPool tenantPgPool, UUID transformationId) {
+    List<JsonObject> steps = new ArrayList<>();
+    return SqlTemplate.forQuery(tenantPgPool.getPool(),
+        "SELECT transformation_step.*, step.name AS step_name "
+            + "FROM " + schemaTable(tenantPgPool.getSchema()) + " AS transformation_step, "
+            + "     " + new Step().schemaTable(tenantPgPool.getSchema()) + " AS step "
+            + "WHERE transformation_step.step_id = step.id "
+            + "    AND transformation_id = #{transformationId} "
+            + "ORDER BY position ")
+        .mapTo(this.fromRowWithStepName())
+        .execute(Collections.singletonMap("transformationId", transformationId))
+        .map(rows ->  {
+          for (Entity entity : rows) {
+            TransformationStep step = (TransformationStep) entity;
+            steps.add(new JsonObject().put("id", step.getStepId()).put("name", step.getStepName()));
+          }
+          return steps;
+        });
   }
 
   public Future<Void> executeUpdateAndAdjustPositions(ServiceRequest request) {

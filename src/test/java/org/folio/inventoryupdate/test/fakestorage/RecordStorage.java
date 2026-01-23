@@ -93,11 +93,12 @@ public abstract class RecordStorage {
         logger.debug("Checking foreign keys");
         logger.debug("Got " + masterEntities.size() + " foreign keys");
         for (ForeignKey fk : masterEntities) {
-            if (! inventoryRecord.getJson().containsKey(fk.getDependentPropertyName())) {
+            if (fk.valueRequired() && ! inventoryRecord.getJson().containsKey(fk.getDependentPropertyName())) {
                 logger.error("Foreign key violation, record must contain " + fk.getDependentPropertyName());
                 return new Resp(422, "{\"errors\":[{\"message\":\"must not be null\",\"type\":\"1\",\"code\":\"-1\",\"parameters\":[{\"key\":\""+fk.getDependentPropertyName()+"\",\"value\":\"null\"}]}]}");
             }
-            if (!fk.getMasterStorage().hasId(inventoryRecord.getJson().getString(fk.getDependentPropertyName()))) {
+            if (inventoryRecord.getJson().containsKey(fk.getDependentPropertyName())
+                && !fk.getMasterStorage().hasId(inventoryRecord.getJson().getString(fk.getDependentPropertyName()))) {
                 logger.error("Foreign key violation " + fk.getDependentPropertyName() + " not found in "+ fk.getMasterStorage().getResultSetName() + ", cannot create " + inventoryRecord.getJson().encodePrettily());
                 logger.error(new JsonObject().encode());
                 return new Resp (500, new JsonObject("{ \"message\": \"insert or update on table \\\"storage_table\\\" violates foreign key constraint \\\"fkey\\\"\", \"severity\": \"ERROR\", \"code\": \"23503\", \"detail\": \"Key (property value)=(the id) is not present in table \\\"a_referenced_table\\\".\", \"file\": \"ri_triggers.c\", \"line\": \"3266\", \"routine\": \"ri_ReportViolation\", \"schema\": \"diku_mod_inventory_storage\", \"table\": \"storage_table\", \"constraint\": \"a_fkey\" }").encodePrettily());
@@ -203,8 +204,8 @@ public abstract class RecordStorage {
     protected abstract void declareDependencies();
 
        // METHOD ON THE PRIMARY KEY ENTITY TO REGISTER DEPENDENT ENTITIES
-    protected void acceptDependant(RecordStorage dependentEntity, String dependentPropertyName) {
-        ForeignKey fk = new ForeignKey(dependentEntity, dependentPropertyName, this);
+    protected void acceptDependant(RecordStorage dependentEntity, String dependentPropertyName, boolean allowNulls) {
+        ForeignKey fk = new ForeignKey(dependentEntity, dependentPropertyName, this, allowNulls);
         dependentEntities.add(fk);
         dependentEntity.setMasterEntity(fk);
     }
@@ -404,11 +405,17 @@ public abstract class RecordStorage {
         private final RecordStorage dependentStorage;
         private final String dependentPropertyName;
         private final RecordStorage masterStorage;
+        private final boolean allowNulls;
 
-        public ForeignKey (RecordStorage dependentStorage, String dependentPropertyName, RecordStorage masterStorage) {
+        public ForeignKey (RecordStorage dependentStorage, String dependentPropertyName, RecordStorage masterStorage, boolean allowNulls) {
             this.dependentStorage = dependentStorage;
             this.dependentPropertyName = dependentPropertyName;
             this.masterStorage = masterStorage;
+            this.allowNulls = allowNulls;
+        }
+
+        public boolean valueRequired() {
+            return !allowNulls;
         }
 
         public RecordStorage getDependentStorage() {

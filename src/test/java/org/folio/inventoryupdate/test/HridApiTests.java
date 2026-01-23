@@ -1183,9 +1183,7 @@ public class HridApiTests extends InventoryUpdateTestSuite{
                         .setBarcode("BC-003").getJson()))));
 
     JsonObject upsertResponseJson = upsertByHrid(inventoryRecordSet);
-    System.out.println("Upsert response: " + upsertResponseJson.encodePrettily());
     String instanceId = upsertResponseJson.getJsonObject("instance").getString("id");
-    System.out.println("Got instance " + instanceId);
 
     // Leave out one holdings record
     inventoryRecordSet = new JsonObject()
@@ -1570,6 +1568,26 @@ public class HridApiTests extends InventoryUpdateTestSuite{
     JsonObject titleSuccessions = getRecordsFromStorage(FakeFolioApis.PRECEDING_SUCCEEDING_TITLE_STORAGE_PATH,null);
     testContext.assertEquals(titleSuccessions.getInteger("totalRecords"), 2,
         "After two upserts with title successions, the total number of title successions should be [2] " + titleSuccessions.encodePrettily() );
+  }
+
+  @Test
+  public void upsertWillIgnoreStubTitleSuccession (TestContext testContext) {
+    JsonObject upsertResponse = upsertByHrid(
+        new JsonObject()
+            .put("instance",
+                new InputInstance().setTitle("A title").setInstanceTypeId("123").setHrid("002").setSource("test").getJson()));
+    String instanceId = upsertResponse.getJsonObject("instance").getString("id");
+    post(PRECEDING_SUCCEEDING_TITLE_STORAGE_PATH, new JsonObject().put("precedingInstanceId", instanceId));
+    post(PRECEDING_SUCCEEDING_TITLE_STORAGE_PATH, new JsonObject().put("succeedingInstanceId", instanceId));
+
+    upsertByHrid(
+        new JsonObject()
+            .put("instance",
+                new InputInstance().setTitle("A title").setInstanceTypeId("123").setHrid("002").setSource("test").getJson()));
+    JsonObject titleSuccessions = getRecordsFromStorage(PRECEDING_SUCCEEDING_TITLE_STORAGE_PATH,null);
+    testContext.assertEquals(titleSuccessions.getInteger("totalRecords"), 2,
+        "After two upserts with title successions, the total number of title successions should be [1] " + titleSuccessions.encodePrettily() );
+
   }
 
   @Test
@@ -2083,8 +2101,6 @@ public class HridApiTests extends InventoryUpdateTestSuite{
         "Upsert metrics response should report [2] holdings records deletions completed " + deleteResponse.encodePrettily());
     testContext.assertEquals(getMetric(deleteResponse, ITEM, DELETE , COMPLETED), 3,
         "Delete metrics response should report [3] item deletions completed " + deleteResponse.encodePrettily());
-    System.out.println(getRecordsFromStorage(INSTANCE_STORAGE_PATH,"id=="+instanceId).encodePrettily());
-
   }
 
   @Test

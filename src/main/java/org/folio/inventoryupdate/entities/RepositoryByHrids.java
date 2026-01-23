@@ -101,10 +101,12 @@ public class RepositoryByHrids extends Repository {
     .forEach(o -> stashRelationByChildId((JsonObject) o));
     instanceSet.getJsonArray("subInstanceRelationships")
     .forEach(o -> stashRelationByParentId((JsonObject) o));
-    instanceSet.getJsonArray("succeedingTitles")
-    .forEach(o -> stashRelationByPrecedingId((JsonObject) o));
-    instanceSet.getJsonArray("precedingTitles")
-    .forEach(o -> stashRelationBySucceedingId((JsonObject) o));
+    instanceSet.getJsonArray("succeedingTitles").stream().map(JsonObject.class::cast)
+        .filter(o -> !(o.getString("succeedingInstanceId") == null)) // Ignore stubbed relations
+    .forEach(this::stashRelationByPrecedingId);
+    instanceSet.getJsonArray("precedingTitles").stream().map(JsonObject.class::cast)
+        .filter( o -> !(o.getString("precedingInstanceId") == null)) // Ignore stubbed relations
+    .forEach(this::stashRelationBySucceedingId);
   }
 
   private void stashRelationByChildId(JsonObject instanceRelationshipObject) {

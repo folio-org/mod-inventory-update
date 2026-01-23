@@ -1,6 +1,6 @@
 ## 4.0.1 2026-01-23
 
-* [MODINVUP-137](https://issues.folio.org/browse/MODINVUP-137) Handle instances with stubbed title succession records
+* [MODINVUP-137](https://issues.folio.org/browse/MODINVUP-137) Handle instances with stubbed title succession records.
 
 
 ## 4.0.0 2024-10-17

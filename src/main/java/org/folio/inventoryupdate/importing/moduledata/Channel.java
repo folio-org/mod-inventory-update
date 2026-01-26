@@ -26,7 +26,7 @@ public class Channel extends Entity {
   public static final String ENABLED = "ENABLED";
   public static final String LISTENING = "LISTENING";
   // virtual (non-db) property
-  public static final String PROPERTY_IS_COMMISSIONED = "isCommissioned";
+  public static final String PROPERTY_COMMISSIONED = "commissioned";
   private static final Map<String, Field> CHANNEL_FIELDS = new HashMap<>();
 
   static {
@@ -128,7 +128,7 @@ public class Channel extends Entity {
     json.put(jsonPropertyName(TYPE), theRecord.type());
     json.put(jsonPropertyName(TRANSFORMATION_ID), theRecord.transformationId());
     json.put(jsonPropertyName(ENABLED), theRecord.enabled());
-    json.put(PROPERTY_IS_COMMISSIONED, isCommissioned());
+    json.put(PROPERTY_COMMISSIONED, isCommissioned());
     json.put(jsonPropertyName(LISTENING), theRecord.listening());
     putMetadata(json);
     return json;

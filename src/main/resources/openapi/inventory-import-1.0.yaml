@@ -1312,7 +1312,7 @@ components:
         enabled:
           type: boolean
           description: Set to true to indicate that the channel should be deployed for use.
-        isCommissioned:
+        commissioned:
           type: boolean
           description: Indicates if the channel is actually deployed.
           readOnly: true

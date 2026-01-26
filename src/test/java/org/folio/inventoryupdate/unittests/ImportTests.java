@@ -670,22 +670,22 @@ public class ImportTests extends InventoryUpdateTestBase {
     JsonObject channelBefore = getEntityJsonById(Service.PATH_CHANNELS, channelId);
     JsonObject channelUpdate = channelBefore.copy();
     assertEquals(true, channelBefore.getBoolean("enabled"));
-    assertEquals(true, channelBefore.getBoolean("isCommissioned"));
+    assertEquals(true, channelBefore.getBoolean("commissioned"));
     channelUpdate.put("enabled", false);
     putJsonObject(Service.PATH_CHANNELS + "/" + channelId, channelUpdate, 200);
     JsonObject channelAfter = getEntityJsonById(PATH_CHANNELS, channelId);
     assertEquals(false, channelAfter.getBoolean("enabled"));
-    assertEquals(false, channelAfter.getBoolean("isCommissioned"));
+    assertEquals(false, channelAfter.getBoolean("commissioned"));
     putJsonObject(Service.PATH_CHANNELS + "/" + channelId, channelUpdate.put("name", "New name"), 200);
     channelAfter = getEntityJsonById(PATH_CHANNELS, channelId);
     assertEquals(false, channelAfter.getBoolean("enabled"));
-    assertEquals(false, channelAfter.getBoolean("isCommissioned"));
+    assertEquals(false, channelAfter.getBoolean("commissioned"));
     assertEquals("New name", channelAfter.getString("name"));
     channelAfter.put("enabled", true);
     putJsonObject(Service.PATH_CHANNELS + "/" + channelId, channelAfter, 200);
     JsonObject channelAtLast = getEntityJsonById(PATH_CHANNELS, channelId);
     assertEquals(true, channelAtLast.getBoolean("enabled"));
-    assertEquals(true, channelAtLast.getBoolean("isCommissioned"));
+    assertEquals(true, channelAtLast.getBoolean("commissioned"));
   }
 
   @Test
@@ -694,7 +694,7 @@ public class ImportTests extends InventoryUpdateTestBase {
     String channelId = Files.JSON_CHANNEL.getString("id");
     postJsonObject(Service.PATH_CHANNELS, Files.JSON_CHANNEL);
     assertThat(getRecordById(Service.PATH_CHANNELS, channelId).extract().path("enabled"), is(true));
-    assertThat(getRecordById(Service.PATH_CHANNELS, channelId).extract().path("isCommissioned"), is(true));
+    assertThat(getRecordById(Service.PATH_CHANNELS, channelId).extract().path("commissioned"), is(true));
     given()
         .baseUri(BASE_URI_INVENTORY_UPDATE)
         .header(Service.OKAPI_TENANT)
@@ -703,7 +703,7 @@ public class ImportTests extends InventoryUpdateTestBase {
         .post("/inventory-import/channels/" + channelId + "/decommission")
         .then().statusCode(200);
     assertThat(getRecordById(Service.PATH_CHANNELS, channelId).extract().path("enabled"), is(false));
-    assertThat(getRecordById(Service.PATH_CHANNELS, channelId).extract().path("isCommissioned"), is(false));
+    assertThat(getRecordById(Service.PATH_CHANNELS, channelId).extract().path("commissioned"), is(false));
     given()
         .baseUri(BASE_URI_INVENTORY_UPDATE)
         .header(Service.OKAPI_TENANT)
@@ -712,7 +712,7 @@ public class ImportTests extends InventoryUpdateTestBase {
         .post("/inventory-import/channels/" + channelId + "/commission")
         .then().statusCode(200);
     assertThat(getRecordById(Service.PATH_CHANNELS, channelId).extract().path("enabled"), is(true));
-    assertThat(getRecordById(Service.PATH_CHANNELS, channelId).extract().path("isCommissioned"), is(true));
+    assertThat(getRecordById(Service.PATH_CHANNELS, channelId).extract().path("commissioned"), is(true));
     given()
         .baseUri(BASE_URI_INVENTORY_UPDATE)
         .header(Service.OKAPI_TENANT)
@@ -735,7 +735,7 @@ public class ImportTests extends InventoryUpdateTestBase {
     String channelId = Files.JSON_CHANNEL.getString("id");
     postJsonObject(Service.PATH_CHANNELS, Files.JSON_CHANNEL);
     assertThat(getRecordById(Service.PATH_CHANNELS, channelId).extract().path("enabled"), is(true));
-    assertThat(getRecordById(Service.PATH_CHANNELS, channelId).extract().path("isCommissioned"), is(true));
+    assertThat(getRecordById(Service.PATH_CHANNELS, channelId).extract().path("commissioned"), is(true));
     assertThat(getRecordById(Service.PATH_CHANNELS, channelId).extract().path("listening"), is(true));
     given()
         .baseUri(BASE_URI_INVENTORY_UPDATE)

@@ -1362,6 +1362,10 @@ components:
         status:
           type: string
           description: The intermittent state or final outcome of the job.
+          enum:
+            - RUNNING
+            - PAUSED
+            - DONE
         started:
           type: string
           description: Timestamp when the job started.

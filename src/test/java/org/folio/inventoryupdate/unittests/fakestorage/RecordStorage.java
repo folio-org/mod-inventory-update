@@ -91,12 +91,13 @@ public abstract class RecordStorage {
         logger.debug("Checking foreign keys");
         logger.debug("Got {} foreign keys", masterEntities.size());
         for (ForeignKey fk : masterEntities) {
-            if (! folioApiRecord.getJson().containsKey(fk.getDependentPropertyName())) {
+            if (fk.valueRequired() && ! folioApiRecord.getJson().containsKey(fk.getDependentPropertyName())) {
                 logger.error("Foreign key violation, record must contain {}", fk.getDependentPropertyName());
                 return new Resp(422, "{\"errors\":[{\"message\":\"must not be null\",\"type\":\"1\",\"code\":\"-1\",\"parameters\":[{\"key\":\""+fk.getDependentPropertyName()+"\",\"value\":\"null\"}]}]}");
             }
-            if (!fk.getMasterStorage().hasId(folioApiRecord.getJson().getString(fk.getDependentPropertyName()))) {
-                logger.error("Foreign key violation {} not found in {}, cannot create {}",
+          if (folioApiRecord.getJson().containsKey(fk.getDependentPropertyName())
+              && !fk.getMasterStorage().hasId(folioApiRecord.getJson().getString(fk.getDependentPropertyName()))) {
+            logger.error("Foreign key violation {} not found in {}, cannot create {}",
                 fk.getDependentPropertyName(), fk.getMasterStorage().getResultSetName(), folioApiRecord.getJson().encodePrettily());
                 return new Resp(500, new JsonObject("{\"errors\":[{ \"message\": \"insert or update on table \\\"storage_table\\\" violates foreign key constraint \\\"fkey\\\"\", \"severity\": \"ERROR\", \"code\": \"23503\", \"detail\": \"Key (property value)=(the id) is not present in table \\\"a_referenced_table\\\".\", \"file\": \"ri_triggers.c\", \"line\": \"3266\", \"routine\": \"ri_ReportViolation\", \"schema\": \"diku_mod_inventory_storage\", \"table\": \"storage_table\", \"constraint\": \"a_fkey\" }]}").encodePrettily());
             } else {
@@ -203,8 +204,8 @@ public abstract class RecordStorage {
     protected void declareDependencies() {}
 
     // METHOD ON THE PRIMARY KEY ENTITY TO REGISTER DEPENDENT ENTITIES
-    public void acceptDependant(RecordStorage dependentEntity, String dependentPropertyName) {
-        ForeignKey fk = new ForeignKey(dependentEntity, dependentPropertyName, this);
+    public void acceptDependant(RecordStorage dependentEntity, String dependentPropertyName, boolean allowNulls) {
+        ForeignKey fk = new ForeignKey(dependentEntity, dependentPropertyName, this, allowNulls);
         dependentEntities.add(fk);
         dependentEntity.setMasterEntity(fk);
     }
@@ -416,11 +417,18 @@ public abstract class RecordStorage {
         private final RecordStorage dependentStorage;
         private final String dependentPropertyName;
         private final RecordStorage masterStorage;
+        private final boolean allowNulls;
 
-        public ForeignKey (RecordStorage dependentStorage, String dependentPropertyName, RecordStorage masterStorage) {
+        public ForeignKey (RecordStorage dependentStorage, String dependentPropertyName, RecordStorage masterStorage,
+                           boolean allowNulls) {
             this.dependentStorage = dependentStorage;
             this.dependentPropertyName = dependentPropertyName;
             this.masterStorage = masterStorage;
+            this.allowNulls = allowNulls;
+        }
+
+        public boolean valueRequired() {
+          return !allowNulls;
         }
 
         public RecordStorage getDependentStorage() {

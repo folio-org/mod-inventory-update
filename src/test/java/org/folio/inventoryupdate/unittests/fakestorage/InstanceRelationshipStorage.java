@@ -11,8 +11,8 @@ public class InstanceRelationshipStorage extends RecordStorage{
 
   @Override
   protected void declareDependencies() {
-    fakeStorageForImporting.instanceStorage.acceptDependant(this, InputInstanceRelationship.SUB_INSTANCE_ID);
-    fakeStorageForImporting.instanceStorage.acceptDependant(this, InputInstanceRelationship.SUPER_INSTANCE_ID);
+    fakeStorageForImporting.instanceStorage.acceptDependant(this, InputInstanceRelationship.SUB_INSTANCE_ID, false);
+    fakeStorageForImporting.instanceStorage.acceptDependant(this, InputInstanceRelationship.SUPER_INSTANCE_ID, false);
   }
 
   @Override

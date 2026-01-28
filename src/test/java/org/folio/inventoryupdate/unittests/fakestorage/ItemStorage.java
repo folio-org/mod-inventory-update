@@ -11,7 +11,7 @@ public class ItemStorage extends RecordStorage {
 
   @Override
   protected void declareDependencies() {
-    fakeStorageForImporting.holdingsStorage.acceptDependant(this, InputItem.HOLDINGS_RECORD_ID);
+    fakeStorageForImporting.holdingsStorage.acceptDependant(this, InputItem.HOLDINGS_RECORD_ID, false);
   }
 
   @Override

@@ -61,7 +61,7 @@ public class FileQueue {
     int filesInQueueBefore = 0;
     if (fs.existsBlocking(jobPath)) {
       filesInQueueBefore = fs.readDirBlocking(jobPath).size() - 2;
-      if (filesInQueueBefore > 0) {
+      if (filesInQueueBefore > 0 || processingSlotTaken()) {
         deleteDirectoriesIfExist();
       }
     }

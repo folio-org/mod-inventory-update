@@ -1089,7 +1089,14 @@ public class ImportTests extends InventoryUpdateTestBase {
     await().until(() -> getRecordById(Service.PATH_IMPORT_JOBS, jobId).extract().path("status"), is("PAUSED"));
     getRecordById(Service.PATH_IMPORT_JOBS, jobId).body("amountImported", is(300));
     getRecordById(Service.PATH_IMPORT_JOBS, jobId).body("finished", is(nullValue()));
-
+    // Clean up queue with bad file
+    given()
+        .baseUri(BASE_URI_INVENTORY_UPDATE)
+        .header(Service.OKAPI_TENANT)
+        .header(Service.OKAPI_URL)
+        .header(Service.OKAPI_TOKEN)
+        .post("/inventory-import/channels/" + channelId + "/init-queue")
+        .then().statusCode(200);
     assertThat("Instances in storage", fakeFolioApis.instanceStorage.getRecords().size(), is(300));
   }
 

@@ -218,7 +218,7 @@ public final class Channels extends EntityResponses {
     String channelId = request.requestParam("id");
     return getChannelByTagOrUuid(request, channelId).compose(channel -> {
       if (channel != null) {
-        String initMessage = new FileQueue(request, channelId).initializeQueue();
+        String initMessage = new FileQueue(request, channel.getId().toString()).initializeQueue();
         return responseText(request.routingContext(), 200).end(initMessage).mapEmpty();
       } else {
         return responseText(request.routingContext(), 404)

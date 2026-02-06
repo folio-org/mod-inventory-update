@@ -1307,10 +1307,12 @@ components:
         type:
           type: string
           description: Type of import channel, only bulk XML, 'XML', supported.
+          enum:
+            - XML
         enabled:
           type: boolean
           description: Set to true to indicate that the channel should be deployed for use.
-        isCommissioned:
+        commissioned:
           type: boolean
           description: Indicates if the channel is actually deployed.
           readOnly: true
@@ -1360,6 +1362,10 @@ components:
         status:
           type: string
           description: The intermittent state or final outcome of the job.
+          enum:
+            - RUNNING
+            - PAUSED
+            - DONE
         started:
           type: string
           description: Timestamp when the job started.

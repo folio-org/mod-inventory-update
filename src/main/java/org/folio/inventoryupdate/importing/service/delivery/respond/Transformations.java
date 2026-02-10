@@ -111,9 +111,9 @@ public final class Transformations extends EntityResponses {
           if (transformation == null) {
             return responseText(request.routingContext(), 404).end("Transformation with ID " + id + " not found.");
           } else {
-            return ((Transformation)transformation).fetchTransformationSteps(request.entityStorage().getTenantPool())
+            return ((Transformation) transformation).fetchTransformationSteps(request.entityStorage().getTenantPool())
                 .compose(done ->
-                    responseJson(request.routingContext(),200).end(transformation.asJson().encodePrettily()));
+                    responseJson(request.routingContext(), 200).end(transformation.asJson().encodePrettily()));
           }
         });
   }

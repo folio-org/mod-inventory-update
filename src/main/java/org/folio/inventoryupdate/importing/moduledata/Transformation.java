@@ -137,10 +137,6 @@ public class Transformation extends Entity {
         });
   }
 
-
-  public record TransformationRecord(UUID id, String name, String description) {
-  }
-
   public Future<Transformation> fetchTransformationSteps(TenantPgPool pool) {
     return new TransformationStep().fetchTransformationStepsByTransformationId(pool, this.getId())
         .map(steps -> {
@@ -149,5 +145,8 @@ public class Transformation extends Entity {
           }
           return this;
         });
+  }
+
+  public record TransformationRecord(UUID id, String name, String description) {
   }
 }

@@ -48,7 +48,16 @@ public final class Channels extends EntityResponses {
   }
 
   public static Future<Void> getChannelById(ServiceRequest request) {
-    return getEntityAndRespond(request, new Channel());
+    UUID id = UUID.fromString(request.requestParam("id"));
+    Channel entity = new Channel();
+    return request.entityStorage().getEntity(id, entity).onSuccess(instance -> {
+      if (instance == null) {
+        responseText(request.routingContext(), 404).end(entity.entityName() + " " + id + " not found.");
+      } else {
+        Channel channel = ((Channel) instance).withFileQueue(new FileQueue(request, id.toString()));
+        responseJson(request.routingContext(), 200).end(channel.asJson().encodePrettily());
+      }
+    }).mapEmpty();
   }
 
   public static Future<Void> putChannel(ServiceRequest request) {

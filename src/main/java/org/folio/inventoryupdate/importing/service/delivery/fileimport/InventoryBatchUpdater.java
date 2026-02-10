@@ -147,7 +147,7 @@ public class InventoryBatchUpdater implements RecordReceiver {
           if (upsert.statusCode() == 207 && upsert.hasErrorObjects()) {
             batch.setResponse(upsert);
             fileProcessor.reporting.reportErrors(batch)
-            .onFailure(err -> logger.error("Error logging upsert results for batch #{}, {}",
+                .onFailure(err -> logger.error("Error logging upsert results for batch #{}, {}",
                 batch.getBatchNumber(), err.getMessage()));
           }
           fileProcessor.reporting.incrementInventoryMetrics(new InventoryMetrics(upsert.getMetrics()));
@@ -165,7 +165,6 @@ public class InventoryBatchUpdater implements RecordReceiver {
    * Persists the deletion, complete the promise when done.
    *
    * @param batch   The batch of records containing a deletion record
-   * @param promise The promise of persistBatch
    */
   private Future<Void> persistDeletion(BatchOfRecords batch) {
     long deletionStarted = System.nanoTime();

@@ -14,6 +14,7 @@ import org.folio.inventoryupdate.importing.moduledata.database.PgColumn;
 import org.folio.inventoryupdate.importing.moduledata.database.Tables;
 import org.folio.inventoryupdate.importing.moduledata.database.Util;
 import org.folio.inventoryupdate.importing.service.delivery.fileimport.FileListeners;
+import org.folio.inventoryupdate.importing.service.delivery.fileimport.FileQueue;
 import org.folio.tlib.postgres.TenantPgPool;
 
 public class Channel extends Entity {
@@ -28,6 +29,8 @@ public class Channel extends Entity {
   // virtual (non-db) property
   public static final String PROPERTY_COMMISSIONED = "commissioned";
   private static final Map<String, Field> CHANNEL_FIELDS = new HashMap<>();
+  ChannelRecord theRecord;
+  private FileQueue fileQueue;
 
   static {
     CHANNEL_FIELDS.put(ID,
@@ -45,8 +48,6 @@ public class Channel extends Entity {
     CHANNEL_FIELDS.put(LISTENING,
         new Field("listening", "listening", PgColumn.Type.BOOLEAN, false, true));
   }
-
-  ChannelRecord theRecord;
 
   public Channel() {
   }
@@ -73,6 +74,11 @@ public class Channel extends Entity {
   @Override
   public String entityName() {
     return "Channel";
+  }
+
+  public Channel withFileQueue(FileQueue fileQueue) {
+    this.fileQueue = fileQueue;
+    return this;
   }
 
   public Channel fromJson(JsonObject channelJson) {
@@ -130,6 +136,10 @@ public class Channel extends Entity {
     json.put(jsonPropertyName(ENABLED), theRecord.enabled());
     json.put(PROPERTY_COMMISSIONED, isCommissioned());
     json.put(jsonPropertyName(LISTENING), theRecord.listening());
+    if (fileQueue != null) {
+      json.put("queuedFiles", fileQueue.size());
+      json.put("fileInProcess", fileQueue.fileInProcess());
+    }
     putMetadata(json);
     return json;
   }

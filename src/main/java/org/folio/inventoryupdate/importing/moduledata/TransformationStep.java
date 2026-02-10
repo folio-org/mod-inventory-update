@@ -23,8 +23,9 @@ public class TransformationStep extends Entity {
   public static final String TRANSFORMATION_ID = "TRANSFORMATION_ID";
   public static final String STEP_ID = "STEP_ID";
   public static final String POSITION = "POSITION";
-  private static final Map<String, Field> FIELDS = new HashMap<>();
   public static final String STEP_NAME = "STEP_NAME";
+  private static final Map<String, Field> FIELDS = new HashMap<>();
+  TransformationStepRecord theRecord;
   private String stepName = "";
 
   static {
@@ -39,8 +40,6 @@ public class TransformationStep extends Entity {
     FIELDS.put("STEP_NAME",
         new Field("stepName", "step_name", PgColumn.Type.TEXT, true, false).isVirtual());
   }
-
-  TransformationStepRecord theRecord;
 
   private Integer positionOfLastStepOfTransformation = null;
   private Integer positionOfTheExistingStep = null;
@@ -189,7 +188,8 @@ public class TransformationStep extends Entity {
         .map(rows -> rows.iterator().next().getInteger("last_position"));
   }
 
-  public Future<List<JsonObject>> fetchTransformationStepsByTransformationId(TenantPgPool tenantPgPool, UUID transformationId) {
+  public Future<List<JsonObject>> fetchTransformationStepsByTransformationId(TenantPgPool tenantPgPool,
+                                                                             UUID transformationId) {
     List<JsonObject> steps = new ArrayList<>();
     return SqlTemplate.forQuery(tenantPgPool.getPool(),
         "SELECT transformation_step.*, step.name AS step_name "

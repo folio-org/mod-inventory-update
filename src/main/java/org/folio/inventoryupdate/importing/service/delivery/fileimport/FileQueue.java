@@ -109,6 +109,23 @@ public class FileQueue {
     return fs.readDirBlocking(jobPath).stream().map(File::new).anyMatch(File::isFile);
   }
 
+  public int size() {
+    if (fs.existsBlocking(jobPath)) {
+      return fs.readDirBlocking(jobPath).stream().map(File::new).filter(File::isFile).toList().size();
+    } else {
+      return -1;
+    }
+  }
+
+  public String fileInProcess() {
+    if (fs.existsBlocking(jobProcessingSlot)) {
+      return fs.readDirBlocking(jobProcessingSlot).stream().map(File::new)
+          .filter(File::isFile).findFirst().map(File::getName).orElse("no file in process");
+    } else {
+      return "no file in process";
+    }
+  }
+
   /**
    * Promotes the next file in the staging directory to the processing directory
    * and returns true if a staged file was found (and the processing directory was free), otherwise returns false.

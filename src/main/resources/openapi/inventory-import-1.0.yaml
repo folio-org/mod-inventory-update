@@ -1323,6 +1323,14 @@ components:
           type: string
           format: uuid
           description: UUID referencing the transformation pipeline to use.
+        queuedFiles:
+          type: integer
+          description: Count of source files in the queue.
+          readOnly: true
+        fileInProcess:
+          type: string
+          description: Name of most recent file to be put in process and yet to be completed.
+          readOnly: true
         metadata:
           $ref: "#/components/schemas/metadata"
       required:

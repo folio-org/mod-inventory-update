@@ -32,7 +32,6 @@ public class Step extends Entity {
   // Static map of Entity Fields.
   public static final String ID = "ID";
   private static final String NAME = "NAME";
-  private static final String ENABLED = "ENABLED";
   private static final String TYPE = "TYPE";
   private static final String DESCRIPTION = "DESCRIPTION";
   private static final String INPUT_FORMAT = "INPUT_FORMAT";
@@ -45,8 +44,6 @@ public class Step extends Entity {
         new Field("id", "id", PgColumn.Type.UUID, false, true).isPrimaryKey());
     FIELDS.put(NAME,
         new Field("name", "name", PgColumn.Type.TEXT, false, true).isUnique());
-    FIELDS.put(ENABLED,
-        new Field("enabled", "enabled", PgColumn.Type.BOOLEAN, true, true));
     FIELDS.put(DESCRIPTION,
         new Field("description", "description", PgColumn.Type.TEXT, true, true));
     FIELDS.put(TYPE,

@@ -16,7 +16,7 @@ public class PrecedingSucceedingStorage extends RecordStorage {
 
   @Override
   protected void declareDependencies() {
-    fakeStorageForImporting.instanceStorage.acceptDependant(this, InputInstanceTitleSuccession.SUCCEEDING_INSTANCE_ID);
-    fakeStorageForImporting.instanceStorage.acceptDependant(this, InputInstanceTitleSuccession.PRECEDING_INSTANCE_ID);
+    fakeStorageForImporting.instanceStorage.acceptDependant(this, InputInstanceTitleSuccession.SUCCEEDING_INSTANCE_ID, true);
+    fakeStorageForImporting.instanceStorage.acceptDependant(this, InputInstanceTitleSuccession.PRECEDING_INSTANCE_ID, true);
   }
 }

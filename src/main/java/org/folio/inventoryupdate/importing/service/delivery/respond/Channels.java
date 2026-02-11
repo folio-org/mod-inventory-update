@@ -54,7 +54,7 @@ public final class Channels extends EntityResponses {
       if (instance == null) {
         responseText(request.routingContext(), 404).end(entity.entityName() + " " + id + " not found.");
       } else {
-        Channel channel = ((Channel) instance).withFileQueue(new FileQueue(request, id.toString()));
+        Channel channel = ((Channel) instance).withFileQueue(FileQueue.get(request, id.toString()));
         responseJson(request.routingContext(), 200).end(channel.asJson().encodePrettily());
       }
     }).mapEmpty();

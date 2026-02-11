@@ -66,7 +66,7 @@ public final class FileQueue {
     int filesInQueueBefore = 0;
     if (fs.existsBlocking(jobPath)) {
       filesInQueueBefore = fs.readDirBlocking(jobPath).size() - 2;
-      if (filesInQueueBefore > 0 || processingSlotTaken()) {
+      if (filesInQueueBefore > 0 || hasFileInProcess()) {
         deleteDirectoriesIfExist();
       }
     }
@@ -97,7 +97,7 @@ public final class FileQueue {
    *
    * @return true if the processing directory is occupied, false if it's ready for next file.
    */
-  public boolean fileInProcess() {
+  public boolean hasFileInProcess() {
     try {
       return fs.readDirBlocking(jobProcessingSlot).stream().map(File::new).anyMatch(File::isFile);
     } catch (FileSystemException fse) {
@@ -138,11 +138,11 @@ public final class FileQueue {
    * @return true if yet another file could be picked up for processing, otherwise false.
    */
   private boolean pullNextIfPossible() {
-    if (!fileInProcess()) {
+    if (!hasFileInProcess()) {
       return fs.readDirBlocking(jobPath).stream().map(File::new).filter(File::isFile)
           .min(Comparator.comparing(File::lastModified))
           .map(file -> {
-            if (!fileInProcess()) {
+            if (!hasFileInProcess()) {
               fs.moveBlocking(file.getPath(), jobProcessingSlot + "/" + file.getName());
               return true;
             } else {

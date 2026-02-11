@@ -81,7 +81,7 @@ public abstract class FileListener extends VerticleBase {
    *   <li>except, if there is no promoted file and no files in queue: returns null.</li>
    */
   public File getNextFileIfPossible(boolean fileQueuePassive, boolean processorResuming) {
-    if (fileQueue.fileInProcess() && (fileQueuePassive || processorResuming)) {
+    if (fileQueue.hasFileInProcess() && (fileQueuePassive || processorResuming)) {
       return fileQueue.currentFile();
     } else {
       return fileQueue.nextFileIfPossible();

@@ -1,6 +1,7 @@
 package org.folio.inventoryupdate.importing.service.delivery.respond;
 
 import static org.folio.inventoryupdate.importing.service.delivery.respond.Channels.getChannelByTagOrUuid;
+import static org.folio.okapi.common.HttpResponse.responseJson;
 import static org.folio.okapi.common.HttpResponse.responseText;
 
 import io.vertx.core.Future;
@@ -104,7 +105,17 @@ public final class Transformations extends EntityResponses {
   }
 
   public static Future<Void> getTransformationById(ServiceRequest request) {
-    return getEntityAndRespond(request, new Transformation());
+    UUID id = UUID.fromString(request.requestParam("id"));
+    return request.entityStorage().getEntity(id, new Transformation())
+        .compose(transformation -> {
+          if (transformation == null) {
+            return responseText(request.routingContext(), 404).end("Transformation with ID " + id + " not found.");
+          } else {
+            return ((Transformation) transformation).fetchTransformationSteps(request.entityStorage().getTenantPool())
+                .compose(done ->
+                    responseJson(request.routingContext(), 200).end(transformation.asJson().encodePrettily()));
+          }
+        });
   }
 
   public static Future<Void> getTransformations(ServiceRequest request) {

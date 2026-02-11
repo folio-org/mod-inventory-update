@@ -1,6 +1,7 @@
 package org.folio.inventoryupdate.importing.moduledata.database;
 
 import org.folio.tlib.postgres.cqlfield.PgCqlFieldBase;
+import org.folio.tlib.postgres.cqlfield.PgCqlFieldBoolean;
 import org.folio.tlib.postgres.cqlfield.PgCqlFieldNumber;
 import org.folio.tlib.postgres.cqlfield.PgCqlFieldText;
 import org.folio.tlib.postgres.cqlfield.PgCqlFieldTimestamp;
@@ -43,15 +44,12 @@ public class PgColumn {
    * Selects appropriate PgCql field type for the PG column type.
    */
   public PgCqlFieldBase pgCqlField() {
-    switch (type) {
-      case INTEGER, BIGINT:
-        return new PgCqlFieldNumber();
-      case UUID:
-        return new PgCqlFieldUuid();
-      case TIMESTAMP:
-        return new PgCqlFieldTimestamp();
-      default:
-        return new PgCqlFieldText().withExact().withLikeOps().withFullText();
-    }
+    return switch (type) {
+      case INTEGER, BIGINT -> new PgCqlFieldNumber();
+      case UUID -> new PgCqlFieldUuid();
+      case TIMESTAMP -> new PgCqlFieldTimestamp();
+      case BOOLEAN -> new PgCqlFieldBoolean();
+      default -> new PgCqlFieldText().withExact().withLikeOps().withFullText();
+    };
   }
 }

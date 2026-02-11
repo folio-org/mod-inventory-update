@@ -66,7 +66,7 @@ public final class FileQueue {
     int filesInQueueBefore = 0;
     if (fs.existsBlocking(jobPath)) {
       filesInQueueBefore = fs.readDirBlocking(jobPath).size() - 2;
-      if (filesInQueueBefore > 0) {
+      if (filesInQueueBefore > 0 || processingSlotTaken()) {
         deleteDirectoriesIfExist();
       }
     }
@@ -112,6 +112,23 @@ public final class FileQueue {
 
   public boolean isEmpty() {
     return fs.readDirBlocking(jobPath).stream().map(File::new).noneMatch(File::isFile);
+  }
+
+  public int size() {
+    if (fs.existsBlocking(jobPath)) {
+      return fs.readDirBlocking(jobPath).stream().map(File::new).filter(File::isFile).toList().size();
+    } else {
+      return -1;
+    }
+  }
+
+  public String fileInProcess() {
+    if (fs.existsBlocking(jobProcessingSlot)) {
+      return fs.readDirBlocking(jobProcessingSlot).stream().map(File::new)
+          .filter(File::isFile).findFirst().map(File::getName).orElse("no file in process");
+    } else {
+      return "no file in process";
+    }
   }
 
   /**

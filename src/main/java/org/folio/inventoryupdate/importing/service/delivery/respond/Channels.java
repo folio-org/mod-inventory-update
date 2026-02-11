@@ -30,7 +30,7 @@ public final class Channels extends EntityResponses {
     EntityStorage db = request.entityStorage();
     return db.storeEntity(channel.withCreatingUser(request.currentUser()))
         .map(id -> {
-          new FileQueue(request, id.toString()).createDirectoriesIfNotExist();
+          FileQueue.get(request, id.toString()).createDirectoriesIfNotExist();
           return id;
         }).compose(id -> db.getEntity(id, channel)).compose(cfg -> {
           if (((Channel) cfg).isEnabled()) {
@@ -54,7 +54,7 @@ public final class Channels extends EntityResponses {
       if (instance == null) {
         responseText(request.routingContext(), 404).end(entity.entityName() + " " + id + " not found.");
       } else {
-        Channel channel = ((Channel) instance).withFileQueue(new FileQueue(request, id.toString()));
+        Channel channel = ((Channel) instance).withFileQueue(FileQueue.get(request, id.toString()));
         responseJson(request.routingContext(), 200).end(channel.asJson().encodePrettily());
       }
     }).mapEmpty();
@@ -71,8 +71,7 @@ public final class Channels extends EntityResponses {
                 .map(Channel.class::cast)
                 .compose(channel -> {
                   if (channel.isEnabled() && channel.isCommissioned()) {
-                    FileListener listener = FileListeners.getFileListener(request.tenant(), id.toString());
-                    listener.updateChannel(channel);
+                    FileListeners.getFileListener(request.tenant(), id.toString()).updateChannel(channel);
                     return Future.succeededFuture();
                   } else if (!channel.isEnabled() && channel.isCommissioned()) {
                     return FileListeners.undeployIfDeployed(request, channel);
@@ -227,7 +226,7 @@ public final class Channels extends EntityResponses {
     String channelId = request.requestParam("id");
     return getChannelByTagOrUuid(request, channelId).compose(channel -> {
       if (channel != null) {
-        String initMessage = new FileQueue(request, channel.getId().toString()).initializeQueue();
+        String initMessage = FileQueue.get(request, channelId).initialize();
         return responseText(request.routingContext(), 200).end(initMessage).mapEmpty();
       } else {
         return responseText(request.routingContext(), 404)

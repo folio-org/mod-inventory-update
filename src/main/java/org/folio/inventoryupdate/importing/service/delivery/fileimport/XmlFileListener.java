@@ -18,7 +18,7 @@ public class XmlFileListener extends FileListener {
     this.tenant = request.tenant();
     this.channel = channel;
     this.routingContext = request.routingContext();
-    this.fileQueue = new FileQueue(request, getConfigIdStr());
+    this.fileQueue = FileQueue.get(request, getConfigIdStr());
   }
 
   @Override
@@ -39,9 +39,9 @@ public class XmlFileListener extends FileListener {
       if (isListening() && !importJobPaused()) {
         boolean processorResuming = fileProcessor != null && fileProcessor.isResuming(false);
         File currentFile = getNextFileIfPossible(fileQueuePassive.get(), processorResuming);
-        if (currentFile != null) {  // null if queue is empty or a previous file is still processing
+        if (currentFile != null) {  // null if queue is either empty or already has a file in progress
           boolean queueWentFromPassiveToActive = fileQueuePassive.getAndSet(false);
-          // Continue existing job if any (not activating), or instantiate a new (activating).
+          // Continue existing job if any (= not activating), or instantiate a new (= activating).
           getFileProcessor(queueWentFromPassiveToActive)
               .compose(fileProcessor -> fileProcessor.processFile(currentFile))
               .onSuccess(na -> {

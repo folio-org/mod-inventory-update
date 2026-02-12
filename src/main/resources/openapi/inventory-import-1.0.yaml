@@ -507,6 +507,31 @@ paths:
     get:
       operationId: getImportJobLogLines
       description: Retrieves the log of a past import job
+      parameters:
+        - in: query
+          name: offset
+          required: false
+          description: result set start row
+          schema:
+            type: integer
+        - in: query
+          name: limit
+          required: false
+          description: result set max rows
+          schema:
+            type: integer
+        - in: query
+          name: from
+          required: false
+          description: date range start parameter on finished date
+          schema:
+           type: string
+        - in: query
+          name: until
+          required: false
+          description: date range end parameter on finished date
+          schema:
+            type: string
       responses:
         "200":
           description: Logs for an import job

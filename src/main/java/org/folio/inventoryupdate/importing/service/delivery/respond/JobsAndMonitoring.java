@@ -150,7 +150,7 @@ public final class JobsAndMonitoring extends EntityResponses {
 
   public static Future<Void> getFailedRecords(ServiceRequest request) {
     EntityStorage db = request.entityStorage();
-    SqlQuery queryFromCql = new RecordFailure()
+    SqlQuery queryFromCql = new RecordFailure().usingView()
         .cqlToSql(request, db.schemaDotTable(Tables.RECORD_FAILURE_VIEW)).withDefaultLimit("100");
     String jobId = request.requestParam("id");
     String from = request.queryParam("from");
@@ -187,6 +187,18 @@ public final class JobsAndMonitoring extends EntityResponses {
         });
       }
     }).mapEmpty();
+  }
+
+  public static Future<Void> getFailedRecordById(ServiceRequest request) {
+    UUID id = UUID.fromString(request.requestParam("id"));
+    return request.entityStorage().getEntity(id, new RecordFailure().usingView())
+        .compose(failedRecord -> {
+          if (failedRecord == null) {
+            return responseText(request.routingContext(), 404).end("Failed record with ID " + id + " not found.");
+          } else {
+            return responseJson(request.routingContext(), 200).end(failedRecord.asJson().encodePrettily());
+          }
+        });
   }
 
   public static Future<Void> postFailedRecords(ServiceRequest request) {

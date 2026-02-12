@@ -420,7 +420,7 @@ paths:
           $ref: "#/components/responses/trait_500"
     get:
       operationId: getImportJobs
-      description: Retrieves list of past import jobs
+      description: Retrieves list of import jobs
       parameters:
         - in: query
           name: offset
@@ -448,7 +448,7 @@ paths:
             type: string
       responses:
         "200":
-          description: List of past import jobs
+          description: List of import jobs
           content:
             application/json:
               schema:
@@ -475,7 +475,7 @@ paths:
       description: Retrieves details of a previous import job
       responses:
         "200":
-          description: A past import job
+          description: An import job
           content:
             application/json:
               schema:
@@ -488,7 +488,7 @@ paths:
           $ref: "#/components/responses/trait_500"
     delete:
       operationId: deleteImportJob
-      description: Delete a past import job with all its logs
+      description: Delete an import job with all its logs
       responses:
         "200":
           description: Job run and logs deleted
@@ -506,7 +506,7 @@ paths:
       - $ref: "#/components/parameters/okapi_url"
     get:
       operationId: getImportJobLogLines
-      description: Retrieves the log of a past import job
+      description: Retrieves the log of an import job
       parameters:
         - in: query
           name: offset
@@ -638,15 +638,31 @@ paths:
       - $ref: "#/components/parameters/okapi_tenant"
       - $ref: "#/components/parameters/okapi_token"
       - $ref: "#/components/parameters/okapi_url"
+      - in: path
+        name: id
+        required: true
+        description: Failed record identifier
+        schema:
+          type: string
+          format: uuid
+    get:
+      operationId: getFailedRecord
+      description: Retrieves a failed record by unique ID
+      responses:
+        "200":
+          description: A report about a record that failed to fully update
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/failedRecord"
+        "400":
+          $ref: "#/components/responses/trait_400"
+        "404":
+          $ref: "#/components/responses/trait_404"
+        "500":
+          $ref: "#/components/responses/trait_500"
+
     delete:
-      parameters:
-        - in: path
-          name: id
-          required: true
-          description: Failed record identifier
-          schema:
-            type: string
-            format: uuid
       operationId: deleteRecordFailure
       description: Delete a failed record entry
       responses:

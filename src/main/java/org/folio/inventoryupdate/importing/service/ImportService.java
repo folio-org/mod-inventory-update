@@ -83,6 +83,7 @@ public class ImportService implements RouterCreator, TenantInitHooks {
     nonValidatingHandler(vertx, routerBuilder, "postImportJobLogLines", JobsAndMonitoring::postLogStatements);
     nonValidatingHandler(vertx, routerBuilder, "getImportJobLogLines", JobsAndMonitoring::getLogStatements);
     validatingHandler(vertx, routerBuilder, "getFailedRecords", JobsAndMonitoring::getFailedRecords);
+    validatingHandler(vertx, routerBuilder, "getFailedRecord", JobsAndMonitoring::getFailedRecordById);
     validatingHandler(vertx, routerBuilder, "postFailedRecords", JobsAndMonitoring::postFailedRecords);
     validatingHandler(vertx, routerBuilder, "deleteRecordFailure", JobsAndMonitoring::deleteRecordFailure);
     validatingHandler(vertx, routerBuilder, "pauseJob", JobsAndMonitoring::pauseImportJob);

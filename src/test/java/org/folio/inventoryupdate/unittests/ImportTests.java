@@ -4,6 +4,7 @@ import static io.restassured.RestAssured.given;
 import static org.awaitility.Awaitility.await;
 import static org.folio.inventoryupdate.unittests.fixtures.Service.BASE_URI_INVENTORY_UPDATE;
 import static org.folio.inventoryupdate.unittests.fixtures.Service.PATH_CHANNELS;
+import static org.folio.inventoryupdate.unittests.fixtures.Service.PATH_FAILED_RECORDS;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -830,12 +831,16 @@ public class ImportTests extends InventoryUpdateTestBase {
   }
 
   @Test
-  public void canPostFailedRecords() {
+  public void canPostFailedRecordsAndGetById() {
     postJsonObject(Service.PATH_TRANSFORMATIONS, Files.JSON_TRANSFORMATION_CONFIG);
     postJsonObject(Service.PATH_CHANNELS, Files.JSON_CHANNEL);
     postJsonObject(Service.PATH_IMPORT_JOBS, Files.JSON_IMPORT_JOB);
     postJsonObject(Service.PATH_FAILED_RECORDS, Files.JSON_FAILED_RECORDS);
     getRecords(Service.PATH_FAILED_RECORDS).body("totalRecords", is(5));
+    JsonObject failedRecords = new JsonObject(getRecords(Service.PATH_FAILED_RECORDS).extract().asPrettyString());
+    String id = failedRecords.getJsonArray("failedRecords").getJsonObject(0).getString("id");
+    getRecordById(PATH_FAILED_RECORDS, UUID.randomUUID().toString(), 404);
+    getRecordById(PATH_FAILED_RECORDS,id);
   }
 
   @Test
@@ -1421,6 +1426,16 @@ public class ImportTests extends InventoryUpdateTestBase {
         .get(api + "/" + id)
         .then()
         .statusCode(200);
+  }
+
+  ValidatableResponse getRecordById(String api, String id, int statusCode) {
+    return given()
+        .baseUri(BASE_URI_INVENTORY_UPDATE)
+        .header(Service.OKAPI_TENANT)
+        .header(Service.OKAPI_URL)
+        .get(api + "/" + id)
+        .then()
+        .statusCode(404);
   }
 
   protected JsonObject getEntityJsonById(String apiPath, String id) {

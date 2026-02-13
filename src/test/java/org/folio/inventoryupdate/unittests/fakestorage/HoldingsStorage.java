@@ -8,8 +8,8 @@ public class HoldingsStorage extends RecordStorage{
 
   @Override
   protected void declareDependencies() {
-    fakeStorageForImporting.instanceStorage.acceptDependant(this, "instanceId");
-    fakeStorageForImporting.locationStorage.acceptDependant(this, "permanentLocationId");
+    fakeStorageForImporting.instanceStorage.acceptDependant(this, "instanceId", false);
+    fakeStorageForImporting.locationStorage.acceptDependant(this, "permanentLocationId", false);
   }
 
   @Override

@@ -151,20 +151,28 @@ public abstract class Entity {
 
   protected String insertClauseColumns() {
     StringBuilder columnListAsString = new StringBuilder();
-    fields().keySet().forEach(field -> columnListAsString.append(dbColumnName(field)).append(","));
+    fields().entrySet().stream()
+        .filter(entry -> !entry.getValue().virtual)
+        .forEach(field -> columnListAsString.append(dbColumnName(field.getKey())).append(",")
+    );
     return columnListAsString.append(metadata.insertClauseColumns()).toString();
   }
 
   protected String insertClauseValueTemplates() {
     StringBuilder valueListAsString = new StringBuilder();
-    fields().keySet().forEach(field -> valueListAsString.append("#{").append(dbColumnName(field)).append("},"));
+    fields().entrySet().stream()
+        .filter(entry -> !entry.getValue().virtual)
+        .forEach(field -> valueListAsString.append("#{").append(dbColumnName(field.getKey())).append("},"));
     return valueListAsString.append(metadata.insertClauseValueTemplates()).toString();
   }
 
   protected String updateClauseColumnTemplates() {
     StringBuilder listOfColumnsValues = new StringBuilder();
-    fields().keySet().forEach(field ->
-        listOfColumnsValues.append(dbColumnName(field)).append(" = #{").append(dbColumnName(field)).append("},"));
+    fields().entrySet().stream()
+        .filter(entry -> !entry.getValue().virtual)
+        .forEach(field ->
+        listOfColumnsValues.append(dbColumnName(field.getKey())).append(" = #{")
+            .append(dbColumnName(field.getKey())).append("},"));
     return listOfColumnsValues.append(metadata.updateClauseColumnTemplates()).toString();
   }
 
@@ -329,6 +337,7 @@ public abstract class Entity {
     boolean queryable;
     boolean primaryKey;
     boolean unique;
+    boolean virtual; // cannot create, update this
 
     public Field(String jsonPropertyName, String columnName, PgColumn.Type pgType,
                  boolean nullable, boolean queryable) {
@@ -358,6 +367,11 @@ public abstract class Entity {
 
     public Field isUnique() {
       this.unique = true;
+      return this;
+    }
+
+    public Field isVirtual() {
+      this.virtual = true;
       return this;
     }
 

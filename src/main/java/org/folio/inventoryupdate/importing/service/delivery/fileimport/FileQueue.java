@@ -86,6 +86,9 @@ public final class FileQueue {
    * @param file     The file contents.
    */
   public Future<Void> push(String fileName, Buffer file) {
+    if (! fs.existsBlocking(jobPath + "/" + TMP_DIR)) {
+      createDirectoriesIfNotExist();
+    }
     return fs.writeFile(jobPath + "/" + TMP_DIR + "/" + fileName, file)
         .compose(na -> fs.move(jobPath + "/" + TMP_DIR + "/" + fileName, jobPath + "/" + fileName,
             new CopyOptions().setReplaceExisting(true)));

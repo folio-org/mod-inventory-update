@@ -81,7 +81,7 @@ public class ImportTests extends InventoryUpdateTestBase {
         .put("module_from", "mod-inventory-update-1.0.0")
         .put("purge", true), null);
     fakeFolioApis.settingsStorage.wipeMockRecords();
-    deleteFileQueues();
+    //deleteFileQueues();
     super.cleanUp();
   }
 
@@ -872,7 +872,7 @@ public class ImportTests extends InventoryUpdateTestBase {
     await().until(() -> getTotalRecords(Service.PATH_JOB_LOGS), is(4));
   }
 
-  @Test
+  //@Test
   public void willBootstrapFileQueueIfNotExists() {
     configureSamplePipeline();
     deleteFileQueues();

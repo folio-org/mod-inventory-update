@@ -19,6 +19,7 @@ import io.restassured.response.ValidatableResponse;
 import io.restassured.specification.RequestSpecification;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
+import java.io.File;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -80,6 +81,7 @@ public class ImportTests extends InventoryUpdateTestBase {
         .put("module_from", "mod-inventory-update-1.0.0")
         .put("purge", true), null);
     fakeFolioApis.settingsStorage.wipeMockRecords();
+    deleteFileQueues();
     super.cleanUp();
   }
 
@@ -853,6 +855,7 @@ public class ImportTests extends InventoryUpdateTestBase {
   @Test
   public void canImportSourceXml() {
     configureSamplePipeline();
+
     String channelId = Files.JSON_CHANNEL.getString("id");
     String channelTag = Files.JSON_CHANNEL.getString("tag");
     String transformationId = Files.JSON_TRANSFORMATION_CONFIG.getString("id");
@@ -868,6 +871,28 @@ public class ImportTests extends InventoryUpdateTestBase {
     await().until(() -> getRecordById(Service.PATH_IMPORT_JOBS, jobId).extract().path("finished"), greaterThan(started));
     await().until(() -> getTotalRecords(Service.PATH_JOB_LOGS), is(4));
   }
+
+  @Test
+  public void willBootstrapFileQueueIfNotExists() {
+    configureSamplePipeline();
+    deleteFileQueues();
+
+    String channelId = Files.JSON_CHANNEL.getString("id");
+    String channelTag = Files.JSON_CHANNEL.getString("tag");
+    String transformationId = Files.JSON_TRANSFORMATION_CONFIG.getString("id");
+
+    getRecordById(Service.PATH_CHANNELS, channelId);
+    getRecordById(Service.PATH_TRANSFORMATIONS, transformationId);
+    postSourceXml(Service.PATH_CHANNELS + "/" + channelTag + "/upload", Files.XML_INVENTORY_RECORD_SET, 200);
+    getRecordById(Service.PATH_TRANSFORMATIONS, transformationId);
+
+    await().until(() -> getTotalRecords(Service.PATH_IMPORT_JOBS), is(1));
+    String jobId = getRecords(Service.PATH_IMPORT_JOBS).extract().path("importJobs[0].id");
+    String started = getRecordById(Service.PATH_IMPORT_JOBS, jobId).extract().path("started");
+    await().until(() -> getRecordById(Service.PATH_IMPORT_JOBS, jobId).extract().path("finished"), greaterThan(started));
+    await().until(() -> getTotalRecords(Service.PATH_JOB_LOGS), is(4));
+  }
+
 
   @Test
   public void canTestTransformationOfExistingChannel() {
@@ -1484,5 +1509,19 @@ public class ImportTests extends InventoryUpdateTestBase {
 
   }
 
+  private void deleteFileQueues() {
+    File queues = new File(System.getProperty("user.dir")+"/MIU_QUEUE");
+    deleteDirectory(queues);
+  }
+
+  private void deleteDirectory(File directoryToBeDeleted) {
+    File[] allContents = directoryToBeDeleted.listFiles();
+    if (allContents != null) {
+      for (File file : allContents) {
+        deleteDirectory(file);
+      }
+    }
+    directoryToBeDeleted.delete();
+  }
 
 }

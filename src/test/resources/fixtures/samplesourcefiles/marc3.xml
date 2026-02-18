@@ -1,0 +1,224 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<collection xmlns:marc="http://www.loc.gov/MARC21/slim">
+  <marc:record>
+    <marc:leader>00942nam a22002531a 4504</marc:leader>
+    <marc:controlfield tag="001">73209622 //r823</marc:controlfield>
+    <marc:controlfield tag="003">DLC</marc:controlfield>
+    <marc:controlfield tag="005">19820325000000.0</marc:controlfield>
+    <marc:controlfield tag="008">780306m19009999ohu 00000 grc</marc:controlfield>
+    <marc:datafield tag="010" ind1=" " ind2=" ">
+      <marc:subfield code="a">73209622 //r823</marc:subfield>
+    </marc:datafield>
+    <marc:datafield tag="040" ind1=" " ind2=" ">
+      <marc:subfield code="a">DLC</marc:subfield>
+      <marc:subfield code="c">DLC</marc:subfield>
+      <marc:subfield code="d">DLC</marc:subfield>
+    </marc:datafield>
+    <marc:datafield tag="041" ind1="0" ind2=" ">
+      <marc:subfield code="a">grchebeng</marc:subfield>
+    </marc:datafield>
+    <marc:datafield tag="050" ind1="0" ind2="0">
+      <marc:subfield code="a">BS421</marc:subfield>
+      <marc:subfield code="b">.C64</marc:subfield>
+    </marc:datafield>
+    <marc:datafield tag="082" ind1="0" ind2="0">
+      <marc:subfield code="a">220.4/4</marc:subfield>
+      <marc:subfield code="2">19</marc:subfield>
+    </marc:datafield>
+    <marc:datafield tag="245" ind1="0" ind2="4">
+      <marc:subfield code="a">The Computer Bible /</marc:subfield>
+      <marc:subfield code="c">J. Arthur Baird, David Noel Freedman, editors.</marc:subfield>
+    </marc:datafield>
+    <marc:datafield tag="260" ind1="0" ind2=" ">
+      <marc:subfield code="a">[Wooster, Ohio] :</marc:subfield>
+      <marc:subfield code="b">Biblical Research Associates,</marc:subfield>
+      <marc:subfield code="c">&lt;1973-c1980 &gt;</marc:subfield>
+    </marc:datafield>
+    <marc:datafield tag="300" ind1=" " ind2=" ">
+      <marc:subfield code="a">v. &lt;2-4, 7-10, 13, 15-18, 20-24 &gt; ;</marc:subfield>
+      <marc:subfield code="c">28 cm.</marc:subfield>
+    </marc:datafield>
+    <marc:datafield tag="500" ind1=" " ind2=" ">
+      <marc:subfield code="a">Hebrew and Greek; introductions in English.</marc:subfield>
+    </marc:datafield>
+    <marc:datafield tag="500" ind1=" " ind2=" ">
+      <marc:subfield code="a">Vols. 2, 8: Missoula, Mont. : Published by Scholars Press for Biblical Research
+        Associates.
+      </marc:subfield>
+    </marc:datafield>
+    <marc:datafield tag="630" ind1=" " ind2="0">
+      <marc:subfield code="a">Bible. O.T.</marc:subfield>
+      <marc:subfield code="x">Concordances, Hebrew.</marc:subfield>
+    </marc:datafield>
+    <marc:datafield tag="630" ind1="0" ind2="0">
+      <marc:subfield code="a">Bible.</marc:subfield>
+      <marc:subfield code="p">N.T.</marc:subfield>
+      <marc:subfield code="x">Concordances, Greek.</marc:subfield>
+    </marc:datafield>
+    <marc:datafield tag="700" ind1="1" ind2="0">
+      <marc:subfield code="a">Baird, J. Arthur</marc:subfield>
+      <marc:subfield code="q">(Joseph Arthur)</marc:subfield>
+    </marc:datafield>
+    <marc:datafield tag="700" ind1="1" ind2="0">
+      <marc:subfield code="a">Freedman, David Noel,</marc:subfield>
+      <marc:subfield code="d">1922-</marc:subfield>
+    </marc:datafield>
+    <marc:datafield tag="710" ind1="2" ind2="0">
+      <marc:subfield code="a">Biblical Research Associates.</marc:subfield>
+    </marc:datafield>
+  </marc:record>
+  <marc:record>
+    <marc:leader>00366nam a22001698a 4500</marc:leader>
+    <marc:controlfield tag="001">11224466</marc:controlfield>
+    <marc:controlfield tag="003">DLC</marc:controlfield>
+    <marc:controlfield tag="005">00000000000000.0</marc:controlfield>
+    <marc:controlfield tag="008">910710c19910701nju 00010 eng</marc:controlfield>
+    <marc:datafield tag="040" ind1=" " ind2=" ">
+      <marc:subfield code="a">DLC</marc:subfield>
+      <marc:subfield code="c">DLC</marc:subfield>
+    </marc:datafield>
+    <marc:datafield tag="050" ind1="0" ind2="0">
+      <marc:subfield code="a">123-xyz</marc:subfield>
+    </marc:datafield>
+    <marc:datafield tag="100" ind1="1" ind2="0">
+      <marc:subfield code="a">Jack Collins</marc:subfield>
+    </marc:datafield>
+    <marc:datafield tag="245" ind1="1" ind2="0">
+      <marc:subfield code="a">How to program a computer</marc:subfield>
+    </marc:datafield>
+    <marc:datafield tag="260" ind1="1" ind2=" ">
+      <marc:subfield code="a">Penguin</marc:subfield>
+    </marc:datafield>
+    <marc:datafield tag="263" ind1=" " ind2=" ">
+      <marc:subfield code="a">8710</marc:subfield>
+    </marc:datafield>
+    <marc:datafield tag="300" ind1=" " ind2=" ">
+      <marc:subfield code="a">p. cm.</marc:subfield>
+    </marc:datafield>
+    <marc:datafield tag="010" ind1=" " ind2=" ">
+      <marc:subfield code="a">11224466</marc:subfield>
+    </marc:datafield>
+  </marc:record>
+  <marc:record>
+    <marc:leader>03114cam a2200349 i 4500</marc:leader>
+    <marc:controlfield tag="001">77123332</marc:controlfield>
+    <marc:controlfield tag="003">DLC</marc:controlfield>
+    <marc:controlfield tag="005">20051218154744.0</marc:controlfield>
+    <marc:controlfield tag="008">981008b2001 ilu 000 0 eng</marc:controlfield>
+    <marc:datafield tag="035" ind1=" " ind2=" ">
+      <marc:subfield code="a">57779</marc:subfield>
+    </marc:datafield>
+    <marc:datafield tag="035" ind1=" " ind2=" ">
+      <marc:subfield code="a">90490</marc:subfield>
+    </marc:datafield>
+    <marc:datafield tag="035" ind1=" " ind2=" ">
+      <marc:subfield code="a">93202</marc:subfield>
+    </marc:datafield>
+    <marc:datafield tag="040" ind1=" " ind2=" ">
+      <marc:subfield code="a">DLC</marc:subfield>
+      <marc:subfield code="c">DLC</marc:subfield>
+    </marc:datafield>
+    <marc:datafield tag="906" ind1=" " ind2=" ">
+      <marc:subfield code="a">0</marc:subfield>
+      <marc:subfield code="b">und</marc:subfield>
+      <marc:subfield code="c">orignew</marc:subfield>
+      <marc:subfield code="d">u</marc:subfield>
+      <marc:subfield code="e">ncip</marc:subfield>
+      <marc:subfield code="f">19</marc:subfield>
+      <marc:subfield code="g">y-gencatlg</marc:subfield>
+    </marc:datafield>
+    <marc:datafield tag="010" ind1=" " ind2=" ">
+      <marc:subfield code="a">77123332</marc:subfield>
+    </marc:datafield>
+    <marc:datafield tag="245" ind1="0" ind2="0">
+      <marc:subfield code="a">Voyager Diacritic test -- New input 001 (SBIE).</marc:subfield>
+    </marc:datafield>
+    <marc:datafield tag="260" ind1=" " ind2=" ">
+      <marc:subfield code="a">ny :</marc:subfield>
+      <marc:subfield code="b">ny,</marc:subfield>
+      <marc:subfield code="c">2001.</marc:subfield>
+    </marc:datafield>
+    <marc:datafield tag="300" ind1=" " ind2=" ">
+      <marc:subfield code="a">100 p. ;</marc:subfield>
+      <marc:subfield code="c">12 cm.</marc:subfield>
+    </marc:datafield>
+    <marc:datafield tag="500" ind1=" " ind2=" ">
+      <marc:subfield code="a">New copy imported from file (8/12/99).</marc:subfield>
+    </marc:datafield>
+    <marc:datafield tag="500" ind1=" " ind2=" ">
+      <marc:subfield code="a">VOYAGER COLUMN 0 (NEW): Degree sign (ʻ); Phono Copyright mark (&lt;U+2117&gt;); Copyright
+        mark (♭); Sharp (&lt;U+266F&gt;); Inverted Question mark (&lt;U+00BF&gt;); Inverted Exclamation mark (Ł).
+      </marc:subfield>
+    </marc:datafield>
+    <marc:datafield tag="500" ind1=" " ind2=" ">
+      <marc:subfield code="a">VOYAGER COLUMN 1: Script L (&lt;U+2113&gt;); Polish L (ℓ); Scandanavian O (&lt;U+00D8&gt;);
+        D with Crossbar (&lt;U+0110&gt;); Icelandic Thorn (&lt;U+00DE&gt;); AE Digraph (¡); OE Digraph (&lt;U+0152&gt;);
+        Miagkii Znak (&lt;U+02B9&gt;); Dot at Midline (ʺ).
+      </marc:subfield>
+    </marc:datafield>
+    <marc:datafield tag="500" ind1=" " ind2=" ">
+      <marc:subfield code="a">VOYAGER COLUMN 2: Musical Flat (&lt;U+266D&gt;); Patent Mark (ʼ); Plus or Minus (ł); O
+        Hook (&lt;U+01A0&gt;); U Hook (&lt;U+01AF&gt;); Alif (&lt;U+02BC&gt;); alpha &lt;U+03B1&gt;; Ayn (&lt;U+02BB&gt;);
+        Polish l (℗).
+      </marc:subfield>
+    </marc:datafield>
+    <marc:datafield tag="500" ind1=" " ind2=" ">
+      <marc:subfield code="a">VOYAGER COLUMN 3: Scandanavian o ()̜; d with crossbar (&lt;U+0111&gt;); Icelandic Thorn
+        ()̓; ae Digraph ()̆; oe Digraph (&lt;U+0153&gt;); Tverdii Znak (&lt;U+02BA&gt;); Turkish i (ł); British Pound
+        (Đ); eth ()̧.
+      </marc:subfield>
+    </marc:datafield>
+    <marc:datafield tag="500" ind1=" " ind2=" ">
+      <marc:subfield code="a">VOYAGER COLUMN 4: Dagger (DO NOT USE); o Hook (&lt;U+01A1&gt;); u Hook (&lt;U+01B0&gt;);
+        Beta &lt;U+03B2&gt;; Gamma &lt;U+03B3&gt;; Superscript 0 (&lt;U+2070&gt;); Superscript 1 (£); Superscript 2 (ø);
+        Superscript 3 (đ).
+      </marc:subfield>
+    </marc:datafield>
+    <marc:datafield tag="500" ind1=" " ind2=" ">
+      <marc:subfield code="a">VOYAGER COLUMN 5: Superscript 4 (&lt;U+2074&gt;); Superscript 5 (&lt;U+2075&gt;);
+        Superscript 6 (&lt;U+2076&gt;); Superscript 7 (&lt;U+2077&gt;); Superscript 8 (&lt;U+2078&gt;); Superscript 9 (&lt;U+2079&gt;);
+        Superscript + (&lt;U+207A&gt;); Superscript - (&lt;U+207B&gt;); Superscript ( (&lt;U+207D&gt;).
+      </marc:subfield>
+    </marc:datafield>
+    <marc:datafield tag="500" ind1=" " ind2=" ">
+      <marc:subfield code="a">VOYAGER COLUMN 6: Superscript ) (&lt;U+207E&gt;); Subscript 0 (&lt;U+2080&gt;); Subscript
+        1 (&lt;U+2081&gt;); Subscript 2 (&lt;U+2082&gt;); Subscript 3 (&lt;U+2083&gt;); Subscript 4 (&lt;U+2084&gt;);
+        Subscript 5 (&lt;U+2085&gt;); Subscript 6 (&lt;U+2086&gt;); Subscript 7 (&lt;U+2087&gt;).
+      </marc:subfield>
+    </marc:datafield>
+    <marc:datafield tag="500" ind1=" " ind2=" ">
+      <marc:subfield code="a">VOYAGER COLUMN 7: Subscript 8 (&lt;U+2088&gt;); Subscript 9 (&lt;U+2089&gt;); Subscript +
+        (&lt;U+208A&gt;); Subscript - ( Subscript ( (&lt;U+208D&gt;); Subscript ) (&lt;U+208E&gt;); Pseudo Question Mark
+        (&lt;U+00E0&gt;o); Grave (&lt;U+00E1&gt;o); Acute (&lt;U+00E2&gt;o).
+      </marc:subfield>
+    </marc:datafield>
+    <marc:datafield tag="500" ind1=" " ind2=" ">
+      <marc:subfield code="a">VOYAGER COLUMN 8: Circumflex (o&lt;U+0302&gt;); Tilde (o&lt;U+0303&gt;); Macron (o&lt;U+0304&gt;);
+        Breve (o&lt;U+0306&gt;); Superior Dot (o&lt;U+0307&gt;); Umlaut (o&lt;U+0308&gt;); Hacek (o&lt;U+030C&gt;);
+        Circle Above (o&lt;U+030A&gt;); Ligature left (o&lt;U+0361&gt;).
+      </marc:subfield>
+    </marc:datafield>
+    <marc:datafield tag="500" ind1=" " ind2=" ">
+      <marc:subfield code="a">VOYAGER COLUMN 9: Ligature right (o) ; High Comma off center (o&lt;U+0315&gt;); Double
+        Acute (o&lt;U+030B&gt;); Candrabindu (o&lt;U+0310&gt;); Cedilla (o&lt;U+0327&gt;); Right Hook (o&lt;U+0328&gt;);
+        Dot Below (o&lt;U+0323&gt;); Double Dot Below (o&lt;U+0324&gt;); Circle Below (o&lt;U+0325&gt;).
+      </marc:subfield>
+    </marc:datafield>
+    <marc:datafield tag="500" ind1=" " ind2=" ">
+      <marc:subfield code="a">VOYAGER COLUMN 10: Double Underscore (o&lt;U+0333&gt;); Underscore (o&lt;U+0332&gt;); Left
+        Hook (o&lt;U+0326&gt;); Right Cedilla (o&lt;U+031C&gt;); Upadhmaniya (o&lt;U+032E&gt;); Double Tilde 1st half (o&lt;U+0360&gt;);
+        Double Tilde 2nd half (o) ; High Comma centered (o&lt;U+0313&gt;).
+      </marc:subfield>
+    </marc:datafield>
+    <marc:datafield tag="500" ind1=" " ind2=" ">
+      <marc:subfield code="a">VOYAGER PC Keyboard: Spacing Circumflex (^); Spacing Underscore (_); Spacing Grave (`);
+        Open Curly Bracket ({); Close Curly Bracket (}); Spacing Tilde (~).
+      </marc:subfield>
+    </marc:datafield>
+    <marc:datafield tag="500" ind1=" " ind2=" ">
+      <marc:subfield code="a">Standard PC Keyboard: 1234567890-= !@#$%^&amp;*()_+ qwertyuiop[]\ QWERTYUIOP{}|
+        asdfghjkl;' ASDFGHJKL:" zxcvbnm,./ ZXCVBNM&lt;&gt;?
+      </marc:subfield>
+    </marc:datafield>
+  </marc:record>
+</collection>

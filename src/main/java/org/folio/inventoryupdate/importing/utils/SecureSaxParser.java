@@ -17,6 +17,7 @@ public final class SecureSaxParser {
    */
   public static SAXParser get() throws ParserConfigurationException, SAXException {
     SAXParserFactory factory = SAXParserFactory.newInstance();
+    factory.setNamespaceAware(true);
     factory.setFeature("http://apache.org/xml/features/disallow-doctype-decl", true);
     factory.setFeature(XMLConstants.FEATURE_SECURE_PROCESSING, true);
     SAXParser saxParser = factory.newSAXParser();

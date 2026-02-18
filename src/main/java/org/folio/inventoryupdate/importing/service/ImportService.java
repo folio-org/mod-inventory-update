@@ -84,6 +84,7 @@ public class ImportService implements RouterCreator, TenantInitHooks {
     nonValidatingHandler(vertx, routerBuilder, "postImportJobLogLines", JobsAndMonitoring::postLogStatements);
     nonValidatingHandler(vertx, routerBuilder, "getImportJobLogLines", JobsAndMonitoring::getLogStatements);
     validatingHandler(vertx, routerBuilder, "getFailedRecords", JobsAndMonitoring::getFailedRecords);
+    validatingHandler(vertx, routerBuilder, "getFailedRecord", JobsAndMonitoring::getFailedRecordById);
     validatingHandler(vertx, routerBuilder, "postFailedRecords", JobsAndMonitoring::postFailedRecords);
     validatingHandler(vertx, routerBuilder, "deleteRecordFailure", JobsAndMonitoring::deleteRecordFailure);
     validatingHandler(vertx, routerBuilder, "pauseJob", JobsAndMonitoring::pauseImportJob);
@@ -203,14 +204,18 @@ public class ImportService implements RouterCreator, TenantInitHooks {
         return responseText(request.routingContext, 403)
             .end("The channel with id or tag [" + channelId + "] is not ready to accept files.").mapEmpty();
       } else if (channel.isCommissioned()) {
-        new FileQueue(request, channel.getId().toString()).addNewFile(fileName, xmlContent);
-        return responseText(request.routingContext, 200).end().mapEmpty();
+        return FileQueue.get(request, channel.getId().toString())
+            .push(fileName, xmlContent)
+            .compose(na -> responseText(request.routingContext, 200).end())
+            .mapEmpty();
       } else {
-        return FileListeners.deployIfNotDeployed(request, channel).onSuccess(ignore -> {
-          new FileQueue(request, channel.getId().toString()).addNewFile(fileName, xmlContent);
-          responseText(request.routingContext, 200)
-              .end("File queued for processing in ms " + (System.nanoTime() - fileStartTime) / 1000000L);
-        }).mapEmpty();
+        return FileQueue.get(request, channel.getId().toString())
+            .push(fileName, xmlContent)
+            .compose(na -> FileListeners.deployIfNotDeployed(request, channel)
+                .compose(ignore -> FileQueue.get(request, channel.getId().toString()).push(fileName, xmlContent)
+                .compose(x -> responseText(request.routingContext, 200)
+                    .end("File queued for processing in ms " + (System.nanoTime() - fileStartTime) / 1000000L)))
+                .mapEmpty());
       }
     });
   }
@@ -229,12 +234,12 @@ public class ImportService implements RouterCreator, TenantInitHooks {
         return responseText(request.routingContext, 403)
             .end("The channel with id or tag [" + channelId + "] is not ready to accept files.");
       } else if (channel.isCommissioned()) {
-        new MarcPreprocessor(new FileQueue(request, channel.getId().toString())).addFile(fileName, marcContent);
+        new MarcPreprocessor(FileQueue.get(request, channel.getId().toString())).addFile(fileName, marcContent);
         return responseText(request.routingContext, 200)
             .end("File queued for processing in ms " + (System.nanoTime() - fileStartTime) / 1000000L);
       } else {
         return FileListeners.deployIfNotDeployed(request, channel).onSuccess(ignore -> {
-          new MarcPreprocessor(new FileQueue(request, channel.getId().toString())).addFile(fileName, marcContent);
+          new MarcPreprocessor(FileQueue.get(request, channel.getId().toString())).addFile(fileName, marcContent);
           responseText(request.routingContext, 200)
               .end("File queued for processing in ms " + (System.nanoTime() - fileStartTime) / 1000000L);
         }).mapEmpty();

@@ -1,7 +1,6 @@
 package org.folio.inventoryupdate.importing.service.delivery.fileimport;
 
 import io.vertx.core.Future;
-import io.vertx.core.Promise;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.RoutingContext;
 import java.util.ArrayList;
@@ -114,65 +113,63 @@ public class InventoryBatchUpdater implements RecordReceiver {
    * know when the last upsert of a source file of records is done, for example.
    */
   private Future<Void> persistBatch() {
-    Promise<Void> promise = Promise.promise();
     BatchOfRecords batch = turnstile.viewCurrentBatch();
     if (fileProcessor.paused()) {
       logger.info("The file processor is paused, skipping batch {}{}.",
           batch == null ? "null" : batch.getBatchNumber(),
           batch != null && batch.size() == 0 ? "+" : "");
-      promise.complete();
-    } else if (batch != null) {
-      if (batch.size() > 0) {
-        long upsertStarted = System.nanoTime();
-        updateClient.inventoryUpsert(batch.getUpsertRequestBody()).onSuccess(upsert -> {
+      return Future.succeededFuture();
+    }
+    if (batch == null) {
+      return Future.succeededFuture();
+    }
+    if (batch.size() <= 0) {
+      if (batch.hasDeletingRecord()) {
+        return persistDeletion(batch);
+      }
+      // we get here when the last set of records had exactly 100. We just need to report
+      if (batch.isLastBatchOfFile()) {
+        reportEndOfFile();
+      }
+      return Future.succeededFuture();
+    }
+
+    long upsertStarted = System.nanoTime();
+    return updateClient.inventoryUpsert(batch.getUpsertRequestBody())
+        .compose(upsert -> {
           processingTime += System.nanoTime() - upsertStarted;
           if (upsert.statusCode() >= 400) {
             logger.error("Fatal error when updating inventory, status code: {}", upsert.statusCode());
-            promise.fail("Inventory update failed with status code " + upsert.statusCode());
-          } else {
-            fileProcessor.reporting.incrementRecordsProcessed(batch.size());
-            // In scenario with recurring HRIDs in batch, status will be 207 but no failed record to create.
-            if (upsert.statusCode() == 207 && upsert.hasErrorObjects()) {
-              batch.setResponse(upsert);
-              fileProcessor.reporting.reportErrors(batch)
-                  .onFailure(err -> logger.error("Error logging upsert results for batch #{}, {}",
-                      batch.getBatchNumber(), err.getMessage()));
-            }
-            fileProcessor.reporting.incrementInventoryMetrics(new InventoryMetrics(upsert.getMetrics()));
-            if (batch.hasDeletingRecord()) {
-              // Delete and complete the promise
-              persistDeletion(batch, promise);
-            } else {
-              if (batch.isLastBatchOfFile()) {
-                reportEndOfFile();
-              }
-              promise.complete();
-            }
+            return Future.failedFuture("Inventory update failed with status code " + upsert.statusCode());
           }
-        }).onFailure(handler -> promise.fail("Fatal error: " + handler.getMessage()));
-      } else if (batch.hasDeletingRecord()) {
-        // Delete and complete the promise
-        persistDeletion(batch, promise);
-      } else { // we get here when the last set of records had exactly 100. We just need to report
-        if (batch.isLastBatchOfFile()) {
-          reportEndOfFile();
-        }
-        promise.complete();
-      }
-    }
-    return promise.future();
+          fileProcessor.reporting.incrementRecordsProcessed(batch.size());
+          // In scenario with recurring HRIDs in batch, status will be 207 but no failed record to create.
+          if (upsert.statusCode() == 207 && upsert.hasErrorObjects()) {
+            batch.setResponse(upsert);
+            fileProcessor.reporting.reportErrors(batch)
+                .onFailure(err -> logger.error("Error logging upsert results for batch #{}, {}",
+                batch.getBatchNumber(), err.getMessage()));
+          }
+          fileProcessor.reporting.incrementInventoryMetrics(new InventoryMetrics(upsert.getMetrics()));
+          if (batch.hasDeletingRecord()) {
+            return persistDeletion(batch);
+          }
+          if (batch.isLastBatchOfFile()) {
+            reportEndOfFile();
+          }
+          return Future.succeededFuture();
+        });
   }
 
   /**
    * Persists the deletion, complete the promise when done.
    *
    * @param batch   The batch of records containing a deletion record
-   * @param promise The promise of persistBatch
    */
-  private void persistDeletion(BatchOfRecords batch, Promise<Void> promise) {
+  private Future<Void> persistDeletion(BatchOfRecords batch) {
     long deletionStarted = System.nanoTime();
     JsonObject deletionRecord = batch.getDeletingRecord().getRecordAsJson().getJsonObject("delete");
-    updateClient.inventoryDeletion(deletionRecord)
+    return updateClient.inventoryDeletion(deletionRecord)
         .onSuccess(deletion -> {
           fileProcessor.reporting.incrementRecordsProcessed(1);
           processingTime += System.nanoTime() - deletionStarted;
@@ -184,13 +181,9 @@ public class InventoryBatchUpdater implements RecordReceiver {
           } else {
             fileProcessor.reporting.incrementInventoryMetrics(new InventoryMetrics(deletion.getMetrics()));
           }
-          promise.succeed();
         })
-        .onFailure(
-            f -> {
-              fileProcessor.reporting.log("Error deleting inventory instance: " + f.getMessage());
-              promise.succeed();
-            });
+        .onFailure(e -> fileProcessor.reporting.log("Error deleting inventory instance: " + e.getMessage()))
+        .mapEmpty();
   }
 
   private void reportEndOfFile() {

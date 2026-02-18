@@ -30,7 +30,7 @@ public final class Channels extends EntityResponses {
     EntityStorage db = request.entityStorage();
     return db.storeEntity(channel.withCreatingUser(request.currentUser()))
         .map(id -> {
-          new FileQueue(request, id.toString()).createDirectoriesIfNotExist();
+          FileQueue.get(request, id.toString()).createDirectoriesIfNotExist();
           return id;
         }).compose(id -> db.getEntity(id, channel)).compose(cfg -> {
           if (((Channel) cfg).isEnabled()) {
@@ -48,7 +48,16 @@ public final class Channels extends EntityResponses {
   }
 
   public static Future<Void> getChannelById(ServiceRequest request) {
-    return getEntityAndRespond(request, new Channel());
+    UUID id = UUID.fromString(request.requestParam("id"));
+    Channel entity = new Channel();
+    return request.entityStorage().getEntity(id, entity).onSuccess(instance -> {
+      if (instance == null) {
+        responseText(request.routingContext(), 404).end(entity.entityName() + " " + id + " not found.");
+      } else {
+        Channel channel = ((Channel) instance).withFileQueue(FileQueue.get(request, id.toString()));
+        responseJson(request.routingContext(), 200).end(channel.asJson().encodePrettily());
+      }
+    }).mapEmpty();
   }
 
   public static Future<Void> putChannel(ServiceRequest request) {
@@ -62,8 +71,7 @@ public final class Channels extends EntityResponses {
                 .map(Channel.class::cast)
                 .compose(channel -> {
                   if (channel.isEnabled() && channel.isCommissioned()) {
-                    FileListener listener = FileListeners.getFileListener(request.tenant(), id.toString());
-                    listener.updateChannel(channel);
+                    FileListeners.getFileListener(request.tenant(), id.toString()).updateChannel(channel);
                     return Future.succeededFuture();
                   } else if (!channel.isEnabled() && channel.isCommissioned()) {
                     return FileListeners.undeployIfDeployed(request, channel);
@@ -218,7 +226,7 @@ public final class Channels extends EntityResponses {
     String channelId = request.requestParam("id");
     return getChannelByTagOrUuid(request, channelId).compose(channel -> {
       if (channel != null) {
-        String initMessage = new FileQueue(request, channelId).initializeQueue();
+        String initMessage = FileQueue.get(request, channelId).initialize();
         return responseText(request.routingContext(), 200).end(initMessage).mapEmpty();
       } else {
         return responseText(request.routingContext(), 404)

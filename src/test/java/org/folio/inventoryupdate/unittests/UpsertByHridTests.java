@@ -24,6 +24,7 @@ import static org.folio.inventoryupdate.unittests.fakestorage.FakeFolioApisForIm
 import static org.folio.inventoryupdate.unittests.fakestorage.FakeFolioApisForImporting.INSTANCE_STORAGE_PATH;
 import static org.folio.inventoryupdate.unittests.fakestorage.FakeFolioApisForImporting.ITEM_STORAGE_PATH;
 import static org.folio.inventoryupdate.unittests.fakestorage.FakeFolioApisForImporting.ORDER_LINES_STORAGE_PATH;
+import static org.folio.inventoryupdate.unittests.fakestorage.FakeFolioApisForImporting.PRECEDING_SUCCEEDING_TITLE_STORAGE_PATH;
 import static org.folio.inventoryupdate.unittests.fakestorage.FakeFolioApisForImporting.RESULT_SET_HOLDINGS_RECORDS;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
@@ -1582,7 +1583,7 @@ public class UpsertByHridTests extends InventoryUpdateTestBase {
     testContext.assertEquals(getMetric(upsertResponseJson3, INSTANCE_TITLE_SUCCESSION, CREATE, COMPLETED), 1,
         "After upsert of succeeding title, metrics should report [1] instance title successions successfully created " + upsertResponseJson3.encodePrettily());
 
-    JsonObject titleSuccessions = getRecordsFromStorage(FakeFolioApisForImporting.PRECEDING_SUCCEEDING_TITLE_STORAGE_PATH,null);
+    JsonObject titleSuccessions = getRecordsFromStorage(PRECEDING_SUCCEEDING_TITLE_STORAGE_PATH,null);
     testContext.assertEquals(titleSuccessions.getInteger("totalRecords"), 2,
         "After two upserts with title successions, the total number of title successions should be [2] " + titleSuccessions.encodePrettily() );
   }
@@ -1626,7 +1627,7 @@ public class UpsertByHridTests extends InventoryUpdateTestBase {
     testContext.assertEquals(getMetric(upsertResponseJson2, INSTANCE_TITLE_SUCCESSION, DELETE, COMPLETED), 1,
         "After upsert with empty succeedingTitles list, metrics should report [1] instance title successions successfully deleted " + upsertResponseJson2.encodePrettily());
 
-    JsonObject titleSuccessions = getRecordsFromStorage(FakeFolioApisForImporting.PRECEDING_SUCCEEDING_TITLE_STORAGE_PATH,null);
+    JsonObject titleSuccessions = getRecordsFromStorage(PRECEDING_SUCCEEDING_TITLE_STORAGE_PATH,null);
     testContext.assertEquals(titleSuccessions.getInteger("totalRecords"), 0,
         "After two upserts -- with and without title successions -- the number of title successions should be [0] " + titleSuccessions.encodePrettily() );
   }
@@ -1670,10 +1671,31 @@ public class UpsertByHridTests extends InventoryUpdateTestBase {
     testContext.assertEquals(getMetric(upsertResponseJson2, INSTANCE_TITLE_SUCCESSION, DELETE, COMPLETED), 1,
         "After upsert with empty precedingTitles list, metrics should report [1] instance title successions successfully deleted " + upsertResponseJson2.encodePrettily());
 
-    JsonObject titleSuccessions = getRecordsFromStorage(FakeFolioApisForImporting.PRECEDING_SUCCEEDING_TITLE_STORAGE_PATH,null);
+    JsonObject titleSuccessions = getRecordsFromStorage(PRECEDING_SUCCEEDING_TITLE_STORAGE_PATH,null);
     testContext.assertEquals(titleSuccessions.getInteger("totalRecords"), 0,
         "After two upserts -- with and without title successions -- the number of title successions should be [0] " + titleSuccessions.encodePrettily() );
   }
+
+  @Test
+  public void upsertWillIgnoreStubTitleSuccession (TestContext testContext) {
+    JsonObject upsertResponse = upsertByHrid(
+        new JsonObject()
+            .put("instance",
+                new InputInstance().setTitle("A title").setInstanceTypeId("123").setHrid("002").setSource("test").getJson()));
+    String instanceId = upsertResponse.getJsonObject("instance").getString("id");
+    post(PRECEDING_SUCCEEDING_TITLE_STORAGE_PATH, new JsonObject().put("precedingInstanceId", instanceId));
+    post(PRECEDING_SUCCEEDING_TITLE_STORAGE_PATH, new JsonObject().put("succeedingInstanceId", instanceId));
+
+    upsertByHrid(
+        new JsonObject()
+            .put("instance",
+                new InputInstance().setTitle("A title").setInstanceTypeId("123").setHrid("002").setSource("test").getJson()));
+    JsonObject titleSuccessions = getRecordsFromStorage(PRECEDING_SUCCEEDING_TITLE_STORAGE_PATH,null);
+    testContext.assertEquals(titleSuccessions.getInteger("totalRecords"), 2,
+        "After two upserts with title successions, the total number of title successions should be [1] " + titleSuccessions.encodePrettily() );
+
+  }
+
 
   @Test
   public void upsertByHridWillCreateProvisionalInstanceIfNeededForRelation (TestContext testContext) {
@@ -1907,7 +1929,7 @@ public class UpsertByHridTests extends InventoryUpdateTestBase {
     JsonObject storedItems = getRecordsFromStorage(ITEM_STORAGE_PATH, null);
     testContext.assertEquals(storedItems.getInteger("totalRecords"), 3,
         "After upsert the total number of items should be [3] " + storedItems.encodePrettily() );
-    JsonObject storedRelations = getRecordsFromStorage(FakeFolioApisForImporting.PRECEDING_SUCCEEDING_TITLE_STORAGE_PATH, null);
+    JsonObject storedRelations = getRecordsFromStorage(PRECEDING_SUCCEEDING_TITLE_STORAGE_PATH, null);
     testContext.assertEquals(storedRelations.getInteger("totalRecords"), 1,
         "After upsert the total number of relations should be [1] " + storedRelations.encodePrettily() );
 
@@ -1928,7 +1950,7 @@ public class UpsertByHridTests extends InventoryUpdateTestBase {
     storedItems = getRecordsFromStorage(ITEM_STORAGE_PATH, null);
     testContext.assertEquals(storedItems.getInteger("totalRecords"), 0,
         "After delete the total number of items should be [3] " + storedItems.encodePrettily() );
-    storedRelations = getRecordsFromStorage(FakeFolioApisForImporting.PRECEDING_SUCCEEDING_TITLE_STORAGE_PATH, null);
+    storedRelations = getRecordsFromStorage(PRECEDING_SUCCEEDING_TITLE_STORAGE_PATH, null);
     testContext.assertEquals(storedRelations.getInteger("totalRecords"), 0,
         "After delete the total number of relations should be [0] " + storedRelations.encodePrettily() );
 

@@ -457,7 +457,7 @@ paths:
           $ref: "#/components/responses/trait_500"
     get:
       operationId: getImportJobs
-      description: Retrieves list of past import jobs
+      description: Retrieves list of import jobs
       parameters:
         - in: query
           name: offset
@@ -485,7 +485,7 @@ paths:
             type: string
       responses:
         "200":
-          description: List of past import jobs
+          description: List of import jobs
           content:
             application/json:
               schema:
@@ -512,7 +512,7 @@ paths:
       description: Retrieves details of a previous import job
       responses:
         "200":
-          description: A past import job
+          description: An import job
           content:
             application/json:
               schema:
@@ -525,7 +525,7 @@ paths:
           $ref: "#/components/responses/trait_500"
     delete:
       operationId: deleteImportJob
-      description: Delete a past import job with all its logs
+      description: Delete an import job with all its logs
       responses:
         "200":
           description: Job run and logs deleted
@@ -543,7 +543,32 @@ paths:
       - $ref: "#/components/parameters/okapi_url"
     get:
       operationId: getImportJobLogLines
-      description: Retrieves the log of a past import job
+      description: Retrieves the log of an import job
+      parameters:
+        - in: query
+          name: offset
+          required: false
+          description: result set start row
+          schema:
+            type: integer
+        - in: query
+          name: limit
+          required: false
+          description: result set max rows
+          schema:
+            type: integer
+        - in: query
+          name: from
+          required: false
+          description: date range start parameter on finished date
+          schema:
+           type: string
+        - in: query
+          name: until
+          required: false
+          description: date range end parameter on finished date
+          schema:
+            type: string
       responses:
         "200":
           description: Logs for an import job
@@ -650,15 +675,31 @@ paths:
       - $ref: "#/components/parameters/okapi_tenant"
       - $ref: "#/components/parameters/okapi_token"
       - $ref: "#/components/parameters/okapi_url"
+      - in: path
+        name: id
+        required: true
+        description: Failed record identifier
+        schema:
+          type: string
+          format: uuid
+    get:
+      operationId: getFailedRecord
+      description: Retrieves a failed record by unique ID
+      responses:
+        "200":
+          description: A report about a record that failed to fully update
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/failedRecord"
+        "400":
+          $ref: "#/components/responses/trait_400"
+        "404":
+          $ref: "#/components/responses/trait_404"
+        "500":
+          $ref: "#/components/responses/trait_500"
+
     delete:
-      parameters:
-        - in: path
-          name: id
-          required: true
-          description: Failed record identifier
-          schema:
-            type: string
-            format: uuid
       operationId: deleteRecordFailure
       description: Delete a failed record entry
       responses:
@@ -1176,44 +1217,28 @@ components:
           type: string
           format: uuid
           description: Unique identifier for the association.
-        stepId:
-          type: string
-          format: uuid
-          description: UUID referencing a transformation step.
         transformationId:
           type: string
           format: uuid
           description: UUID referencing a transformation pipeline.
+        stepId:
+           type: string
+           format: uuid
+           description: UUID referencing a transformation step.
+        stepName:
+           type: string
+           description: optional, read-only name of the step
+           readOnly: true
         position:
           type: string
           description: The position of the step amongst other steps in the pipeline.
-        step:
-          type: object
-          description: DEPRECATED, legacy Harvester schema for identifying step
-          properties:
-            id:
-              type: string
-              format: uuid
-              description: Id of the step associated with a pipeline.
-            name:
-              type: string
-              description: Name for the step associated with a pipeline.
-          additionalProperties: true
-        transformation:
-          type: string
-          description: DEPRECATED, legacy Harvester schema for identifying transformation pipeline.
         metadata:
           $ref: "#/components/schemas/metadata"
+      required:
+        - stepId
+        - transformationId
+        - position
       additionalProperties: false
-      anyOf:
-        - required:
-          - stepId
-          - transformationId
-          - position
-        - required:
-          - step
-          - transformation
-          - position
     logLines:
       description: Job log statements as JSON.
       type: object
@@ -1286,6 +1311,15 @@ components:
           type: string
           description: The name of the channel at the time the job was run.
           readOnly: true
+        recordNumber:
+          type: string
+          description: The identifier assigned to this error report by Inventory Import.
+        timeStamp:
+          type: string
+          description: The date and time the error occurred.
+        sourceFileName:
+          type: string
+          description: The name of the uploaded source file containing the error, if filename provider by the uploader.
         recordErrors:
           type: array
           description: List of errors encountered during upsert or delete.
@@ -1321,12 +1355,6 @@ components:
         transformedRecord:
           type: object
           description: The JSON outcome of the transformation of the original record.
-        timeStamp:
-          type: string
-          description: The date and time the error occurred.
-        recordNumber:
-          type: string
-          description: The identifier assigned to this error report by Inventory Import.
         metadata:
           $ref: "#/components/schemas/metadata"
 
@@ -1357,10 +1385,30 @@ components:
         type:
           type: string
           description: Type of import channel, only bulk XML, 'XML', supported.
+          enum:
+            - XML
+        enabled:
+          type: boolean
+          description: Set to true to indicate that the channel should be deployed for use.
+        commissioned:
+          type: boolean
+          description: Indicates if the channel is actually deployed.
+          readOnly: true
+        listening:
+          type: boolean
+          description: Set to true to make an enabled channel actively listen for source files to process.
         transformationId:
           type: string
           format: uuid
           description: UUID referencing the transformation pipeline to use.
+        queuedFiles:
+          type: integer
+          description: Count of source files in the queue.
+          readOnly: true
+        fileInProcess:
+          type: string
+          description: Name of most recent file to be put in process and yet to be completed.
+          readOnly: true
         metadata:
           $ref: "#/components/schemas/metadata"
       required:
@@ -1400,6 +1448,10 @@ components:
         status:
           type: string
           description: The intermittent state or final outcome of the job.
+          enum:
+            - RUNNING
+            - PAUSED
+            - DONE
         started:
           type: string
           description: Timestamp when the job started.

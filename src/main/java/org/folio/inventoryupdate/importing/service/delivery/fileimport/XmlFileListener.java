@@ -18,7 +18,7 @@ public class XmlFileListener extends FileListener {
     this.tenant = request.tenant();
     this.channel = channel;
     this.routingContext = request.routingContext();
-    this.fileQueue = new FileQueue(request, getConfigIdStr());
+    this.fileQueue = FileQueue.get(request, getConfigIdStr());
     this.marcPreprocessor = new MarcPreprocessor(fileQueue);
   }
 

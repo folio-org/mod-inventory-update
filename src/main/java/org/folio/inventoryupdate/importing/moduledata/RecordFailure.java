@@ -33,6 +33,8 @@ public class RecordFailure extends Entity {
   public static final String SOURCE_FILE_NAME = "SOURCE_FILE_NAME";
   private static final Map<String, Field> FIELDS = new HashMap<>();
   private static final String DATE_FORMAT = "YYYY-MM-DD''T''HH24:MI:SS,MS";
+  FailedRecord theRecord;
+  private boolean usingView = false;
 
   static {
     FIELDS.put(ID,
@@ -57,8 +59,6 @@ public class RecordFailure extends Entity {
         new Field("sourceFileName", "source_file_name", PgColumn.Type.TEXT, true, true));
   }
 
-  FailedRecord theRecord;
-
   public RecordFailure() {
   }
 
@@ -77,7 +77,11 @@ public class RecordFailure extends Entity {
    */
   @Override
   public Tables table() {
-    return Tables.RECORD_FAILURE;
+    if (usingView) {
+      return Tables.RECORD_FAILURE_VIEW;
+    } else {
+      return Tables.RECORD_FAILURE;
+    }
   }
 
   @Override
@@ -94,6 +98,14 @@ public class RecordFailure extends Entity {
   @Override
   public Map<String, Field> fields() {
     return FIELDS;
+  }
+
+  /**
+   * Use view record failure view instead of base table.
+   */
+  public RecordFailure usingView() {
+    this.usingView = true;
+    return this;
   }
 
   /**

@@ -1,5 +1,6 @@
 package org.folio.inventoryupdate.importing.service.delivery.fileimport;
 
+import io.vertx.core.Future;
 import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.file.CopyOptions;
@@ -9,7 +10,7 @@ import java.io.File;
 import java.util.Comparator;
 import org.folio.inventoryupdate.importing.service.ServiceRequest;
 
-public class FileQueue {
+public final class FileQueue {
 
   public static final String SOURCE_FILES_ROOT_DIR = "MIU_QUEUE";
   public static final String TENANT_DIR_PREFIX = "TENANT_";
@@ -24,7 +25,7 @@ public class FileQueue {
   private final String jobPreprocessingTmpDir;
   private final FileSystem fs;
 
-  public FileQueue(ServiceRequest request, String configId) {
+  private FileQueue(ServiceRequest request, String configId) {
     fs = request.vertx().fileSystem();
     String tenantRootDir = new File(SOURCE_FILES_ROOT_DIR, TENANT_DIR_PREFIX + request.tenant()).getPath();
     jobPath = new File(tenantRootDir, CHANNEL_PREFIX + configId).getPath();
@@ -32,6 +33,10 @@ public class FileQueue {
     jobTmpDir = new File(jobPath, TMP_DIR).getPath();
     jobPreprocessingPath = new File(jobPath, PREPROCESSING_DIR).getPath();
     jobPreprocessingTmpDir = new File(jobPreprocessingPath, TMP_DIR).getPath();
+  }
+
+  public static FileQueue get(ServiceRequest request, String configId) {
+    return new FileQueue(request, configId);
   }
 
   public static void clearTenantQueues(Vertx vertx, String tenant) {
@@ -65,11 +70,11 @@ public class FileQueue {
    *
    * @return Message describing the action taken.
    */
-  public String initializeQueue() {
+  public String initialize() {
     int filesInQueueBefore = 0;
     if (fs.existsBlocking(jobPath)) {
       filesInQueueBefore = fs.readDirBlocking(jobPath).size() - 2;
-      if (filesInQueueBefore > 0) {
+      if (filesInQueueBefore > 0 || hasFileInProcess()) {
         deleteDirectoriesIfExist();
       }
     }
@@ -88,10 +93,13 @@ public class FileQueue {
    * @param fileName The name of the file to stage.
    * @param file     The file contents.
    */
-  public void addNewFile(String fileName, Buffer file) {
-    fs.writeFileBlocking(jobPath + "/" + TMP_DIR + "/" + fileName, file)
-        .move(jobPath + "/" + TMP_DIR + "/" + fileName, jobPath + "/" + fileName,
-            new CopyOptions().setReplaceExisting(true));
+  public Future<Void> push(String fileName, Buffer file) {
+    if (! fs.existsBlocking(jobPath + "/" + TMP_DIR)) {
+      createDirectoriesIfNotExist();
+    }
+    return fs.writeFile(jobPath + "/" + TMP_DIR + "/" + fileName, file)
+        .compose(na -> fs.move(jobPath + "/" + TMP_DIR + "/" + fileName, jobPath + "/" + fileName,
+            new CopyOptions().setReplaceExisting(true)));
   }
 
   public void addFileToPreprocessing(String fileName, Buffer file) {
@@ -110,11 +118,11 @@ public class FileQueue {
 
   /**
    * Checks if there is a file in the processing directory for the
-   * given job ID (or if it's empty and thus available for the next file to import).
+   * given job ID (or if it's empty and thus available for the next file in line).
    *
    * @return true if the processing directory is occupied, false if it's ready for next file.
    */
-  public boolean processingSlotTaken() {
+  public boolean hasFileInProcess() {
     try {
       return fs.readDirBlocking(jobProcessingSlot).stream().map(File::new).anyMatch(File::isFile);
     } catch (FileSystemException fse) {
@@ -127,8 +135,25 @@ public class FileQueue {
     }
   }
 
-  public boolean hasNextFile() {
-    return fs.readDirBlocking(jobPath).stream().map(File::new).anyMatch(File::isFile);
+  public boolean isEmpty() {
+    return fs.readDirBlocking(jobPath).stream().map(File::new).noneMatch(File::isFile);
+  }
+
+  public int size() {
+    if (fs.existsBlocking(jobPath)) {
+      return fs.readDirBlocking(jobPath).stream().map(File::new).filter(File::isFile).toList().size();
+    } else {
+      return -1;
+    }
+  }
+
+  public String fileInProcess() {
+    if (fs.existsBlocking(jobProcessingSlot)) {
+      return fs.readDirBlocking(jobProcessingSlot).stream().map(File::new)
+          .filter(File::isFile).findFirst().map(File::getName).orElse("no file in process");
+    } else {
+      return "no file in process";
+    }
   }
 
   public boolean hasFilesForPreprocessing() {
@@ -141,17 +166,17 @@ public class FileQueue {
   }
 
   /**
-   * Promotes the next file in the staging directory to the processing directory
-   * and returns true if a staged file was found (and the processing directory was free), otherwise returns false.
+   * Promotes the next file in the staging directory to the processing directory if possible.
+   * Returns true if (1) a staged file was found and (2) the processing directory was idle, otherwise returns false.
    *
-   * @return true if another file was found for processing, otherwise false.
+   * @return true if yet another file could be picked up for processing, otherwise false.
    */
-  public boolean promoteNextFileIfPossible() {
-    if (!processingSlotTaken()) {
+  private boolean pullNextIfPossible() {
+    if (!hasFileInProcess()) {
       return fs.readDirBlocking(jobPath).stream().map(File::new).filter(File::isFile)
           .min(Comparator.comparing(File::lastModified))
           .map(file -> {
-            if (!processingSlotTaken()) {
+            if (!hasFileInProcess()) {
               fs.moveBlocking(file.getPath(), jobProcessingSlot + "/" + file.getName());
               return true;
             } else {
@@ -163,11 +188,11 @@ public class FileQueue {
   }
 
   /**
-   * Gets the name of the file currently processing under the given job configuration.
+   * Gets the File that is currently in progress.
    *
-   * @return The name of file being processed, "none" if there is none.
+   * @return The File being processed, null if there is none.
    */
-  public File currentlyPromotedFile() {
+  public File currentFile() {
     return fs.readDirBlocking(jobProcessingSlot).stream().map(File::new).filter(File::isFile).findFirst().orElse(null);
   }
 
@@ -186,8 +211,8 @@ public class FileQueue {
    *   otherwise returns the next file for processing.
    */
   public File nextFileIfPossible() {
-    if (promoteNextFileIfPossible()) {
-      return currentlyPromotedFile();
+    if (pullNextIfPossible()) {
+      return currentFile();
     }
     return null;
   }

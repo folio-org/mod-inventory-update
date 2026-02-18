@@ -48,6 +48,7 @@ public class XmlRecordsReader extends DefaultHandler implements RecordProvider, 
   public void startPrefixMapping(String prefix, String uri) {
     prefixMappings.put(prefix, uri);
   }
+
   @Override
   public void startElement(String uri, String localName, String qqName, Attributes attributes) {
 

@@ -889,7 +889,7 @@ public class ImportTests extends InventoryUpdateTestBase {
   }
 
   @Test
-  public void canImportSourceXmlWithNamespaces() {
+  public void canImportSourceXmlWithNamespace() {
     configureSamplePipeline2();
 
     String channelId = Files.JSON_CHANNEL.getString("id");
@@ -899,6 +899,26 @@ public class ImportTests extends InventoryUpdateTestBase {
     getRecordById(Service.PATH_CHANNELS, channelId);
     getRecordById(Service.PATH_TRANSFORMATIONS, transformationId);
     postSourceXml(Service.PATH_CHANNELS + "/" + channelTag + "/upload", Files.XML_MARC_XML, 200);
+    getRecordById(Service.PATH_TRANSFORMATIONS, transformationId);
+
+    await().until(() -> getTotalRecords(Service.PATH_IMPORT_JOBS), is(1));
+    String jobId = getRecords(Service.PATH_IMPORT_JOBS).extract().path("importJobs[0].id");
+    String started = getRecordById(Service.PATH_IMPORT_JOBS, jobId).extract().path("started");
+    await().until(() -> getRecordById(Service.PATH_IMPORT_JOBS, jobId).extract().path("finished"), greaterThan(started));
+    await().until(() -> getTotalRecords(Service.PATH_JOB_LOGS), is(4));
+  }
+
+  @Test
+  public void canImportSourceXmlWithDefaultNamespace() {
+    configureSamplePipeline2();
+
+    String channelId = Files.JSON_CHANNEL.getString("id");
+    String channelTag = Files.JSON_CHANNEL.getString("tag");
+    String transformationId = Files.JSON_TRANSFORMATION_CONFIG.getString("id");
+
+    getRecordById(Service.PATH_CHANNELS, channelId);
+    getRecordById(Service.PATH_TRANSFORMATIONS, transformationId);
+    postSourceXml(Service.PATH_CHANNELS + "/" + channelTag + "/upload", Files.XML_MARC_XML_V2, 200);
     getRecordById(Service.PATH_TRANSFORMATIONS, transformationId);
 
     await().until(() -> getTotalRecords(Service.PATH_IMPORT_JOBS), is(1));

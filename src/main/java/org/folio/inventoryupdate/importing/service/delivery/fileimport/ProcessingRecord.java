@@ -26,7 +26,11 @@ public class ProcessingRecord {
     StringBuilder collection = new StringBuilder();
     collection.append("<collection ");
     for (Map.Entry<String, String> entry : prefixMappings.entrySet()) {
-      collection.append("xmlns:").append(entry.getKey()).append("=\"").append(entry.getValue()).append("\"");
+      if (entry.getKey().isEmpty()) {
+        collection.append("xmlns").append("=\"").append(entry.getValue()).append("\"");
+      } else {
+        collection.append("xmlns:").append(entry.getKey()).append("=\"").append(entry.getValue()).append("\"");
+      }
     }
     collection.append(">");
     return collection.append(theRecord).append("</collection>").toString();

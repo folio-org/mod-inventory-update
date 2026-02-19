@@ -72,18 +72,16 @@ public class XmlRecordsReader extends DefaultHandler implements RecordProvider, 
 
   @Override
   public void endElement(String uri, String localName, String qqName) {
-    if (theRecord != null) {
-      theRecord.append("</").append(qqName).append(">");
-      if (localName.equals("record")) {
-        String collectionOfOneRecord =
-            theCollectionElement
-            + System.lineSeparator()
-            + "  " + theRecord
-            + System.lineSeparator()
-            + "</collection>";
-        target.put(new ProcessingRecord(collectionOfOneRecord));
-        theRecord = new StringBuilder();
-      }
+    theRecord.append("</").append(qqName).append(">");
+    if (localName.equals("record")) {
+      String collectionOfOneRecord =
+          theCollectionElement
+          + System.lineSeparator()
+          + "  " + theRecord
+          + System.lineSeparator()
+          + "</collection>";
+      target.put(new ProcessingRecord(collectionOfOneRecord));
+      theRecord = new StringBuilder();
     }
   }
 

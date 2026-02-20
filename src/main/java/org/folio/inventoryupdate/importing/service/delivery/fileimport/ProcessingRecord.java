@@ -7,8 +7,8 @@ public class ProcessingRecord {
   private String theRecord;
   private boolean isDeletion = false;
 
-  public ProcessingRecord(String original) {
-    this.original = original;
+  public ProcessingRecord(String originalRecord) {
+    this.original = originalRecord;
     theRecord = original;
   }
 

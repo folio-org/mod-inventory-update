@@ -159,9 +159,9 @@ paths:
         schema:
           type: string
       - in: query
-        name: format
+        name: output
         required: false
-        description: Response with XML or JSON, Default JSON. To view XML, specify ?format=xml
+        description: Asks for response in XML or JSON, default is JSON. To view XML, specify ?output=xml
         schema:
           type: string
     post:
@@ -1343,7 +1343,7 @@ components:
           description: A name for the configuration.
         tag:
           type: string
-          pattern: "^[A-Za-z0-9-_]{1,24}$"
+          pattern: "^[A-Za-z0-9-_]{1,31}$"
           description: Optional, unique identifier that can be used instead of the UUID in channel operations
         type:
           type: string
@@ -1366,7 +1366,7 @@ components:
           description: UUID referencing the transformation pipeline to use.
         queuedFiles:
           type: integer
-          description: Count of source files in the queue.
+          description: Count of source files in the queue. A count of -1 means there is currently no queue in the file system.
           readOnly: true
         fileInProcess:
           type: string

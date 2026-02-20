@@ -206,6 +206,16 @@ public class ImportTests extends InventoryUpdateTestBase {
     putJsonObject(Service.PATH_TRANSFORMATIONS + "/" + Files.JSON_TRANSFORMATION_CONFIG.getString("id"), update, 204);
     putJsonObject(Service.PATH_TRANSFORMATIONS + "/" + UUID.randomUUID(), update, 404);
     getRecords(Service.PATH_TRANSFORMATIONS).body("totalRecords", is(1));
+    JsonObject step = new JsonObject();
+    step.put("id", STEP_ID)
+        .put("name", "test step")
+        .put("script", Files.XSLT_MARC_TO_INSTANCE);
+    postJsonObject(Service.PATH_STEPS, step);
+    JsonObject tsa = new JsonObject();
+    tsa.put("stepId", STEP_ID)
+        .put("transformationId", Files.JSON_TRANSFORMATION_CONFIG.getString("id"))
+        .put("position", "1");
+    postJsonObject(Service.PATH_TSAS, tsa);
     deleteRecord(Service.PATH_TRANSFORMATIONS, Files.JSON_TRANSFORMATION_CONFIG.getString("id"), 200);
     getRecords(Service.PATH_TRANSFORMATIONS).body("totalRecords", is(0));
     deleteRecord(Service.PATH_TRANSFORMATIONS, Files.JSON_TRANSFORMATION_CONFIG.getString("id"), 404);

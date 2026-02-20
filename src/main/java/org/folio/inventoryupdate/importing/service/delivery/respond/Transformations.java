@@ -143,7 +143,10 @@ public final class Transformations extends EntityResponses {
   }
 
   public static Future<Void> deleteTransformation(ServiceRequest request) {
-    return deleteEntityAndRespond(request, new Transformation());
+    UUID transformationId = UUID.fromString(request.requestParam("id"));
+    return new TransformationStep()
+        .deleteTransformationStepsByTransformationId(request.entityStorage().getTenantPool(), transformationId)
+        .compose(na -> deleteEntityAndRespond(request, new Transformation())).mapEmpty();
   }
 
   public static Future<Void> postTransformationStep(ServiceRequest request) {

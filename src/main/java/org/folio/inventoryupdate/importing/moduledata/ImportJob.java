@@ -6,8 +6,10 @@ import io.vertx.core.Future;
 import io.vertx.core.json.JsonObject;
 import io.vertx.sqlclient.SqlResult;
 import io.vertx.sqlclient.templates.RowMapper;
+import io.vertx.sqlclient.templates.SqlTemplate;
 import io.vertx.sqlclient.templates.TupleMapper;
 import java.time.LocalDateTime;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
@@ -327,8 +329,9 @@ public class ImportJob extends Entity {
         "CREATE TABLE IF NOT EXISTS " + pool.getSchema() + "." + table()
             + "("
             + dbColumnNameAndType(ID) + " PRIMARY KEY, "
-            + dbColumnNameAndType(CHANNEL_ID) + " NOT NULL "
-            + " REFERENCES " + pool.getSchema() + "." + Tables.CHANNEL + " (" + new Channel().dbColumnName(ID) + "), "
+            + dbColumnNameAndType(CHANNEL_ID) + " NOT NULL CONSTRAINT import_job_channel_id_fkey "
+            + "REFERENCES " + pool.getSchema() + "." + Tables.CHANNEL + " (" + new Channel().dbColumnName(ID) + ") "
+            + " ON DELETE CASCADE, "
             + dbColumnNameAndType(CHANNEL_NAME) + ", "
             + dbColumnNameAndType(IMPORT_TYPE) + ", "
             + dbColumnNameAndType(TRANSFORMATION) + ", "
@@ -339,8 +342,23 @@ public class ImportJob extends Entity {
             + dbColumnNameAndType(MESSAGE) + ", "
             + metadata.columnsDdl() + ") ",
         "CREATE INDEX IF NOT EXISTS import_job_channel_id_idx "
-            + " ON " + pool.getSchema() + "." + table() + "(" + dbColumnName(CHANNEL_ID) + ")"
+            + " ON " + pool.getSchema() + "." + table() + "(" + dbColumnName(CHANNEL_ID) + ")",
+
+        // schema updates
+        "ALTER TABLE " + pool.getSchema() +  "." + table() + " DROP CONSTRAINT import_job_channel_id_fkey",
+        "ALTER TABLE " + pool.getSchema() +  "." + table()
+            + " ADD CONSTRAINT import_job_channel_id_fkey FOREIGN KEY (" + dbColumnName(CHANNEL_ID) + ")"
+            + " REFERENCES " + pool.getSchema() + "." + Tables.CHANNEL + " (" + new Channel().dbColumnName(ID) + ") "
+            + " ON DELETE CASCADE"
     ).mapEmpty();
+  }
+
+  public Future<Integer> countImportJobsByChannelId(TenantPgPool pool, String channelId) {
+    return SqlTemplate.forQuery(pool.getPool(),
+        "SELECT COUNT(*) AS import_jobs_count FROM " + pool.getSchema() + "." + table()
+        + " WHERE " + dbColumnName(CHANNEL_ID) + " = #{channelId}")
+        .execute(Collections.singletonMap("channelId", channelId))
+        .map(rows -> rows.iterator().next().getInteger("import_jobs_count"));
   }
 
   public record ImportJobRecord(UUID id,

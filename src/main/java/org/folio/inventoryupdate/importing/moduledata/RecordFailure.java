@@ -254,8 +254,9 @@ public class RecordFailure extends Entity {
         "CREATE TABLE IF NOT EXISTS " + pool.getSchema() + "." + table()
             + "("
             + dbColumnNameAndType(ID) + " PRIMARY KEY, "
-            + dbColumnNameAndType(IMPORT_JOB_ID) + " NOT NULL REFERENCES "
-            + pool.getSchema() + "." + Tables.IMPORT_JOB + "(" + new ImportJob().dbColumnName(ID) + "), "
+            + dbColumnNameAndType(IMPORT_JOB_ID) + " NOT NULL CONSTRAINT record_failure_import_job_id_fkey "
+            + "REFERENCES " + pool.getSchema() + "." + Tables.IMPORT_JOB
+            + "(" + new ImportJob().dbColumnName(ID) + ") ON DELETE CASCADE, "
             + dbColumnNameAndType(RECORD_NUMBER) + ", "
             + dbColumnNameAndType(TIME_STAMP) + ", "
             + dbColumnNameAndType(SOURCE_FILE_NAME) + ", "
@@ -264,9 +265,17 @@ public class RecordFailure extends Entity {
             + dbColumnNameAndType(TRANSFORMED_RECORD) + " NOT NULL, "
             + metadata.columnsDdl()
             + ")",
-
         "CREATE INDEX IF NOT EXISTS record_failure_import_job_id_idx "
-            + " ON " + pool.getSchema() + "." + table() + "(" + dbColumnName(IMPORT_JOB_ID) + ")"
+            + " ON " + pool.getSchema() + "." + table() + "(" + dbColumnName(IMPORT_JOB_ID) + ")",
+        // schema updates
+        "ALTER TABLE " + pool.getSchema() +  "." + table()
+            + " DROP CONSTRAINT IF EXISTS record_failure_import_job_id_fkey",
+        "ALTER TABLE " + pool.getSchema() +  "." + table()
+            + " ADD CONSTRAINT record_failure_import_job_id_fkey FOREIGN KEY (" + dbColumnName(IMPORT_JOB_ID) + ")"
+            + " REFERENCES " + pool.getSchema() + "." + Tables.IMPORT_JOB
+            + " (" + new ImportJob().dbColumnName(ID) + ") "
+            + " ON DELETE CASCADE"
+
     ).mapEmpty();
   }
 

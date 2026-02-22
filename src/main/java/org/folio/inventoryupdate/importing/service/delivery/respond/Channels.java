@@ -1,5 +1,6 @@
 package org.folio.inventoryupdate.importing.service.delivery.respond;
 
+import static org.folio.okapi.common.HttpResponse.responseError;
 import static org.folio.okapi.common.HttpResponse.responseJson;
 import static org.folio.okapi.common.HttpResponse.responseText;
 
@@ -9,6 +10,7 @@ import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
 import org.folio.inventoryupdate.importing.moduledata.Channel;
+import org.folio.inventoryupdate.importing.moduledata.ImportJob;
 import org.folio.inventoryupdate.importing.moduledata.database.EntityStorage;
 import org.folio.inventoryupdate.importing.moduledata.database.SqlQuery;
 import org.folio.inventoryupdate.importing.moduledata.database.Tables;
@@ -91,12 +93,26 @@ public final class Channels extends EntityResponses {
 
   public static Future<Void> deleteChannel(ServiceRequest request) {
     String channelId = request.requestParam("id");
+    boolean force = "true".equalsIgnoreCase(request.requestParam("force"));
     return getChannelByTagOrUuid(request, channelId).compose(channel -> {
       if (channel == null) {
         return responseText(request.routingContext(), 404)
             .end("Found no channel with tag or id " + channelId + " to delete.").mapEmpty();
       } else {
-        return deleteEntityAndRespond(request, new Channel()).compose(na -> decommission(request)).mapEmpty();
+        if (!force) {
+          return new ImportJob().countImportJobsByChannelId(request.entityStorage().getTenantPool(), channelId)
+              .compose(jobsCount -> {
+                if (jobsCount > 0) {
+                  responseError(request.routingContext(), 400, "Channel not deleted because it has " + jobsCount
+                      + " logged import jobs. To delete all logs together with the channel, use parameter ?force=true");
+                  return Future.succeededFuture();
+                } else {
+                  return deleteEntityAndRespond(request, new Channel()).compose(na -> decommission(request)).mapEmpty();
+                }
+              });
+        } else {
+          return deleteEntityAndRespond(request, new Channel()).compose(na -> decommission(request)).mapEmpty();
+        }
       }
     });
   }

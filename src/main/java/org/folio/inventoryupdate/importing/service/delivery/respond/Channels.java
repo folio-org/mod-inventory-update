@@ -99,19 +99,18 @@ public final class Channels extends EntityResponses {
         return responseText(request.routingContext(), 404)
             .end("Found no channel with tag or id " + channelId + " to delete.").mapEmpty();
       } else {
-        if (!force) {
+        if (force) {
+          return deleteEntityAndRespond(request, new Channel()).compose(na -> decommission(request)).mapEmpty();
+        } else {
           return new ImportJob().countImportJobsByChannelId(request.entityStorage().getTenantPool(), channelId)
               .compose(jobsCount -> {
                 if (jobsCount > 0) {
-                  responseError(request.routingContext(), 400, "Channel not deleted because it has " + jobsCount
+                  return responseText(request.routingContext(), 400).end("Channel not deleted because it has " + jobsCount
                       + " logged import jobs. To delete all logs together with the channel, use parameter ?force=true");
-                  return Future.succeededFuture();
                 } else {
                   return deleteEntityAndRespond(request, new Channel()).compose(na -> decommission(request)).mapEmpty();
                 }
               });
-        } else {
-          return deleteEntityAndRespond(request, new Channel()).compose(na -> decommission(request)).mapEmpty();
         }
       }
     });

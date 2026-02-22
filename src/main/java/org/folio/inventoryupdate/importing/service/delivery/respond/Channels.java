@@ -1,6 +1,5 @@
 package org.folio.inventoryupdate.importing.service.delivery.respond;
 
-import static org.folio.okapi.common.HttpResponse.responseError;
 import static org.folio.okapi.common.HttpResponse.responseJson;
 import static org.folio.okapi.common.HttpResponse.responseText;
 

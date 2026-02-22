@@ -11,8 +11,6 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.folio.inventoryupdate.importing.foliodata.SettingsClient;
 import org.folio.inventoryupdate.importing.moduledata.ImportJob;
-import org.folio.inventoryupdate.importing.moduledata.LogLine;
-import org.folio.inventoryupdate.importing.moduledata.RecordFailure;
 import org.folio.inventoryupdate.importing.moduledata.database.Tables;
 import org.folio.inventoryupdate.importing.service.ServiceRequest;
 import org.folio.inventoryupdate.importing.utils.Miscellaneous;
@@ -49,38 +47,6 @@ public class LogPurging  {
   }
 
   private Future<Void> purgePreviousJobsByAge(LocalDateTime untilDate) {
-    return deleteLogs(untilDate)
-        .compose(deletedLogs -> deleteFailedRecords(untilDate))
-        .compose(deletedFailedRecords -> deleteImportJobs(untilDate));
-  }
-
-  private Future<Void> deleteLogs(LocalDateTime untilDate) {
-    return SqlTemplate.forUpdate(pool.getPool(),
-            "DELETE FROM " + pool.getSchema() + "." + Tables.LOG_STATEMENT
-                + " WHERE " + new LogLine().field(LogLine.IMPORT_JOB_ID).columnName()
-                + "    IN (SELECT " + new ImportJob().field(ImportJob.ID).columnName()
-                + "        FROM " + pool.getSchema() + "." + Tables.IMPORT_JOB
-                + "        WHERE " + new ImportJob().field(ImportJob.STARTED).columnName() + " < #{untilDate} )")
-        .execute(Collections.singletonMap("untilDate", untilDate))
-        .onSuccess(result -> logger.info("{} log lines deleted", result.rowCount()))
-        .onFailure(error -> logger.error("{} (occurred when attempting to delete logs)", error.getMessage()))
-        .mapEmpty();
-  }
-
-  private Future<Void> deleteFailedRecords(LocalDateTime untilDate) {
-    return SqlTemplate.forUpdate(pool.getPool(),
-            "DELETE FROM " + pool.getSchema() + "." + Tables.RECORD_FAILURE
-                + " WHERE " + new RecordFailure().field(LogLine.IMPORT_JOB_ID).columnName()
-                + "    IN (SELECT " + new ImportJob().field(ImportJob.ID).columnName()
-                + "        FROM " + pool.getSchema() + "." + Tables.IMPORT_JOB
-                + "       WHERE " + new ImportJob().field(ImportJob.STARTED).columnName() + " < #{untilDate} )")
-        .execute(Collections.singletonMap("untilDate", untilDate))
-        .onSuccess(result -> logger.info("{} failed records deleted", result.rowCount()))
-        .onFailure(error -> logger.error("{} (occurred when attempting to delete failed records)", error.getMessage()))
-        .mapEmpty();
-  }
-
-  private Future<Void> deleteImportJobs(LocalDateTime untilDate) {
     return SqlTemplate.forUpdate(pool.getPool(),
             "DELETE FROM " + pool.getSchema() + "." + Tables.IMPORT_JOB
                 + " WHERE " + new ImportJob().field(ImportJob.STARTED).columnName() + " <#{untilDate} ")

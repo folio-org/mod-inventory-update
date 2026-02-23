@@ -683,11 +683,21 @@ public class ImportTests extends InventoryUpdateTestBase {
     putJsonObject(Service.PATH_CHANNELS + "/" + Files.JSON_CHANNEL.getString("id"), update, 200);
     putJsonObject(Service.PATH_CHANNELS + "/" + UUID.randomUUID(), update, 404);
     getRecords(Service.PATH_CHANNELS).body("totalRecords", is(1));
+    // Can delete channel with no logged jobs
     deleteRecord(Service.PATH_CHANNELS, Files.JSON_CHANNEL.getString("id"), 200);
     getRecords(Service.PATH_CHANNELS).body("totalRecords", is(0));
-    deleteRecord(Service.PATH_CHANNELS, Files.JSON_CHANNEL.getString("id"), 404);
+
     // Can create disabled channel
     postJsonObject(PATH_CHANNELS, Files.JSON_CHANNEL.copy().put("enabled", false));
+    // Can only delete channel with logged jobs if `force` set to `true`
+    postJsonObject(Service.PATH_IMPORT_JOBS, Files.JSON_IMPORT_JOB);
+    deleteRecord(Service.PATH_CHANNELS, Files.JSON_CHANNEL.getString("id"), 400);
+    getRecords(Service.PATH_CHANNELS).body("totalRecords", is(1));
+    deleteRecord(Service.PATH_CHANNELS, Files.JSON_CHANNEL.getString("id"), "force=true", 200);
+    getRecords(Service.PATH_CHANNELS).body("totalRecords", is(0));
+    deleteRecord(Service.PATH_CHANNELS, Files.JSON_CHANNEL.getString("id"), 404);
+
+
   }
 
   @Test
@@ -1541,6 +1551,16 @@ public class ImportTests extends InventoryUpdateTestBase {
         .header(Service.OKAPI_TENANT)
         .header(Service.OKAPI_URL)
         .delete(api + "/" + id)
+        .then()
+        .statusCode(statusCode);
+  }
+
+  ValidatableResponse deleteRecord(String api, String id, String argument, int statusCode) {
+    return given()
+        .baseUri(BASE_URI_INVENTORY_UPDATE)
+        .header(Service.OKAPI_TENANT)
+        .header(Service.OKAPI_URL)
+        .delete(api + "/" + id + "?" + argument)
         .then()
         .statusCode(statusCode);
   }

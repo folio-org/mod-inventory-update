@@ -191,7 +191,13 @@ public class LogLine extends Entity {
             + metadata.columnsDdl()
             + ")",
         "CREATE INDEX IF NOT EXISTS log_statement_import_job_id_idx "
-            + " ON " + pool.getSchema() + "." + table() + "(" + dbColumnName(IMPORT_JOB_ID) + ")"
+            + " ON " + pool.getSchema() + "." + table() + "(" + dbColumnName(IMPORT_JOB_ID) + ")",
+        "ALTER TABLE " + pool.getSchema() +  "." + table() + " DROP CONSTRAINT log_statement_import_job_id_fkey",
+        "ALTER TABLE " + pool.getSchema() +  "." + table()
+            + " ADD CONSTRAINT log_statement_import_job_id_fkey FOREIGN KEY (" + dbColumnName(IMPORT_JOB_ID) + ")"
+            + " REFERENCES " + pool.getSchema() + "." + Tables.IMPORT_JOB
+            + " (" + new ImportJob().dbColumnName(ID) + ") "
+            + " ON DELETE CASCADE"
     ).mapEmpty();
   }
 

@@ -1,0 +1,136 @@
+name: mvn-dev-build-deploy
+
+on:
+  push:
+  pull_request:
+    types: [opened, synchronize, reopened]
+  workflow_dispatch:
+
+env:
+  PUBLISH_BRANCH: 'deployment'
+  OKAPI_URL: 'https://folio-dev-new-okapi.folio-dev.indexdata.com'
+  OKAPI_SECRET_USER: "${{ secrets.FOLIO_DEV_NEW_OKAPI_USER }}"
+  OKAPI_SECRET_PASSWORD: "${{ secrets.FOLIO_DEV_NEW_OKAPI_PASSWORD }}"
+  OK_SESSION: 'session1'
+
+jobs:
+  mvn-dev-build-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0  # Shallow clones should be disabled for a better relevancy of analysis
+          submodules: recursive
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v5
+        with:
+          java-version: 21
+          distribution: 'temurin' # Alternative distribution options are available.
+          cache: 'maven'
+
+      - name: Prepare okclient
+        run: git clone https://github.com/indexdata/okclient
+
+      - name: Ensure OK and FOLIO login
+        # So do not proceed with other workflow steps if not available.
+        run: |
+          source okclient/ok.sh
+          OK -S ${{ env.OK_SESSION }} \
+            -h ${{ env.OKAPI_URL }} \
+            -t "supertenant" \
+            -u ${{ env.OKAPI_SECRET_USER }} \
+            -p ${{ env.OKAPI_SECRET_PASSWORD }}
+          OK -S ${{ env.OK_SESSION }} -x
+
+      - name: Gather some variables
+        run: |
+          echo "MODULE_NAME=$(mvn help:evaluate -Dexpression=project.artifactId -q -DforceStdout)" >> $GITHUB_ENV
+          echo "SHA_SHORT=$(git rev-parse --short HEAD)" >> $GITHUB_ENV
+          echo "CURRENT_BRANCH=$(echo ${GITHUB_REF#refs/heads/})" >> $GITHUB_ENV
+
+      - name: Set module version
+        run: |
+          echo "MODULE_VERSION=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)-${SHA_SHORT}" >> $GITHUB_ENV
+
+      - name: Cache SonarCloud packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.sonar/cache
+          key: ${{ runner.os }}-sonar
+          restore-keys: ${{ runner.os }}-sonar
+
+      - name: Cache Maven packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.m2
+          key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
+          restore-keys: ${{ runner.os }}-m2
+
+      - name: Testcontainers Docker api version hack
+        run: echo api.version=1.44 >> ~/.docker-java.properties
+
+      - name: Maven build
+        run: mvn clean org.jacoco:jacoco-maven-plugin:prepare-agent install org.jacoco:jacoco-maven-plugin:report
+
+      - name: SQ analyze
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # Needed to get PR information, if any
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        run: mvn -B org.sonarsource.scanner.maven:sonar-maven-plugin:sonar -Dsonar.host.url=https://sonarcloud.io -Dsonar.organization=indexdata -Dsonar.projectKey=indexdata_${{ github.event.repository.name }}
+
+      - name: Update ModuleDescriptor Id
+        run: |
+          if test -f "$MOD_DESCRIPTOR"; then
+            echo "Found $MOD_DESCRIPTOR"
+            cat <<< $(jq '.id = "${{ env.MODULE_NAME}}-${{ env.MODULE_VERSION }}"' $MOD_DESCRIPTOR) > $MOD_DESCRIPTOR
+            echo "MODULE_DESCRIPTOR=$MOD_DESCRIPTOR" >> $GITHUB_ENV
+          else
+            echo "Could not find $MOD_DESCRIPTOR"
+            exit 1
+          fi
+        env:
+          MOD_DESCRIPTOR: './target/ModuleDescriptor.json'
+
+      - name: Read ModuleDescriptor
+        id: moduleDescriptor
+        uses: juliangruber/read-file-action@v1
+        with:
+          path: ${{ env.MODULE_DESCRIPTOR }}
+
+      - name: Login to Index Data Docker Hub account
+        if: ${{ env.CURRENT_BRANCH == env.PUBLISH_BRANCH }}
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_USER }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Build and publish Docker image
+        if: ${{ env.CURRENT_BRANCH == env.PUBLISH_BRANCH }}
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: indexdata/${{ env.MODULE_NAME }}:${{ env.MODULE_VERSION }},indexdata/${{ env.MODULE_NAME }}:latest
+
+      - name: Publish ModuleDescriptor to Okapi
+        if: ${{ env.CURRENT_BRANCH == env.PUBLISH_BRANCH }}
+        run: |
+          source okclient/ok.sh
+          echo "Do login ..."
+          OK -S ${{ env.OK_SESSION }} \
+            -h ${{ env.OKAPI_URL }} \
+            -t "supertenant" \
+            -u ${{ env.OKAPI_SECRET_USER }} \
+            -p ${{ env.OKAPI_SECRET_PASSWORD }}
+          echo "Post the MD and report the response status ..."
+          OK -S ${{ env.OK_SESSION }} _/proxy/modules \
+            -X post -f ${{ env.MODULE_DESCRIPTOR }}
+          declare -n NAMEREF_STATUS=${{ env.OK_SESSION }}_HTTPStatus
+          echo "Response status: $NAMEREF_STATUS"
+          echo "Do logout ..."
+          OK -S ${{ env.OK_SESSION }} -x
+
+      - name: Print module version to job summary
+        run: |
+          echo "#### Module Version: ${{ env.MODULE_VERSION }}" >> $GITHUB_STEP_SUMMARY

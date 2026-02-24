@@ -342,7 +342,12 @@ public class ImportJob extends Entity {
             + dbColumnNameAndType(MESSAGE) + ", "
             + metadata.columnsDdl() + ") ",
         "CREATE INDEX IF NOT EXISTS import_job_channel_id_idx "
-            + " ON " + pool.getSchema() + "." + table() + "(" + dbColumnName(CHANNEL_ID) + ")"
+            + " ON " + pool.getSchema() + "." + table() + "(" + dbColumnName(CHANNEL_ID) + ")",
+        "ALTER TABLE " + pool.getSchema() +  "." + table() + " DROP CONSTRAINT import_job_channel_id_fkey",
+        "ALTER TABLE " + pool.getSchema() +  "." + table()
+            + " ADD CONSTRAINT import_job_channel_id_fkey FOREIGN KEY (" + dbColumnName(CHANNEL_ID) + ")"
+            + " REFERENCES " + pool.getSchema() + "." + Tables.CHANNEL + " (" + new Channel().dbColumnName(ID) + ") "
+            + " ON DELETE CASCADE"
     ).mapEmpty();
   }
 

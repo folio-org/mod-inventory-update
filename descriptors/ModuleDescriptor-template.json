@@ -759,7 +759,7 @@
       "description": "Import configurations: Delete an import job configuration"
     },
     {
-      "permissionName":"inventory-update.import.import-jobs.collection.get",
+      "permissionName": "inventory-update.import.import-jobs.collection.get",
       "displayName": "Get a set of import jobs",
       "description": "Imports: Get a collection of current and/or past import jobs"
     }, {

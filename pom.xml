@@ -175,11 +175,6 @@
       <artifactId>commons-lang3</artifactId>
       <version>3.18.0</version>
     </dependency>
-    <dependency>
-      <groupId>org.folio</groupId>
-      <artifactId>mod-reservoir-util</artifactId>
-      <version>0.0.1-SNAPSHOT</version>
-    </dependency>
 
     <!-- Test dependencies -->
     <dependency>

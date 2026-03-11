@@ -12,8 +12,8 @@ import org.folio.inventoryupdate.importing.service.delivery.fileimport.Processin
 import org.folio.inventoryupdate.importing.service.delivery.fileimport.ProcessingRecord;
 import org.folio.inventoryupdate.importing.service.delivery.fileimport.RecordProvider;
 import org.folio.inventoryupdate.importing.service.delivery.fileimport.RecordReceiver;
+import org.folio.inventoryupdate.importing.utils.EncodeXmlText;
 import org.folio.inventoryupdate.importing.utils.SecureSaxParser;
-import org.folio.reservoir.util.EncodeXmlText;
 import org.xml.sax.Attributes;
 import org.xml.sax.SAXException;
 import org.xml.sax.helpers.DefaultHandler;

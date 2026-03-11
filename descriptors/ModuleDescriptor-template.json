@@ -588,7 +588,7 @@
   "optional": [
     {
       "id": "orders-storage.po-lines",
-      "version": "13.0"
+      "version": "12.4 13.0"
     },
     {
       "id": "settings",

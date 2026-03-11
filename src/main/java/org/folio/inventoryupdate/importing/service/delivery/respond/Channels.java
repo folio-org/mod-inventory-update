@@ -104,7 +104,8 @@ public final class Channels extends EntityResponses {
           return new ImportJob().countImportJobsByChannelId(request.entityStorage().getTenantPool(), channelId)
               .compose(jobsCount -> {
                 if (jobsCount > 0) {
-                  return responseText(request.routingContext(), 400).end("Channel not deleted because it has " + jobsCount
+                  return responseText(request.routingContext(), 400)
+                      .end("Channel not deleted because it has " + jobsCount
                       + " logged import jobs. To delete all logs together with the channel, use parameter ?force=true");
                 } else {
                   return deleteEntityAndRespond(request, new Channel()).compose(na -> decommission(request)).mapEmpty();

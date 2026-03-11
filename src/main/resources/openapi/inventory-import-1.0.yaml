@@ -345,29 +345,6 @@ paths:
         "500":
           $ref: "#/components/responses/trait_500"
 
-  /inventory-import/channels/{id}/cancel-job:
-    parameters:
-      - $ref: "#/components/parameters/okapi_tenant"
-      - $ref: "#/components/parameters/okapi_token"
-      - $ref: "#/components/parameters/okapi_url"
-      - in: path
-        name: id
-        required: true
-        description: Channel identifier
-        schema:
-          type: string
-    post:
-      operationId: cancelJob
-      description: Not implemented (cancel a job in progress in the given channel)
-      responses:
-        "200":
-          description: OK
-        "400":
-          $ref: "#/components/responses/trait_400"
-        "404":
-          $ref: "#/components/responses/trait_404"
-        "500":
-          $ref: "#/components/responses/trait_500"
 
   /inventory-import/channels/{id}/init-queue:
     parameters:
@@ -984,16 +961,6 @@ paths:
                 $ref: "#/components/schemas/transformationStepAssociation"
         "400":
           $ref: "#/components/responses/trait_400"
-        "500":
-          $ref: "#/components/responses/trait_500"
-    delete:
-      operationId: deleteTsas
-      description: Not implemented (delete all transformation step associations)
-      responses:
-        "204":
-          description: No content
-        "404":
-          $ref: "#/components/responses/trait_404"
         "500":
           $ref: "#/components/responses/trait_500"
 

@@ -7,7 +7,7 @@
 * Provides `shared-inventory-batch-upsert-matchkey 3.0`
 * Requires `item-storage 8.2 9.0 10.0 11.0`
 * Requires `item-storage-batch-sync 1.0 2.0`
-* Optionally requires `orders-storage.po-lines 13.0`
+* Optionally requires `orders-storage.po-lines 12.4 13.0`
 * [MODINVUP-126](https://issues.folio.org/browse/MODINVUP-126) Upgrade to vertx 5.0.2, okapi-common 7.0.0.
 * [MODINVUP-127](https://issues.folio.org/browse/MODINVUP-127) Move to folio-vertx-lib, Open API 3
 * [MODINVUP-137](https://issues.folio.org/browse/MODINVUP-137) Fix NPE in handling of incomplete title succession relations

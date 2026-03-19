@@ -834,11 +834,6 @@
       "description": "Imports: Create new source file queue or clear existing queue for given channel configuration"
     },
     {
-      "permissionName": "mod-settings.global.read.mod-inventory-update",
-      "displayName": "Import admin settings - Read configuration",
-      "description": "To read the configuration from mod settings."
-    },
-    {
       "permissionName": "inventory-import.delete-all",
       "displayName": "Import admin - delete all configurations of given types",
       "description": "Delete collections of channel records, transformations, steps, and transformation-steps",

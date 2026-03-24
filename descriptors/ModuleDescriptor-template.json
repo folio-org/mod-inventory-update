@@ -538,7 +538,7 @@
           "modulePermissions": [
             "configuration.entries.collection.get",
             "mod-settings.entries.collection.get",
-            "mod-settings.global.read.mod-inventory-update"
+            "mod-settings.global.read.mod-inventory-update.manage"
           ],
           "schedule": {
             "cron": "0 2 * * *",
@@ -845,12 +845,12 @@
       ]
     },
     {
-      "permissionName": "mod-settings.global.read.mod-inventory-update",
+      "permissionName": "mod-settings.global.read.mod-inventory-update.manage",
       "displayName": "Settings (import admin): read import admin settings",
       "visible": false
     },
     {
-      "permissionName": "mod-settings.global.write.mod-inventory-update",
+      "permissionName": "mod-settings.global.write.mod-inventory-update.manage",
       "displayName": "Settings (import admin): write import admin settings",
       "visible": false
     },
@@ -960,8 +960,8 @@
         "inventory-update.import.resume-job.post",
         "inventory-update.import.init-queue.post",
 
-        "mod-settings.global.read.mod-inventory-update",
-        "mod-settings.global.write.mod-inventory-update"
+        "mod-settings.global.read.mod-inventory-update.manage",
+        "mod-settings.global.write.mod-inventory-update.manage"
 
       ]
     }

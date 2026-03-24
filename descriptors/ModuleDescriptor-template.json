@@ -847,12 +847,14 @@
     {
       "permissionName": "mod-settings.global.read.mod-inventory-update.manage",
       "displayName": "Settings (import admin): read import admin settings",
-      "visible": false
+      "visible": false,
+      "replaces": ["mod-settings.global.read.mod-inventory-update"]
     },
     {
       "permissionName": "mod-settings.global.write.mod-inventory-update.manage",
       "displayName": "Settings (import admin): write import admin settings",
-      "visible": false
+      "visible": false,
+      "replaces": ["mod-settings.global.write.mod-inventory.update"]
     },
     {
       "permissionName": "modperms.inventory-update.import",

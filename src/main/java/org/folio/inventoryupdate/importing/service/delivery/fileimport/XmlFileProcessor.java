@@ -95,7 +95,8 @@ public class XmlFileProcessor extends FileProcessor {
               promise.complete();
             } else {
               logger.error("Processing failed with {}", processing.cause().getMessage());
-              halt("Processing failed with " + processing.cause().getMessage());
+              halt("Processing of " + xmlFile.getName() + " failed with "
+                  + processing.cause().getMessage());
               promise.complete();
             }
           });

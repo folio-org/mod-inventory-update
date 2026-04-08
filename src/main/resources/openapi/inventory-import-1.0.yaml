@@ -332,6 +332,12 @@ paths:
         description: Channel identifier
         schema:
           type: string
+      - in: query
+        name: skipCurrentFile
+        description: if set to true, discards current file in process, resumes with next file in queue
+        required: false
+        schema:
+          type: string
     post:
       operationId: resumeJob
       description: resume file processing for a paused job in the given channel
@@ -1419,7 +1425,6 @@ components:
           format: uuid
           description: The ID of the user who most recently updated the record.
           readOnly: true
-
 
   parameters:
     okapi_tenant:

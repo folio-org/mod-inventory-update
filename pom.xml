@@ -435,7 +435,7 @@
               <goal>validate</goal>
             </goals>
             <configuration>
-              <failOnInvalidDescriptor>false</failOnInvalidDescriptor>
+              <failOnInvalidDescriptor>true</failOnInvalidDescriptor>
             </configuration>
           </execution>
         </executions>

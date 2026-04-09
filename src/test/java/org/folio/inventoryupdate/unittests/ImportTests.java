@@ -1232,7 +1232,8 @@ public class ImportTests extends InventoryUpdateTestBase {
         .header(Service.OKAPI_TENANT)
         .header(Service.OKAPI_URL)
         .header(Service.OKAPI_TOKEN)
-        .post("/inventory-import/channels/" + channelId + "/resume-job?skipCurrentFile=true")
+        .queryParam("skipCurrentFile", "true")
+        .post("/inventory-import/channels/" + channelId + "/resume-job")
         .then().statusCode(200);
     await().until(() -> getRecordById(Service.PATH_IMPORT_JOBS, jobId).extract().path("status"), is("DONE"));
     assertThat("Instances in storage", fakeFolioApis.instanceStorage.getRecords().size(), is(500));

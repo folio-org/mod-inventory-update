@@ -395,11 +395,6 @@
           "pathPattern": "/inventory-import/tsas/{id}",
           "permissionsRequired": ["inventory-update.import.tsas.item.delete"]
         }, {
-          "methods": ["DELETE"],
-          "pathPattern": "/inventory-import/tsas",
-          "permissionsRequired": ["inventory-update.import.tsas.collection.delete"]
-        },
-        {
           "methods": ["GET"],
           "pathPattern": "/inventory-import/channels",
           "permissionsRequired": ["inventory-update.import.channels.collection.get"]
@@ -516,14 +511,6 @@
           ]
         },
         {
-          "methods": ["POST"],
-          "pathPattern": "/inventory-import/channels/{id}/cancel-job",
-          "permissionsRequired": ["inventory-update.import.cancel-job.post"],
-          "modulePermissions": [
-            "modperms.inventory-update.import"
-          ]
-        },
-        {
           "pathPattern": "/inventory-import/channels/{id}/init-queue",
           "methods": ["POST"],
           "permissionsRequired": ["inventory-update.import.init-queue.post"]
@@ -551,7 +538,7 @@
           "modulePermissions": [
             "configuration.entries.collection.get",
             "mod-settings.entries.collection.get",
-            "mod-settings.global.read.mod-inventory-update"
+            "mod-settings.global.read.mod-inventory-update.manage"
           ],
           "schedule": {
             "cron": "0 2 * * *",
@@ -601,7 +588,7 @@
   "optional": [
     {
       "id": "orders-storage.po-lines",
-      "version": "13.0"
+      "version": "12.4 13.0"
     },
     {
       "id": "settings",
@@ -733,11 +720,6 @@
       "displayName": "Delete a single step association",
       "description": "Import configurations: Delete individual transformation step association from storage"
     }, {
-      "permissionName": "inventory-update.import.tsas.collection.delete",
-      "displayName": "Delete all step associations",
-      "description": "Import configurations: Delete all transformation step associations from storage"
-    },
-    {
       "permissionName": "inventory-update.import.channels.collection.get",
       "displayName": "Get set of channel configuration records",
       "description": "Import configurations: Get collection of channel configurations"
@@ -847,19 +829,9 @@
       "description": "Imports: Activate a paused job to resume importing from the file queue"
     },
     {
-      "permissionName": "inventory-update.import.cancel-job.post",
-      "displayName": "Cancel an import job in progress",
-      "description": "Imports: Cancel a running job"
-    },
-    {
       "permissionName": "inventory-update.import.init-queue.post",
       "displayName": "Initiate or reset source file queue for import job",
       "description": "Imports: Create new source file queue or clear existing queue for given channel configuration"
-    },
-    {
-      "permissionName": "mod-settings.global.read.mod-inventory-update",
-      "displayName": "Import admin settings - Read configuration",
-      "description": "To read the configuration from mod settings."
     },
     {
       "permissionName": "inventory-import.delete-all",
@@ -869,19 +841,20 @@
         "inventory-update.import.channels.collection.delete",
         "inventory-update.import.storages.collection.delete",
         "inventory-update.import.transformations.collection.delete",
-        "inventory-update.import.steps.collection.delete",
-        "inventory-update.import.tsas.collection.delete"
+        "inventory-update.import.steps.collection.delete"
       ]
     },
     {
-      "permissionName": "mod-settings.global.read.mod-inventory-update",
+      "permissionName": "mod-settings.global.read.mod-inventory-update.manage",
       "displayName": "Settings (import admin): read import admin settings",
-      "visible": false
+      "visible": false,
+      "replaces": ["mod-settings.global.read.mod-inventory-update"]
     },
     {
-      "permissionName": "mod-settings.global.write.mod-inventory-update",
+      "permissionName": "mod-settings.global.write.mod-inventory-update.manage",
       "displayName": "Settings (import admin): write import admin settings",
-      "visible": false
+      "visible": false,
+      "replaces": ["mod-settings.global.write.mod-inventory-update"]
     },
     {
       "permissionName": "modperms.inventory-update.import",
@@ -958,7 +931,6 @@
         "inventory-update.import.tsas.item.post",
         "inventory-update.import.tsas.item.put",
         "inventory-update.import.tsas.item.delete",
-        "inventory-update.import.tsas.collection.delete",
 
         "inventory-update.import.channels.collection.get",
         "inventory-update.import.channels.item.get",
@@ -988,11 +960,10 @@
         "inventory-update.import.recover-interrupted-channels",
         "inventory-update.import.pause-job.post",
         "inventory-update.import.resume-job.post",
-        "inventory-update.import.cancel-job.post",
         "inventory-update.import.init-queue.post",
 
-        "mod-settings.global.read.mod-inventory-update",
-        "mod-settings.global.write.mod-inventory-update"
+        "mod-settings.global.read.mod-inventory-update.manage",
+        "mod-settings.global.write.mod-inventory-update.manage"
 
       ]
     }

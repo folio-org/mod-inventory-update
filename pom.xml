@@ -4,7 +4,7 @@
 
   <groupId>org.folio</groupId>
   <artifactId>mod-inventory-update</artifactId>
-  <version>5.0.0-SNAPSHOT</version>
+  <version>5.0.1-SNAPSHOT</version>
   <name>Inventory Update Module</name>
 
   <licenses>
@@ -175,11 +175,6 @@
       <artifactId>commons-lang3</artifactId>
       <version>3.18.0</version>
     </dependency>
-    <dependency>
-      <groupId>org.folio</groupId>
-      <artifactId>mod-reservoir-util</artifactId>
-      <version>0.0.1-SNAPSHOT</version>
-    </dependency>
 
     <!-- Test dependencies -->
     <dependency>
@@ -277,7 +272,7 @@
     <url>https://github.com/folio-org/mod-inventory-update</url>
     <connection>scm:git:git://github.com:folio-org/mod-inventory-update.git</connection>
     <developerConnection>scm:git:git@github.com:folio-org/mod-inventory-update.git</developerConnection>
-    <tag>HEAD</tag>
+    <tag>v5.0.0</tag>
   </scm>
 
   <build>
@@ -440,7 +435,7 @@
               <goal>validate</goal>
             </goals>
             <configuration>
-              <failOnInvalidDescriptor>false</failOnInvalidDescriptor>
+              <failOnInvalidDescriptor>true</failOnInvalidDescriptor>
             </configuration>
           </execution>
         </executions>

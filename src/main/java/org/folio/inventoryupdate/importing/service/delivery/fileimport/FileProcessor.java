@@ -51,7 +51,10 @@ public abstract class FileProcessor {
     reporting.reportFileStats();
   }
 
-  public void resume() {
+  public void resume(boolean discardFileInProcess) {
+    if (discardFileInProcess && fileListener.fileQueue.currentFile() != null) {
+      fileListener.fileQueue.deleteFile(fileListener.fileQueue.currentFile());
+    }
     importJob.logStatus(ImportJob.JobStatus.RUNNING, "", reporting.getRecordsProcessed(), configStorage);
     paused = false;
     isResuming(true);
@@ -68,6 +71,7 @@ public abstract class FileProcessor {
   public void halt(String errorMessage) {
     paused = true;
     reporting.log(errorMessage);
+    reporting.incrementFilesProcessed();
     importJob.logStatus(ImportJob.JobStatus.PAUSED, errorMessage, reporting.getRecordsProcessed(), configStorage);
     reporting.reportFileStats();
     reporting.reportFileQueueStats(false);

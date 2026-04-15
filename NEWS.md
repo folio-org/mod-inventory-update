@@ -1,3 +1,9 @@
+## 5.1.0 2026-04-15
+
+* [MODINVUP-191](https://issues.folio.org/browse/MODINVUP-191) Support skipping current file when resuming job
+* [MODINVUP-197](https://issues.folio.org/browse/MODINVUP-197) Bugfix: Remove file dir when deleting channel
+* [MODINVUP-192](https://issues.folio.org/browse/MODINVUP-192) Bugfix: Use compliant permissions names for settings
+
 ## 5.0.0 2026-03-11
 
 * Provides `inventory-import 1.0`

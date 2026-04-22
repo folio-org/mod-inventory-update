@@ -109,7 +109,9 @@ public class Transformation extends Entity {
     json.put(jsonPropertyName(ID), theRecord.id);
     json.put(jsonPropertyName(NAME), theRecord.name);
     json.put(jsonPropertyName(DESCRIPTION), theRecord.description);
-    json.put("steps", stepsArray);
+    if (containsListOfSteps()) {
+      json.put("steps", stepsArray);
+    }
     putMetadata(json);
     return json;
   }

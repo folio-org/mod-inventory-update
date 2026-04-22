@@ -1,14 +1,29 @@
-# (under construction) mod-inventory-update (MIU)
+# mod-inventory-update
 
 Copyright (C) 2019-2025 The Open Library Foundation
 
 This software is distributed under the terms of the Apache License, Version 2.0. See the file "[LICENSE](LICENSE)" for
 more information.
+
+Mod-inventory-update (MIU) is a module for creating, updating and deleting instances, holdings records, and items in 
+Inventory Storage, through imports of XML files or pushing JSON sources files.
+
+The module has two distinct sets of APIs. One is a group of import APIs, where the client can configure, execute 
+and monitor import jobs that can transform and import collections of XML records of arbitrary format to Inventory Storage. The other 
+is a handful of so called "upsert" APIs that a client can use to push JSON files of a predefined structure to MIU,
+which will then insert or update instances, holdings records and items in Inventory Storage with them.
+
 <!-- TOC -->
-* [(under construction) mod-inventory-update (MIU)](#under-construction-mod-inventory-update-miu)
-  * [Purpose](#purpose)
-  * [How to use MIU](#how-to-use-miu)
-    * [The relevant "upsert" APIs](#the-relevant-upsert-apis)
+* [mod-inventory-update](#mod-inventory-update)
+  * [The importing component](#the-importing-component)
+    * [Channels](#channels)
+      * [Requests operating on a given channel](#requests-operating-on-a-given-channel)
+      * [Importing](#importing)
+      * [Request operating on multiple channels](#request-operating-on-multiple-channels)
+      * [Using `tag` for channel ID](#using-tag-for-channel-id)
+    * [The "import job"](#the-import-job)
+      * [Requests operating on jobs:](#requests-operating-on-jobs)
+  * [How to transform source XML to Inventory JSON.](#how-to-transform-source-xml-to-inventory-json)
     * [What the APIs do with the inventory record set](#what-the-apis-do-with-the-inventory-record-set)
       * [Detect if holdings records or items should be deleted](#detect-if-holdings-records-or-items-should-be-deleted)
       * [Control record overlay on updates.](#control-record-overlay-on-updates)
@@ -22,15 +37,6 @@ more information.
         * [Protecting certain items or holdings records from deletion in DELETE requests](#protecting-certain-items-or-holdings-records-from-deletion-in-delete-requests)
       * [Statistical coding of delete protection events](#statistical-coding-of-delete-protection-events)
     * [Additional info about the batch version of upserts `/inventory-batch-upsert-hrid`](#additional-info-about-the-batch-version-of-upserts-inventory-batch-upsert-hrid)
-  * [Importing XML source files to Inventory Storage](#importing-xml-source-files-to-inventory-storage)
-  * [The importing component](#the-importing-component)
-    * [Channels](#channels)
-      * [Requests operating on a given channel](#requests-operating-on-a-given-channel)
-      * [Importing](#importing)
-      * [Request operating on multiple channels](#request-operating-on-multiple-channels)
-      * [Using `tag` for channel ID](#using-tag-for-channel-id)
-    * [The "import job"](#the-import-job)
-      * [Requests operating on jobs:](#requests-operating-on-jobs)
   * [Miscellaneous](#miscellaneous)
     * [`/shared-inventory-upsert-matchkey`](#shared-inventory-upsert-matchkey)
     * [APIs for fetching an Inventory record set](#apis-for-fetching-an-inventory-record-set)
@@ -49,21 +55,121 @@ more information.
     * [Download and configuration](#download-and-configuration)
 <!-- TOC -->
 
-## Purpose
+## The importing component
 
-Mod-inventory-update (MIU) is module for importing XML and JSON sources files into Inventory
-Storage; creating, updating or deleting instances, holdings records, and items in the storage.
+The importing component of MIU consists of import "channels" each with a file queue and a processing pipeline.
 
-## How to use MIU
+While channels are designed to allow multiple formats, potentially binary MARC or JSON files, The currently pipeline implementation 
+supports XML source files that transformed to Inventory Storage compatible structures through one or more custom provided XSLT transformation steps. 
 
-Mod-inventory-update operates with a dedicated, module specific JSON object containing Inventory records like instances,
-holdings and items, called an "inventory record set" (IRS) .
+To use the XML importing API, the channels must be configured with a pipeline, which is done using the provided
+configuration APIs.
 
-Only the JSON based APIs take this format as input but even if using the module's XML import APIs, it is
-important to know the format. That is because the XML importing works by transforming the incoming XML of
-an (almost) arbitrary format into XML versions of that same structure and then converting the XML to JSON for further processing by the upsert APIs.
-Since the stylesheets implementing the XML transformations are custom provided, the XSLT author must know what
-XML structure, and ultimately JSON structure, the transformations are aiming for.
+The main elements of the importing component are
+
+- a "channel" with an associated file queue
+- a processing pipeline, called a "transformation"
+- the "transformation"  has an ordered set of "transformation steps" with XSLT style-sheets, that ends with a crosswalk of the XML to JSON.
+- the "transformation" also has a "target" for its JSON results, which is a component that will batch and persist the results to inventory storage.
+
+See also the OpenAPI spec for further details [XML importing APIs](src/main/resources/openapi/inventory-import-1.0.yaml).
+
+### Channels
+
+The static parts of the channel itself are
+- a name for channel
+- a reference to the "transformation" that processes the incoming source files
+- two flags that indicates if the channel is deployed (or is to be deployed after an interruption), and is actively listening
+
+The dynamic parts of a channel are
+
+- a dedicated process (a worker verticle in Vert.x terms) that listens for incoming files
+- file queue: a set of filesystem directories that acts as a queue for incoming files
+- "importJob":  if there are any incoming files, and the channel is actively listening, it will automatically launch an "import job",
+  using its associated "transformation", and the progress of that process will be logged in the objects "importJob",
+  "logLines", and "failedRecords"
+- when the last file in the queue is processed, the job will finish, but the channel will keep listening
+  until paused or decommissioned or until MIU is uninstalled or redeployed.
+
+#### Requests operating on a given channel
+
+| API                                                           | Feature                                                                                                                                                                                                                                                                                                                                          |
+|---------------------------------------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| POST `/inventory-import/channels`                             | Create a channel, with `enabled` and `listening` settings                                                                                                                                                                                                                                                                                        |
+| PUT `/inventory-import/channels/<channel uuid>`               | Update properties of a channel, like `name`, `tag`, `enabled`, and `listening`                                                                                                                                                                                                                                                                   |
+| POST `/inventory-import/channels/<channel id>/commission`     | Launch a channel, marking it enabled. <br/>This has the same effect as setting the channel property `channel.enabled`=`true`. However, the command takes an additional parameter `?retainQueue`=[true,false] (default `false`). When `true`, any filesystem queue that was left behind from a previous deployment for this channel will be kept. |
+| POST `/inventory-import/channels/<channel id>/decommission`   | Undeploy (disable) the channel, has the same effect as setting the channel property `channel.enabled`=`false`, but the command takes an extra parameter `?retainQueue`=[true,false] (default `false`). When set to `true`, the file system queue for this channel is kept and potentially still available if the channel is deployed again.      |
+| POST `/inventory-import/channels/<channel id>/listen`         | Listen for source files in queue, same effect as setting `channel.listening`=`true`                                                                                                                                                                                                                                                              |
+| POST `/inventory-import/channels/<channel id>/no-listen`      | Ignore source files in queue, same effect as setting `channel.listening`=`false`                                                                                                                                                                                                                                                                 |
+| POST `/inventory-import/channels/<channel id>/init-queue`     | Delete all the source files in a queue (or re-establish an empty queue structure, in case the previous queue was deleted directly in the file system for example).                                                                                                                                                                               |
+| DELETE `/inventory-import/channels/<channel uuid>`            | Delete the channel configuration, including the file queue but not the channel's job history                                                                                                                                                                                                                                                     |
+| POST `/inventory-import/channels/<channel id>/upload`         | Push a source file to the channel, currently set to accept files up to a size of 100 MB                                                                                                                                                                                                                                                          |
+
+#### Importing
+
+| API                                                    | Feature                                                                                                                                                                                                                                                                                                                                                                     |
+|--------------------------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| POST `/inventory-import/channels/<channel id>/upload`  | Push a source file to the channel. <br/>If the channel is not enabled the upload is refused. If the channel is enabled but not listening, the file will enter the queue. If the channel is listening the file will enter the queue and be imported to Inventory in turn, barring any errors. <br/>The service is currently hardcoded to accept files up to a size of 100 MB |
+
+#### Request operating on multiple channels
+
+| API                                                    | Feature                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
+|--------------------------------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| POST `/inventory-import/recover-interrupted-channels`  | Deploy ("commission") all channels that are marked `enabled` but are not actually running. This is a scenario that would presumably only occur if the module was restarted while channels were enabled. The command takes a paramter `?listening=false` to enable the channels but not start actual importing right away. <br/> Notice that when posting a source file to a channel that is `enabled` but not deployed (not "commissioned") then the channel will be implicitly commissioned by that post. Explicitly recovering channels by this command is merely to ensure completion of already existing file queues for which processing was interrupted by a module restart. |
+
+
+#### Using `tag` for channel ID
+
+The <channel id> in the paths can either be the UUID of the channel record (`channel.id`) or the value of the property
+`channel.tag`. The tag is an optional, unique, max 24 character long string without spaces. If it's set on a channel,
+that channel can be referenced by the tag in the various channel commands. The basic REST requests (GET, PUT, DELETE channel)
+use the UUID like standard FOLIO APIs.
+
+### The "import job"
+
+A "job" is a continuous processing of source files that starts when a channel with an empty queue receives a new source
+file, and the job ends when the file queue is once again empty. When the job ends, some metrics are calculated
+covering the span of the job. There can thus only be zero or one job in a channel at any time.
+
+A job is in other words a mostly automatic entity that primarily exists in order to organise the counting of record processes.
+There are some ways for the operator to handle jobs, though. The start of a job can be controlled, if desired, by pausing the
+channel listener while uploading source files to the channel. When the listener is restarted, this will trigger a
+new job. A running job can also be paused and resumed if needed.
+
+If a fatal error occurs while a job is running, the module will attempt to gracefully pause the job, so that it can potentially
+be resumed.
+
+Finally a job can be cancelled. This command will include
+
+- stop the channel listener to prevent more files from entering the job
+- calculating metrics for the duration of the job and mark the job cancelled
+- empty the file queue
+
+After cancelling the job, the operator must reactivate the listener to allow a new job to start. If some external process is still
+uploading files to the queue, the queue will be populated when the listener is started even though the file queue was emptied
+when cancelling the job.
+
+#### Requests operating on jobs:
+
+Channel operations will affect a current job in the channel. Besides that, there are following requests that act on an
+ongoing import job directly.
+
+- POST `/inventory-import/channels/<channel id>/pause-job`
+- POST `/inventory-import/channels/<channel id>/resume-job`
+- wip - POST `/inventory-import/channels/<channel id>/cancel-job`
+
+## How to transform source XML to Inventory JSON.
+
+Mod-inventory-update operates with a dedicated, module specific JSON object called an "inventory record set" (IRS). It as 
+composite object containing Inventory records like instances, holdings and items, as well as different kinds of 
+instance-to-instance relationships.
+
+When using MIU's JSON based "upsert" APIs, this composite inventory record set is the JSON structure that must be used 
+for the files that are PUT to the API.
+
+Even if using the module's XML import APIs, it is necessary to know the format of the composite record set, since the transformation 
+pipeline must transform the XML into the XML equivalent of this structure, after which MIU will convert that to inventory 
+JSON and push it through the same processing that the JSON upsert APIs use.
 
 The JSON based upsert APIs are synchronous, processing the input and returning a response right away, once done.
 The XML based import APIs on the other hand work asynchronously, and will put the file in queue and return a response that
@@ -94,25 +200,13 @@ The high level structure of an inventory record set is
 The details of this structure are described below. See also the OpenAPI spec for more details:
 [Upsert APIs](src/main/resources/openapi/inventory-update-5.0.yaml).
 
-### The relevant "upsert" APIs
-
-They main JSON based APIs of interest are `inventory-upsert-hrid` and `inventory-batch-upsert-hrid`. They consume JSON files
-containing one or more inventory record sets.
-
-Only the instance object and the hrid properties are required by the upsert API itself, but in order for the
-records to be successfully created or updated in storage, they must comply with the schema for Inventory Storage.
-
-Upserts can be done in batches, but deletion of instances is done one instance at a time through the API
-DELETE /inventory-upsert-hrid with a JSON payload of  { "hrid": "the id" }
-
-There are a few more APIs listed in the spec. The ones named something with `matchkey` are supported but no longer in use.
 
 ### What the APIs do with the inventory record set
 
 The following is a walk-through of what happens to the records in Inventory Storage when an inventory record set is
 pushed to mod-inventory-update. This applies directly to the upsert APIs, but also indirectly to the XML importing
-APIs since they will utilize the exact same mechanics after the incoming XML has been transformed to XML IRS and
-converted to JSON IRS.
+APIs since they will utilise the exact same mechanics after the incoming XML has first been transformed to XML IRS and
+then converted to JSON IRS.
 
 The upsert APIs will update an Instance as well as its associated holdings and items based on incoming HRIDs on all three record types. If
 an instance with the incoming HRID does not exist in storage already, the new Instance is inserted, otherwise the
@@ -639,111 +733,6 @@ for the upsert by match-key, if any match-key appears twice in the batch.
 
 
 
-## Importing XML source files to Inventory Storage
-
-The importing component of MIU consists of import "channels" equipped with file queues and processing pipelines.
-
-The only existing pipeline implementation is an XSLT transformation pipeline. It takes an XML 'collection' of 'record'
-elements and -- through custom provided XSLT style-sheets -- transforms them into inventory record set XML. The
-XML is converted to batches of inventory record set JSON records and processed through MIU's inventory upsert APIs.
-
-To use the XML importing API, the channels must first be configured with a pipeline, which happens through the provided
-configuration APIs.
-
-## The importing component
-
-The main elements of the importing component are
-
-- a "channel" with an associated file queue
-- a processing pipeline, called a "transformation"
-- the "transformation"  has an ordered set of "transformation steps" with XSLT style-sheets, that ends with a crosswalk of the XML to JSON.
-- the "transformation" also has a "target" for its JSON results, which is a component that will batch and persist the results to inventory storage.
-
-See also the OpenAPI spec for further details [XML importing APIs](src/main/resources/openapi/inventory-import-1.0.yaml).
-
-### Channels
-
-The static parts of the channel itself are
-- a name for channel
-- a reference to the "transformation" that processes the incoming source files
-- two flags that indicates if the channel is deployed (or is to be deployed after an interruption), and is actively listening
-
-The dynamic parts of a channel are
-
-- a dedicated process (a worker verticle in Vert.x terms) that listens for incoming files
-- file queue: a set of filesystem directories that acts as a queue for incoming files
-- "importJob":  if there are any incoming files, and the channel is actively listening, it will automatically launch an "import job",
-  using its associated "transformation", and the progress of that process will be logged in the objects "importJob",
-  "logLines", and "failedRecords"
-- when the last file in the queue is processed, the job will finish, but the channel will keep listening
-  until paused or decommissioned or until MIU is uninstalled or redeployed.
-
-#### Requests operating on a given channel
-
-| API                                                           | Feature                                                                                                                                                                                                                                                                                                                                          |
-|---------------------------------------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| POST `/inventory-import/channels`                             | Create a channel, with `enabled` and `listening` settings                                                                                                                                                                                                                                                                                        |
-| PUT `/inventory-import/channels/<channel uuid>`               | Update properties of a channel, like `name`, `tag`, `enabled`, and `listening`                                                                                                                                                                                                                                                                   |
-| POST `/inventory-import/channels/<channel id>/commission`     | Launch a channel, marking it enabled. <br/>This has the same effect as setting the channel property `channel.enabled`=`true`. However, the command takes an additional parameter `?retainQueue`=[true,false] (default `false`). When `true`, any filesystem queue that was left behind from a previous deployment for this channel will be kept. |
-| POST `/inventory-import/channels/<channel id>/decommission`   | Undeploy (disable) the channel, has the same effect as setting the channel property `channel.enabled`=`false`, but the command takes an extra parameter `?retainQueue`=[true,false] (default `false`). When set to `true`, the file system queue for this channel is kept and potentially still available if the channel is deployed again.      |
-| POST `/inventory-import/channels/<channel id>/listen`         | Listen for source files in queue, same effect as setting `channel.listening`=`true`                                                                                                                                                                                                                                                              |
-| POST `/inventory-import/channels/<channel id>/no-listen`      | Ignore source files in queue, same effect as setting `channel.listening`=`false`                                                                                                                                                                                                                                                                 |
-| POST `/inventory-import/channels/<channel id>/init-queue`     | Delete all the source files in a queue (or re-establish an empty queue structure, in case the previous queue was deleted directly in the file system for example).                                                                                                                                                                               |
-| DELETE `/inventory-import/channels/<channel uuid>`            | Delete the channel configuration, including the file queue but not the channel's job history                                                                                                                                                                                                                                                     |
-| POST `/inventory-import/channels/<channel id>/upload`         | Push a source file to the channel, currently set to accept files up to a size of 100 MB                                                                                                                                                                                                                                                          |
-
-#### Importing
-
-| API                                                    | Feature                                                                                                                                                                                                                                                                                                                                                                     |
-|--------------------------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| POST `/inventory-import/channels/<channel id>/upload`  | Push a source file to the channel. <br/>If the channel is not enabled the upload is refused. If the channel is enabled but not listening, the file will enter the queue. If the channel is listening the file will enter the queue and be imported to Inventory in turn, barring any errors. <br/>The service is currently hardcoded to accept files up to a size of 100 MB |
-
-#### Request operating on multiple channels
-
-| API                                                    | Feature                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
-|--------------------------------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| POST `/inventory-import/recover-interrupted-channels`  | Deploy ("commission") all channels that are marked `enabled` but are not actually running. This is a scenario that would presumably only occur if the module was restarted while channels were enabled. The command takes a paramter `?listening=false` to enable the channels but not start actual importing right away. <br/> Notice that when posting a source file to a channel that is `enabled` but not deployed (not "commissioned") then the channel will be implicitly commissioned by that post. Explicitly recovering channels by this command is merely to ensure completion of already existing file queues for which processing was interrupted by a module restart. |
-
-
-#### Using `tag` for channel ID
-
-The <channel id> in the paths can either be the UUID of the channel record (`channel.id`) or the value of the property
-`channel.tag`. The tag is an optional, unique, max 24 character long string without spaces. If it's set on a channel,
-that channel can be referenced by the tag in the various channel commands. The basic REST requests (GET, PUT, DELETE channel)
-use the UUID like standard FOLIO APIs.
-
-### The "import job"
-
-A "job" is a continuous processing of source files that starts when a channel with an empty queue receives a new source
-file, and the job ends when the file queue is once again empty. When the job ends, some metrics are calculated
-covering the span of the job. There can thus only be zero or one job in a channel at any time.
-
-A job is in other words a mostly automatic entity that primarily exists in order to organise the counting of record processes.
-There are some ways for the operator to handle jobs, though. The start of a job can be controlled, if desired, by pausing the
-channel listener while uploading source files to the channel. When the listener is restarted, this will trigger a
-new job. A running job can also be paused and resumed if needed.
-
-If a fatal error occurs while a job is running, the module will attempt to gracefully pause the job, so that it can potentially
-be resumed.
-
-Finally a job can be cancelled. This command will include
-
-- stop the channel listener to prevent more files from entering the job
-- calculating metrics for the duration of the job and mark the job cancelled
-- empty the file queue
-
-After cancelling the job, the operator must reactivate the listener to allow a new job to start. If some external process is still
-uploading files to the queue, the queue will be populated when the listener is started even though the file queue was emptied
-when cancelling the job.
-
-#### Requests operating on jobs:
-
-Channel operations will affect a current job in the channel. Besides that, there are following requests that act on an
-ongoing import job directly.
-
-- POST `/inventory-import/channels/<channel id>/pause-job`
-- POST `/inventory-import/channels/<channel id>/resume-job`
-- wip - POST `/inventory-import/channels/<channel id>/cancel-job`
 
 
 

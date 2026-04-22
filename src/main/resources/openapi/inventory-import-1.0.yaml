@@ -196,9 +196,9 @@ paths:
         schema:
           type: string
       - in: query
-        name: format
+        name: output
         required: false
-        description: Response with XML or JSON, Default JSON. To view XML, specify ?format=xml
+        description: Asks for response in XML or JSON, default is JSON. To view XML, specify ?output=xml
         schema:
           type: string
     post:
@@ -369,6 +369,12 @@ paths:
         description: Channel identifier
         schema:
           type: string
+      - in: query
+        name: skipCurrentFile
+        description: if set to true, discards current file in process, resumes with next file in queue
+        required: false
+        schema:
+          type: string
     post:
       operationId: resumeJob
       description: resume file processing for a paused job in the given channel
@@ -382,29 +388,6 @@ paths:
         "500":
           $ref: "#/components/responses/trait_500"
 
-  /inventory-import/channels/{id}/cancel-job:
-    parameters:
-      - $ref: "#/components/parameters/okapi_tenant"
-      - $ref: "#/components/parameters/okapi_token"
-      - $ref: "#/components/parameters/okapi_url"
-      - in: path
-        name: id
-        required: true
-        description: Channel identifier
-        schema:
-          type: string
-    post:
-      operationId: cancelJob
-      description: Not implemented (cancel a job in progress in the given channel)
-      responses:
-        "200":
-          description: OK
-        "400":
-          $ref: "#/components/responses/trait_400"
-        "404":
-          $ref: "#/components/responses/trait_404"
-        "500":
-          $ref: "#/components/responses/trait_500"
 
   /inventory-import/channels/{id}/init-queue:
     parameters:
@@ -1023,16 +1006,6 @@ paths:
           $ref: "#/components/responses/trait_400"
         "500":
           $ref: "#/components/responses/trait_500"
-    delete:
-      operationId: deleteTsas
-      description: Not implemented (delete all transformation step associations)
-      responses:
-        "204":
-          description: No content
-        "404":
-          $ref: "#/components/responses/trait_404"
-        "500":
-          $ref: "#/components/responses/trait_500"
 
   /inventory-import/tsas/{id}:
     parameters:
@@ -1380,7 +1353,7 @@ components:
           description: A name for the configuration.
         tag:
           type: string
-          pattern: "^[A-Za-z0-9-_]{1,24}$"
+          pattern: "^[A-Za-z0-9-_]{1,31}$"
           description: Optional, unique identifier that can be used instead of the UUID in channel operations
         type:
           type: string
@@ -1403,7 +1376,7 @@ components:
           description: UUID referencing the transformation pipeline to use.
         queuedFiles:
           type: integer
-          description: Count of source files in the queue.
+          description: Count of source files in the queue. A count of -1 means there is currently no queue in the file system.
           readOnly: true
         fileInProcess:
           type: string
@@ -1489,7 +1462,6 @@ components:
           format: uuid
           description: The ID of the user who most recently updated the record.
           readOnly: true
-
 
   parameters:
     okapi_tenant:

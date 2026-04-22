@@ -246,6 +246,7 @@ public final class JobsAndMonitoring extends EntityResponses {
 
   public static Future<Void> resumeImportJob(ServiceRequest request) {
     String channelId = request.requestParam("id");
+    boolean discardFileInProcess = "TRUE".equalsIgnoreCase(request.requestParam("skipCurrentFile"));
     return getChannelByTagOrUuid(request, channelId).compose(channel -> {
       if (channel == null) {
         return responseText(request.routingContext(), 404)
@@ -256,7 +257,7 @@ public final class JobsAndMonitoring extends EntityResponses {
           FileProcessor processor = FileListeners
               .getFileListener(request.tenant(), channelUuid.toString()).getProcessor();
           if (processor != null && processor.paused()) {
-            processor.resume();
+            processor.resume(discardFileInProcess);
             return responseText(request.routingContext(), 200)
                 .end("Processing resumed for channel [" + channelId + "].");
           } else {

@@ -2,6 +2,7 @@ package org.folio.inventoryupdate.importing.moduledata;
 
 import io.vertx.core.Future;
 import io.vertx.core.json.JsonObject;
+import io.vertx.sqlclient.SqlResult;
 import io.vertx.sqlclient.templates.RowMapper;
 import io.vertx.sqlclient.templates.SqlTemplate;
 import io.vertx.sqlclient.templates.TupleMapper;
@@ -207,6 +208,14 @@ public class TransformationStep extends Entity {
           }
           return steps;
         });
+  }
+
+  public Future<Integer> deleteTransformationStepsByTransformationId(TenantPgPool pool, UUID transformationId) {
+    return SqlTemplate.forUpdate(pool.getPool(),
+            "DELETE FROM " + this.schemaTable(pool.getSchema()) + " "
+                + "WHERE transformation_id = #{transformationId}")
+        .execute(Collections.singletonMap("transformationId", transformationId))
+        .map(SqlResult::rowCount);
   }
 
   public Future<Void> executeUpdateAndAdjustPositions(ServiceRequest request) {

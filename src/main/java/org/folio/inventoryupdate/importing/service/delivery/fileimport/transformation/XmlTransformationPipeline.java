@@ -122,7 +122,7 @@ public final class XmlTransformationPipeline implements RecordReceiver {
   public void put(ProcessingRecord processingRecord) {
     final long transformationStarted = System.nanoTime();
     records++;
-    String transformedXmlRecord = transform(processingRecord.getCollectionOfOneRecordAsString());
+    String transformedXmlRecord = transform(processingRecord.getRecordAsString());
     if (convertToJson) {
       JsonObject jsonRecord = convertToJson(transformedXmlRecord);
       processingRecord.setIsDeletion(jsonRecord.containsKey("delete"));

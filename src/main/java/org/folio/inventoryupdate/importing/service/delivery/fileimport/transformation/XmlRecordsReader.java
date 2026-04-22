@@ -4,8 +4,6 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.concurrent.Callable;
 import javax.xml.parsers.ParserConfigurationException;
 import org.apache.logging.log4j.LogManager;
@@ -14,8 +12,8 @@ import org.folio.inventoryupdate.importing.service.delivery.fileimport.Processin
 import org.folio.inventoryupdate.importing.service.delivery.fileimport.ProcessingRecord;
 import org.folio.inventoryupdate.importing.service.delivery.fileimport.RecordProvider;
 import org.folio.inventoryupdate.importing.service.delivery.fileimport.RecordReceiver;
+import org.folio.inventoryupdate.importing.utils.EncodeXmlText;
 import org.folio.inventoryupdate.importing.utils.SecureSaxParser;
-import org.folio.reservoir.util.EncodeXmlText;
 import org.xml.sax.Attributes;
 import org.xml.sax.SAXException;
 import org.xml.sax.helpers.DefaultHandler;
@@ -24,9 +22,9 @@ public class XmlRecordsReader extends DefaultHandler implements RecordProvider, 
 
   public static final Logger logger = LogManager.getLogger("XmlRecordsFromFile");
   StringBuilder theRecord = new StringBuilder();
+  StringBuilder theCollectionElement = new StringBuilder();
   RecordReceiver target;
   final String xmlCollectionOfRecords;
-  private final Map<String, String> prefixMappings = new HashMap<>();
 
   public XmlRecordsReader(String recordsSource, RecordReceiver target) {
     this.xmlCollectionOfRecords = recordsSource;
@@ -45,21 +43,25 @@ public class XmlRecordsReader extends DefaultHandler implements RecordProvider, 
   }
 
   @Override
-  public void startPrefixMapping(String prefix, String uri) {
-    prefixMappings.put(prefix, uri);
-  }
-
-  @Override
-  public void startElement(String uri, String localName, String qqName, Attributes attributes) {
-    if (localName.equalsIgnoreCase("record")) {
-      theRecord = new StringBuilder();
+  public void startElement(String uri, String localName, String qualifiedName, Attributes attributes) {
+    if (localName.equalsIgnoreCase("collection") && theRecord.isEmpty()) {
+      theCollectionElement.append("<").append(localName);
+      for (int index = 0; index < attributes.getLength(); index++) {
+        theCollectionElement.append(" ")
+            .append(attributes.getQName(index)).append("=\"").append(attributes.getValue(index)).append("\"");
+      }
+      theCollectionElement.append(">");
+    } else {
+      if (localName.equalsIgnoreCase("record")) {
+        theRecord = new StringBuilder();
+      }
+      theRecord.append("<").append(qualifiedName);
+      for (int index = 0; index < attributes.getLength(); index++) {
+        theRecord.append(" ")
+            .append(attributes.getQName(index)).append("=\"").append(attributes.getValue(index)).append("\"");
+      }
+      theRecord.append(">");
     }
-    theRecord.append("<").append(qqName);
-    for (int index = 0; index < attributes.getLength(); index++) {
-      theRecord.append(" ")
-          .append(attributes.getQName(index)).append("=\"").append(attributes.getValue(index)).append("\"");
-    }
-    theRecord.append(">");
   }
 
   @Override
@@ -70,12 +72,16 @@ public class XmlRecordsReader extends DefaultHandler implements RecordProvider, 
 
   @Override
   public void endElement(String uri, String localName, String qqName) {
-    if (theRecord != null) {
-      theRecord.append("</").append(qqName).append(">");
-      if (localName.equals("record")) {
-        target.put(new ProcessingRecord(theRecord.toString(), prefixMappings));
-        theRecord = new StringBuilder();
-      }
+    theRecord.append("</").append(qqName).append(">");
+    if (localName.equals("record")) {
+      String collectionOfOneRecord =
+          theCollectionElement
+          + System.lineSeparator()
+          + "  " + theRecord
+          + System.lineSeparator()
+          + "</collection>";
+      target.put(new ProcessingRecord(collectionOfOneRecord));
+      theRecord = new StringBuilder();
     }
   }
 

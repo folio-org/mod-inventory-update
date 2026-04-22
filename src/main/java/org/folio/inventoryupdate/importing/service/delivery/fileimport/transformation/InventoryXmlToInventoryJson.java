@@ -29,18 +29,20 @@ public final class InventoryXmlToInventoryJson {
 
   public static JsonObject convert(String xmlStr) {
     JsonObject genericJson = parseXmlToJson(xmlStr);
-    return genericJson == null ? new JsonObject() : makeInventoryJson(genericJson);
+    JsonObject inventoryJson = makeInventoryJson(genericJson);
+    inventoryJson.remove("original");
+    return inventoryJson;
   }
 
   public static JsonObject parseXmlToJson(String xmlStr) {
     try {
       XmlToJsonHandler handler = new XmlToJsonHandler();
       SecureSaxParser.get().parse(new InputSource(new StringReader(xmlStr)), handler);
-      return new JsonObject(handler.getData());
+      return handler.getResultAsJson();
     } catch (ParserConfigurationException | SAXException | IOException e) {
       logger.error("Error parsing XML to JSON: {}", e.getMessage());
     }
-    return null;
+    return new JsonObject();
   }
 
   private static JsonObject makeInventoryJson(JsonObject genericJson) {
@@ -127,15 +129,14 @@ public final class InventoryXmlToInventoryJson {
     public void characters(char[] ch, int start, int length) {
       String content = new String(ch, start, length).trim();
       if (!content.isEmpty()) {
-        content = content.replace("&", "&amp;");
-        content = content.replace("<", "&lt;");
-        content = content.replace(">", "&gt;");
-        stack.peek().put("text", content);
+        stack.peek().putIfAbsent("text", "");
+        // Concatenating because text with entities (i.e. &gt;) is reported in parts..
+        stack.peek().put("text", stack.peek().get("text") + content);
       }
     }
 
-    public Map<String, Object> getData() {
-      return currentData;
+    public JsonObject getResultAsJson() {
+      return new JsonObject(currentData);
     }
   }
 }

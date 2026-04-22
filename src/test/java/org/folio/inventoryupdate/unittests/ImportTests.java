@@ -144,6 +144,22 @@ public class ImportTests extends InventoryUpdateTestBase {
     postJsonObject(Service.PATH_CHANNELS, Files.JSON_CHANNEL);
   }
 
+  private void configureSamplePipeline2() {
+    postJsonObject(Service.PATH_TRANSFORMATIONS, Files.JSON_TRANSFORMATION_CONFIG);
+
+    JsonObject step = new JsonObject();
+    step.put("id", STEP_ID)
+        .put("name", "test step")
+        .put("script", Files.XSLT_MARC_TO_INSTANCE);
+    postJsonObject(Service.PATH_STEPS, step);
+    JsonObject tsa = new JsonObject();
+    tsa.put("stepId", STEP_ID)
+        .put("transformationId", Files.JSON_TRANSFORMATION_CONFIG.getString("id"))
+        .put("position", "1");
+    postJsonObject(Service.PATH_TSAS, tsa);
+    postJsonObject(Service.PATH_CHANNELS, Files.JSON_CHANNEL);
+  }
+
   @Test
   public void testUtilityMiscClasses() {
     UtilityClassTester.assertUtilityClass(DateTimeFormatter.class);
@@ -190,6 +206,16 @@ public class ImportTests extends InventoryUpdateTestBase {
     putJsonObject(Service.PATH_TRANSFORMATIONS + "/" + Files.JSON_TRANSFORMATION_CONFIG.getString("id"), update, 204);
     putJsonObject(Service.PATH_TRANSFORMATIONS + "/" + UUID.randomUUID(), update, 404);
     getRecords(Service.PATH_TRANSFORMATIONS).body("totalRecords", is(1));
+    JsonObject step = new JsonObject();
+    step.put("id", STEP_ID)
+        .put("name", "test step")
+        .put("script", Files.XSLT_MARC_TO_INSTANCE);
+    postJsonObject(Service.PATH_STEPS, step);
+    JsonObject tsa = new JsonObject();
+    tsa.put("stepId", STEP_ID)
+        .put("transformationId", Files.JSON_TRANSFORMATION_CONFIG.getString("id"))
+        .put("position", "1");
+    postJsonObject(Service.PATH_TSAS, tsa);
     deleteRecord(Service.PATH_TRANSFORMATIONS, Files.JSON_TRANSFORMATION_CONFIG.getString("id"), 200);
     getRecords(Service.PATH_TRANSFORMATIONS).body("totalRecords", is(0));
     deleteRecord(Service.PATH_TRANSFORMATIONS, Files.JSON_TRANSFORMATION_CONFIG.getString("id"), 404);
@@ -657,11 +683,21 @@ public class ImportTests extends InventoryUpdateTestBase {
     putJsonObject(Service.PATH_CHANNELS + "/" + Files.JSON_CHANNEL.getString("id"), update, 200);
     putJsonObject(Service.PATH_CHANNELS + "/" + UUID.randomUUID(), update, 404);
     getRecords(Service.PATH_CHANNELS).body("totalRecords", is(1));
+    // Can delete channel with no logged jobs
     deleteRecord(Service.PATH_CHANNELS, Files.JSON_CHANNEL.getString("id"), 200);
     getRecords(Service.PATH_CHANNELS).body("totalRecords", is(0));
-    deleteRecord(Service.PATH_CHANNELS, Files.JSON_CHANNEL.getString("id"), 404);
+
     // Can create disabled channel
     postJsonObject(PATH_CHANNELS, Files.JSON_CHANNEL.copy().put("enabled", false));
+    // Can only delete channel with logged jobs if `force` set to `true`
+    postJsonObject(Service.PATH_IMPORT_JOBS, Files.JSON_IMPORT_JOB);
+    deleteRecord(Service.PATH_CHANNELS, Files.JSON_CHANNEL.getString("id"), 400);
+    getRecords(Service.PATH_CHANNELS).body("totalRecords", is(1));
+    deleteRecord(Service.PATH_CHANNELS, Files.JSON_CHANNEL.getString("id"), "force=true", 200);
+    getRecords(Service.PATH_CHANNELS).body("totalRecords", is(0));
+    deleteRecord(Service.PATH_CHANNELS, Files.JSON_CHANNEL.getString("id"), 404);
+
+
   }
 
   @Test
@@ -889,6 +925,47 @@ public class ImportTests extends InventoryUpdateTestBase {
     await().until(() -> getRecordById(Service.PATH_IMPORT_JOBS, jobId).extract().path("finished"), greaterThan(started));
     await().until(() -> getTotalRecords(Service.PATH_JOB_LOGS), is(4));
   }
+
+  @Test
+  public void canImportSourceXmlWithNamespace() {
+    configureSamplePipeline2();
+
+    String channelId = Files.JSON_CHANNEL.getString("id");
+    String channelTag = Files.JSON_CHANNEL.getString("tag");
+    String transformationId = Files.JSON_TRANSFORMATION_CONFIG.getString("id");
+
+    getRecordById(Service.PATH_CHANNELS, channelId);
+    getRecordById(Service.PATH_TRANSFORMATIONS, transformationId);
+    postSourceXml(Service.PATH_CHANNELS + "/" + channelTag + "/upload", Files.XML_MARC_XML, 200);
+    getRecordById(Service.PATH_TRANSFORMATIONS, transformationId);
+
+    await().until(() -> getTotalRecords(Service.PATH_IMPORT_JOBS), is(1));
+    String jobId = getRecords(Service.PATH_IMPORT_JOBS).extract().path("importJobs[0].id");
+    String started = getRecordById(Service.PATH_IMPORT_JOBS, jobId).extract().path("started");
+    await().until(() -> getRecordById(Service.PATH_IMPORT_JOBS, jobId).extract().path("finished"), greaterThan(started));
+    await().until(() -> getTotalRecords(Service.PATH_JOB_LOGS), is(4));
+  }
+
+  @Test
+  public void canImportSourceXmlWithDefaultNamespace() {
+    configureSamplePipeline2();
+
+    String channelId = Files.JSON_CHANNEL.getString("id");
+    String channelTag = Files.JSON_CHANNEL.getString("tag");
+    String transformationId = Files.JSON_TRANSFORMATION_CONFIG.getString("id");
+
+    getRecordById(Service.PATH_CHANNELS, channelId);
+    getRecordById(Service.PATH_TRANSFORMATIONS, transformationId);
+    postSourceXml(Service.PATH_CHANNELS + "/" + channelTag + "/upload", Files.XML_MARC_XML_V2, 200);
+    getRecordById(Service.PATH_TRANSFORMATIONS, transformationId);
+
+    await().until(() -> getTotalRecords(Service.PATH_IMPORT_JOBS), is(1));
+    String jobId = getRecords(Service.PATH_IMPORT_JOBS).extract().path("importJobs[0].id");
+    String started = getRecordById(Service.PATH_IMPORT_JOBS, jobId).extract().path("started");
+    await().until(() -> getRecordById(Service.PATH_IMPORT_JOBS, jobId).extract().path("finished"), greaterThan(started));
+    await().until(() -> getTotalRecords(Service.PATH_JOB_LOGS), is(4));
+  }
+
 
   @Test
   public void willBootstrapFileQueueIfNotExists() {
@@ -1166,6 +1243,39 @@ public class ImportTests extends InventoryUpdateTestBase {
         .then().statusCode(200);
     assertThat("Instances in storage", fakeFolioApis.instanceStorage.getRecords().size(), is(300));
   }
+
+  @Test
+  public void canSkipBadSourceFileXmlToResumeJob() {
+    configureSamplePipeline();
+    String channelId = Files.JSON_CHANNEL.getString("id");
+    String transformationId = Files.JSON_TRANSFORMATION_CONFIG.getString("id");
+    getRecordById(Service.PATH_CHANNELS, channelId);
+    getRecordById(Service.PATH_TRANSFORMATIONS, transformationId);
+
+    ArrayList<String> sourceFiles = Files.filesOfInventoryXmlRecords(5, 100, "204");
+    ArrayList<String> badSourceFiles = Files.filesOfInventoryXmlRecords(1, 100, "204");
+    String badSourceFile = badSourceFiles.getFirst().replace("</record>", "<record>");
+    sourceFiles.add(3, badSourceFile);
+    sourceFiles.forEach(xml -> postSourceXml(Service.PATH_CHANNELS + "/" + channelId + "/upload", xml, 200));
+    await().until(() -> getTotalRecords(Service.PATH_IMPORT_JOBS), is(1));
+    String jobId = getRecords(Service.PATH_IMPORT_JOBS).extract().path("importJobs[0].id");
+    await().until(() -> getTotalRecords(Service.PATH_IMPORT_JOBS), is(1));
+    await().until(() -> getRecordById(Service.PATH_IMPORT_JOBS, jobId).extract().path("status"), is("PAUSED"));
+    getRecordById(Service.PATH_IMPORT_JOBS, jobId).body("amountImported", is(300));
+    getRecordById(Service.PATH_IMPORT_JOBS, jobId).body("finished", is(nullValue()));
+    // Resume while skipping bad source file
+    given()
+        .baseUri(BASE_URI_INVENTORY_UPDATE)
+        .header(Service.OKAPI_TENANT)
+        .header(Service.OKAPI_URL)
+        .header(Service.OKAPI_TOKEN)
+        .queryParam("skipCurrentFile", "true")
+        .post("/inventory-import/channels/" + channelId + "/resume-job")
+        .then().statusCode(200);
+    await().until(() -> getRecordById(Service.PATH_IMPORT_JOBS, jobId).extract().path("status"), is("DONE"));
+    assertThat("Instances in storage", fakeFolioApis.instanceStorage.getRecords().size(), is(500));
+  }
+
 
   @Test
   public void canPauseAndResumeImportJob() {
@@ -1523,6 +1633,16 @@ public class ImportTests extends InventoryUpdateTestBase {
         .header(Service.OKAPI_TENANT)
         .header(Service.OKAPI_URL)
         .delete(api + "/" + id)
+        .then()
+        .statusCode(statusCode);
+  }
+
+  ValidatableResponse deleteRecord(String api, String id, String argument, int statusCode) {
+    return given()
+        .baseUri(BASE_URI_INVENTORY_UPDATE)
+        .header(Service.OKAPI_TENANT)
+        .header(Service.OKAPI_URL)
+        .delete(api + "/" + id + "?" + argument)
         .then()
         .statusCode(statusCode);
   }

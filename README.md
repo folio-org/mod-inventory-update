@@ -6,24 +6,24 @@ This software is distributed under the terms of the Apache License, Version 2.0.
 more information.
 
 Mod-inventory-update (MIU) is a module for creating, updating and deleting instances, holdings records, and items in 
-Inventory Storage, through imports of XML files or pushing JSON sources files.
+Inventory Storage, from XML or JSON sources files.
 
-The module has two distinct sets of APIs. One is a group of import APIs, where the client can configure, execute 
-and monitor import jobs that can transform and import collections of XML records of arbitrary format to Inventory Storage. The other 
+The module has two distinct sets of APIs. One is a group of import APIs, with which a client can configure, execute 
+and monitor import jobs that transform and import collections of XML records of arbitrary format to Inventory Storage. The other 
 is a handful of so called "upsert" APIs that a client can use to push JSON files of a predefined structure to MIU,
 which will then insert or update instances, holdings records and items in Inventory Storage with them.
 
 <!-- TOC -->
 * [mod-inventory-update](#mod-inventory-update)
-  * [The importing component](#the-importing-component)
-    * [Channels](#channels)
-      * [Requests operating on a given channel](#requests-operating-on-a-given-channel)
+  * [Import XML files](#import-xml-files)
+    * [Create and manage channels](#create-and-manage-channels)
+      * [HTTP requests operating on the channel](#http-requests-operating-on-the-channel)
       * [Importing](#importing)
       * [Request operating on multiple channels](#request-operating-on-multiple-channels)
       * [Using `tag` for channel ID](#using-tag-for-channel-id)
-    * [The "import job"](#the-import-job)
-      * [Requests operating on jobs:](#requests-operating-on-jobs)
-  * [How to transform source XML to Inventory JSON.](#how-to-transform-source-xml-to-inventory-json)
+    * [The "import job" explained](#the-import-job-explained)
+      * [HTTP requests operating on the job:](#http-requests-operating-on-the-job)
+    * [How to transform source XML to Inventory JSON.](#how-to-transform-source-xml-to-inventory-json)
     * [What the APIs do with the inventory record set](#what-the-apis-do-with-the-inventory-record-set)
       * [Detect if holdings records or items should be deleted](#detect-if-holdings-records-or-items-should-be-deleted)
       * [Control record overlay on updates.](#control-record-overlay-on-updates)
@@ -43,7 +43,6 @@ which will then insert or update instances, holdings records and items in Invent
       * [Fetching an Inventory record set from `inventory-upsert-hrid/fetch`](#fetching-an-inventory-record-set-from-inventory-upsert-hridfetch)
       * [The _version fields and optimistic locking](#the-_version-fields-and-optimistic-locking)
   * [Prerequisites](#prerequisites)
-  * [Git Submodules](#git-submodules)
   * [Building](#building)
   * [Additional information](#additional-information)
     * [Other documentation](#other-documentation)
@@ -55,26 +54,28 @@ which will then insert or update instances, holdings records and items in Invent
     * [Download and configuration](#download-and-configuration)
 <!-- TOC -->
 
-## The importing component
+## Import XML files
 
-The importing component of MIU consists of import "channels" each with a file queue and a processing pipeline.
+The importing component of MIU consists of so-called import "channels". Each channel has a file queue that source files can 
+be uploaded to, and a processing pipeline that can perform the importing of source files from the queue to inventory storage.
 
-While channels are designed to allow multiple formats, potentially binary MARC or JSON files, The currently pipeline implementation 
-supports XML source files that transformed to Inventory Storage compatible structures through one or more custom provided XSLT transformation steps. 
+The channel design is meant to allow for multiple input formats, for example, potentially, binary MARC or JSON files. However, the currently 
+pipeline implementation supports XML source files that are transformed to Inventory Storage compatible structures through one or more 
+custom provided XSLT transformation steps. 
 
 To use the XML importing API, the channels must be configured with a pipeline, which is done using the provided
 configuration APIs.
 
 The main elements of the importing component are
 
-- a "channel" with an associated file queue
+- a channel with an associated file queue
 - a processing pipeline, called a "transformation"
 - the "transformation"  has an ordered set of "transformation steps" with XSLT style-sheets, that ends with a crosswalk of the XML to JSON.
 - the "transformation" also has a "target" for its JSON results, which is a component that will batch and persist the results to inventory storage.
 
 See also the OpenAPI spec for further details [XML importing APIs](src/main/resources/openapi/inventory-import-1.0.yaml).
 
-### Channels
+### Create and manage channels
 
 The static parts of the channel itself are
 - a name for channel
@@ -91,12 +92,12 @@ The dynamic parts of a channel are
 - when the last file in the queue is processed, the job will finish, but the channel will keep listening
   until paused or decommissioned or until MIU is uninstalled or redeployed.
 
-#### Requests operating on a given channel
+#### HTTP requests operating on the channel
 
 | API                                                           | Feature                                                                                                                                                                                                                                                                                                                                          |
 |---------------------------------------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| POST `/inventory-import/channels`                             | Create a channel, with `enabled` and `listening` settings                                                                                                                                                                                                                                                                                        |
-| PUT `/inventory-import/channels/<channel uuid>`               | Update properties of a channel, like `name`, `tag`, `enabled`, and `listening`                                                                                                                                                                                                                                                                   |
+| POST `/inventory-import/channels`                             | Create a channel                                                                                                                                                                                                                                                                                                                                 |
+| PUT `/inventory-import/channels/<channel uuid>`               | Update properties of a channel                                                                                                                                                                                                                                                                                                                   |
 | POST `/inventory-import/channels/<channel id>/commission`     | Launch a channel, marking it enabled. <br/>This has the same effect as setting the channel property `channel.enabled`=`true`. However, the command takes an additional parameter `?retainQueue`=[true,false] (default `false`). When `true`, any filesystem queue that was left behind from a previous deployment for this channel will be kept. |
 | POST `/inventory-import/channels/<channel id>/decommission`   | Undeploy (disable) the channel, has the same effect as setting the channel property `channel.enabled`=`false`, but the command takes an extra parameter `?retainQueue`=[true,false] (default `false`). When set to `true`, the file system queue for this channel is kept and potentially still available if the channel is deployed again.      |
 | POST `/inventory-import/channels/<channel id>/listen`         | Listen for source files in queue, same effect as setting `channel.listening`=`true`                                                                                                                                                                                                                                                              |
@@ -125,7 +126,7 @@ The <channel id> in the paths can either be the UUID of the channel record (`cha
 that channel can be referenced by the tag in the various channel commands. The basic REST requests (GET, PUT, DELETE channel)
 use the UUID like standard FOLIO APIs.
 
-### The "import job"
+### The "import job" explained
 
 A "job" is a continuous processing of source files that starts when a channel with an empty queue receives a new source
 file, and the job ends when the file queue is once again empty. When the job ends, some metrics are calculated
@@ -139,7 +140,7 @@ new job. A running job can also be paused and resumed if needed.
 If a fatal error occurs while a job is running, the module will attempt to gracefully pause the job, so that it can potentially
 be resumed.
 
-Finally a job can be cancelled. This command will include
+Finally, a job can be cancelled. This command will include
 
 - stop the channel listener to prevent more files from entering the job
 - calculating metrics for the duration of the job and mark the job cancelled
@@ -149,7 +150,7 @@ After cancelling the job, the operator must reactivate the listener to allow a n
 uploading files to the queue, the queue will be populated when the listener is started even though the file queue was emptied
 when cancelling the job.
 
-#### Requests operating on jobs:
+#### HTTP requests operating on the job:
 
 Channel operations will affect a current job in the channel. Besides that, there are following requests that act on an
 ongoing import job directly.
@@ -158,18 +159,20 @@ ongoing import job directly.
 - POST `/inventory-import/channels/<channel id>/resume-job`
 - wip - POST `/inventory-import/channels/<channel id>/cancel-job`
 
-## How to transform source XML to Inventory JSON.
+### How to transform source XML to Inventory JSON.
 
-Mod-inventory-update operates with a dedicated, module specific JSON object called an "inventory record set" (IRS). It as 
+Mod-inventory-update operates with a specific JSON schema called an "inventory record set" (IRS). The IRS is a 
 composite object containing Inventory records like instances, holdings and items, as well as different kinds of 
-instance-to-instance relationships.
+instance-to-instance relationships. Processing instructions for MIU can be attached to the record set. 
 
-When using MIU's JSON based "upsert" APIs, this composite inventory record set is the JSON structure that must be used 
-for the files that are PUT to the API.
+This format appears in two different contexts in MIU. Both are displayed in the drawing below.
 
-Even if using the module's XML import APIs, it is necessary to know the format of the composite record set, since the transformation 
-pipeline must transform the XML into the XML equivalent of this structure, after which MIU will convert that to inventory 
-JSON and push it through the same processing that the JSON upsert APIs use.
+When using MIU's JSON based "upsert" APIs, the composite inventory record set is the JSON schema than incoming JSON files must comply with.
+
+When using MIU's XML import APIs, the IRS is an intermediate, internal exchange format. Incoming XML records can be of an arbitrary structure
+(as long as they are <record>s) but they must be transformed to the IRS structure for MIU to populate inventory storage with the data. 
+Thus it is necessary to know the format of the composite record set when creating the transformation style sheets. The transformation must
+create the XML equivalent of the IRS, which MIU will then generically transform to the JSON version of the IRS.
 
 The JSON based upsert APIs are synchronous, processing the input and returning a response right away, once done.
 The XML based import APIs on the other hand work asynchronously, and will put the file in queue and return a response that
@@ -233,10 +236,10 @@ will be created and/or deleted (updating relationships is obsolete).
 
 #### Control record overlay on updates.
 
-The default behavior of MIU is to simply replace the entire record on updates, for example override the entire
+The default behaviour of MIU is to simply replace the entire record on updates, for example override the entire
 holdingsRecord, with the input JSON it receives from the client, except for the ID (UUID) and version.
 
-The default behavior can be changed per request using structures
+The default behaviour can be changed per request using structures
 in the processing element.
 
 ##### Prevent MIU from override existing values
@@ -274,8 +277,8 @@ provided in the request body to MIU -- those properties can be explicitly turned
 
 The two settings can be combined to not touch neither omitted properties nor the explicitly listed properties.
 
-If `forOmittedProperties` is used it requires the client to distinguish between sending an empty property vs not sending
-the property at all. Say an Instance had `contributors` before, but now they were removed in the source catalog. If this
+If `forOmittedProperties` is used, it requires the client to distinguish between sending an empty property vs not sending
+the property at all. Say, an Instance had `contributors` before, but now they were removed in the source catalogue. If this
 is communicated to MIU by an empty `contributors` property, then it's fine, it will become empty in Inventory Storage
 too, but if the property is simply removed from the request body altogether, then the existing value of `contributors`
 will be retained in storage if `forOmittedProperties` is set to true.
@@ -591,7 +594,7 @@ Instances and holdings records are presumably persisted. The module aims to reco
 switching from batch processing to record-by-record updates in case of errors so that, in this example, all the good
 Items can be persisted. The response on a request with one or more errors, that didn't prevent the entire request from being processed, will be
 a `207` `Multi-Status`, and the one or more error that were found will be returned with the
-response JSON, together with the summarized update statistics ("metrics).
+response JSON, together with the summarised update statistics ("metrics).
 
 In a feed with many errors the throughput will be close to that of the single record APIs since many batches will be
 processed record-by-record.
@@ -732,10 +735,6 @@ Same
 for the upsert by match-key, if any match-key appears twice in the batch.
 
 
-
-
-
-
 ## Miscellaneous
 
 ### `/shared-inventory-upsert-matchkey`
@@ -844,17 +843,6 @@ entities from storage and get the latest version numbers from that anyway.
 - Java 21 JDK
 - Maven 3.3.9
 
-## Git Submodules
-
-There are some common RAML definitions that are shared between FOLIO projects via Git submodules.
-
-To initialise these please run `git submodule init && git submodule update` in the root directory.
-
-If these are not initialised, the module will fail to build correctly, and other operations may also fail.
-
-More information is available on
-the [FOLIO developer site](https://dev.folio.org/guides/developer-setup/#update-git-submodules).
-
 ## Building
 
 run `mvn install` from the root directory.
@@ -893,6 +881,6 @@ Generated [API documentation](https://dev.folio.org/reference/api/#mod-inventory
 
 ### Download and configuration
 
-The built artifacts for this module are available. See [configuration](https://dev.folio.org/download/artifacts) for
+The built artefacts for this module are available. See [configuration](https://dev.folio.org/download/artifacts) for
 repository access, and the [Docker image](https://hub.docker.com/r/folioorg/mod-inventory-update/).
 

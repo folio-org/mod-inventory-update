@@ -36,12 +36,11 @@ in [What the APIs do with the inventory record set](#what-the-apis-do-with-the-i
 * [mod-inventory-update](#mod-inventory-update)
   * [Import XML files](#import-xml-files)
     * [Create and manage channels](#create-and-manage-channels)
-      * [HTTP requests operating on the channel](#http-requests-operating-on-the-channel)
-      * [Importing](#importing)
-      * [Request operating on multiple channels](#request-operating-on-multiple-channels)
-      * [Using `tag` for channel ID](#using-tag-for-channel-id)
     * [The "import job" explained](#the-import-job-explained)
-      * [HTTP requests operating on the job:](#http-requests-operating-on-the-job)
+      * [HTTP requests for managing channels](#http-requests-for-managing-channels-)
+      * [Request operating on multiple channels](#request-operating-on-multiple-channels)
+      * [Error handling](#error-handling)
+      * [Using `tag` for channel ID](#using-tag-for-channel-id)
     * [How to transform source XML to Inventory JSON.](#how-to-transform-source-xml-to-inventory-json)
     * [What the APIs do with the inventory record set](#what-the-apis-do-with-the-inventory-record-set)
       * [Detect if holdings records or items should be deleted](#detect-if-holdings-records-or-items-should-be-deleted)
@@ -120,32 +119,57 @@ The dynamic parts of an enabled channel are
   with `logLines`, and `failedRecords` if any.
 - When the last file in the queue is processed, the import job will be marked at finish on the `importJob` record. The channel will keep listening for new files and create new `importJob` if any appear.
 
-#### HTTP requests operating on the channel
+### The "import job" explained
 
-| API                                                           | Feature                                                                                                                                                                                                                                                                                                                                          |
-|---------------------------------------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| POST `/inventory-import/channels`                             | Create a channel                                                                                                                                                                                                                                                                                                                                 |
-| PUT `/inventory-import/channels/<channel uuid>`               | Update properties of a channel                                                                                                                                                                                                                                                                                                                   |
-| POST `/inventory-import/channels/<channel id>/commission`     | Launch a channel, marking it enabled. <br/>This has the same effect as setting the channel property `channel.enabled`=`true`. However, the command takes an additional parameter `?retainQueue`=[true,false] (default `false`). When `true`, any filesystem queue that was left behind from a previous deployment for this channel will be kept. |
-| POST `/inventory-import/channels/<channel id>/decommission`   | Undeploy (disable) the channel, has the same effect as setting the channel property `channel.enabled`=`false`, but the command takes an extra parameter `?retainQueue`=[true,false] (default `false`). When set to `true`, the file system queue for this channel is kept and potentially still available if the channel is deployed again.      |
-| POST `/inventory-import/channels/<channel id>/listen`         | Listen for source files in queue, same effect as setting `channel.listening`=`true`                                                                                                                                                                                                                                                              |
-| POST `/inventory-import/channels/<channel id>/no-listen`      | Ignore source files in queue, same effect as setting `channel.listening`=`false`                                                                                                                                                                                                                                                                 |
-| POST `/inventory-import/channels/<channel id>/init-queue`     | Delete all the source files in a queue (or re-establish an empty queue structure, in case the previous queue was deleted directly in the file system for example).                                                                                                                                                                               |
-| DELETE `/inventory-import/channels/<channel uuid>`            | Delete the channel configuration, including the file queue but not the channel's job history                                                                                                                                                                                                                                                     |
-| POST `/inventory-import/channels/<channel id>/upload`         | Push a source file to the channel, currently set to accept files up to a size of 100 MB                                                                                                                                                                                                                                                          |
+An "import job" is basically just a demarcation of processing logs. The `importJob` itself is a record that logs the start and finish time of a continuous set of queued import files. 
+The importJob is created when a channel with an empty queue receives a new source file, and it is marked finished when the file queue is once again empty. Attached to the `importJob`
+are records containing information about the number of records processed with some timing, for each file and for the queue as a whole. If any records encountered errors when attempting 
+to import them in Inventory, error report records named `failedRecords` will likewise be attached to the `importJob`. The import job exists, in other words, just to organise the 
+counting of records processed and to group failed records.
 
-#### Importing
+#### HTTP requests for managing channels 
 
-| API                                                    | Feature                                                                                                                                                                                                                                                                                                                                                                     |
-|--------------------------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| POST `/inventory-import/channels/<channel id>/upload`  | Push a source file to the channel. <br/>If the channel is not enabled the upload is refused. If the channel is enabled but not listening, the file will enter the queue. If the channel is listening the file will enter the queue and be imported to Inventory in turn, barring any errors. <br/>The service is currently hardcoded to accept files up to a size of 100 MB |
+| API                                                         | Parameter           | Feature                                                                                                                                                                                                                                                                                                                                          |
+|-------------------------------------------------------------|---------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| POST `/inventory-import/channels`                           |                     | Create a channel                                                                                                                                                                                                                                                                                                                                 |
+| PUT `/inventory-import/channels/<channel uuid>`             |                     | Update properties of a channel                                                                                                                                                                                                                                                                                                                   |
+| POST `/inventory-import/channels/<channel id>/commission`   | `retainQueue`       | Launch a channel, marking it enabled. <br/>This has the same effect as setting the channel property `channel.enabled`=`true`. However, the command takes an additional parameter `?retainQueue`=[true,false] (default `false`). When `true`, any filesystem queue that was left behind from a previous deployment for this channel will be kept. |
+| POST `/inventory-import/channels/<channel id>/decommission` | `retainQueue`       | Undeploy (disable) the channel, has the same effect as setting the channel property `channel.enabled`=`false`, but the command takes an extra parameter `?retainQueue`=[true,false] (default `false`). When set to `true`, the file system queue for this channel is kept and potentially still available if the channel is deployed again.      |
+| POST `/inventory-import/channels/<channel id>/listen`       |                     | Listen for source files in queue, same effect as setting `channel.listening`=`true`                                                                                                                                                                                                                                                              |
+| POST `/inventory-import/channels/<channel id>/no-listen`    |                     | Ignore source files in queue, same effect as setting `channel.listening`=`false`                                                                                                                                                                                                                                                                 |
+| POST `/inventory-import/channels/<channel id>/init-queue`   |                     | Delete all the source files in a queue (or re-establish an empty queue structure, in case the previous queue was deleted directly in the file system for example).                                                                                                                                                                               |
+| DELETE `/inventory-import/channels/<channel uuid>`          |                     | Delete the channel configuration, including the file queue but not the channel's job history                                                                                                                                                                                                                                                     |
+| POST `/inventory-import/channels/<channel id>/upload`       | `filename`          | Push a source file to the channel, currently set to accept files up to a size of 100 MB                                                                                                                                                                                                                                                          |
+| POST `/inventory-import/channels/<channel id>/pause-job`    |                     | Halt processing in order to potentially resume it again with processing logs assigned to the same job                                                                                                                                                                                                                                            |
+| POST `/inventory-import/channels/<channel id>/resume-job`   | `skipCurrentFile`   | Resume a paused job, counting subsequent files in the queue with the existing import job                                                                                                                                                                                                                                                         |
+
 
 #### Request operating on multiple channels
 
-| API                                                    | Feature                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
-|--------------------------------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| POST `/inventory-import/recover-interrupted-channels`  | Deploy ("commission") all channels that are marked `enabled` but are not actually running. This is a scenario that would presumably only occur if the module was restarted while channels were enabled. The command takes a paramter `?listening=false` to enable the channels but not start actual importing right away. <br/> Notice that when posting a source file to a channel that is `enabled` but not deployed (not "commissioned") then the channel will be implicitly commissioned by that post. Explicitly recovering channels by this command is merely to ensure completion of already existing file queues for which processing was interrupted by a module restart. |
+| API                                                    | Parameter    | Feature                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
+|--------------------------------------------------------|--------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| POST `/inventory-import/recover-interrupted-channels`  | `listening`  | Deploy ("commission") all channels that are marked `enabled` but are not actually running. This is a scenario that would presumably only occur if the module was restarted while channels were enabled. The command takes a paramter `?listening=false` to enable the channels but not start actual importing right away. <br/> Notice that when posting a source file to a channel that is `enabled` but not deployed (not "commissioned") then the channel will be implicitly commissioned by that post. Explicitly recovering channels by this command is merely to ensure completion of already existing file queues for which processing was interrupted by a module restart. |
 
+
+#### Error handling
+
+If a fatal error occurs while a job is running, the module will attempt to gracefully pause the processing. The import job will be 
+marked paused so that processing can potentially be resumed with processing statistics and failed records counting towards the same import job. 
+
+There are two main categories of errors that should halt the processing. One would be a fatal problem with the import 
+file itself, for example that it contains invalid XML and thus cannot be meaningfully processed. 
+The other would be some external problem like losing the access to Inventory Storage. In the first case it will not help
+to resume the job from the bad file, since it will immediately get halted again. There is therefore an option to skip the 
+current file when resuming. In the second case, the file is fine, and if the external problem can be fixed, the job should 
+be resumed from the same file. 
+
+  Note on possible enhancements
+   - Resume from a given record in the file? Currently, the entire file will be resumed, but a number of records of the 
+     file may already have been imported alright, for example all records up until the point of a bad XML construct. 
+     Usually it does not hurt to repeat upserts, the end result will be the same, but processing counts will be affected in ways that might make them look a bit off.
+   - Replace current file?  Currently, one can opt to skip current file if it is invalid. However, it might be desired to 
+     have an option to correct the file locally and upload it again in place of the current file as opposed to simply 
+     have it uploaded to the end of the file queue. This would be to ensure order of processing if important.
 
 #### Using `tag` for channel ID
 
@@ -154,38 +178,6 @@ The <channel id> in the paths can either be the UUID of the channel record (`cha
 that channel can be referenced by the tag in the various channel commands. The basic REST requests (GET, PUT, DELETE channel)
 use the UUID like standard FOLIO APIs.
 
-### The "import job" explained
-
-A "job" is a continuous processing of source files that starts when a channel with an empty queue receives a new source
-file, and the job ends when the file queue is once again empty. When the job ends, some metrics are calculated
-covering the span of the job. There can thus only be zero or one job in a channel at any time.
-
-A job is in other words a mostly automatic entity that primarily exists in order to organise the counting of record processes.
-There are some ways for the operator to handle jobs, though. The start of a job can be controlled, if desired, by pausing the
-channel listener while uploading source files to the channel. When the listener is restarted, this will trigger a
-new job. A running job can also be paused and resumed if needed.
-
-If a fatal error occurs while a job is running, the module will attempt to gracefully pause the job, so that it can potentially
-be resumed.
-
-Finally, a job can be cancelled. This command will include
-
-- stop the channel listener to prevent more files from entering the job
-- calculating metrics for the duration of the job and mark the job cancelled
-- empty the file queue
-
-After cancelling the job, the operator must reactivate the listener to allow a new job to start. If some external process is still
-uploading files to the queue, the queue will be populated when the listener is started even though the file queue was emptied
-when cancelling the job.
-
-#### HTTP requests operating on the job:
-
-Channel operations will affect a current job in the channel. Besides that, there are following requests that act on an
-ongoing import job directly.
-
-- POST `/inventory-import/channels/<channel id>/pause-job`
-- POST `/inventory-import/channels/<channel id>/resume-job`
-- wip - POST `/inventory-import/channels/<channel id>/cancel-job`
 
 ### How to transform source XML to Inventory JSON.
 
@@ -331,7 +323,7 @@ processing": {
 }
 ```
 
-The default behavior is to overwrite all statuses.
+The default behaviour is to overwrite all statuses.
 
 ##### Instruct MIU to avoid deleting items even though they are missing from the input
 

@@ -8,10 +8,28 @@ more information.
 Mod-inventory-update (MIU) is a module for creating, updating and deleting instances, holdings records, and items in 
 Inventory Storage, from XML or JSON sources files.
 
-The module has two distinct sets of APIs. One is a group of import APIs, with which a client can configure, execute 
-and monitor import jobs that transform and import collections of XML records of arbitrary format to Inventory Storage. The other 
-is a handful of so called "upsert" APIs that a client can use to push JSON files of a predefined structure to MIU,
-which will then insert or update instances, holdings records and items in Inventory Storage with them.
+The module has two distinct sets of APIs. 
+
+One is a group of import APIs, with which a client can configure, execute 
+and monitor import jobs that transform and import collections of XML records of arbitrary format to Inventory Storage. 
+
+The other is a handful of so called "upsert" APIs that a client can use to push JSON files of a predefined structure to MIU,
+which will then insert or update instances, holdings records and items in Inventory Storage.
+
+Depending on which of use these two use cases might be relevant, one can read different parts of this readme. 
+
+If you have XML records for import, say, files with collections of MARC XML records, then you can read the paragraphs in 
+[Import XML files](#import-xml-files) which will explain how to set up import channels with XSLT transformation pipelines. 
+It is explained what data structure the MARC XML records must be transformed to in order to be imported to Inventory. To 
+understand the specifics of how the module takes the transformed structure and imports it to Inventory, then you can read the paragraphs 
+in [What the APIs do with the inventory record set](#what-the-apis-do-with-the-inventory-record-set). 
+
+If you want to import JSON files, then you don't need the import channels or transformations. You can post the JSON directly 
+to the upsert API. This is a synchronous operation with immediate feedback, as opposed to the XML import process, which 
+is asynchronous. However, this requires the JSON to already be compliant with the so-named "inventory record set" format,
+there is no transformation pipeline. The schema for the JSON is documented in [Upsert APIs](src/main/resources/openapi/inventory-update-5.0.yaml).
+Again, to understand the specifics of how the module takes that JSON and imports it to Inventory, you can read the paragraphs
+in [What the APIs do with the inventory record set](#what-the-apis-do-with-the-inventory-record-set).
 
 <!-- TOC -->
 * [mod-inventory-update](#mod-inventory-update)
@@ -27,7 +45,7 @@ which will then insert or update instances, holdings records and items in Invent
     * [What the APIs do with the inventory record set](#what-the-apis-do-with-the-inventory-record-set)
       * [Detect if holdings records or items should be deleted](#detect-if-holdings-records-or-items-should-be-deleted)
       * [Control record overlay on updates.](#control-record-overlay-on-updates)
-        * [Prevent MIU from override existing values](#prevent-miu-from-override-existing-values)
+        * [Prevent MIU from overriding existing values](#prevent-miu-from-overriding-existing-values)
         * [Instruct MIU to leave the item status unmodified under certain circumstance.](#instruct-miu-to-leave-the-item-status-unmodified-under-certain-circumstance)
         * [Instruct MIU to avoid deleting items even though they are missing from the input](#instruct-miu-to-avoid-deleting-items-even-though-they-are-missing-from-the-input)
         * [Retain omitted items if the status indicates that they are still circulating](#retain-omitted-items-if-the-status-indicates-that-they-are-still-circulating)
@@ -242,7 +260,7 @@ holdingsRecord, with the input JSON it receives from the client, except for the 
 The default behaviour can be changed per request using structures
 in the processing element.
 
-##### Prevent MIU from override existing values
+##### Prevent MIU from overriding existing values
 
 MIU can be instructed to leave certain properties in place when updating Instances, holdings records, and Items.
 

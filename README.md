@@ -26,8 +26,9 @@ in [What the APIs do with the inventory record set](#what-the-apis-do-with-the-i
 
 If you want to import JSON files, then you don't need the import channels or transformations. You can post the JSON directly 
 to the upsert API. This is a synchronous operation with immediate feedback, as opposed to the XML import process, which 
-is asynchronous. However, this requires the JSON to already be compliant with the so-named "inventory record set" format,
-there is no transformation pipeline. The schema for the JSON is documented in [Upsert APIs](src/main/resources/openapi/inventory-update-5.0.yaml).
+is asynchronous. However, this requires the JSON to be compliant with the so-named "inventory record set" format up-front,
+there is no transformation pipeline massaging the data into the inventory record sets needed for the module's CRUD engine. 
+The schema for the JSON is documented in [upsert APIs, Open API specification](src/main/resources/openapi/inventory-update-5.0.yaml).
 Again, to understand the specifics of how the module takes that JSON and imports it to Inventory, you can read the paragraphs
 in [What the APIs do with the inventory record set](#what-the-apis-do-with-the-inventory-record-set).
 
@@ -77,38 +78,47 @@ in [What the APIs do with the inventory record set](#what-the-apis-do-with-the-i
 The importing component of MIU consists of so-called import "channels". Each channel has a file queue that source files can 
 be uploaded to, and a processing pipeline that can perform the importing of source files from the queue to inventory storage.
 
-The channel design is meant to allow for multiple input formats, for example, potentially, binary MARC or JSON files. However, the currently 
-pipeline implementation supports XML source files that are transformed to Inventory Storage compatible structures through one or more 
-custom provided XSLT transformation steps. 
+The channel design is meant to allow for multiple input formats, for example, potentially, binary MARC or JSON files. However, 
+the current pipeline implementation supports XML source files. 
 
-To use the XML importing API, the channels must be configured with a pipeline, which is done using the provided
+To use the XML importing API, the channels must be configured with a transformation pipeline. The transformation pipeline
+is a chain of zero or more XSLT transformation steps that will restructure XML records of arbitrary format into "inventory 
+record sets" suitable for running updates on instances, holdings and item. The pipeline can be created using the provided
 configuration APIs.
 
-The main elements of the importing component are
+The main elements of the importing component are thus
 
 - a channel with an associated file queue
 - a processing pipeline, called a "transformation"
-- the "transformation"  has an ordered set of "transformation steps" with XSLT style-sheets, that ends with a crosswalk of the XML to JSON.
-- the "transformation" also has a "target" for its JSON results, which is a component that will batch and persist the results to inventory storage.
+- the "transformation"  has an ordered set of "transformation steps" with XSLT style-sheets, where the last step will be a  generic (system supplied) crosswalk of the XML to JSON.
+- the outcome of this process is sent to CRUD component that will batch and persist the results to inventory storage.
 
-See also the OpenAPI spec for further details [XML importing APIs](src/main/resources/openapi/inventory-import-1.0.yaml).
+See the OpenAPI spec for further details [XML importing APIs](src/main/resources/openapi/inventory-import-1.0.yaml).
 
 ### Create and manage channels
 
-The static parts of the channel itself are
-- a name for channel
-- a reference to the "transformation" that processes the incoming source files
-- two flags that indicates if the channel is deployed (or is to be deployed after an interruption), and is actively listening
+The configurable parts of the channel itself are
 
-The dynamic parts of a channel are
+- A name for the channel.
+- A shorthand tag for the channel that can be used instead of its UUID in certain API requests.  
+- A reference to the "transformation" that processes the incoming source files.
+- Two boolean state properties for marking the channel 'enabled' and 'listening'
+  - `enabled` means that a background process is running (or should be running) for the channel, and that it has a file queue to which it is possible to upload files.
+  - `listening` means that the channel, if enabled, will actively pick up files, if any, from the queue and process/import them.
 
-- a dedicated process (a worker verticle in Vert.x terms) that listens for incoming files
-- file queue: a set of filesystem directories that acts as a queue for incoming files
-- "importJob":  if there are any incoming files, and the channel is actively listening, it will automatically launch an "import job",
-  using its associated "transformation", and the progress of that process will be logged in the objects "importJob",
-  "logLines", and "failedRecords"
-- when the last file in the queue is processed, the job will finish, but the channel will keep listening
-  until paused or decommissioned or until MIU is uninstalled or redeployed.
+Finally, there is a derived, non-persistent (read only) property named `commissioned` that indicates if an enabled channel actually has a running process. A channel will 
+automatically get a background process when it is marked `enabled` but if the module gets shut down it will not have that process once the module is brought up again. In that 
+scenario the channel will be `enabled` but not `commissioned`, and would have to be re-commissioned to give it an active process. 
+An enabled channel can be recommissioned implicitly by uploading a new file to it, or explicitly by issuing a 
+commission request to the channel. 
+
+The dynamic parts of an enabled channel are
+
+- A dedicated process (a worker verticle in Vert.x terms). If the channel is marked `listening` this process will actively pick up files from the file queue.
+- A file queue: a set of filesystem directories that acts as a queue for incoming files, ensuring that they are processed in order.
+- `importJob`:  if there are any incoming files, and the channel is actively listening, it will create a record of an "import job" 
+  with `logLines`, and `failedRecords` if any.
+- When the last file in the queue is processed, the import job will be marked at finish on the `importJob` record. The channel will keep listening for new files and create new `importJob` if any appear.
 
 #### HTTP requests operating on the channel
 

@@ -29,6 +29,8 @@ The schema for the JSON is documented in [upsert APIs, Open API specification](s
 Again, to understand the specifics of how the module takes that JSON and imports it to Inventory, you can read the paragraphs
 in [How MIU works with the inventory record set](#part-ii-how-miu-uses-an-inventory-record-set-json-for-updating-inventory-storage).
 
+<img alt="Diagram of MIU APIs" src="doc/diagram-of-miu-import.jpg" width="1123" title="Upsert and import APIs"/>
+
 <!-- TOC -->
   * [PART I. How to import XML files](#part-i-how-to-import-xml-files)
     * [Create and manage channels](#create-and-manage-channels)
@@ -190,8 +192,6 @@ The JSON based upsert APIs are synchronous, processing the input and returning a
 The XML based import APIs on the other hand work asynchronously, and will put the file in queue and return a response that
 this has been done. But feedback regarding the processing and its outcomes is logged in the module, to be retrieved later
 through the APIs.
-
-<img alt="Diagram of MIU APIs" src="doc/diagram-of-miu-import.jpg" width="1123" title="Upsert and import APIs"/>
 
 The high level structure of an inventory record set is
 ```

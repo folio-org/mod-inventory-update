@@ -19,10 +19,10 @@ which will then insert or update instances, holdings records and items in Invent
 Depending on which of use these two use cases might be relevant, one can read different parts of this readme. 
 
 If you have XML records for import, say, files with collections of MARC XML records, then you can read the paragraphs in 
-[Import XML files](#import-xml-files) which will explain how to set up import channels with XSLT transformation pipelines. 
+[Import XML files](#part-i-how-to-import-xml-files) which will explain how to set up import channels with XSLT transformation pipelines. 
 It is explained what data structure the MARC XML records must be transformed to in order to be imported to Inventory. To 
 understand the specifics of how the module takes the transformed structure and imports it to Inventory, then you can read the paragraphs 
-in [What the APIs do with the inventory record set](#what-the-apis-do-with-the-inventory-record-set). 
+in [How MIU works with the inventory record set](#part-ii-how-miu-uses-an-inventory-record-set-json-for-updating-inventory-storage). 
 
 If you want to import JSON files, then you don't need the import channels or transformations. You can post the JSON directly 
 to the upsert API. This is a synchronous operation with immediate feedback, as opposed to the XML import process, which 
@@ -30,11 +30,11 @@ is asynchronous. However, this requires the JSON to be compliant with the so-nam
 there is no transformation pipeline massaging the data into the inventory record sets needed for the module's CRUD engine. 
 The schema for the JSON is documented in [upsert APIs, Open API specification](src/main/resources/openapi/inventory-update-5.0.yaml).
 Again, to understand the specifics of how the module takes that JSON and imports it to Inventory, you can read the paragraphs
-in [What the APIs do with the inventory record set](#what-the-apis-do-with-the-inventory-record-set).
+in [How MIU works with the inventory record set](#part-ii-how-miu-uses-an-inventory-record-set-json-for-updating-inventory-storage).
 
 <!-- TOC -->
 * [mod-inventory-update](#mod-inventory-update)
-  * [PART I. Import XML files](#part-i-import-xml-files)
+  * [PART I. How to import XML files](#part-i-how-to-import-xml-files)
     * [Create and manage channels](#create-and-manage-channels)
     * [The "import job" explained](#the-import-job-explained)
       * [HTTP requests for managing channels](#http-requests-for-managing-channels-)
@@ -42,7 +42,8 @@ in [What the APIs do with the inventory record set](#what-the-apis-do-with-the-i
       * [Error handling](#error-handling)
       * [Using `tag` for channel ID](#using-tag-for-channel-id)
     * [How to transform source XML to Inventory JSON.](#how-to-transform-source-xml-to-inventory-json)
-  * [PART II. How MIU uses the inventory record set for updating Inventory Storage](#part-ii-how-miu-uses-the-inventory-record-set-for-updating-inventory-storage)
+  * [PART II. How MIU uses an inventory record set JSON for updating Inventory Storage](#part-ii-how-miu-uses-an-inventory-record-set-json-for-updating-inventory-storage)
+      * [All updates to Inventory are HRID based](#all-updates-to-inventory-are-hrid-based)
       * [Detect if holdings records or items should be deleted](#detect-if-holdings-records-or-items-should-be-deleted)
       * [Control record overlay on updates.](#control-record-overlay-on-updates)
         * [Prevent MIU from overriding existing values](#prevent-miu-from-overriding-existing-values)

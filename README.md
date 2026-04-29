@@ -15,7 +15,7 @@ which will then insert or update instances, holdings records and items in Invent
 
 Depending on which of use these two use cases that might be relevant, one can read different parts of this readme. 
 
-If you have XML records for import, say, files with collections of MARC XML records, then you can read the paragraphs in 
+If you have XML records for import, say files with collections of MARC XML records, then you can read the paragraphs in 
 [Import XML files](#part-i-how-to-import-xml-files) which will explain how to set up import channels with XSLT transformation pipelines. 
 It is explained what data structure the MARC XML records must be transformed to in order to be imported to Inventory. To 
 understand the specifics of how the module takes the transformed structure and imports it to Inventory, then you can read the paragraphs 
@@ -360,8 +360,8 @@ of the first record in the collection. The response can be returned as the trans
 JSON (the default). 
 
 If we put the tiny MARC in a file named marc.xml we can try it out like shown in the next box. The example illustrates
-the use of the channel tag `demo` as an alternative identifier in the POST path instead of the channels UUID. Notice also 
-the resulting XML encoding of a contributors with `arr` to indicate that they are an array, and `i`s to envelope each element. 
+the use of the channel tag `demo` as an alternative identifier in the API path instead of the channel's UUID. Notice also 
+the resulting XML encoding of contributors with `arr` to indicate an array, and `i` to envelope each element. 
 
 ```
  POST to inventory-import/channels/demo/try-tranformation?output=xml -f marc.xml

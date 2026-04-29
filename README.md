@@ -33,7 +33,8 @@ in [How MIU works with the inventory record set](#part-ii-how-miu-uses-an-invent
 
 <!-- TOC -->
   * [PART I. How to import XML files](#part-i-how-to-import-xml-files)
-    * [Create and manage channels](#create-and-manage-channels)
+    * [Creating a transformation pipeline and assigning it to a channel](#creating-a-transformation-pipeline-and-assigning-it-to-a-channel)
+    * [Managing channels](#managing-channels)
       * [The "import job" explained](#the-import-job-explained)
       * [HTTP requests for managing channels](#http-requests-for-managing-channels-)
       * [Error handling](#error-handling)
@@ -90,9 +91,371 @@ The main elements of the importing component are thus
 - the "transformation"  has an ordered set of "transformation steps" with XSLT style-sheets, where the last step will be a  generic (system supplied) crosswalk of the XML to JSON.
 - the outcome of this process is sent to CRUD component that will batch and persist the results to inventory storage.
 
+This diagram shows the configuration data structure for a channel with a transformation pipeline.
+
+<img alt="Diagram of MIUs import configuration tables" src="doc/diagram-of-miu-import-config.jpg" width="289" title="Import configuration" />
+
+The next paragraphs will explain how to populate this structure to create an import channel.
+
+### Creating a transformation pipeline and assigning it to a channel
+
+Say we have this collection of one record, a tiny MARC record with basically just a title and some contributors.
+
+```
+<?xml version="1.0" encoding="UTF-8"?>
+<collection xmlns:marc="http://www.loc.gov/MARC21/slim">
+    <marc:record>
+        <marc:leader>00942nam a22002531a 4504</marc:leader>
+        <marc:controlfield tag="001">73209622</marc:controlfield>
+        <marc:controlfield tag="003">DLC</marc:controlfield>
+        <marc:controlfield tag="005">19820325000000.0</marc:controlfield>
+        <marc:controlfield tag="008">780306m19009999ohu 00000 grc</marc:controlfield>
+        <marc:datafield tag="245" ind1="0" ind2="4">
+            <marc:subfield code="a">Demo title</marc:subfield>
+            <marc:subfield code="c">J. Arthur Hanson, David Paterson, editors.</marc:subfield>
+        </marc:datafield>
+        <marc:datafield tag="700" ind1="1" ind2="0">
+            <marc:subfield code="a">Hanson, J. Arthur</marc:subfield>
+            <marc:subfield code="q">(Joseph Arthur)</marc:subfield>
+        </marc:datafield>
+        <marc:datafield tag="700" ind1="1" ind2="0">
+            <marc:subfield code="a">Paterson, David,</marc:subfield>
+            <marc:subfield code="d">1952-</marc:subfield>
+        </marc:datafield>
+        <marc:datafield tag="710" ind1="2" ind2="0">
+            <marc:subfield code="a">Research Associates.</marc:subfield>
+        </marc:datafield>
+    </marc:record>
+</collection>
+```
+We will set up a channel to import this MARC record as a FOLIO instance. We will ignore holdings and items to keep it short.
+
+For this we need a transformation pipeline, which we will construct with a single XSLT transformation step.
+
+We can start by posting the step that contains a dummy XSLT, a script that would simply copy the XML. In the next step 
+we will replace that XSLT with a useful script
+
+```
+POST to inventory-import/steps: 
+
+{
+  "id": "c2f39026-b8bc-430c-a79d-473f00159563",
+  "inputFormat": "XML",
+  "name": "marc-to-instance",
+  "enabled": true,
+  "outputFormat": "XML",
+  "script": "<xsl:stylesheet version=\"1.0\" xmlns:xsl=\"http://www.w3.org/1999/XSL/Transform\">\n    <xsl:template match=\"@*|node()\">\n        <xsl:copy>\n            <xsl:apply-templates select=\"@*|node()\"/>\n        </xsl:copy>\n    </xsl:template>\n</xsl:stylesheet>\n",
+  "type": "XmlTransformStep"
+}
+```
+
+In the next box of code is an XSLT that will extract the mandatory properties for an inventory Instance, `title`, `instanceTypeId`, and provide
+a hard coded value for the likewise mandatory `source` property. All records to be updated in Inventory Storage must have a HRID
+and the XSLT will extract the control number for that.
+
+Although not strictly needed in this example that only has one transformation step, the XSLT will also forward a copy of 
+the original MARC record to be used by subsequent transformation steps. For example there might be a subsequent step for 
+creating holdings records and items from the MARC record.
+
+Also notice the transformation logic for `contributors`. Since `contributors` is an array in the Inventory instance, the XSLT must construct 
+an element named `arr` and add each contributor as an element named `i` to the `arr` element. MIU will convert this structure
+to a JSON array. Here it is shown for contributors but the same logic and naming applies to other arrays like identifiers,
+subjects, notes, and even arrays of holdings records or items.
+
+```
+<?xml version="1.0" encoding="UTF-8"?>
+<xsl:stylesheet
+        version="1.0"
+        xmlns:xsl="http://www.w3.org/1999/XSL/Transform"
+        xmlns:marc="http://www.loc.gov/MARC21/slim">
+
+
+    <xsl:output indent="yes" method="xml" version="1.0" encoding="UTF-8"/>
+
+    <xsl:template match="/">
+        <collection>
+            <xsl:apply-templates/>
+        </collection>
+    </xsl:template>
+
+    <!-- MARC meta data -->
+    <xsl:template match="marc:record">
+        <record>
+            <!-- Bibliographic record for FOLIO inventory -->
+            <instance>
+                <source>DEMO</source>
+                <hrid><xsl:value-of select="marc:controlfield[@tag='001']"/></hrid>
+
+                <!-- title -->
+                <title>
+                    <xsl:variable name="concat-title">
+                        <xsl:for-each
+                                select="marc:datafield[@tag='245'][1]/marc:subfield[@code='a' or @code='b' or @code='h' or @code='n' or @code='p']">
+                            <xsl:value-of select="."/>
+                            <xsl:if test="position() != last()">
+                                <xsl:text> </xsl:text>
+                            </xsl:if>
+                        </xsl:for-each>
+                    </xsl:variable>
+                    <xsl:call-template name="remove-characters-last">
+                        <xsl:with-param name="input" select="$concat-title"/>
+                        <xsl:with-param name="characters">,-./ :;</xsl:with-param>
+                    </xsl:call-template>
+                </title>
+
+                <!-- Instance type ID (resource type) -->
+                <instanceTypeId>
+                    <!-- UUIDs for resource types -->
+                    <xsl:choose>
+                        <xsl:when test="substring(marc:leader,7,1)='a'">6312d172-f0cf-40f6-b27d-9fa8feaf332f</xsl:when>
+                        <!-- language material : text -->
+                        <xsl:when test="substring(marc:leader,7,1)='c'">497b5090-3da2-486c-b57f-de5bb3c2e26d</xsl:when>
+                        <!-- notated music : notated music -->
+                        <xsl:when test="substring(marc:leader,7,1)='d'">497b5090-3da2-486c-b57f-de5bb3c2e26d</xsl:when>
+                        <!-- manuscript notated music : notated music -> notated music -->
+                        <xsl:when test="substring(marc:leader,7,1)='e'">526aa04d-9289-4511-8866-349299592c18</xsl:when>
+                        <!-- cartographic material : cartographic image -->
+                        <xsl:when test="substring(marc:leader,7,1)='f'">a2c91e87-6bab-44d6-8adb-1fd02481fc4f</xsl:when>
+                        <!-- other --> <!-- manuscript cartographic material : ? -->
+                        <xsl:when test="substring(marc:leader,7,1)='g'">535e3160-763a-42f9-b0c0-d8ed7df6e2a2</xsl:when>
+                        <!-- projected image : still image -->
+                        <xsl:when test="substring(marc:leader,7,1)='i'">9bce18bd-45bf-4949-8fa8-63163e4b7d7f</xsl:when>
+                        <!-- nonmusical sound recording : sounds -->
+                        <xsl:when test="substring(marc:leader,7,1)='j'">3be24c14-3551-4180-9292-26a786649c8b</xsl:when>
+                        <!-- musical sound recording : performed music -->
+                        <xsl:when test="substring(marc:leader,7,1)='k'">a2c91e87-6bab-44d6-8adb-1fd02481fc4f</xsl:when>
+                        <!-- other --> <!-- two-dimensional nonprojectable graphic : ?-->
+                        <xsl:when test="substring(marc:leader,7,1)='m'">df5dddff-9c30-4507-8b82-119ff972d4d7</xsl:when>
+                        <!-- computer file : computer dataset -->
+                        <xsl:when test="substring(marc:leader,7,1)='o'">a2c91e87-6bab-44d6-8adb-1fd02481fc4f</xsl:when>
+                        <!-- kit : other -->
+                        <xsl:when test="substring(marc:leader,7,1)='p'">a2c91e87-6bab-44d6-8adb-1fd02481fc4f</xsl:when>
+                        <!-- mixed material : other -->
+                        <xsl:when test="substring(marc:leader,7,1)='r'">c1e95c2b-4efc-48cf-9e71-edb622cf0c22</xsl:when>
+                        <!-- three-dimensional artifact or naturally occurring object : three-dimensional form -->
+                        <xsl:when test="substring(marc:leader,7,1)='t'">6312d172-f0cf-40f6-b27d-9fa8feaf332f</xsl:when>
+                        <!-- manuscript language material : text -->
+                        <xsl:otherwise>a2c91e87-6bab-44d6-8adb-1fd02481fc4f</xsl:otherwise>
+                        <!--  : other -->
+                    </xsl:choose></instanceTypeId>
+
+                <!-- Contributors -->
+                <xsl:if test="marc:datafield[@tag='100' or @tag='110' or @tag='111' or @tag='700' or @tag='710' or @tag='711']">
+                    <contributors>
+                        <arr>
+                            <xsl:for-each
+                                    select="marc:datafield[@tag='100' or @tag='110' or @tag='111' or @tag='700' or @tag='710' or @tag='711']">
+                                <i>
+                                    <name>
+                                        <xsl:for-each
+                                                select="marc:subfield[@code='a' or @code='b' or @code='c' or @code='d' or @code='f' or @code='g' or @code='j' or @code='k' or @code='l' or @code='n' or @code='p' or @code='q' or @code='t' or @code='u']">
+                                            <xsl:if test="position() > 1">
+                                                <xsl:text>, </xsl:text>
+                                            </xsl:if>
+                                            <xsl:call-template name="remove-characters-last">
+                                                <xsl:with-param name="input" select="."/>
+                                                <xsl:with-param name="characters">,-.</xsl:with-param>
+                                            </xsl:call-template>
+                                        </xsl:for-each>
+                                    </name>
+                                    <xsl:choose>
+                                        <xsl:when test="@tag='100' or @tag='700'">
+                                            <contributorNameTypeId>2b94c631-fca9-4892-a730-03ee529ffe2a</contributorNameTypeId>
+                                            <!-- personal name -->
+                                            <xsl:if test="@tag='100'">
+                                                <primary>true</primary>
+                                            </xsl:if>
+                                        </xsl:when>
+                                        <xsl:when test="@tag='110' or @tag='710'">
+                                            <contributorNameTypeId>2e48e713-17f3-4c13-a9f8-23845bb210aa</contributorNameTypeId>
+                                            <!-- corporate name -->
+                                        </xsl:when>
+                                        <xsl:when test="@tag='111' or @tage='711'">
+                                            <contributorNameTypeId>e8b311a6-3b21-43f2-a269-dd9310cb2d0a</contributorNameTypeId>
+                                            <!-- meeting name -->
+                                        </xsl:when>
+                                        <xsl:otherwise>
+                                            <contributorNameTypeId>2b94c631-fca9-4892-a730-03ee529ffe2a</contributorNameTypeId>
+                                            <!-- personal name -->
+                                        </xsl:otherwise>
+                                    </xsl:choose>
+                                    <xsl:if test="marc:subfield[@code='e' or @code='4']">
+                                        <contributorTypeId>
+                                        </contributorTypeId>
+                                    </xsl:if>
+                                </i>
+                            </xsl:for-each>
+                        </arr></contributors>
+                </xsl:if>
+            </instance>
+            <original>
+                <xsl:copy>
+                    <xsl:copy-of select="@*"/>
+                    <xsl:copy-of select="*"/>
+                </xsl:copy>
+            </original>
+        </record>
+    </xsl:template>
+
+    <xsl:template match="text()"/>
+    <xsl:template name="remove-characters-last">
+        <xsl:param name="input"/>
+        <xsl:param name="characters"/>
+        <xsl:variable name="lastcharacter" select="substring($input,string-length($input))"/>
+        <xsl:choose>
+            <xsl:when test="$characters and $lastcharacter and contains($characters, $lastcharacter)">
+                <xsl:call-template name="remove-characters-last">
+                    <xsl:with-param name="input" select="substring($input,1, string-length($input)-1)"/>
+                    <xsl:with-param name="characters" select="$characters"/>
+                </xsl:call-template>
+            </xsl:when>
+            <xsl:otherwise>
+                <xsl:value-of select="$input"/>
+            </xsl:otherwise>
+        </xsl:choose>
+    </xsl:template>
+
+</xsl:stylesheet>
+```
+
+If we write this XSLT in a favorite XSLT editor and save it as `marc-to-instance.xslt` we can push it to the step with:
+
+`PUT   inventory-import/steps/c2f39026-b8bc-430c-a79d-473f00159563/script -f marc-to-instance.xslt` 
+
+Now we can create a transformation pipeline consisting of just this one step with:
+
+```
+POST to inventory-import/transformations:
+
+{
+  "id": "9a57d0e2-08d9-4eaf-a30b-97d3ad0f43bc",
+  "name": "MARC XML transformation",
+  "description": "Sample transformation from MARC XML to FOLIO Inventory instance",
+  "steps": [
+    {
+      "id": "c2f39026-b8bc-430c-a79d-473f00159563"
+    }
+  ]
+}
+```
+
+And finally we can create a channel that uses this pipeline:
+
+```
+POST to inventory-import/channels:
+
+{
+  "id": "ab9c3cbf-1ca0-4184-8f6a-083d1a644ce1",
+  "name": "MARC XML Channel",
+  "tag": "demo",
+  "type": "XML",
+  "enabled": true,
+  "listening": true,
+  "transformationId": "9a57d0e2-08d9-4eaf-a30b-97d3ad0f43bc"
+}
+```
+
+MIU has an API to try out the transformation without actually importing anything. It will return the result of the transformation 
+of the first record in the collection. The response can be returned as the transformed XML or as the result converted to 
+JSON (the default). 
+
+If we put the tiny MARC in a file named marc.xml we can try it out like shown in the next box. The example illustrates
+the use of the channel tag `demo` as an alternative identifier in the POST path instead of the channels UUID. Notice also 
+the resulting XML encoding of a contributors with `arr` to indicate that they are an array, and `i`s to envelope each element. 
+
+```
+ POST to inventory-import/channels/demo/try-tranformation?output=xml -f marc.xml
+
+ Response as XML:
+ 
+<?xml version="1.0" encoding="UTF-8"?>
+<collection xmlns:marc="http://www.loc.gov/MARC21/slim">
+   <record>
+      <instance>
+         <source>DEMO</source>
+         <hrid>73209622</hrid>
+         <title>Demo title</title>
+         <instanceTypeId>6312d172-f0cf-40f6-b27d-9fa8feaf332f</instanceTypeId>
+         <contributors>
+            <arr>
+               <i>
+                  <name>Hanson, J. Arthur, (Joseph Arthur)</name>
+                  <contributorNameTypeId>2b94c631-fca9-4892-a730-03ee529ffe2a</contributorNameTypeId>
+               </i>
+               <i>
+                  <name>Paterson, David, 1952</name>
+                  <contributorNameTypeId>2b94c631-fca9-4892-a730-03ee529ffe2a</contributorNameTypeId>
+               </i>
+               <i>
+                  <name>Research Associates</name>
+                  <contributorNameTypeId>2e48e713-17f3-4c13-a9f8-23845bb210aa</contributorNameTypeId>
+               </i>
+            </arr>
+         </contributors>
+      </instance>
+      <original>
+         <marc:record>
+            <marc:leader>00942nam a22002531a 4504</marc:leader>
+            <marc:controlfield tag="001">73209622</marc:controlfield>
+            <marc:controlfield tag="003">DLC</marc:controlfield>
+            <marc:controlfield tag="005">19820325000000.0</marc:controlfield>
+            <marc:controlfield tag="008">780306m19009999ohu 00000 grc</marc:controlfield>
+            <marc:datafield tag="245" ind1="0" ind2="4">
+               <marc:subfield code="a">Demo title</marc:subfield>
+               <marc:subfield code="c">J. Arthur Hanson, David Paterson, editors.</marc:subfield>
+            </marc:datafield>
+            <marc:datafield tag="700" ind1="1" ind2="0">
+               <marc:subfield code="a">Hanson, J. Arthur</marc:subfield>
+               <marc:subfield code="q">(Joseph Arthur)</marc:subfield>
+            </marc:datafield>
+            <marc:datafield tag="700" ind1="1" ind2="0">
+               <marc:subfield code="a">Paterson, David,</marc:subfield>
+               <marc:subfield code="d">1952-</marc:subfield>
+            </marc:datafield>
+            <marc:datafield tag="710" ind1="2" ind2="0">
+               <marc:subfield code="a">Research Associates.</marc:subfield>
+            </marc:datafield>
+         </marc:record>
+      </original>
+   </record>
+</collection>
+
+ POST to inventory-import/channels/demo/try-tranformation -f marc.xml  
+
+ Response as JSON
+ 
+ {
+  "instance" : {
+    "source" : "DEMO",
+    "hrid" : "73209622",
+    "title" : "Demo title",
+    "instanceTypeId" : "6312d172-f0cf-40f6-b27d-9fa8feaf332f",
+    "contributors" : [ {
+      "name" : "Hanson, J. Arthur, (Joseph Arthur)",
+      "contributorNameTypeId" : "2b94c631-fca9-4892-a730-03ee529ffe2a"
+    }, {
+      "name" : "Paterson, David, 1952",
+      "contributorNameTypeId" : "2b94c631-fca9-4892-a730-03ee529ffe2a"
+    }, {
+      "name" : "Research Associates",
+      "contributorNameTypeId" : "2e48e713-17f3-4c13-a9f8-23845bb210aa"
+    } ]
+  }
+}
+```
+
+The JSON response shown above is the so-called inventory record set, just a very small one, with few 
+instance properties and no holdings records or items. 
+
+That concludes the practical walk-through. With this channel in place the MARC record can be imported with:
+
+```
+  POST inventory-import/channels/demo/upload -f marc.xml
+```  
+
 See the OpenAPI spec for further details [XML importing APIs](src/main/resources/openapi/inventory-import-1.0.yaml).
 
-### Create and manage channels
+### Managing channels
 
 The configurable parts of the channel itself are
 
@@ -127,21 +490,21 @@ counting of records processed and groups failed records.
 
 #### HTTP requests for managing channels 
 
-| API                                                         | Parameter                      | Feature                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
-|-------------------------------------------------------------|--------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| POST `/inventory-import/channels`                           |                                | Create a channel.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
-| PUT `/inventory-import/channels/<channel uuid>`             |                                | Update properties of a channel. <br/>If the channel was disabled before, and `enabled` is then set to true, a channel process will be launched, a new file system queue will be created, and the channel will allow uploading of files to it.<br/>If the channel was enabled, setting `enabled` to false, will stop the channel process, remove the file queue and prevent upload of files to the queue.<br/>If `listening` is being set to `true` the (enabled, unpaused) channel will pick up any current of future files from the queue and import them to Inventory.<br/> If `listening` is being set to false, the (enabled) channel will still allow uploading of files to the queue but will not pick them up for processing. |
-| POST `/inventory-import/channels/<channel id>/commission`   | `retainQueue`<br/>`listening`  | Launch a channel process, create a filesystem queue, allow uploads, and mark the channel enabled. <br/>The command takes the parameter `?retainQueue`=[true,false] (default `false`). When `true`, any filesystem queue that was left behind from a previous channel process will be kept.<br/>If the paramter `listening` is set, the setting will override/update the `listening` property as saved in the `channel` object.<br/>If not setting the parameter `retainQueue` to `true` and not using the parameter `listening`, then the commission command has the same effect as PUTting a channel object with the property `enabled` set to `true`.                                                                              |
-| POST `/inventory-import/channels/<channel id>/decommission` | `retainQueue`                  | Stop the channel process, remove the file system queue, prevent uploads, and mark the channel disabled. <br/>The command takes the parameter `?retainQueue`=[true,false] (default `false`). When set to `true`, the file system queue for this channel is kept and potentially available if the channel process is launched again. <br/>Unless the parameter `retainQueue` is set to `true`, this command has the same effect as PUTting a channel object with the property `enabled` set to `false`.                                                                                                                                                                                                                                |
-| POST `/inventory-import/channels/<channel id>/listen`       |                                | Listen for source files in queue, same effect as setting `channel.listening`=`true`.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
-| POST `/inventory-import/channels/<channel id>/no-listen`    |                                | Ignore source files in queue, same effect as setting `channel.listening`=`false`.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
-| POST `/inventory-import/channels/<channel id>/init-queue`   |                                | Delete all the source files in a queue (or re-establish an empty queue structure, in case the previous queue was deleted directly in the file system for example).                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
-| DELETE `/inventory-import/channels/<channel uuid>`          |                                | Delete the channel configuration, including the file queue but not the channel's job history.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
-| POST `/inventory-import/channels/<channel id>/upload`       | `filename`                     | Push a source file to the channel. MIU is currently set to accept files up to a size of 100 MB.<br/>The parameter filename can be used to tell MIU what name should be used for the uploaded file. For example: `?filename=marc-records.xml`. The name will appear in log statements about the processing of the file, including in error records to aid potential troubleshooting or resending of the source files. If no filename is provided, MIU will assign a UUID-based name to it.                                                                                                                                                                                                                                            |
-| POST `/inventory-import/channels/<channel id>/pause-job`    |                                | Halt processing in order to potentially resume it again with processing logs assigned to the same job.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
-| POST `/inventory-import/channels/<channel id>/resume-job`   | `skipCurrentFile`              | Resume a paused job, counting subsequent files in the queue with the existing import job.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
-| **Request operating on multiple channels**                  |                                |                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
-| POST `/inventory-import/recover-interrupted-channels`       | `retainQueue`<br/>`listening`  | Deploy ("commission") all channels that are marked `enabled` but are not actually running. This is a scenario that would presumably only occur if the module was stopped and started while channels were enabled. <br/>The command takes a paramter `listening` to be able to enable the channels without kicking of actual importing just yet.<br/>Posting a source file to a channel that is `enabled` but not deployed (not "commissioned") will implicitly commission the channel. Explicitly recovering channels with this command will ensure that already existing files in the queue are processed without posting new files.                                                                                                |
+| API                                                         | Parameter                     | Feature                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
+|-------------------------------------------------------------|-------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| POST `/inventory-import/channels`                           |                               | Create a channel. A transformation pipeline must be created for the channel to use, before the channel can be created.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
+| PUT `/inventory-import/channels/<channel uuid>`             |                               | Update properties of a channel. <br/>If the channel was disabled before, and `enabled` is then set to true, a channel process will be launched, a new file system queue will be created, and the channel will allow uploading of files to it.<br/>If the channel was enabled, setting `enabled` to false, will stop the channel process, remove the file queue and prevent upload of files to the queue.<br/>If `listening` is being set to `true` the (enabled, unpaused) channel will pick up any current of future files from the queue and import them to Inventory.<br/> If `listening` is being set to false, the (enabled) channel will still allow uploading of files to the queue but will not pick them up for processing. |
+| POST `/inventory-import/channels/<channel id>/commission`   | `retainQueue`<br/>`listening` | Launch a channel process, create a filesystem queue, allow uploads, and mark the channel enabled. <br/>The command takes the parameter `?retainQueue`=[true,false] (default `false`). When `true`, any filesystem queue that was left behind from a previous channel process will be kept.<br/>If the paramter `listening` is set, the setting will override/update the `listening` property as saved in the `channel` object.<br/>If not setting the parameter `retainQueue` to `true` and not using the parameter `listening`, then the commission command has the same effect as PUTting a channel object with the property `enabled` set to `true`.                                                                              |
+| POST `/inventory-import/channels/<channel id>/decommission` | `retainQueue`                 | Stop the channel process, remove the file system queue, prevent uploads, and mark the channel disabled. <br/>The command takes the parameter `?retainQueue`=[true,false] (default `false`). When set to `true`, the file system queue for this channel is kept and potentially available if the channel process is launched again. <br/>Unless the parameter `retainQueue` is set to `true`, this command has the same effect as PUTting a channel object with the property `enabled` set to `false`.                                                                                                                                                                                                                                |
+| POST `/inventory-import/channels/<channel id>/listen`       |                               | Listen for source files in queue, same effect as setting `channel.listening`=`true`.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
+| POST `/inventory-import/channels/<channel id>/no-listen`    |                               | Ignore source files in queue, same effect as setting `channel.listening`=`false`.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| POST `/inventory-import/channels/<channel id>/init-queue`   |                               | Delete all the source files in a queue (or re-establish an empty queue structure, in case the previous queue was deleted directly in the file system for example).                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
+| DELETE `/inventory-import/channels/<channel uuid>`          |                               | Delete the channel configuration, including the file queue but not the channel's job history.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
+| POST `/inventory-import/channels/<channel id>/upload`       | `filename`                    | Push a source file to the channel. MIU is currently set to accept files up to a size of 100 MB.<br/>The parameter filename can be used to tell MIU what name should be used for the uploaded file. For example: `?filename=marc-records.xml`. The name will appear in log statements about the processing of the file, including in error records to aid potential troubleshooting or resending of the source files. If no filename is provided, MIU will assign a UUID-based name to it.                                                                                                                                                                                                                                            |
+| POST `/inventory-import/channels/<channel id>/pause-job`    |                               | Halt processing in order to potentially resume it again with processing logs assigned to the same job.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
+| POST `/inventory-import/channels/<channel id>/resume-job`   | `skipCurrentFile`             | Resume a paused job, counting subsequent files in the queue with the existing import job.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
+| **Request operating on multiple channels**                  |                               |                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
+| POST `/inventory-import/recover-interrupted-channels`       | `retainQueue`<br/>`listening` | Deploy ("commission") all channels that are marked `enabled` but are not actually running. This is a scenario that would presumably only occur if the module was stopped and started while channels were enabled. <br/>The command takes a paramter `listening` to be able to enable the channels without kicking of actual importing just yet.<br/>Posting a source file to a channel that is `enabled` but not deployed (not "commissioned") will implicitly commission the channel. Explicitly recovering channels with this command will ensure that already existing files in the queue are processed without posting new files.                                                                                                |
 
 
 

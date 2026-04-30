@@ -543,12 +543,15 @@ MIU's API therefore has an option to skip the current file when resuming. In the
 and if the external problem can be resolved, then the job should be resumed from the same file where the error was first encountered.
 
     Note on possible enhancements
-    - Resume from a given record in the file? Currently, the entire file will be resumed, but a number of records of the
-      file may already have been imported alright, for example all records up until the point of a bad XML construct.
-      Usually it does not hurt to repeat upserts, the end result will be the same, but processing counts will be affected in ways that might make them look a bit off.
-    - Replace current file?  Currently, one can opt to skip current file if it is invalid. However, it might be desired to
-      have an option to correct the file locally and upload it again in place of the current file as opposed to simply
-      have it uploaded to the end of the file queue. This would be to ensure order of processing if important.
+    - Resume from a given record in the file? Currently, the entire file will be resumed, 
+      but a number of records of the file may already have been imported alright, for example 
+      all records up until the point of a bad XML construct.
+      Usually it does not hurt to repeat upserts, the end result will be the same, but processing
+      counts will be affected in ways that might make them look a bit off.
+    - Replace current file?  Currently, one can opt to skip current file if it is invalid. 
+      However, it might be desired to have an option to correct the file locally and upload 
+      it again in place of the current file as opposed to simply have it uploaded to the end 
+      of the file queue. This would be to ensure order of processing if important.
 
 #### HTTP requests for managing channels 
 

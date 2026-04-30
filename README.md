@@ -1,33 +1,48 @@
-# mod-inventory-update
 
 Copyright (C) 2019-2025 The Open Library Foundation
 
 This software is distributed under the terms of the Apache License, Version 2.0. See the file "[LICENSE](LICENSE)" for
 more information.
 
-Mod-inventory-update (MIU) is a module for creating, updating and deleting instances, holdings records, and items in 
-Inventory Storage, through imports of XML files or pushing JSON sources files.
 
-The module has two distinct sets of APIs. One is a group of import APIs, where the client can configure, execute 
-and monitor import jobs that can transform and import collections of XML records of arbitrary format to Inventory Storage. The other 
-is a handful of so called "upsert" APIs that a client can use to push JSON files of a predefined structure to MIU,
-which will then insert or update instances, holdings records and items in Inventory Storage with them.
+**MOD-INVENTORY-UPDATE (MIU)** is a module for creating, updating, and deleting instances, holdings records, and items in 
+Inventory Storage, from XML or JSON sources files.
+
+The module has two distinct sets of APIs. One is a group of import APIs, with which a client can configure, execute 
+and monitor import jobs that transform and import collections of XML records of arbitrary format to Inventory Storage. 
+The other is a handful of so called "upsert" APIs that a client can use to push JSON files of a specified structure to MIU.
+MIU will insert or update instances, holdings records and items in Inventory Storage from this composite JSON structure.
+
+Depending on which of use these two use cases that might be relevant, one can read different parts of this readme. 
+
+If you have XML records for import, say files with collections of MARC XML records, then you can read the paragraphs in PART I 
+[How to import XML files](#part-i-how-to-import-xml-files), which will explain how to set up import channels with XSLT transformation pipelines. 
+It is explained what data structure the MARC XML records must be transformed to in order to be imported to Inventory. To 
+understand the specifics of how the module takes the transformed structure and imports it to Inventory, then you can read the paragraphs 
+in PART II [How MIU works with the inventory record set](#part-ii-how-miu-works-with-the-inventory-record-set). 
+
+If you want to import JSON files, then you don't need the import channels or transformations. You can post the ready-made JSON directly 
+to the upsert API.  However, this requires the JSON to comply with the schema for the so-named "inventory record set" up-front.
+There is no transformation phase massaging the data into the inventory record sets needed for the module's CRUD engine. 
+The schema for the JSON is documented in [upsert APIs, Open API specification](src/main/resources/openapi/inventory-update-5.0.yaml).
+Again, to understand the specifics of how the module takes that JSON and imports it to Inventory, you can read the paragraphs
+in PART II [How MIU works with the inventory record set](#part-ii-how-miu-works-with-the-inventory-record-set).
+
+<img alt="Diagram of MIU APIs" src="doc/diagram-of-miu-import.jpg" width="1123" title="Upsert and import APIs"/>
 
 <!-- TOC -->
-* [mod-inventory-update](#mod-inventory-update)
-  * [The importing component](#the-importing-component)
-    * [Channels](#channels)
-      * [Requests operating on a given channel](#requests-operating-on-a-given-channel)
-      * [Importing](#importing)
-      * [Request operating on multiple channels](#request-operating-on-multiple-channels)
+  * [PART I. How to import XML files](#part-i-how-to-import-xml-files)
+    * [Creating a transformation pipeline and assigning it to a channel](#creating-a-transformation-pipeline-and-assigning-it-to-a-channel)
+    * [Managing channels](#managing-channels)
+      * [Import jobs](#import-jobs)
+      * [Error handling](#error-handling)
+      * [HTTP requests for managing channels](#http-requests-for-managing-channels-)
       * [Using `tag` for channel ID](#using-tag-for-channel-id)
-    * [The "import job"](#the-import-job)
-      * [Requests operating on jobs:](#requests-operating-on-jobs)
-  * [How to transform source XML to Inventory JSON.](#how-to-transform-source-xml-to-inventory-json)
-    * [What the APIs do with the inventory record set](#what-the-apis-do-with-the-inventory-record-set)
+  * [PART II. How MIU works with the inventory record set](#part-ii-how-miu-works-with-the-inventory-record-set)
+      * [All updates to Inventory are HRID based](#all-updates-to-inventory-are-hrid-based)
       * [Detect if holdings records or items should be deleted](#detect-if-holdings-records-or-items-should-be-deleted)
       * [Control record overlay on updates.](#control-record-overlay-on-updates)
-        * [Prevent MIU from override existing values](#prevent-miu-from-override-existing-values)
+        * [Prevent MIU from overriding existing values](#prevent-miu-from-overriding-existing-values)
         * [Instruct MIU to leave the item status unmodified under certain circumstance.](#instruct-miu-to-leave-the-item-status-unmodified-under-certain-circumstance)
         * [Instruct MIU to avoid deleting items even though they are missing from the input](#instruct-miu-to-avoid-deleting-items-even-though-they-are-missing-from-the-input)
         * [Retain omitted items if the status indicates that they are still circulating](#retain-omitted-items-if-the-status-indicates-that-they-are-still-circulating)
@@ -43,7 +58,6 @@ which will then insert or update instances, holdings records and items in Invent
       * [Fetching an Inventory record set from `inventory-upsert-hrid/fetch`](#fetching-an-inventory-record-set-from-inventory-upsert-hridfetch)
       * [The _version fields and optimistic locking](#the-_version-fields-and-optimistic-locking)
   * [Prerequisites](#prerequisites)
-  * [Git Submodules](#git-submodules)
   * [Building](#building)
   * [Additional information](#additional-information)
     * [Other documentation](#other-documentation)
@@ -55,130 +69,34 @@ which will then insert or update instances, holdings records and items in Invent
     * [Download and configuration](#download-and-configuration)
 <!-- TOC -->
 
-## The importing component
+## PART I. How to import XML files
 
-The importing component of MIU consists of import "channels" each with a file queue and a processing pipeline.
+The importing component of MIU consists of so-called import "channels". Each channel has a file queue that source files can 
+be uploaded to, and a processing pipeline that can perform the importing of source files from the queue to inventory storage.
 
-While channels are designed to allow multiple formats, potentially binary MARC or JSON files, The currently pipeline implementation 
-supports XML source files that transformed to Inventory Storage compatible structures through one or more custom provided XSLT transformation steps. 
+The channel design is meant to allow for multiple input formats, for example, potentially, binary MARC or JSON files. However, 
+the current pipeline implementation supports XML source files. 
 
-To use the XML importing API, the channels must be configured with a pipeline, which is done using the provided
+To use the XML importing API, the channels must be configured with a transformation pipeline. The transformation pipeline
+is a chain of zero or more XSLT transformation steps that will restructure XML records of arbitrary format into "inventory 
+record sets" suitable for running updates on instances, holdings and item. The pipeline can be created using the provided
 configuration APIs.
 
-The main elements of the importing component are
+The main elements of the importing component are thus
 
-- a "channel" with an associated file queue
+- a channel with an associated file queue
 - a processing pipeline, called a "transformation"
-- the "transformation"  has an ordered set of "transformation steps" with XSLT style-sheets, that ends with a crosswalk of the XML to JSON.
-- the "transformation" also has a "target" for its JSON results, which is a component that will batch and persist the results to inventory storage.
+- the "transformation"  has an ordered set of "transformation steps" with XSLT style-sheets, where the last step will be a  generic (system supplied) crosswalk of the XML to JSON.
+- the outcome of this process is sent to CRUD component that will batch and persist the results to inventory storage.
 
-See also the OpenAPI spec for further details [XML importing APIs](src/main/resources/openapi/inventory-import-1.0.yaml).
+This diagram shows the configuration data structure for a channel with a transformation pipeline.
 
-### Channels
+<img alt="Diagram of MIUs import configuration tables" src="doc/diagram-of-miu-import-config.jpg" width="289" title="Import configuration" />
 
-The static parts of the channel itself are
-- a name for channel
-- a reference to the "transformation" that processes the incoming source files
-- two flags that indicates if the channel is deployed (or is to be deployed after an interruption), and is actively listening
-
-The dynamic parts of a channel are
-
-- a dedicated process (a worker verticle in Vert.x terms) that listens for incoming files
-- file queue: a set of filesystem directories that acts as a queue for incoming files
-- "importJob":  if there are any incoming files, and the channel is actively listening, it will automatically launch an "import job",
-  using its associated "transformation", and the progress of that process will be logged in the objects "importJob",
-  "logLines", and "failedRecords"
-- when the last file in the queue is processed, the job will finish, but the channel will keep listening
-  until paused or decommissioned or until MIU is uninstalled or redeployed.
-
-#### Requests operating on a given channel
-
-| API                                                           | Feature                                                                                                                                                                                                                                                                                                                                          |
-|---------------------------------------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| POST `/inventory-import/channels`                             | Create a channel, with `enabled` and `listening` settings                                                                                                                                                                                                                                                                                        |
-| PUT `/inventory-import/channels/<channel uuid>`               | Update properties of a channel, like `name`, `tag`, `enabled`, and `listening`                                                                                                                                                                                                                                                                   |
-| POST `/inventory-import/channels/<channel id>/commission`     | Launch a channel, marking it enabled. <br/>This has the same effect as setting the channel property `channel.enabled`=`true`. However, the command takes an additional parameter `?retainQueue`=[true,false] (default `false`). When `true`, any filesystem queue that was left behind from a previous deployment for this channel will be kept. |
-| POST `/inventory-import/channels/<channel id>/decommission`   | Undeploy (disable) the channel, has the same effect as setting the channel property `channel.enabled`=`false`, but the command takes an extra parameter `?retainQueue`=[true,false] (default `false`). When set to `true`, the file system queue for this channel is kept and potentially still available if the channel is deployed again.      |
-| POST `/inventory-import/channels/<channel id>/listen`         | Listen for source files in queue, same effect as setting `channel.listening`=`true`                                                                                                                                                                                                                                                              |
-| POST `/inventory-import/channels/<channel id>/no-listen`      | Ignore source files in queue, same effect as setting `channel.listening`=`false`                                                                                                                                                                                                                                                                 |
-| POST `/inventory-import/channels/<channel id>/init-queue`     | Delete all the source files in a queue (or re-establish an empty queue structure, in case the previous queue was deleted directly in the file system for example).                                                                                                                                                                               |
-| DELETE `/inventory-import/channels/<channel uuid>`            | Delete the channel configuration, including the file queue but not the channel's job history                                                                                                                                                                                                                                                     |
-| POST `/inventory-import/channels/<channel id>/upload`         | Push a source file to the channel, currently set to accept files up to a size of 100 MB                                                                                                                                                                                                                                                          |
-
-#### Importing
-
-| API                                                    | Feature                                                                                                                                                                                                                                                                                                                                                                     |
-|--------------------------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| POST `/inventory-import/channels/<channel id>/upload`  | Push a source file to the channel. <br/>If the channel is not enabled the upload is refused. If the channel is enabled but not listening, the file will enter the queue. If the channel is listening the file will enter the queue and be imported to Inventory in turn, barring any errors. <br/>The service is currently hardcoded to accept files up to a size of 100 MB |
-
-#### Request operating on multiple channels
-
-| API                                                    | Feature                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
-|--------------------------------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| POST `/inventory-import/recover-interrupted-channels`  | Deploy ("commission") all channels that are marked `enabled` but are not actually running. This is a scenario that would presumably only occur if the module was restarted while channels were enabled. The command takes a paramter `?listening=false` to enable the channels but not start actual importing right away. <br/> Notice that when posting a source file to a channel that is `enabled` but not deployed (not "commissioned") then the channel will be implicitly commissioned by that post. Explicitly recovering channels by this command is merely to ensure completion of already existing file queues for which processing was interrupted by a module restart. |
-
-
-#### Using `tag` for channel ID
-
-The <channel id> in the paths can either be the UUID of the channel record (`channel.id`) or the value of the property
-`channel.tag`. The tag is an optional, unique, max 24 character long string without spaces. If it's set on a channel,
-that channel can be referenced by the tag in the various channel commands. The basic REST requests (GET, PUT, DELETE channel)
-use the UUID like standard FOLIO APIs.
-
-### The "import job"
-
-A "job" is a continuous processing of source files that starts when a channel with an empty queue receives a new source
-file, and the job ends when the file queue is once again empty. When the job ends, some metrics are calculated
-covering the span of the job. There can thus only be zero or one job in a channel at any time.
-
-A job is in other words a mostly automatic entity that primarily exists in order to organise the counting of record processes.
-There are some ways for the operator to handle jobs, though. The start of a job can be controlled, if desired, by pausing the
-channel listener while uploading source files to the channel. When the listener is restarted, this will trigger a
-new job. A running job can also be paused and resumed if needed.
-
-If a fatal error occurs while a job is running, the module will attempt to gracefully pause the job, so that it can potentially
-be resumed.
-
-Finally a job can be cancelled. This command will include
-
-- stop the channel listener to prevent more files from entering the job
-- calculating metrics for the duration of the job and mark the job cancelled
-- empty the file queue
-
-After cancelling the job, the operator must reactivate the listener to allow a new job to start. If some external process is still
-uploading files to the queue, the queue will be populated when the listener is started even though the file queue was emptied
-when cancelling the job.
-
-#### Requests operating on jobs:
-
-Channel operations will affect a current job in the channel. Besides that, there are following requests that act on an
-ongoing import job directly.
-
-- POST `/inventory-import/channels/<channel id>/pause-job`
-- POST `/inventory-import/channels/<channel id>/resume-job`
-- wip - POST `/inventory-import/channels/<channel id>/cancel-job`
-
-## How to transform source XML to Inventory JSON.
-
-Mod-inventory-update operates with a dedicated, module specific JSON object called an "inventory record set" (IRS). It as 
-composite object containing Inventory records like instances, holdings and items, as well as different kinds of 
-instance-to-instance relationships.
-
-When using MIU's JSON based "upsert" APIs, this composite inventory record set is the JSON structure that must be used 
-for the files that are PUT to the API.
-
-Even if using the module's XML import APIs, it is necessary to know the format of the composite record set, since the transformation 
-pipeline must transform the XML into the XML equivalent of this structure, after which MIU will convert that to inventory 
-JSON and push it through the same processing that the JSON upsert APIs use.
-
-The JSON based upsert APIs are synchronous, processing the input and returning a response right away, once done.
-The XML based import APIs on the other hand work asynchronously, and will put the file in queue and return a response that
-this has been done. But feedback regarding the processing and its outcomes is logged in the module, to be retrieved later
-through the APIs.
-
-<img alt="Diagram of MIU APIs" src="doc/diagram-of-miu-import.jpg" width="1123" title="Upsert and import APIs"/>
+The task of the XSLT transformation steps is to take the incoming XML and transform it to the inventory record set structure. 
 
 The high level structure of an inventory record set is
+
 ```
  - Inventory instance {hrid and other properties}
  - holdings records (optional)
@@ -197,22 +115,493 @@ The high level structure of an inventory record set is
  - processing (optional)
 ```
 
-The details of this structure are described below. See also the OpenAPI spec for more details:
-[Upsert APIs](src/main/resources/openapi/inventory-update-5.0.yaml).
+The details of this structure are described in the API doc [Upsert APIs](src/main/resources/openapi/inventory-update-5.0.yaml) that documents the JSON schema for it, 
+and in [PART II. How MIU works with the inventory record set](#part-ii-how-miu-works-with-the-inventory-record-set), which explains how MIU uses the structure, especially 
+in regard to the processing instructions element.
+
+The next paragraphs will explain how to populate the configuration structure to create an import channel with a transformation
+pipeline, and then create a transformation that brings the incoming XML onto the inventory record set structure. The example
+will focus on the instance element to keep it simple, so no holdings records or items, no instance relations and no processing 
+options specified.
+
+### Creating a transformation pipeline and assigning it to a channel
+
+Say we have this collection of one record, a tiny MARC record with basically just a title and some contributors.
+
+```
+<?xml version="1.0" encoding="UTF-8"?>
+<collection xmlns:marc="http://www.loc.gov/MARC21/slim">
+    <marc:record>
+        <marc:leader>00942nam a22002531a 4504</marc:leader>
+        <marc:controlfield tag="001">73209622</marc:controlfield>
+        <marc:controlfield tag="003">DLC</marc:controlfield>
+        <marc:controlfield tag="005">19820325000000.0</marc:controlfield>
+        <marc:controlfield tag="008">780306m19009999ohu 00000 grc</marc:controlfield>
+        <marc:datafield tag="245" ind1="0" ind2="4">
+            <marc:subfield code="a">Demo title</marc:subfield>
+            <marc:subfield code="c">J. Arthur Hanson, David Paterson, editors.</marc:subfield>
+        </marc:datafield>
+        <marc:datafield tag="700" ind1="1" ind2="0">
+            <marc:subfield code="a">Hanson, J. Arthur</marc:subfield>
+            <marc:subfield code="q">(Joseph Arthur)</marc:subfield>
+        </marc:datafield>
+        <marc:datafield tag="700" ind1="1" ind2="0">
+            <marc:subfield code="a">Paterson, David,</marc:subfield>
+            <marc:subfield code="d">1952-</marc:subfield>
+        </marc:datafield>
+        <marc:datafield tag="710" ind1="2" ind2="0">
+            <marc:subfield code="a">Research Associates.</marc:subfield>
+        </marc:datafield>
+    </marc:record>
+</collection>
+```
+
+We will set up a channel to import this MARC record as a FOLIO instance. We will ignore holdings and items to keep it short.
+
+For this we need a transformation pipeline, which we will construct with a single XSLT transformation step.
+
+We can start by posting the step that contains a dummy XSLT, a script that would simply copy the XML. In the next step 
+we will replace that XSLT with a useful script
+
+```
+POST to inventory-import/steps: 
+
+{
+  "id": "c2f39026-b8bc-430c-a79d-473f00159563",
+  "inputFormat": "XML",
+  "name": "marc-to-instance",
+  "enabled": true,
+  "outputFormat": "XML",
+  "script": "<xsl:stylesheet version=\"1.0\" xmlns:xsl=\"http://www.w3.org/1999/XSL/Transform\">\n    <xsl:template match=\"@*|node()\">\n        <xsl:copy>\n            <xsl:apply-templates select=\"@*|node()\"/>\n        </xsl:copy>\n    </xsl:template>\n</xsl:stylesheet>\n",
+  "type": "XmlTransformStep"
+}
+```
+
+In the next box of code is an XSLT that will extract some mandatory properties for an inventory Instance, `title`, `instanceTypeId`, and provide
+a hard coded value for the likewise mandatory `source` property. All records to be updated in Inventory Storage must have a HRID based on a 
+persistent clientside identifier for the record, and the XSLT will extract the control number for that.
+
+Although not strictly needed for this example, the XSLT will also forward a copy of 
+the original MARC record to be used by any subsequent transformation steps. For example there might be an additional step for 
+creating holdings records and items from the original MARC record, in which case the MARC record would have had to be forwarded 
+from step to step. 
+
+Also notice the transformation logic for `contributors`. Since `contributors` is an array in the instance in Inventory Storage, the XSLT must construct 
+an element named `arr` and add each contributor as an element named `i` to the `arr` element. MIU will use this structure
+to construct a JSON array. The example shows it for contributors but the same logic and naming standard applies to any other arrays like identifiers,
+subjects, notes, and even to arrays of holdings records and items embedded in the inventory record set.
+
+```
+<?xml version="1.0" encoding="UTF-8"?>
+<xsl:stylesheet
+        version="1.0"
+        xmlns:xsl="http://www.w3.org/1999/XSL/Transform"
+        xmlns:marc="http://www.loc.gov/MARC21/slim">
 
 
-### What the APIs do with the inventory record set
+    <xsl:output indent="yes" method="xml" version="1.0" encoding="UTF-8"/>
 
-The following is a walk-through of what happens to the records in Inventory Storage when an inventory record set is
-pushed to mod-inventory-update. This applies directly to the upsert APIs, but also indirectly to the XML importing
-APIs since they will utilise the exact same mechanics after the incoming XML has first been transformed to XML IRS and
-then converted to JSON IRS.
+    <xsl:template match="/">
+        <collection>
+            <xsl:apply-templates/>
+        </collection>
+    </xsl:template>
+
+    <!-- MARC meta data -->
+    <xsl:template match="marc:record">
+        <record>
+            <!-- Bibliographic record for FOLIO inventory -->
+            <instance>
+                <source>DEMO</source>
+                <hrid><xsl:value-of select="marc:controlfield[@tag='001']"/></hrid>
+
+                <!-- title -->
+                <title>
+                    <xsl:variable name="concat-title">
+                        <xsl:for-each
+                                select="marc:datafield[@tag='245'][1]/marc:subfield[@code='a' or @code='b' or @code='h' or @code='n' or @code='p']">
+                            <xsl:value-of select="."/>
+                            <xsl:if test="position() != last()">
+                                <xsl:text> </xsl:text>
+                            </xsl:if>
+                        </xsl:for-each>
+                    </xsl:variable>
+                    <xsl:call-template name="remove-characters-last">
+                        <xsl:with-param name="input" select="$concat-title"/>
+                        <xsl:with-param name="characters">,-./ :;</xsl:with-param>
+                    </xsl:call-template>
+                </title>
+
+                <!-- Instance type ID (resource type) -->
+                <instanceTypeId>
+                    <!-- UUIDs for resource types -->
+                    <xsl:choose>
+                        <xsl:when test="substring(marc:leader,7,1)='a'">6312d172-f0cf-40f6-b27d-9fa8feaf332f</xsl:when>
+                        <!-- language material : text -->
+                        <xsl:when test="substring(marc:leader,7,1)='c'">497b5090-3da2-486c-b57f-de5bb3c2e26d</xsl:when>
+                        <!-- notated music : notated music -->
+                        <xsl:when test="substring(marc:leader,7,1)='d'">497b5090-3da2-486c-b57f-de5bb3c2e26d</xsl:when>
+                        <!-- manuscript notated music : notated music -> notated music -->
+                        <xsl:when test="substring(marc:leader,7,1)='e'">526aa04d-9289-4511-8866-349299592c18</xsl:when>
+                        <!-- cartographic material : cartographic image -->
+                        <xsl:when test="substring(marc:leader,7,1)='f'">a2c91e87-6bab-44d6-8adb-1fd02481fc4f</xsl:when>
+                        <!-- other --> <!-- manuscript cartographic material : ? -->
+                        <xsl:when test="substring(marc:leader,7,1)='g'">535e3160-763a-42f9-b0c0-d8ed7df6e2a2</xsl:when>
+                        <!-- projected image : still image -->
+                        <xsl:when test="substring(marc:leader,7,1)='i'">9bce18bd-45bf-4949-8fa8-63163e4b7d7f</xsl:when>
+                        <!-- nonmusical sound recording : sounds -->
+                        <xsl:when test="substring(marc:leader,7,1)='j'">3be24c14-3551-4180-9292-26a786649c8b</xsl:when>
+                        <!-- musical sound recording : performed music -->
+                        <xsl:when test="substring(marc:leader,7,1)='k'">a2c91e87-6bab-44d6-8adb-1fd02481fc4f</xsl:when>
+                        <!-- other --> <!-- two-dimensional nonprojectable graphic : ?-->
+                        <xsl:when test="substring(marc:leader,7,1)='m'">df5dddff-9c30-4507-8b82-119ff972d4d7</xsl:when>
+                        <!-- computer file : computer dataset -->
+                        <xsl:when test="substring(marc:leader,7,1)='o'">a2c91e87-6bab-44d6-8adb-1fd02481fc4f</xsl:when>
+                        <!-- kit : other -->
+                        <xsl:when test="substring(marc:leader,7,1)='p'">a2c91e87-6bab-44d6-8adb-1fd02481fc4f</xsl:when>
+                        <!-- mixed material : other -->
+                        <xsl:when test="substring(marc:leader,7,1)='r'">c1e95c2b-4efc-48cf-9e71-edb622cf0c22</xsl:when>
+                        <!-- three-dimensional artifact or naturally occurring object : three-dimensional form -->
+                        <xsl:when test="substring(marc:leader,7,1)='t'">6312d172-f0cf-40f6-b27d-9fa8feaf332f</xsl:when>
+                        <!-- manuscript language material : text -->
+                        <xsl:otherwise>a2c91e87-6bab-44d6-8adb-1fd02481fc4f</xsl:otherwise>
+                        <!--  : other -->
+                    </xsl:choose></instanceTypeId>
+
+                <!-- Contributors -->
+                <xsl:if test="marc:datafield[@tag='100' or @tag='110' or @tag='111' or @tag='700' or @tag='710' or @tag='711']">
+                    <contributors>
+                        <arr>
+                            <xsl:for-each
+                                    select="marc:datafield[@tag='100' or @tag='110' or @tag='111' or @tag='700' or @tag='710' or @tag='711']">
+                                <i>
+                                    <name>
+                                        <xsl:for-each
+                                                select="marc:subfield[@code='a' or @code='b' or @code='c' or @code='d' or @code='f' or @code='g' or @code='j' or @code='k' or @code='l' or @code='n' or @code='p' or @code='q' or @code='t' or @code='u']">
+                                            <xsl:if test="position() > 1">
+                                                <xsl:text>, </xsl:text>
+                                            </xsl:if>
+                                            <xsl:call-template name="remove-characters-last">
+                                                <xsl:with-param name="input" select="."/>
+                                                <xsl:with-param name="characters">,-.</xsl:with-param>
+                                            </xsl:call-template>
+                                        </xsl:for-each>
+                                    </name>
+                                    <xsl:choose>
+                                        <xsl:when test="@tag='100' or @tag='700'">
+                                            <contributorNameTypeId>2b94c631-fca9-4892-a730-03ee529ffe2a</contributorNameTypeId>
+                                            <!-- personal name -->
+                                            <xsl:if test="@tag='100'">
+                                                <primary>true</primary>
+                                            </xsl:if>
+                                        </xsl:when>
+                                        <xsl:when test="@tag='110' or @tag='710'">
+                                            <contributorNameTypeId>2e48e713-17f3-4c13-a9f8-23845bb210aa</contributorNameTypeId>
+                                            <!-- corporate name -->
+                                        </xsl:when>
+                                        <xsl:when test="@tag='111' or @tage='711'">
+                                            <contributorNameTypeId>e8b311a6-3b21-43f2-a269-dd9310cb2d0a</contributorNameTypeId>
+                                            <!-- meeting name -->
+                                        </xsl:when>
+                                        <xsl:otherwise>
+                                            <contributorNameTypeId>2b94c631-fca9-4892-a730-03ee529ffe2a</contributorNameTypeId>
+                                            <!-- personal name -->
+                                        </xsl:otherwise>
+                                    </xsl:choose>
+                                    <xsl:if test="marc:subfield[@code='e' or @code='4']">
+                                        <contributorTypeId>
+                                        </contributorTypeId>
+                                    </xsl:if>
+                                </i>
+                            </xsl:for-each>
+                        </arr></contributors>
+                </xsl:if>
+            </instance>
+            <original>
+                <xsl:copy>
+                    <xsl:copy-of select="@*"/>
+                    <xsl:copy-of select="*"/>
+                </xsl:copy>
+            </original>
+        </record>
+    </xsl:template>
+
+    <xsl:template match="text()"/>
+    <xsl:template name="remove-characters-last">
+        <xsl:param name="input"/>
+        <xsl:param name="characters"/>
+        <xsl:variable name="lastcharacter" select="substring($input,string-length($input))"/>
+        <xsl:choose>
+            <xsl:when test="$characters and $lastcharacter and contains($characters, $lastcharacter)">
+                <xsl:call-template name="remove-characters-last">
+                    <xsl:with-param name="input" select="substring($input,1, string-length($input)-1)"/>
+                    <xsl:with-param name="characters" select="$characters"/>
+                </xsl:call-template>
+            </xsl:when>
+            <xsl:otherwise>
+                <xsl:value-of select="$input"/>
+            </xsl:otherwise>
+        </xsl:choose>
+    </xsl:template>
+
+</xsl:stylesheet>
+```
+
+If we write this XSLT in a favorite XSLT editor and save it as `marc-to-instance.xslt` we can push it to the step with:
+
+`PUT   inventory-import/steps/c2f39026-b8bc-430c-a79d-473f00159563/script -f marc-to-instance.xslt` 
+
+Now we can create a transformation pipeline consisting of just this one step with:
+
+```
+POST to inventory-import/transformations:
+
+{
+  "id": "9a57d0e2-08d9-4eaf-a30b-97d3ad0f43bc",
+  "name": "MARC XML transformation",
+  "description": "Sample transformation from MARC XML to FOLIO Inventory instance",
+  "steps": [
+    {
+      "id": "c2f39026-b8bc-430c-a79d-473f00159563"
+    }
+  ]
+}
+```
+
+And finally we can create a channel that uses this pipeline:
+
+```
+POST to inventory-import/channels:
+
+{
+  "id": "ab9c3cbf-1ca0-4184-8f6a-083d1a644ce1",
+  "name": "MARC XML Channel",
+  "tag": "demo",
+  "type": "XML",
+  "enabled": true,
+  "listening": true,
+  "transformationId": "9a57d0e2-08d9-4eaf-a30b-97d3ad0f43bc"
+}
+```
+
+MIU has an API to try out the transformation without actually importing anything. It will return the result of the transformation 
+of the first record in the collection. The response can be returned as the transformed XML or as the result converted to 
+JSON (the default). 
+
+If we put the tiny MARC in a file named marc.xml we can try it out like shown in the next box. The example illustrates
+the use of the channel tag `demo` as an alternative identifier that can be put in the API path instead of the channel's UUID. Notice also 
+the resulting XML encoding of contributors with `arr` to indicate an array, and `i` to envelope each element. This would 
+be an inventory record set in XML format.
+
+```
+ POST to inventory-import/channels/demo/try-tranformation?output=xml -f marc.xml
+
+ Response as XML:
+ 
+<?xml version="1.0" encoding="UTF-8"?>
+<collection xmlns:marc="http://www.loc.gov/MARC21/slim">
+   <record>
+      <instance>
+         <source>DEMO</source>
+         <hrid>73209622</hrid>
+         <title>Demo title</title>
+         <instanceTypeId>6312d172-f0cf-40f6-b27d-9fa8feaf332f</instanceTypeId>
+         <contributors>
+            <arr>
+               <i>
+                  <name>Hanson, J. Arthur, (Joseph Arthur)</name>
+                  <contributorNameTypeId>2b94c631-fca9-4892-a730-03ee529ffe2a</contributorNameTypeId>
+               </i>
+               <i>
+                  <name>Paterson, David, 1952</name>
+                  <contributorNameTypeId>2b94c631-fca9-4892-a730-03ee529ffe2a</contributorNameTypeId>
+               </i>
+               <i>
+                  <name>Research Associates</name>
+                  <contributorNameTypeId>2e48e713-17f3-4c13-a9f8-23845bb210aa</contributorNameTypeId>
+               </i>
+            </arr>
+         </contributors>
+      </instance>
+      <original>
+         <marc:record>
+            <marc:leader>00942nam a22002531a 4504</marc:leader>
+            <marc:controlfield tag="001">73209622</marc:controlfield>
+            <marc:controlfield tag="003">DLC</marc:controlfield>
+            <marc:controlfield tag="005">19820325000000.0</marc:controlfield>
+            <marc:controlfield tag="008">780306m19009999ohu 00000 grc</marc:controlfield>
+            <marc:datafield tag="245" ind1="0" ind2="4">
+               <marc:subfield code="a">Demo title</marc:subfield>
+               <marc:subfield code="c">J. Arthur Hanson, David Paterson, editors.</marc:subfield>
+            </marc:datafield>
+            <marc:datafield tag="700" ind1="1" ind2="0">
+               <marc:subfield code="a">Hanson, J. Arthur</marc:subfield>
+               <marc:subfield code="q">(Joseph Arthur)</marc:subfield>
+            </marc:datafield>
+            <marc:datafield tag="700" ind1="1" ind2="0">
+               <marc:subfield code="a">Paterson, David,</marc:subfield>
+               <marc:subfield code="d">1952-</marc:subfield>
+            </marc:datafield>
+            <marc:datafield tag="710" ind1="2" ind2="0">
+               <marc:subfield code="a">Research Associates.</marc:subfield>
+            </marc:datafield>
+         </marc:record>
+      </original>
+   </record>
+</collection>
+```
+
+At the end of the transformation pipeline, the XML will be transformed to JSON, and the result can be inspected with this command:
+
+```
+ POST to inventory-import/channels/demo/try-tranformation -f marc.xml  
+
+ Response, the XML converted to JSON,
+ 
+ {
+  "instance" : {
+    "source" : "DEMO",
+    "hrid" : "73209622",
+    "title" : "Demo title",
+    "instanceTypeId" : "6312d172-f0cf-40f6-b27d-9fa8feaf332f",
+    "contributors" : [ {
+      "name" : "Hanson, J. Arthur, (Joseph Arthur)",
+      "contributorNameTypeId" : "2b94c631-fca9-4892-a730-03ee529ffe2a"
+    }, {
+      "name" : "Paterson, David, 1952",
+      "contributorNameTypeId" : "2b94c631-fca9-4892-a730-03ee529ffe2a"
+    }, {
+      "name" : "Research Associates",
+      "contributorNameTypeId" : "2e48e713-17f3-4c13-a9f8-23845bb210aa"
+    } ]
+  }
+}
+```
+
+That concludes the practical walk-through. With this channel in place the MARC record can be imported with:
+
+```
+  POST inventory-import/channels/demo/upload -f marc.xml
+```  
+
+See the OpenAPI spec for further details [XML importing APIs](src/main/resources/openapi/inventory-import-1.0.yaml).
+
+### Managing channels
+
+The configurable parts of the channel itself are
+
+- A name for the channel.
+- A shorthand tag for the channel that can be used instead of its UUID in certain API requests.  
+- A reference to the "transformation" that processes the incoming source files.
+- Two boolean state properties for marking the channel 'enabled' and 'listening'
+  - `enabled` means that a background process is running (or should be running) for the channel, and that it has a file 
+    queue to which it is possible to upload files. Files can not be uploaded to a channel that is not enabled.
+  - `listening` means that the channel, if enabled, will actively pick up files, if any, from the queue and process/import 
+    them. Files can be uploaded to the channel even if it is not listened (as long as it is enabled).
+
+Finally, there is a derived, non-persistent (read only) property named `commissioned` that indicates if an enabled channel 
+actually has a running process. A channel will automatically get a running background process when it is marked `enabled` 
+(updated with `enabled` set to `true`) but if the module gets shut down it will no longer have that 
+process running once the module is brought up again. In that 
+scenario the channel will be `enabled` (supposed to run) but not `commissioned` (not actually running). However, if a file
+is uploaded to such a channel, MIU will detect that it should be running and automatically commission it again. Only if the module
+was restarted while there were files in the queue, AND there are no additional files coming, AND you want to process 
+the existing queue now, is it necessary to explicitly commission the channel. 
+
+When a channel gets enabled/commissioned it will also have a file queue that source files can be uploaded to. If the channel
+is also `listening` it will pick files from the queue. The channel API has some extra properties displaying the status of the 
+channel's file queue. 
+
+#### Import jobs
+
+When the first file of a queue is picked up by the channel's import process, it will trigger the creation of an import 
+job record in the database. The import job record registers information about the processing of a continuous set of files in 
+queue. When the last file in the queue is processed, the import job record will be marked finished. If more files get uploaded
+later, a new import job will be created for them and so on, so the import job is basically a demarcation of processing logs. 
+Attached to the `importJob` are also records containing more fine-grained information about the number of records processed 
+per file with some performance statistics per file and per the continuous queue as a whole. If any records encountered errors 
+during importing to Inventory, error report records named `failedRecord` will likewise be attached to the `importJob`. 
+
+The import job will continue despite errors in individual instances, holdings records or items, for example errors due to 
+missing required properties, invalid reference data references, etc. But in case of a "fatal" error, the job will be paused. 
+An error is "fatal" if it is not possible or does not make sense to continue the import. 
+
+When a job is paused it effectively means that the channel is paused too, since there can at most be one current job in the channel. 
+
+#### Error handling
+
+If a fatal error occurs, the import job will be marked paused so that processing can potentially be resumed once the problem is resolved.
+When the job is resumed, any processing statistics and failed records will then count towards that same import job until the last
+file in the queue is processed. 
+
+There are two main categories of errors that should halt the processing. One would be a fatal problem with the import
+file itself, for example that it contains invalid XML and thus cannot be meaningfully processed from the point in the file 
+where the error is encountered. The other would be some external problem like MIU losing access to Inventory Storage. 
+
+If facing the first case (the XML is bad) it will not help resuming the job from the bad file, since it will immediately get halted again. 
+MIU's API therefore has an option to skip the current file when resuming. In the second case (external problem), the file could be fine, 
+and if the external problem can be resolved, then the job should be resumed from the same file where the error was first encountered.
+
+    Note on possible enhancements
+    - Resume from a given record in the file? Currently, the entire file will be resumed, 
+      but a number of records of the file may already have been imported alright, for example 
+      all records up until the point of a bad XML construct.
+      Usually it does not hurt to repeat upserts, the end result will be the same, but processing
+      counts will be affected in ways that might make them look a bit off.
+    - Replace current file?  Currently, one can opt to skip current file if it is invalid. 
+      However, it might be desired to have an option to correct the file locally and upload 
+      it again in place of the current file as opposed to simply have it uploaded to the end 
+      of the file queue. This would be to ensure order of processing if important.
+
+#### HTTP requests for managing channels 
+
+| API                                                                                                                                      | Feature                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
+|------------------------------------------------------------------------------------------------------------------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| POST <nobr>`/inventory-import/channels`</nobr><br/>Properties:<br/>`name`<br/>`tag`<br/>`transformationId`<br/>`enabled`<br/>`listening` | Create a channel. A transformation pipeline must be created, that the channel can reference, before the channel can be created. <br/>The `tag` can be used instead of the channels UUID in some API requests.<br/>If `enabled` is `true` the channel will accept uploads.<br/>If `listening` is true, the channel will process uploaded files in order of arrival.                                                                                                                                                                                                                                                                                                                                                                   |
+| PUT `/inventory-import/channels/<channel uuid>`</nobr>                                                                                   | Update properties of a channel. <br/>If the channel was disabled before, and `enabled` is then set to true, a channel process will be launched, a new file system queue will be created, and the channel will allow uploading of files to it.<br/>If the channel was enabled, setting `enabled` to false, will stop the channel process, remove the file queue and prevent upload of files to the queue.<br/>If `listening` is being set to `true` the (enabled, unpaused) channel will pick up any current of future files from the queue and import them to Inventory.<br/> If `listening` is being set to false, the (enabled) channel will still allow uploading of files to the queue but will not pick them up for processing. |
+| POST <nobr>`/inventory-import/channels/<channel id>/commission`</nobr><br/>Optional parameters:<br/> `retainQueue`<br/>`listening`       | Launch a channel process, create a filesystem queue, allow uploads, and mark the channel enabled. <br/>The command takes the parameter `?retainQueue`=[true,false] (default `false`). When `true`, any filesystem queue that was left behind from a previous channel process will be kept.<br/>If the paramter `listening` is set, the setting will override/update the `listening` property as saved in the `channel` object.<br/>If not setting the parameter `retainQueue` to `true` and not using the parameter `listening`, then the commission command has the same effect as PUTting a channel object with the property `enabled` set to `true`.                                                                              |
+| POST <nobr>`/inventory-import/channels/<channel id>/decommission`</nobr><br/>Optional parameter: `retainQueue`                           | Stop the channel process, remove the file system queue, prevent uploads, and mark the channel disabled. <br/>The command takes the parameter `?retainQueue`=[true,false] (default `false`). When set to `true`, the file system queue for this channel is kept and potentially available if the channel process is launched again. <br/>Unless the parameter `retainQueue` is set to `true`, this command has the same effect as PUTting a channel object with the property `enabled` set to `false`.                                                                                                                                                                                                                                |
+| POST <nobr>`/inventory-import/channels/<channel id>/listen`</nobr>                                                                       | Listen for source files in queue, same effect as setting `channel.listening`=`true`.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
+| POST <nobr>`/inventory-import/channels/<channel id>/no-listen`</nobr>                                                                    | Ignore source files in queue, same effect as setting `channel.listening`=`false`.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| POST <nobr>`/inventory-import/channels/<channel id>/init-queue`</nobr>                                                                   | Delete all the source files in a queue (or re-establish an empty queue structure, in case the previous queue was deleted directly in the file system for example).                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
+| DELETE <nobr>`/inventory-import/channels/<channel uuid>`</nobr>                                                                          | Delete the channel configuration, including the file queue but not the channel's job history.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
+| POST <nobr>`/inventory-import/channels/<channel id>/upload`</nobr><br/>Optional parameter: `filename`                                    | Push a source file to the channel. MIU is currently set to accept files up to a size of 100 MB.<br/>The parameter filename can be used to tell MIU what name should be used for the uploaded file. For example: `?filename=marc-records.xml`. The name will appear in log statements about the processing of the file, including in error records to aid potential troubleshooting or resending of the source files. If no filename is provided, MIU will assign a UUID-based name to it.                                                                                                                                                                                                                                            |
+| POST <nobr>`/inventory-import/channels/<channel id>/pause-job`</nobr>                                                                    | Halt processing in order to potentially resume it again with processing logs assigned to the same job.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
+| POST <nobr>`/inventory-import/channels/<channel id>/resume-job`</nobr><br/>Optional parameter: `skipCurrentFile`                         | Resume a paused job, counting subsequent files in the queue as part of the existing import job.<br/>When `skipCurrentFile` is set to `true` the job will discard the current file and resume from the next.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
+| **Request operating on multiple channels**                                                                                               |                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
+| POST <nobr>`/inventory-import/recover-interrupted-channels`</nobr><br/>Optional parameters:<br/> `retainQueue`<br/>`listening`           | Deploy ("commission") all channels that are marked `enabled` but are not actually running. This is a scenario that would presumably only occur if the module was stopped and started while channels were enabled. <br/>The command takes a paramter `listening` to be able to enable the channels without kicking of actual importing just yet.<br/>Posting a source file to a channel that is `enabled` but not deployed (not "commissioned") will implicitly commission the channel. Explicitly recovering channels with this command will ensure that already existing files in the queue are processed without posting new files.                                                                                                |
+
+
+#### Using `tag` for channel ID
+
+The <channel id> in the paths can either be the UUID of the channel record (`channel.id`) or the value of the property
+`channel.tag`. The tag is an optional, unique, max 24 character long string without spaces. If it's set on a channel,
+that channel can be referenced by the tag in the various channel commands. The basic REST requests (GET, PUT, DELETE channel)
+use the UUID like standard FOLIO APIs.
+
+
+## PART II. How MIU works with the inventory record set
+
+This part explains how MIU uses the inventory record set JSON to control and perform the persistence of instances, holdings records 
+and items in Inventory Storage. 
+
+When using the synchronous, JSON based upsert APIs of MIU, this walkthrough explains what happens when the client pushes a
+valid inventory record set JSON to MIU. 
+
+Even for a client uploading XML files to MIU, this part applies. The outcome of the XSLT transformation described 
+in PART I will (must) likewise be a valid inventory record set, which will go through the same processing as if it was 
+pushed to the upsert API directly.  
+
+#### All updates to Inventory are HRID based
 
 The upsert APIs will update an Instance as well as its associated holdings and items based on incoming HRIDs on all three record types. If
 an instance with the incoming HRID does not exist in storage already, the new Instance is inserted, otherwise the
 existing instance is updated - thus the term 'upsert'.
 
-This means that HRIDs are required to be present from the client side in all three record types.
+This means that HRIDs are required to be present in records from the client for all three record types. As a consequence, these client side 
+identifiers must furthermore be consistent over time. MIU will not be able to find existing records in Inventory, and update them accordingly, if the 
+identifiers are changed on the client side. Whenever new identifiers occur in a feed, MIU will treat them as new records to 
+be created, rather than updated, in Inventory.
 
 #### Detect if holdings records or items should be deleted
 
@@ -233,13 +622,13 @@ will be created and/or deleted (updating relationships is obsolete).
 
 #### Control record overlay on updates.
 
-The default behavior of MIU is to simply replace the entire record on updates, for example override the entire
+The default behaviour of MIU is to simply replace the entire record on updates, for example override the entire
 holdingsRecord, with the input JSON it receives from the client, except for the ID (UUID) and version.
 
-The default behavior can be changed per request using structures
+The default behaviour can be changed per request using structures
 in the processing element.
 
-##### Prevent MIU from override existing values
+##### Prevent MIU from overriding existing values
 
 MIU can be instructed to leave certain properties in place when updating Instances, holdings records, and Items.
 
@@ -274,8 +663,8 @@ provided in the request body to MIU -- those properties can be explicitly turned
 
 The two settings can be combined to not touch neither omitted properties nor the explicitly listed properties.
 
-If `forOmittedProperties` is used it requires the client to distinguish between sending an empty property vs not sending
-the property at all. Say an Instance had `contributors` before, but now they were removed in the source catalog. If this
+If `forOmittedProperties` is used, it requires the client to distinguish between sending an empty property vs not sending
+the property at all. Say, an Instance had `contributors` before, but now they were removed in the source catalogue. If this
 is communicated to MIU by an empty `contributors` property, then it's fine, it will become empty in Inventory Storage
 too, but if the property is simply removed from the request body altogether, then the existing value of `contributors`
 will be retained in storage if `forOmittedProperties` is set to true.
@@ -300,7 +689,7 @@ processing": {
 }
 ```
 
-The default behavior is to overwrite all statuses.
+The default behaviour is to overwrite all statuses.
 
 ##### Instruct MIU to avoid deleting items even though they are missing from the input
 
@@ -591,7 +980,7 @@ Instances and holdings records are presumably persisted. The module aims to reco
 switching from batch processing to record-by-record updates in case of errors so that, in this example, all the good
 Items can be persisted. The response on a request with one or more errors, that didn't prevent the entire request from being processed, will be
 a `207` `Multi-Status`, and the one or more error that were found will be returned with the
-response JSON, together with the summarized update statistics ("metrics).
+response JSON, together with the summarised update statistics ("metrics).
 
 In a feed with many errors the throughput will be close to that of the single record APIs since many batches will be
 processed record-by-record.
@@ -732,10 +1121,6 @@ Same
 for the upsert by match-key, if any match-key appears twice in the batch.
 
 
-
-
-
-
 ## Miscellaneous
 
 ### `/shared-inventory-upsert-matchkey`
@@ -844,17 +1229,6 @@ entities from storage and get the latest version numbers from that anyway.
 - Java 21 JDK
 - Maven 3.3.9
 
-## Git Submodules
-
-There are some common RAML definitions that are shared between FOLIO projects via Git submodules.
-
-To initialise these please run `git submodule init && git submodule update` in the root directory.
-
-If these are not initialised, the module will fail to build correctly, and other operations may also fail.
-
-More information is available on
-the [FOLIO developer site](https://dev.folio.org/guides/developer-setup/#update-git-submodules).
-
 ## Building
 
 run `mvn install` from the root directory.
@@ -893,6 +1267,6 @@ Generated [API documentation](https://dev.folio.org/reference/api/#mod-inventory
 
 ### Download and configuration
 
-The built artifacts for this module are available. See [configuration](https://dev.folio.org/download/artifacts) for
+The built artefacts for this module are available. See [configuration](https://dev.folio.org/download/artifacts) for
 repository access, and the [Docker image](https://hub.docker.com/r/folioorg/mod-inventory-update/).
 

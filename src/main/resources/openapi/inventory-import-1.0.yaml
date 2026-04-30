@@ -1111,7 +1111,7 @@ components:
           description: Unique identifier for the transformation step.
         name:
           type: string
-          description: A name assigned to the transformation step.
+          description: A unique name assigned to the transformation step.
         description:
           type: string
           description: >-

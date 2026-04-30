@@ -16,7 +16,7 @@ MIU will insert or update instances, holdings records and items in Inventory Sto
 Depending on which of use these two use cases that might be relevant, one can read different parts of this readme. 
 
 If you have XML records for import, say files with collections of MARC XML records, then you can read the paragraphs in PART I 
-[How to import XML files](#part-i-how-to-import-xml-files) which will explain how to set up import channels with XSLT transformation pipelines. 
+[How to import XML files](#part-i-how-to-import-xml-files), which will explain how to set up import channels with XSLT transformation pipelines. 
 It is explained what data structure the MARC XML records must be transformed to in order to be imported to Inventory. To 
 understand the specifics of how the module takes the transformed structure and imports it to Inventory, then you can read the paragraphs 
 in PART II [How MIU works with the inventory record set](#part-ii-how-miu-works-with-the-inventory-record-set). 
@@ -148,9 +148,9 @@ POST to inventory-import/steps:
 }
 ```
 
-In the next box of code is an XSLT that will extract the mandatory properties for an inventory Instance, `title`, `instanceTypeId`, and provide
-a hard coded value for the likewise mandatory `source` property. All records to be updated in Inventory Storage must have a HRID
-and the XSLT will extract the control number for that.
+In the next box of code is an XSLT that will extract some mandatory properties for an inventory Instance, `title`, `instanceTypeId`, and provide
+a hard coded value for the likewise mandatory `source` property. All records to be updated in Inventory Storage must have a HRID based on a 
+persistent clientside identifier for the record, and the XSLT will extract the control number for that.
 
 Although not strictly needed for this example, the XSLT will also forward a copy of 
 the original MARC record to be used by any subsequent transformation steps. For example there might be an additional step for 
@@ -361,7 +361,8 @@ JSON (the default).
 
 If we put the tiny MARC in a file named marc.xml we can try it out like shown in the next box. The example illustrates
 the use of the channel tag `demo` as an alternative identifier that can be put in the API path instead of the channel's UUID. Notice also 
-the resulting XML encoding of contributors with `arr` to indicate an array, and `i` to envelope each element. 
+the resulting XML encoding of contributors with `arr` to indicate an array, and `i` to envelope each element. This would 
+be an inventory record set in XML format.
 
 ```
  POST to inventory-import/channels/demo/try-tranformation?output=xml -f marc.xml
@@ -419,10 +420,14 @@ the resulting XML encoding of contributors with `arr` to indicate an array, and 
       </original>
    </record>
 </collection>
+```
 
+At the end of the transformation pipeline, the XML will be transformed to JSON, and the result can be inspected with this command:
+
+```
  POST to inventory-import/channels/demo/try-tranformation -f marc.xml  
 
- Response as JSON, this is the outcome of the conversion of the inventory record set XML above to an inventory record set JSON
+ Response, the XML converted to JSON,
  
  {
   "instance" : {
@@ -443,9 +448,6 @@ the resulting XML encoding of contributors with `arr` to indicate an array, and 
   }
 }
 ```
-
-The JSON response shown above is the so-called inventory record set, just a very small one, with few 
-instance properties and no holdings records or items. 
 
 That concludes the practical walk-through. With this channel in place the MARC record can be imported with:
 

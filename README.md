@@ -152,14 +152,15 @@ In the next box of code is an XSLT that will extract the mandatory properties fo
 a hard coded value for the likewise mandatory `source` property. All records to be updated in Inventory Storage must have a HRID
 and the XSLT will extract the control number for that.
 
-Although not strictly needed in this example that only has one transformation step, the XSLT will also forward a copy of 
-the original MARC record to be used by subsequent transformation steps. For example there might be a subsequent step for 
-creating holdings records and items from the MARC record.
+Although not strictly needed for this example, the XSLT will also forward a copy of 
+the original MARC record to be used by any subsequent transformation steps. For example there might be an additional step for 
+creating holdings records and items from the original MARC record, in which case the MARC record would have had to be forwarded 
+from step to step. 
 
-Also notice the transformation logic for `contributors`. Since `contributors` is an array in the Inventory instance, the XSLT must construct 
-an element named `arr` and add each contributor as an element named `i` to the `arr` element. MIU will convert this structure
-to a JSON array. Here it is shown for contributors but the same logic and naming applies to other arrays like identifiers,
-subjects, notes, and even arrays of holdings records or items.
+Also notice the transformation logic for `contributors`. Since `contributors` is an array in the instance in Inventory Storage, the XSLT must construct 
+an element named `arr` and add each contributor as an element named `i` to the `arr` element. MIU will use this structure
+to construct a JSON array. The example shows it for contributors but the same logic and naming standard applies to any other arrays like identifiers,
+subjects, notes, and even to arrays of holdings records and items embedded in the inventory record set.
 
 ```
 <?xml version="1.0" encoding="UTF-8"?>
@@ -359,7 +360,7 @@ of the first record in the collection. The response can be returned as the trans
 JSON (the default). 
 
 If we put the tiny MARC in a file named marc.xml we can try it out like shown in the next box. The example illustrates
-the use of the channel tag `demo` as an alternative identifier in the API path instead of the channel's UUID. Notice also 
+the use of the channel tag `demo` as an alternative identifier that can be put in the API path instead of the channel's UUID. Notice also 
 the resulting XML encoding of contributors with `arr` to indicate an array, and `i` to envelope each element. 
 
 ```
@@ -421,7 +422,7 @@ the resulting XML encoding of contributors with `arr` to indicate an array, and 
 
  POST to inventory-import/channels/demo/try-tranformation -f marc.xml  
 
- Response as JSON
+ Response as JSON, this is the outcome of the conversion of the inventory record set XML above to an inventory record set JSON
  
  {
   "instance" : {

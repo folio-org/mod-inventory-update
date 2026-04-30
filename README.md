@@ -10,24 +10,23 @@ Inventory Storage, from XML or JSON sources files.
 
 The module has two distinct sets of APIs. One is a group of import APIs, with which a client can configure, execute 
 and monitor import jobs that transform and import collections of XML records of arbitrary format to Inventory Storage. 
-The other is a handful of so called "upsert" APIs that a client can use to push JSON files of a predefined structure to MIU,
-which will then insert or update instances, holdings records and items in Inventory Storage.
+The other is a handful of so called "upsert" APIs that a client can use to push JSON files of a specified structure to MIU.
+MIU will insert or update instances, holdings records and items in Inventory Storage from this composite JSON structure.
 
 Depending on which of use these two use cases that might be relevant, one can read different parts of this readme. 
 
-If you have XML records for import, say files with collections of MARC XML records, then you can read the paragraphs in 
-[Import XML files](#part-i-how-to-import-xml-files) which will explain how to set up import channels with XSLT transformation pipelines. 
+If you have XML records for import, say files with collections of MARC XML records, then you can read the paragraphs in PART I 
+[How to import XML files](#part-i-how-to-import-xml-files) which will explain how to set up import channels with XSLT transformation pipelines. 
 It is explained what data structure the MARC XML records must be transformed to in order to be imported to Inventory. To 
 understand the specifics of how the module takes the transformed structure and imports it to Inventory, then you can read the paragraphs 
-in [How MIU works with the inventory record set](#part-ii-how-miu-uses-an-inventory-record-set-json-for-updating-inventory-storage). 
+in PART II [How MIU works with the inventory record set](#part-ii-how-miu-works-with-the-inventory-record-set). 
 
-If you want to import JSON files, then you don't need the import channels or transformations. You can post the JSON directly 
-to the upsert API. This is a synchronous operation with immediate feedback, as opposed to the XML import process, which 
-is asynchronous. However, this requires the JSON to be compliant with the so-named "inventory record set" format up-front,
-there is no transformation pipeline massaging the data into the inventory record sets needed for the module's CRUD engine. 
+If you want to import JSON files, then you don't need the import channels or transformations. You can post the ready-made JSON directly 
+to the upsert API.  However, this requires the JSON to comply with the schema for the so-named "inventory record set" up-front.
+There is no transformation phase massaging the data into the inventory record sets needed for the module's CRUD engine. 
 The schema for the JSON is documented in [upsert APIs, Open API specification](src/main/resources/openapi/inventory-update-5.0.yaml).
 Again, to understand the specifics of how the module takes that JSON and imports it to Inventory, you can read the paragraphs
-in [How MIU works with the inventory record set](#part-ii-how-miu-uses-an-inventory-record-set-json-for-updating-inventory-storage).
+in PART II [How MIU works with the inventory record set](#part-ii-how-miu-works-with-the-inventory-record-set).
 
 <img alt="Diagram of MIU APIs" src="doc/diagram-of-miu-import.jpg" width="1123" title="Upsert and import APIs"/>
 
@@ -40,7 +39,7 @@ in [How MIU works with the inventory record set](#part-ii-how-miu-uses-an-invent
       * [Error handling](#error-handling)
       * [Using `tag` for channel ID](#using-tag-for-channel-id)
     * [How to transform source XML to Inventory JSON.](#how-to-transform-source-xml-to-inventory-json)
-  * [PART II. How MIU uses an inventory record set JSON for updating Inventory Storage](#part-ii-how-miu-uses-an-inventory-record-set-json-for-updating-inventory-storage)
+  * [PART II. How MIU works with the inventory record set](#part-ii-how-miu-works-with-the-inventory-record-set)
       * [All updates to Inventory are HRID based](#all-updates-to-inventory-are-hrid-based)
       * [Detect if holdings records or items should be deleted](#detect-if-holdings-records-or-items-should-be-deleted)
       * [Control record overlay on updates.](#control-record-overlay-on-updates)
@@ -579,7 +578,7 @@ The details of this structure are described below. See also the OpenAPI spec for
 [Upsert APIs](src/main/resources/openapi/inventory-update-5.0.yaml).
 
 
-## PART II. How MIU uses an inventory record set JSON for updating Inventory Storage
+## PART II. How MIU works with the inventory record set
 
 This part explains how MIU uses the inventory record set JSON to control and perform the persistence of instances, holdings records 
 and items in Inventory Storage. 

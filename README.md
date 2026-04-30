@@ -34,11 +34,10 @@ in PART II [How MIU works with the inventory record set](#part-ii-how-miu-works-
   * [PART I. How to import XML files](#part-i-how-to-import-xml-files)
     * [Creating a transformation pipeline and assigning it to a channel](#creating-a-transformation-pipeline-and-assigning-it-to-a-channel)
     * [Managing channels](#managing-channels)
-      * [The "import job" explained](#the-import-job-explained)
-      * [HTTP requests for managing channels](#http-requests-for-managing-channels-)
+      * [Import jobs](#import-jobs)
       * [Error handling](#error-handling)
+      * [HTTP requests for managing channels](#http-requests-for-managing-channels-)
       * [Using `tag` for channel ID](#using-tag-for-channel-id)
-    * [How to transform source XML to Inventory JSON.](#how-to-transform-source-xml-to-inventory-json)
   * [PART II. How MIU works with the inventory record set](#part-ii-how-miu-works-with-the-inventory-record-set)
       * [All updates to Inventory are HRID based](#all-updates-to-inventory-are-hrid-based)
       * [Detect if holdings records or items should be deleted](#detect-if-holdings-records-or-items-should-be-deleted)
@@ -94,7 +93,36 @@ This diagram shows the configuration data structure for a channel with a transfo
 
 <img alt="Diagram of MIUs import configuration tables" src="doc/diagram-of-miu-import-config.jpg" width="289" title="Import configuration" />
 
-The next paragraphs will explain how to populate this structure to create an import channel.
+The task of the XSLT transformation steps is to take the incoming XML and transform it to the inventory record set structure. 
+
+The high level structure of an inventory record set is
+
+```
+ - Inventory instance {hrid and other properties}
+ - holdings records (optional)
+   - Inventory holdings record {hrid and other properties}
+     - items (optional)
+       - Inventory item {hrid and other properties}
+       - item
+       - ...
+   - Holdings record
+     - items
+       - item
+       - item
+       - ...
+   - ...
+ - instance relations (optional)
+ - processing (optional)
+```
+
+The details of this structure are described in the API doc [Upsert APIs](src/main/resources/openapi/inventory-update-5.0.yaml) that documents the JSON schema for it, 
+and in [PART II. How MIU works with the inventory record set](#part-ii-how-miu-works-with-the-inventory-record-set), which explains how MIU uses the structure, especially 
+in regard to the processing instructions element.
+
+The next paragraphs will explain how to populate the configuration structure to create an import channel with a transformation
+pipeline, and then create a transformation that brings the incoming XML onto the inventory record set structure. The example
+will focus on the instance element to keep it simple, so no holdings records or items, no instance relations and no processing 
+options specified.
 
 ### Creating a transformation pipeline and assigning it to a channel
 
@@ -127,6 +155,7 @@ Say we have this collection of one record, a tiny MARC record with basically jus
     </marc:record>
 </collection>
 ```
+
 We will set up a channel to import this MARC record as a FOLIO instance. We will ignore holdings and items to keep it short.
 
 For this we need a transformation pipeline, which we will construct with a single XSLT transformation step.
@@ -465,30 +494,61 @@ The configurable parts of the channel itself are
 - A shorthand tag for the channel that can be used instead of its UUID in certain API requests.  
 - A reference to the "transformation" that processes the incoming source files.
 - Two boolean state properties for marking the channel 'enabled' and 'listening'
-  - `enabled` means that a background process is running (or should be running) for the channel, and that it has a file queue to which it is possible to upload files.
-  - `listening` means that the channel, if enabled, will actively pick up files, if any, from the queue and process/import them.
+  - `enabled` means that a background process is running (or should be running) for the channel, and that it has a file 
+    queue to which it is possible to upload files. Files can not be uploaded to a channel that is not enabled.
+  - `listening` means that the channel, if enabled, will actively pick up files, if any, from the queue and process/import 
+    them. Files can be uploaded to the channel even if it is not listened (as long as it is enabled).
 
-Finally, there is a derived, non-persistent (read only) property named `commissioned` that indicates if an enabled channel actually has a running process. A channel will 
-automatically get a background process when it is marked `enabled` but if the module gets shut down it will not have that process once the module is brought up again. In that 
-scenario the channel will be `enabled` but not `commissioned`, and would have to be re-commissioned to give it an active process. 
-An enabled channel can be recommissioned implicitly by uploading a new file to it, or explicitly by issuing a 
-commission request to the channel. 
+Finally, there is a derived, non-persistent (read only) property named `commissioned` that indicates if an enabled channel 
+actually has a running process. A channel will automatically get a running background process when it is marked `enabled` 
+(updated with `enabled` set to `true`) but if the module gets shut down it will no longer have that 
+process running once the module is brought up again. In that 
+scenario the channel will be `enabled` (supposed to run) but not `commissioned` (not actually running). However, if a file
+is uploaded to such a channel, MIU will detect that it should be running and automatically commission it again. Only if the module
+was restarted while there were files in the queue, AND there are no additional files coming, AND you want to process 
+the existing queue now, is it necessary to explicitly commission the channel. 
 
-The dynamic parts of an enabled channel are
+When a channel gets enabled/commissioned it will also have a file queue that source files can be uploaded to. If the channel
+is also `listening` it will pick files from the queue. The channel API has some extra properties displaying the status of the 
+channel's file queue. 
 
-- A dedicated process (a worker verticle in Vert.x terms). If the channel is marked `listening` this process will actively pick up files from the file queue.
-- A file queue: a set of filesystem directories that acts as a queue for incoming files, ensuring that they are processed in order.
-- `importJob`:  if there are any incoming files, and the channel is actively listening, it will create a record of an "import job" 
-  with `logLines`, and `failedRecords` if any.
-- When the last file in the queue is processed, the import job will be marked at finish on the `importJob` record. The channel will keep listening for new files and create new `importJob` if any appear.
+#### Import jobs
 
-#### The "import job" explained
+When the first file of a queue is picked up by the channel's import process, it will trigger the creation of an import 
+job record in the database. The import job record registers information about the processing of a continuous set of files in 
+queue. When the last file in the queue is processed, the import job record will be marked finished. If more files get uploaded
+later, a new import job will be created for them and so on, so the import job is basically a demarcation of processing logs. 
+Attached to the `importJob` are also records containing more fine-grained information about the number of records processed 
+per file with some performance statistics per file and per the continuous queue as a whole. If any records encountered errors 
+during importing to Inventory, error report records named `failedRecord` will likewise be attached to the `importJob`. 
 
-An "import job" is basically just a demarcation of processing logs. The `importJob` is a record that logs the start and finish time of the processing of a continuous set of queued import files. 
-The `importJob` is created when a channel with an empty queue receives a new source file, and it is marked finished when the file queue is once again empty. Attached to the `importJob`
-are records containing information about the number of records processed with some performance statistics, for each file and for the job as a whole. If any records encountered errors when attempting 
-to import them in Inventory, error report records named `failedRecord` will likewise be attached to the `importJob`. In other words, the `importJob` organises the 
-counting of records processed and groups failed records.
+The import job will continue despite errors in individual instances, holdings records or items, for example errors due to 
+missing required properties, invalid reference data references, etc. But in case of a "fatal" error, the job will be paused. 
+An error is "fatal" if it is not possible or does not make sense to continue the import. 
+
+When a job is paused it effectively means that the channel is paused too, since there can at most be one current job in the channel. 
+
+#### Error handling
+
+If a fatal error occurs, the import job will be marked paused so that processing can potentially be resumed once the problem is resolved.
+When the job is resumed, any processing statistics and failed records will then count towards that same import job until the last
+file in the queue is processed. 
+
+There are two main categories of errors that should halt the processing. One would be a fatal problem with the import
+file itself, for example that it contains invalid XML and thus cannot be meaningfully processed from the point in the file 
+where the error is encountered. The other would be some external problem like MIU losing access to Inventory Storage. 
+
+If facing the first case (the XML is bad) it will not help resuming the job from the bad file, since it will immediately get halted again. 
+MIU's API therefore has an option to skip the current file when resuming. In the second case (external problem), the file could be fine, 
+and if the external problem can be resolved, then the job should be resumed from the same file where the error was first encountered.
+
+    Note on possible enhancements
+    - Resume from a given record in the file? Currently, the entire file will be resumed, but a number of records of the
+      file may already have been imported alright, for example all records up until the point of a bad XML construct.
+      Usually it does not hurt to repeat upserts, the end result will be the same, but processing counts will be affected in ways that might make them look a bit off.
+    - Replace current file?  Currently, one can opt to skip current file if it is invalid. However, it might be desired to
+      have an option to correct the file locally and upload it again in place of the current file as opposed to simply
+      have it uploaded to the end of the file queue. This would be to ensure order of processing if important.
 
 #### HTTP requests for managing channels 
 
@@ -509,76 +569,12 @@ counting of records processed and groups failed records.
 | POST `/inventory-import/recover-interrupted-channels`       | `retainQueue`<br/>`listening` | Deploy ("commission") all channels that are marked `enabled` but are not actually running. This is a scenario that would presumably only occur if the module was stopped and started while channels were enabled. <br/>The command takes a paramter `listening` to be able to enable the channels without kicking of actual importing just yet.<br/>Posting a source file to a channel that is `enabled` but not deployed (not "commissioned") will implicitly commission the channel. Explicitly recovering channels with this command will ensure that already existing files in the queue are processed without posting new files.                                                                                                |
 
 
-
-#### Error handling
-
-If a fatal error occurs while a job is running, the module will attempt to gracefully pause the processing. The import job will be 
-marked paused so that processing can potentially be resumed with processing statistics and failed records counting towards the same import job. 
-
-There are two main categories of errors that should halt the processing. One would be a fatal problem with the import 
-file itself, for example that it contains invalid XML and thus cannot be meaningfully processed. 
-The other would be some external problem like losing the access to Inventory Storage. In the first case it will not help
-to resume the job from the bad file, since it will immediately get halted again. There is therefore an option to skip the 
-current file when resuming. In the second case, the file is fine, and if the external problem can be fixed, the job should 
-be resumed from the same file. 
-
-  Note on possible enhancements
-   - Resume from a given record in the file? Currently, the entire file will be resumed, but a number of records of the 
-     file may already have been imported alright, for example all records up until the point of a bad XML construct. 
-     Usually it does not hurt to repeat upserts, the end result will be the same, but processing counts will be affected in ways that might make them look a bit off.
-   - Replace current file?  Currently, one can opt to skip current file if it is invalid. However, it might be desired to 
-     have an option to correct the file locally and upload it again in place of the current file as opposed to simply 
-     have it uploaded to the end of the file queue. This would be to ensure order of processing if important.
-
 #### Using `tag` for channel ID
 
 The <channel id> in the paths can either be the UUID of the channel record (`channel.id`) or the value of the property
 `channel.tag`. The tag is an optional, unique, max 24 character long string without spaces. If it's set on a channel,
 that channel can be referenced by the tag in the various channel commands. The basic REST requests (GET, PUT, DELETE channel)
 use the UUID like standard FOLIO APIs.
-
-
-### How to transform source XML to Inventory JSON.
-
-Mod-inventory-update operates with a specific JSON schema called an "inventory record set" (IRS). The IRS is a 
-composite object containing Inventory records like instances, holdings and items, as well as different kinds of 
-instance-to-instance relationships. Processing instructions for MIU can be attached to the record set. 
-
-This format appears in two different contexts in MIU. Both are displayed in the drawing below.
-
-When using MIU's JSON based "upsert" APIs, the composite inventory record set is the JSON schema than incoming JSON files must comply with.
-
-When using MIU's XML import APIs, the IRS is an intermediate, internal exchange format. Incoming XML records can be of an arbitrary structure
-(as long as they are <record>s) but they must be transformed to the IRS structure for MIU to populate inventory storage with the data. 
-Thus it is necessary to know the format of the composite record set when creating the transformation style sheets. The transformation must
-create the XML equivalent of the IRS, which MIU will then generically transform to the JSON version of the IRS.
-
-The JSON based upsert APIs are synchronous, processing the input and returning a response right away, once done.
-The XML based import APIs on the other hand work asynchronously, and will put the file in queue and return a response that
-this has been done. But feedback regarding the processing and its outcomes is logged in the module, to be retrieved later
-through the APIs.
-
-The high level structure of an inventory record set is
-```
- - Inventory instance {hrid and other properties}
- - holdings records (optional)
-   - Inventory holdings record {hrid and other properties}
-     - items (optional)
-       - Inventory item {hrid and other properties}
-       - item
-       - ...
-   - Holdings record
-     - items
-       - item
-       - item
-       - ...
-   - ...
- - instance relations (optional)
- - processing (optional)
-```
-
-The details of this structure are described below. See also the OpenAPI spec for more details:
-[Upsert APIs](src/main/resources/openapi/inventory-update-5.0.yaml).
 
 
 ## PART II. How MIU works with the inventory record set

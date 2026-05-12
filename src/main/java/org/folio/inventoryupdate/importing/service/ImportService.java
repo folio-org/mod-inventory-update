@@ -165,7 +165,7 @@ public class ImportService implements RouterCreator, TenantInitHooks {
             logger.info("Tenant '{}' database initialized", tenant))
         .compose(x ->
             clearTenantFileQueues(vertx, tenant, getTenantParameter(tenantAttributes, "clearPastFileQueues")))
-        .compose(na -> FileListeners.clearRegistry());
+        .compose(na -> FileListeners.clearRegistry(tenant));
   }
 
   private static String getTenantParameter(JsonObject attributes, String parameterKey) {

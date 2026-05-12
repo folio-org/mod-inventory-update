@@ -5,6 +5,7 @@ import static org.awaitility.Awaitility.await;
 import static org.folio.inventoryupdate.unittests.fixtures.Service.BASE_URI_INVENTORY_UPDATE;
 import static org.folio.inventoryupdate.unittests.fixtures.Service.PATH_CHANNELS;
 import static org.folio.inventoryupdate.unittests.fixtures.Service.PATH_FAILED_RECORDS;
+import static org.folio.inventoryupdate.unittests.fixtures.Service.PATH_STEPS;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -70,8 +71,10 @@ public class ImportTests extends InventoryUpdateTestBase {
   public void initSchema() {
     tenantOp(Service.TENANT, new JsonObject()
             .put("module_to", "mod-inventory-update-1.0.0")
-            .put("parameters", new JsonArray().add(new JsonObject().put("key", "clearPastFileQueues").put("value", "true")))
-        , null);
+            .put("parameters",
+                new JsonArray()
+                    .add(new JsonObject().put("key", "clearPastFileQueues").put("value", "true"))
+                    .add(new JsonObject().put("key", "loadSample").put("value", "true"))), null);
   }
 
   @After
@@ -194,18 +197,19 @@ public class ImportTests extends InventoryUpdateTestBase {
 
   @Test
   public void canPostGetPutDeleteTransformation() {
+    int initTransformations = getRecords(Service.PATH_TRANSFORMATIONS).extract().path("totalRecords");
     JsonObject transformation = Files.JSON_TRANSFORMATION_CONFIG;
     String id = transformation.getString("id");
 
     postJsonObject(Service.PATH_TRANSFORMATIONS, Files.JSON_TRANSFORMATION_CONFIG);
     getRecordById(Service.PATH_TRANSFORMATIONS, id);
-    assertThat(getRecords(Service.PATH_TRANSFORMATIONS).extract().path("totalRecords"), is(1));
+    assertThat(getRecords(Service.PATH_TRANSFORMATIONS).extract().path("totalRecords"), is(initTransformations + 1));
 
     JsonObject update = Files.JSON_TRANSFORMATION_CONFIG.copy();
     update.put("name", "updated name");
     putJsonObject(Service.PATH_TRANSFORMATIONS + "/" + Files.JSON_TRANSFORMATION_CONFIG.getString("id"), update, 204);
     putJsonObject(Service.PATH_TRANSFORMATIONS + "/" + UUID.randomUUID(), update, 404);
-    getRecords(Service.PATH_TRANSFORMATIONS).body("totalRecords", is(1));
+    getRecords(Service.PATH_TRANSFORMATIONS).body("totalRecords", is(initTransformations + 1));
     JsonObject step = new JsonObject();
     step.put("id", STEP_ID)
         .put("name", "test step")
@@ -217,7 +221,7 @@ public class ImportTests extends InventoryUpdateTestBase {
         .put("position", "1");
     postJsonObject(Service.PATH_TSAS, tsa);
     deleteRecord(Service.PATH_TRANSFORMATIONS, Files.JSON_TRANSFORMATION_CONFIG.getString("id"), 200);
-    getRecords(Service.PATH_TRANSFORMATIONS).body("totalRecords", is(0));
+    getRecords(Service.PATH_TRANSFORMATIONS).body("totalRecords", is(initTransformations));
     deleteRecord(Service.PATH_TRANSFORMATIONS, Files.JSON_TRANSFORMATION_CONFIG.getString("id"), 404);
   }
 
@@ -242,17 +246,18 @@ public class ImportTests extends InventoryUpdateTestBase {
     tsa.put("transformationId", transformationId);
     tsa.put("position", "1");
     String id = tsa.getString("id");
+    int initTsas = getRecords(Service.PATH_TSAS).extract().path("totalRecords");
 
     postJsonObject(Service.PATH_TSAS, tsa);
     getRecordById(Service.PATH_TSAS, id);
-    assertThat(getRecords(Service.PATH_TSAS).extract().path("totalRecords"), is(1));
+    assertThat(getRecords(Service.PATH_TSAS).extract().path("totalRecords"), is( initTsas + 1));
 
     JsonObject update = tsa.copy();
     putJsonObject(Service.PATH_TSAS + "/" + tsa.getString("id"), update, 204);
     putJsonObject(Service.PATH_TSAS + "/" + UUID.randomUUID(), update, 404);
-    getRecords(Service.PATH_TSAS).body("totalRecords", is(1));
+    getRecords(Service.PATH_TSAS).body("totalRecords", is(initTsas + 1));
     deleteRecord(Service.PATH_TSAS, tsa.getString("id"), 200);
-    getRecords(Service.PATH_TSAS).body("totalRecords", is(0));
+    getRecords(Service.PATH_TSAS).body("totalRecords", is(initTsas));
     deleteRecord(Service.PATH_TSAS, tsaId, 404);
     deleteRecord(Service.PATH_TRANSFORMATIONS, transformationId, 200);
     deleteRecord(Service.PATH_STEPS, stepId, 200);
@@ -416,6 +421,7 @@ public class ImportTests extends InventoryUpdateTestBase {
 
   @Test
   public void canOrganizeStepsThroughTransformationEntity() {
+    int initTsas = getRecords(Service.PATH_TSAS).extract().path("totalRecords");
     JsonObject transformation = Files.JSON_TRANSFORMATION_CONFIG.copy();
     String transformationId = "61f55639-17d6-417a-9d44-ffb4226ad020";
     transformation.put("steps", new JsonArray());
@@ -431,7 +437,7 @@ public class ImportTests extends InventoryUpdateTestBase {
     transformation.put("id", transformationId);
 
     postJsonObject(Service.PATH_TRANSFORMATIONS, transformation);
-    assertThat(getTotalRecords(Service.PATH_TSAS),is(3));
+    assertThat(getTotalRecords(Service.PATH_TSAS),is(initTsas + 3));
     assertThat((getEntityJsonById(Service.PATH_TRANSFORMATIONS, transformationId)).getJsonArray("steps").size(), is(3));
     assertThat((getEntityJsonById(Service.PATH_TRANSFORMATIONS, transformationId)).getJsonArray("steps")
         .getJsonObject(0).getString("name"),startsWith("test step"));
@@ -440,22 +446,22 @@ public class ImportTests extends InventoryUpdateTestBase {
     transformation.getJsonArray("steps").remove(1);
     putJsonObject(Service.PATH_TRANSFORMATIONS + "/" + transformationId, transformation, 204);
 
-    assertThat(getTotalRecords(Service.PATH_TSAS),is(2));
+    assertThat(getTotalRecords(Service.PATH_TSAS),is(initTsas + 2));
     assertThat((getEntityJsonById(Service.PATH_TRANSFORMATIONS,transformationId)).getJsonArray("steps").size(), is(2));
     assertThat(getTotalRecords(Service.PATH_TSAS + "?query=stepId=20000000-0000-4000-8000-000000000000"),is(0));
 
   }
 
-
   @Test
   public void canPostGetPutStepGetXsltDelete() {
+    int initSteps = getRecords(PATH_STEPS).extract().path("totalRecords");
     JsonObject step = new JsonObject();
     step.put("id", STEP_ID)
         .put("name", "test step")
         .put("script", Files.XSLT_COPY_XML_DOC);
 
     postJsonObject(Service.PATH_STEPS, step);
-    assertThat(getRecords(Service.PATH_STEPS).extract().path("totalRecords"), is(1));
+    assertThat(getRecords(Service.PATH_STEPS).extract().path("totalRecords"), is( initSteps + 1));
     await().until(() -> getRecords(Service.PATH_STEPS + "/" + STEP_ID + "/script").extract().asPrettyString(), equalTo(Files.XSLT_COPY_XML_DOC));
     putJsonObject(Service.PATH_STEPS + "/" + STEP_ID, step, 204);
     await().until(() -> getRecords(Service.PATH_STEPS + "/" + STEP_ID + "/script").extract().asPrettyString(), equalTo(Files.XSLT_COPY_XML_DOC));
@@ -494,8 +500,6 @@ public class ImportTests extends InventoryUpdateTestBase {
         .post(Service.PATH_STEPS)
         .then()
         .statusCode(400);
-
-
   }
 
   @Test
@@ -580,6 +584,7 @@ public class ImportTests extends InventoryUpdateTestBase {
 
   @Test
   public void canCreateEntirePipeline() {
+    int initTsas = getRecords(Service.PATH_TSAS).extract().path("totalRecords");
     JsonObject step = new JsonObject();
     step.put("id", STEP_ID)
         .put("name", "test step 1")
@@ -596,11 +601,12 @@ public class ImportTests extends InventoryUpdateTestBase {
     steps.add(new JsonObject().put("id", STEP_ID_2));
     transformation.put("steps", steps);
     postJsonObject(Service.PATH_TRANSFORMATIONS, transformation);
-    getRecords(Service.PATH_TSAS).body("totalRecords", is(2));
+    getRecords(Service.PATH_TSAS).body("totalRecords", is(initTsas + 2));
   }
 
   @Test
   public void canUpdateEntirePipeline() {
+    int initTsas = getRecords(Service.PATH_TSAS).extract().path("totalRecords");
     postJsonObject(Service.PATH_STEPS,
         new JsonObject().put("id", STEP_ID)
             .put("name", "test step 1")
@@ -622,7 +628,7 @@ public class ImportTests extends InventoryUpdateTestBase {
             .add(new JsonObject().put("id", STEP_ID_2))
             .add(new JsonObject().put("id", STEP_ID_3)));
     postJsonObject(Service.PATH_TRANSFORMATIONS, transformationV1);
-    getRecords(Service.PATH_TSAS).body("totalRecords", is(3));
+    getRecords(Service.PATH_TSAS).body("totalRecords", is( initTsas + 3));
     postJsonObject(Service.PATH_STEPS,
         new JsonObject().put("id", STEP_ID_4)
             .put("name", "test step 4")
@@ -633,8 +639,8 @@ public class ImportTests extends InventoryUpdateTestBase {
         new JsonArray()
             .add(new JsonObject().put("id", STEP_ID_4)));
     putJsonObject(Service.PATH_TRANSFORMATIONS + "/" + transformationV2.getString("id"), transformationV2, 204);
-    getRecords(Service.PATH_TSAS).body("totalRecords", is(1));
-    JsonObject tsas = new JsonObject(getRecords(Service.PATH_TSAS).extract().body().asString());
+    getRecords(Service.PATH_TSAS).body("totalRecords", is( initTsas + 1));
+    JsonObject tsas = new JsonObject(getRecords(Service.PATH_TSAS+"?query=transformationId="+transformationV2.getString("id")).extract().body().asString());
     assertThat("First step is now 'test step 4'",
         tsas.getJsonArray("transformationStepAssociations").getJsonObject(0).getString("stepId"), is(STEP_ID_4));
 
@@ -642,6 +648,7 @@ public class ImportTests extends InventoryUpdateTestBase {
 
   @Test
   public void willNotTouchPipelineIfNoStepsProvidedWithTransformationPut() {
+    int initTsas = getRecords(Service.PATH_TSAS).extract().path("totalRecords");
     postJsonObject(Service.PATH_STEPS,
         new JsonObject().put("id", STEP_ID)
             .put("name", "test step 1")
@@ -663,38 +670,39 @@ public class ImportTests extends InventoryUpdateTestBase {
             .add(new JsonObject().put("id", STEP_ID_2))
             .add(new JsonObject().put("id", STEP_ID_3)));
     postJsonObject(Service.PATH_TRANSFORMATIONS, transformationV1);
-    getRecords(Service.PATH_TSAS).body("totalRecords", is(3));
+    getRecords(Service.PATH_TSAS).body("totalRecords", is(initTsas + 3));
 
     putJsonObject(Service.PATH_TRANSFORMATIONS + "/" + Files.JSON_TRANSFORMATION_CONFIG.getString("id"),
         Files.JSON_TRANSFORMATION_CONFIG.put("name", "new name"), 204);
     getRecordById(Service.PATH_TRANSFORMATIONS,
         Files.JSON_TRANSFORMATION_CONFIG.getString("id")).body("name", is("new name"));
-    getRecords(Service.PATH_TSAS).body("totalRecords", is(3));
+    getRecords(Service.PATH_TSAS).body("totalRecords", is(initTsas + 3));
   }
 
   @Test
   public void canPostGetPutDeleteChannel() {
+    int initChannels = getRecords(PATH_CHANNELS).extract().path("totalRecords");
     postJsonObject(Service.PATH_TRANSFORMATIONS, Files.JSON_TRANSFORMATION_CONFIG);
     // Can create enabled channel
     postJsonObject(Service.PATH_CHANNELS, Files.JSON_CHANNEL);
-    getRecords(Service.PATH_CHANNELS).body("totalRecords", is(1));
+    getRecords(Service.PATH_CHANNELS).body("totalRecords", is(initChannels + 1));
     JsonObject update = Files.JSON_CHANNEL.copy();
     update.put("name", "updated name");
     putJsonObject(Service.PATH_CHANNELS + "/" + Files.JSON_CHANNEL.getString("id"), update, 200);
     putJsonObject(Service.PATH_CHANNELS + "/" + UUID.randomUUID(), update, 404);
-    getRecords(Service.PATH_CHANNELS).body("totalRecords", is(1));
+    getRecords(Service.PATH_CHANNELS).body("totalRecords", is(initChannels + 1));
     // Can delete channel with no logged jobs
     deleteRecord(Service.PATH_CHANNELS, Files.JSON_CHANNEL.getString("id"), 200);
-    getRecords(Service.PATH_CHANNELS).body("totalRecords", is(0));
+    getRecords(Service.PATH_CHANNELS).body("totalRecords", is(initChannels));
 
     // Can create disabled channel
     postJsonObject(PATH_CHANNELS, Files.JSON_CHANNEL.copy().put("enabled", false));
     // Can only delete channel with logged jobs if `force` set to `true`
     postJsonObject(Service.PATH_IMPORT_JOBS, Files.JSON_IMPORT_JOB);
     deleteRecord(Service.PATH_CHANNELS, Files.JSON_CHANNEL.getString("id"), 400);
-    getRecords(Service.PATH_CHANNELS).body("totalRecords", is(1));
+    getRecords(Service.PATH_CHANNELS).body("totalRecords", is(initChannels + 1));
     deleteRecord(Service.PATH_CHANNELS, Files.JSON_CHANNEL.getString("id"), "force=true", 200);
-    getRecords(Service.PATH_CHANNELS).body("totalRecords", is(0));
+    getRecords(Service.PATH_CHANNELS).body("totalRecords", is( initChannels));
     deleteRecord(Service.PATH_CHANNELS, Files.JSON_CHANNEL.getString("id"), 404);
 
 
@@ -702,10 +710,11 @@ public class ImportTests extends InventoryUpdateTestBase {
 
   @Test
   public void canUndeployDeployChannelByUpdatingTheChannelRecord() {
+    int initChannels = getRecords(PATH_CHANNELS).extract().path("totalRecords");
     postJsonObject(Service.PATH_TRANSFORMATIONS, Files.JSON_TRANSFORMATION_CONFIG);
     String channelId = Files.JSON_CHANNEL.getString("id");
     postJsonObject(Service.PATH_CHANNELS, Files.JSON_CHANNEL);
-    getRecords(Service.PATH_CHANNELS).body("totalRecords", is(1));
+    getRecords(Service.PATH_CHANNELS).body("totalRecords", is(initChannels + 1));
     JsonObject channelBefore = getEntityJsonById(Service.PATH_CHANNELS, channelId);
     JsonObject channelUpdate = channelBefore.copy();
     assertEquals(true, channelBefore.getBoolean("enabled"));

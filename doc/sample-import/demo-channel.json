@@ -1,0 +1,9 @@
+{
+  "id": "5e4c7dab-705c-4e8b-a625-87bdd1187fa9",
+  "name": "Channel with MARC XML transformation",
+  "tag": "demo",
+  "type": "XML",
+  "enabled": true,
+  "listening": true,
+  "transformationId": "a320166a-5ce5-4138-a7e5-28315009299d"
+}

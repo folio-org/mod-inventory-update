@@ -30,8 +30,20 @@ public final class FileQueue {
     jobTmpDir = new File(jobPath, TMP_DIR).getPath();
   }
 
+  private FileQueue(Vertx vertx, String tenant, String configId) {
+    fs= vertx.fileSystem();
+    String tenantRootDir = new File(SOURCE_FILES_ROOT_DIR, TENANT_DIR_PREFIX + tenant).getPath();
+    jobPath = new File(tenantRootDir, CHANNEL_PREFIX + configId).getPath();
+    jobProcessingSlot = new File(jobPath, DIRECTORY_OF_CURRENTLY_PROCESSING_FILE).getPath();
+    jobTmpDir = new File(jobPath, TMP_DIR).getPath();
+  }
+
   public static FileQueue get(ServiceRequest request, String configId) {
     return new FileQueue(request, configId);
+  }
+
+  public static FileQueue get(Vertx vertx, String tenant, String configId) {
+    return new FileQueue(vertx, tenant, configId);
   }
 
   public static void clearTenantQueues(Vertx vertx, String tenant) {

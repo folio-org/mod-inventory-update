@@ -1,0 +1,7 @@
+{
+  "id": "9aa31c51-d335-4293-a336-d9f37f533acd",
+  "name": "step-codes2uuid",
+  "description": "Sample step",
+  "script": "<xsl:stylesheet version=\"1.0\" xmlns:xsl=\"http://www.w3.org/1999/XSL/Transform\">\n    <xsl:template match=\"@*|node()\">\n        <xsl:copy>\n            <xsl:apply-templates select=\"@*|node()\"/>\n        </xsl:copy>\n    </xsl:template>\n</xsl:stylesheet>\n",
+  "type": "XmlTransformStep"
+}

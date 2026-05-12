@@ -14,10 +14,17 @@ import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.handler.impl.BodyHandlerImpl;
 import io.vertx.ext.web.openapi.router.RouterBuilder;
 import io.vertx.openapi.contract.OpenAPIContract;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.util.UUID;
 import java.util.function.Function;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.core.util.IOUtils;
+import org.folio.inventoryupdate.importing.moduledata.Channel;
+import org.folio.inventoryupdate.importing.moduledata.Step;
+import org.folio.inventoryupdate.importing.moduledata.Transformation;
 import org.folio.inventoryupdate.importing.moduledata.database.EntityStorage;
 import org.folio.inventoryupdate.importing.service.delivery.fileimport.FileListeners;
 import org.folio.inventoryupdate.importing.service.delivery.fileimport.FileQueue;
@@ -165,7 +172,8 @@ public class ImportService implements RouterCreator, TenantInitHooks {
             logger.info("Tenant '{}' database initialized", tenant))
         .compose(x ->
             clearTenantFileQueues(vertx, tenant, getTenantParameter(tenantAttributes, "clearPastFileQueues")))
-        .compose(na -> FileListeners.clearRegistry());
+        .compose(na -> FileListeners.clearRegistry())
+        .compose( x -> loadSample(vertx, tenant, getTenantParameter(tenantAttributes, "loadSample")));
   }
 
   private static String getTenantParameter(JsonObject attributes, String parameterKey) {
@@ -186,6 +194,78 @@ public class ImportService implements RouterCreator, TenantInitHooks {
       FileQueue.clearTenantQueues(vertx, tenant);
     }
     return Future.succeededFuture();
+  }
+
+  public Future<Void> loadSample(Vertx vertx, String tenant, String loadSample) {
+    if ("true".equalsIgnoreCase(loadSample)) {
+      EntityStorage db = new EntityStorage(vertx, tenant);
+      var picaSamplePath = "sampleconfigs/pica/";
+      return createSampleStep(db,
+          picaSamplePath + "step-pica2instance.json",
+          picaSamplePath + "step-pica2instance.xslt")
+          .compose(na ->
+              createSampleStep(db,
+                  picaSamplePath + "step-relationships.json",
+                  picaSamplePath + "step-relationships.xslt"))
+          .compose(na ->
+              createSampleStep(db,
+                  picaSamplePath + "step-holdings-items.json",
+                  picaSamplePath + "step-holdings-items.xslt"))
+          .compose( na ->
+              createSampleStep(db,
+                  picaSamplePath + "step-locations2uuid.json",
+                  picaSamplePath + "step-locations2uuid.xslt"))
+          .compose(na ->
+              createSampleStep(db,
+                  picaSamplePath + "step-codes2uuid.json",
+                  picaSamplePath + "step-codes2uuid.xslt"))
+          .compose(na ->
+              createSampleTransformation(db, picaSamplePath + "pica-transformation.json"))
+          .compose(na ->
+              createSampleChannel(db, picaSamplePath + "pica-channel.json"));
+    }
+    return Future.succeededFuture();
+  }
+
+  private String getResourceAsString(String path) {
+    String fileAsString = "";
+    ClassLoader classloader = Thread.currentThread().getContextClassLoader();
+    InputStream is = classloader.getResourceAsStream(path);
+    if (is != null) {
+      try {
+        fileAsString = IOUtils.toString(new InputStreamReader(is));
+      } catch (IOException ignored) {
+      }
+    }
+    return fileAsString;
+  }
+
+  private JsonObject getResourceAsJson(String path) {
+    return new JsonObject(getResourceAsString(path));
+  }
+
+  private Future<Void> createSampleStep(EntityStorage db, String pathToSampleStep, String pathToSampleXslt) {
+    JsonObject json = getResourceAsJson(pathToSampleStep);
+    String xslt = getResourceAsString(pathToSampleXslt);
+    System.out.println(json.encodePrettily());
+    Step step = new Step().fromJson(json);
+    return db.storeEntity(step).compose(na -> step.updateScript(xslt, db)).mapEmpty();
+  }
+
+  private Future<Void> createSampleTransformation(EntityStorage db, String pathToSampleTransformation) {
+    System.out.println("Creating sample transformation");
+    JsonObject json = getResourceAsJson(pathToSampleTransformation);
+    System.out.println("Using " + json.encodePrettily());
+    Transformation transformation = new Transformation().fromJson(json);
+    return db.storeEntity(transformation)
+        .compose(transformationId ->
+            db.storeEntities(transformation.getListOfTransformationSteps()));
+  }
+
+  private Future<Void> createSampleChannel(EntityStorage db, String pathToSampleChannel) {
+    JsonObject json = getResourceAsJson(pathToSampleChannel);
+    Channel channel = new Channel().fromJson(json);
+    return db.storeEntity(channel).mapEmpty();
   }
 
   private Future<Void> uploadXmlSourceFile(ServiceRequest request) {

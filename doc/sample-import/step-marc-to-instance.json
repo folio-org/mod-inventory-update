@@ -1,0 +1,11 @@
+{
+  "id": "13b27ab8-99af-4953-81cd-1059ec8f2258",
+  "inputFormat": "XML",
+  "name": "step-marc-to-instance",
+  "enabled": true,
+  "outputFormat": "XML",
+  "script": "<xsl:stylesheet version=\"1.0\" xmlns:xsl=\"http://www.w3.org/1999/XSL/Transform\">\n    <xsl:template match=\"@*|node()\">\n        <xsl:copy>\n            <xsl:apply-templates select=\"@*|node()\"/>\n        </xsl:copy>\n    </xsl:template>\n</xsl:stylesheet>\n",
+  "testData": "",
+  "testOutput": "",
+  "type": "XmlTransformStep"
+}

@@ -1,0 +1,9 @@
+{
+  "id": "7497265b-5e03-44dc-b7c3-65bbc474d249",
+  "name": "PICA channel",
+  "tag": "pica",
+  "type": "XML",
+  "enabled": true,
+  "listening": true,
+  "transformationId": "3cad602b-389a-4df8-8ce4-7fe6cef92625"
+}

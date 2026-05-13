@@ -96,11 +96,11 @@ public final class FileListeners {
    * Un-deploys and de-registers listener verticles that otherwise would
    * survive across test method invocations.
    */
-  public static Future<Void> clearRegistry() {
+  public static Future<Void> clearRegistry(String tenant) {
     List<Future<Void>> undeployFutures = new ArrayList<>();
-    for (Map.Entry<String, ConcurrentMap<String, FileListener>> tenant : FILE_LISTENERS.entrySet()) {
-      for (Map.Entry<String, FileListener> listener : FILE_LISTENERS.get(tenant.getKey()).entrySet()) {
-        FileListener fileListener = FILE_LISTENERS.get(tenant.getKey()).get(listener.getKey());
+    if (FILE_LISTENERS.get(tenant) != null) {
+      for (Map.Entry<String, FileListener> listener : FILE_LISTENERS.get(tenant).entrySet()) {
+        FileListener fileListener = FILE_LISTENERS.get(tenant).get(listener.getKey());
         undeployFutures.add(fileListener.deploymentVertx.undeploy(fileListener.deploymentId));
       }
     }

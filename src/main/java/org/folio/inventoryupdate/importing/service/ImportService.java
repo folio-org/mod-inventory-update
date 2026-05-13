@@ -172,7 +172,7 @@ public class ImportService implements RouterCreator, TenantInitHooks {
             logger.info("Tenant '{}' database initialized", tenant))
         .compose(x ->
             clearTenantFileQueues(vertx, tenant, getTenantParameter(tenantAttributes, "clearPastFileQueues")))
-        .compose(na -> FileListeners.clearRegistry())
+        .compose(na -> FileListeners.clearRegistry(tenant))
         .compose( x -> loadSample(vertx, tenant, getTenantParameter(tenantAttributes, "loadSample")));
   }
 

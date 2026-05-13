@@ -8,6 +8,14 @@
     </xsl:template>
     <!-- Map locations -->
     <xsl:template match="permanentLocationId">
-        <permanentLocationId>fcd64ce1-6995-48f0-840e-89ffa2288371</permanentLocationId>
+        <xsl:variable name="electronicholding" select="substring(//datafield[@tag='002@']/subfield[@code='0'],1,1)"/>
+        <permanentLocationId>
+            <xsl:choose>
+                <!-- Online -->
+                <xsl:when test="$electronicholding='O'">184aae84-a5bf-4c6a-85ba-4a7c73026cd5</xsl:when>
+                <!-- Main Library -->
+                <xsl:otherwise>fcd64ce1-6995-48f0-840e-89ffa2288371</xsl:otherwise>
+            </xsl:choose>
+        </permanentLocationId>
     </xsl:template>
 </xsl:stylesheet>

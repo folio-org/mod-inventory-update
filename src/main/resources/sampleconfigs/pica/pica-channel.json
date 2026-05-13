@@ -1,7 +1,7 @@
 {
   "id": "7497265b-5e03-44dc-b7c3-65bbc474d249",
-  "name": "PICA channel",
-  "tag": "pica",
+  "name": "Sample PICA channel",
+  "tag": "pica-sample",
   "type": "XML",
   "enabled": true,
   "listening": true,

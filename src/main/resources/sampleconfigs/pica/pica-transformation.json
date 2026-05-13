@@ -1,6 +1,6 @@
 {
   "id": "3cad602b-389a-4df8-8ce4-7fe6cef92625",
-  "name": "PICA to FOLIO",
+  "name": "Sample transformation - PICA to FOLIO",
   "description": "Sample transformation",
   "steps": [
     {

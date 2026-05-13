@@ -1,6 +1,6 @@
 {
   "id": "fa8bd77c-f0a8-4bb7-bdcc-6a440dd5b978",
-  "name": "step-locations2uuid",
+  "name": "sample-step-locations2uuid",
   "script": "<xsl:stylesheet version=\"1.0\" xmlns:xsl=\"http://www.w3.org/1999/XSL/Transform\">\n    <xsl:template match=\"@*|node()\">\n        <xsl:copy>\n            <xsl:apply-templates select=\"@*|node()\"/>\n        </xsl:copy>\n    </xsl:template>\n</xsl:stylesheet>\n",
   "type": "XmlTransformStep"
 }

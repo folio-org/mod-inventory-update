@@ -121,10 +121,24 @@
     </alternativeTitleTypeId>
   </xsl:template>
 
-
   <!-- Map loan types -->
   <xsl:template match="permanentLoanTypeId">
-    <permanentLoanTypeId>2b94c631-fca9-4892-a730-03ee529ffe27</permanentLoanTypeId>
+    <permanentLoanTypeId>
+      <xsl:choose>
+        <xsl:when test=".='u - ausleihbar/Fernleihe'">2b94c631-fca9-4892-a730-03ee529ffe27</xsl:when>
+        <xsl:when test=".='b - verkürzt ausleihbar/Fernleihe'">2b94c631-fca9-4892-a730-03ee529ffe27</xsl:when>
+        <xsl:when test=".='c - ausleihbar/keine Fernleihe'">2b94c631-fca9-4892-a730-03ee529ffe27</xsl:when>
+        <xsl:when test=".='s - mit Zustimmung ausleihbar/nur Kopie in die Fernleihe'">2e48e713-17f3-4c13-a9f8-23845bb210a4</xsl:when>
+        <xsl:when test=".='d - mit Zustimmung ausleihbar/Fernleihe'">2e48e713-17f3-4c13-a9f8-23845bb210a4</xsl:when>
+        <xsl:when test=".='i - Lesesaalausleihe/keine Fernleihe'">2e48e713-17f3-4c13-a9f8-23845bb210a4</xsl:when>
+        <xsl:when test=".='f - Lesesaalausleihe/nur Kopie in die Fernleihe'">2e48e713-17f3-4c13-a9f8-23845bb210a4</xsl:when>
+        <xsl:when test=".='g - für die Ausleihe gesperrt/keine Fernleihe'">2b94c631-fca9-4892-a730-03ee529ffe27</xsl:when>
+        <xsl:when test=".='a - bestellt/keine Fernleihe'">2b94c631-fca9-4892-a730-03ee529ffe27</xsl:when>
+        <xsl:when test=".='o - keine Angabe/keine Fernleihe'">2b94c631-fca9-4892-a730-03ee529ffe27</xsl:when>
+        <xsl:when test=".='z - Verlust/keine Fernleihe'">2b94c631-fca9-4892-a730-03ee529ffe27</xsl:when>
+        <xsl:otherwise>2b94c631-fca9-4892-a730-03ee529ffe27</xsl:otherwise>
+      </xsl:choose>
+    </permanentLoanTypeId>
   </xsl:template>
   
   <!-- Map material types -->
@@ -440,22 +454,8 @@
   <!-- Map instance statues -->
   <xsl:template match="statusId">
     <statusId>
-    <xsl:choose>
-      <xsl:when test=".='Autopsie'">bac08adf-98ef-44ee-8e8a-ab76128c92c1</xsl:when>
-      <xsl:when test=".='Bibliografisch vollständig'">8bc58a74-b04e-45a4-8c5d-64568a5f0d55</xsl:when>
-      <xsl:when test=".='Erwerbungsdatensatz'">5dc8b06f-6b85-4a64-9825-811d5c0660a8</xsl:when>
-      <xsl:when test=".='Datensatz für internen Gebrauch'">3f378ff8-a474-4232-85b1-977650abba83</xsl:when>
-      <xsl:when test=".='Lösch-Status'">287f32a7-434b-4a89-a7f3-d12c8d6bf81c</xsl:when>
-      <xsl:when test=".='Maschinell konvertierte Daten'">e1700e6a-f606-4464-a9af-f0849890f17e</xsl:when>
-      <xsl:when test=".='Katalogisat ohne Autopsie'">8867ba26-c5da-4a5d-851d-976429f83a45</xsl:when>
-      <xsl:when test=".='Verwaltungsdatensatz'">07ae89f4-e760-421a-8c74-c69f643881dc</xsl:when>
-      <xsl:when test=".='Fremddatensatz'">449a7305-0bfc-434d-ba93-1ce916f706b1</xsl:when>
-      <xsl:when test=".='Katalogisat nach Autopsie im Vorläufigkeitsstatus'">0c81eb93-f2f1-477a-9bbb-a0b18b094f8f</xsl:when>
-      <xsl:when test=".='Maschinelle Einspielung, möglicherweise dublett'">b7ca8a3f-e818-4253-8461-55f198eaf101</xsl:when>
-      <xsl:when test=".='Zunächst verdeckt eingespieltes Novum'">c8678080-990d-4633-95cb-56d06bbf108f</xsl:when>
-      <xsl:when test=".='Inhalt oder Struktur ist zu überprüfen'">775bdbe0-ba63-4d51-aa78-04b2ee81bd27</xsl:when>
-    </xsl:choose>
-    </statusId>
+      9634a5ab-9228-4703-baf2-4d12ebc77d56
+    </statusId> <!-- Cataloged -->
   </xsl:template>
 
   <!-- Map identifier types -->
@@ -821,10 +821,9 @@
   <xsl:template match="instanceRelationshipTypeId">
     <instanceRelationshipTypeId>
       <xsl:choose>
-        <xsl:when test=".='Aufsatz'">6366b68c-aeeb-4dfe-9cd5-92518b2244a0</xsl:when>
-        <xsl:when test=".='Band'">23651816-7176-406a-8915-52e25b3a9411</xsl:when>
         <xsl:when test=".='Mehrteilige Monografie'">a17daf0a-f057-43b3-9997-13d0724cdf51</xsl:when>
         <xsl:when test=".='Schriftenreihe'">30773a27-b485-4dab-aeb6-b8c04fa3cb17</xsl:when>
+        <xsl:otherwise>30773a27-b485-4dab-aeb6-b8c04fa3cb17</xsl:otherwise>
       </xsl:choose>
     </instanceRelationshipTypeId>
   </xsl:template>
@@ -833,14 +832,15 @@
   <xsl:template match="illPolicyId">
     <illPolicyId>
       <xsl:choose>
-        <xsl:when test=".='8052 nx - keine Fernleihe'">9a6b418c-7bda-41fd-9ce8-eb25e5ce5d07</xsl:when>
-        <xsl:when test=".='8052 nxp - keine Fernleihe'">a8f322ed-b0cb-46e0-a8f4-ed81fe9c3726</xsl:when>
-        <xsl:when test=".='8052 kx - Papierkopie an Endnutzer'">4232a93a-6bfd-4334-8e9b-77d254f49acd</xsl:when>
-        <xsl:when test=".='8052 ky - Papierkopie an Endnutzer, nur im Inland'">4ca37b66-801b-4e56-9f10-e30a23d71e9d</xsl:when>
-        <xsl:when test=".='8052 kxp - Papierkopie an Endnutzer, Elektronische Übertragung zwischen den Bibliotheken ausgeschlossen'">e837ace5-607b-4de3-ba89-80dc40276d7b</xsl:when>
-        <xsl:when test=".='8052 kyp - Papierkopie an Endnutzer, nur im Inland, Elektronische Übertragung zwischen den Bibliotheken ausgeschlossen'">6279e99d-09fd-4e92-802d-ff61dfd06713</xsl:when>
-        <xsl:when test=".='8052 ex - elektronischer Versand an Endnutzer'">7f0aeaf5-382b-488f-85a7-2c7aa1eb2dd3</xsl:when>
-        <xsl:when test=".='8052 ey - elektronischer Versand an Endnutzer, nur im Inland'">1b10bdba-4b30-42c5-bd67-59d89461486d</xsl:when>
+        <xsl:when test=".='8052 nx - keine Fernleihe'">b0f97013-87f5-4bab-87f2-ac4a5191b489</xsl:when>
+        <xsl:when test=".='8052 nxp - keine Fernleihe'">b0f97013-87f5-4bab-87f2-ac4a5191b489</xsl:when>
+        <xsl:when test=".='8052 kx - Papierkopie an Endnutzer'">2a572e7b-dfe5-4dee-8a62-b98d26a802e6</xsl:when>
+        <xsl:when test=".='8052 ky - Papierkopie an Endnutzer, nur im Inland'">9e49924b-f649-4b36-ab57-e66e639a9b0e</xsl:when>
+        <xsl:when test=".='8052 kxp - Papierkopie an Endnutzer, Elektronische Übertragung zwischen den Bibliotheken ausgeschlossen'">9e49924b-f649-4b36-ab57-e66e639a9b0e</xsl:when>
+        <xsl:when test=".='8052 kyp - Papierkopie an Endnutzer, nur im Inland, Elektronische Übertragung zwischen den Bibliotheken ausgeschlossen'">9e49924b-f649-4b36-ab57-e66e639a9b0e</xsl:when>
+        <xsl:when test=".='8052 ex - elektronischer Versand an Endnutzer'">46970b40-918e-47a4-a45d-b1677a2d3d46</xsl:when>
+        <xsl:when test=".='8052 ey - elektronischer Versand an Endnutzer, nur im Inland'">9e49924b-f649-4b36-ab57-e66e639a9b0e</xsl:when>
+        <xsl:otherwise>37fc2702-7ec9-482a-a4e3-5ed9a122ece1</xsl:otherwise>
       </xsl:choose>
     </illPolicyId>
   </xsl:template>

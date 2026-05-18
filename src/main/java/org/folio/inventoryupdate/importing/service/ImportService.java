@@ -234,7 +234,7 @@ public class ImportService implements RouterCreator, TenantInitHooks {
     if (is != null) {
       try {
         fileAsString = IOUtils.toString(new InputStreamReader(is));
-      } catch (IOException ignored) {
+      } catch (IOException ignored) { // continue if source not found
       }
     }
     return fileAsString;
@@ -247,15 +247,12 @@ public class ImportService implements RouterCreator, TenantInitHooks {
   private Future<Void> createSampleStep(EntityStorage db, String pathToSampleStep, String pathToSampleXslt) {
     JsonObject json = getResourceAsJson(pathToSampleStep);
     String xslt = getResourceAsString(pathToSampleXslt);
-    System.out.println(json.encodePrettily());
     Step step = new Step().fromJson(json);
     return db.storeEntity(step).compose(na -> step.updateScript(xslt, db)).mapEmpty();
   }
 
   private Future<Void> createSampleTransformation(EntityStorage db, String pathToSampleTransformation) {
-    System.out.println("Creating sample transformation");
     JsonObject json = getResourceAsJson(pathToSampleTransformation);
-    System.out.println("Using " + json.encodePrettily());
     Transformation transformation = new Transformation().fromJson(json);
     return db.storeEntity(transformation)
         .compose(transformationId ->

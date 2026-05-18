@@ -1,0 +1,22 @@
+{
+  "id": "3cad602b-389a-4df8-8ce4-7fe6cef92625",
+  "name": "Sample transformation - PICA to FOLIO",
+  "description": "Sample transformation",
+  "steps": [
+    {
+      "id": "a9de66c6-1289-4a05-ab38-2ddcfe430769"
+    },
+    {
+      "id": "8453306b-1b51-4325-9b24-3da621e0ac9b"
+    },
+    {
+      "id": "d68138a7-aec8-43ef-a02d-7c53602fd9f3"
+    },
+    {
+      "id": "fa8bd77c-f0a8-4bb7-bdcc-6a440dd5b978"
+    },
+    {
+      "id": "9aa31c51-d335-4293-a336-d9f37f533acd"
+    }
+  ]
+}

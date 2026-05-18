@@ -1,0 +1,6 @@
+{
+  "id": "d68138a7-aec8-43ef-a02d-7c53602fd9f3",
+  "name": "sample-step-holdings-items",
+  "script": "<xsl:stylesheet version=\"1.0\" xmlns:xsl=\"http://www.w3.org/1999/XSL/Transform\">\n    <xsl:template match=\"@*|node()\">\n        <xsl:copy>\n            <xsl:apply-templates select=\"@*|node()\"/>\n        </xsl:copy>\n    </xsl:template>\n</xsl:stylesheet>\n",
+  "type": "XmlTransformStep"
+}

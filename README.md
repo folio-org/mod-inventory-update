@@ -32,6 +32,7 @@ in PART II [How MIU works with the inventory record set](#part-ii-how-miu-works-
 
 <!-- TOC -->
   * [PART I. How to import XML files](#part-i-how-to-import-xml-files)
+    * [Try importing sample source files to inventory using the sample configuration](#try-importing-sample-source-files-to-inventory-using-the-sample-configuration)
     * [Creating a transformation pipeline and assigning it to a channel](#creating-a-transformation-pipeline-and-assigning-it-to-a-channel)
     * [Managing channels](#managing-channels)
       * [Import jobs](#import-jobs)
@@ -118,6 +119,26 @@ The high level structure of an inventory record set is
 The details of this structure are described in the API doc [Upsert APIs](src/main/resources/openapi/inventory-update-5.0.yaml) that documents the JSON schema for it, 
 and in [PART II. How MIU works with the inventory record set](#part-ii-how-miu-works-with-the-inventory-record-set), which explains how MIU uses the structure, especially 
 in regard to the processing instructions element.
+
+### Try importing sample source files to inventory using the sample configuration
+
+If the module is installed for the tenant with the parameter `loadSample` set to `true`, then a sample channel with a transformation 
+pipeline will be configured. The stylesheets are written to transform bibliographic records in PICA format, and they would map
+information in the PICA records to the reference data that would be loaded with mod-inventory-storage if mod-inventory-storage
+was likewise installed with `loadReference` set to `true`. The stylesheets would for example map PICA specified locations to 
+inventory storage's preloaded reference location 'Main Library' and material types to the preloaded material type 'book'. 
+
+There is a sample file [here](./doc/samplesourcefiles/pica/pica-record.xml) that can be imported with that channel using this request:
+
+`POST inventory-import/channels/pica-sample/upload?filename=pica-record.xml  -f pica-record.xml`
+
+To investigate how the pipeline transform the sample file to inventory JSON, a request like this can be made to MIU:
+
+`POST inventory-import/channels/pica-sample/try-transformation -f pica-record.xml`
+
+To see the intermediate XML transformation -- the XML right before conversion to JSON -- use
+
+`POST inventory-import/channels/pica-sample/try-transformation?output=xml -f pica-record.xml`
 
 The next paragraphs will explain how to populate the configuration structure to create an import channel with a transformation
 pipeline, and then create a transformation that brings the incoming XML onto the inventory record set structure. The example

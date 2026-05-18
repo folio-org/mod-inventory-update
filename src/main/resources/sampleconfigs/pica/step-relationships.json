@@ -1,0 +1,6 @@
+{
+  "id": "8453306b-1b51-4325-9b24-3da621e0ac9b",
+  "name": "sample-step-relationships",
+  "script": "<xsl:stylesheet version=\"1.0\" xmlns:xsl=\"http://www.w3.org/1999/XSL/Transform\">\n    <xsl:template match=\"@*|node()\">\n        <xsl:copy>\n            <xsl:apply-templates select=\"@*|node()\"/>\n        </xsl:copy>\n    </xsl:template>\n</xsl:stylesheet>\n",
+  "type": "XmlTransformStep"
+}

@@ -1,0 +1,10 @@
+{
+  "id": "7890b1e2-3dbc-4c70-b6c8-3a828592a896",
+  "name": "Sample transformation - MARC XML to FOLIO",
+  "description": "Sample transformation from MARC XML to FOLIO Inventory instance",
+  "steps": [
+    {
+      "id": "d56e755e-a27d-4c6d-bb87-2d33caad9782"
+    }
+  ]
+}

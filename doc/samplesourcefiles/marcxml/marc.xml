@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<collection xmlns:marc="http://www.loc.gov/MARC21/slim">
+    <marc:record>
+        <marc:leader>00942nam a22002531a 4504</marc:leader>
+        <marc:controlfield tag="001">73209622</marc:controlfield>
+        <marc:controlfield tag="003">DLC</marc:controlfield>
+        <marc:controlfield tag="005">19820325000000.0</marc:controlfield>
+        <marc:controlfield tag="008">780306m19009999ohu 00000 grc</marc:controlfield>
+        <marc:datafield tag="245" ind1="0" ind2="4">
+            <marc:subfield code="a">Sample title</marc:subfield>
+            <marc:subfield code="c">J. Arthur Hanson, David Paterson, editors.</marc:subfield>
+        </marc:datafield>
+        <marc:datafield tag="700" ind1="1" ind2="0">
+            <marc:subfield code="a">Hanson, J. Arthur</marc:subfield>
+            <marc:subfield code="q">(Joseph Arthur)</marc:subfield>
+        </marc:datafield>
+        <marc:datafield tag="700" ind1="1" ind2="0">
+            <marc:subfield code="a">Paterson, David,</marc:subfield>
+            <marc:subfield code="d">1952-</marc:subfield>
+        </marc:datafield>
+        <marc:datafield tag="710" ind1="2" ind2="0">
+            <marc:subfield code="a">Research Associates.</marc:subfield>
+        </marc:datafield>
+    </marc:record>
+</collection>

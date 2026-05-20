@@ -199,33 +199,47 @@ public class ImportService implements RouterCreator, TenantInitHooks {
   public Future<Void> loadSample(Vertx vertx, String tenant, String loadSample) {
     if ("true".equalsIgnoreCase(loadSample)) {
       EntityStorage db = new EntityStorage(vertx, tenant);
-      var picaSamplePath = "sampleconfigs/pica/";
-      return createSampleStep(db,
-          picaSamplePath + "step-pica2instance.json",
-          picaSamplePath + "step-pica2instance.xslt")
-          .compose(na ->
-              createSampleStep(db,
-                  picaSamplePath + "step-relationships.json",
-                  picaSamplePath + "step-relationships.xslt"))
-          .compose(na ->
-              createSampleStep(db,
-                  picaSamplePath + "step-holdings-items.json",
-                  picaSamplePath + "step-holdings-items.xslt"))
-          .compose( na ->
-              createSampleStep(db,
-                  picaSamplePath + "step-locations2uuid.json",
-                  picaSamplePath + "step-locations2uuid.xslt"))
-          .compose(na ->
-              createSampleStep(db,
-                  picaSamplePath + "step-codes2uuid.json",
-                  picaSamplePath + "step-codes2uuid.xslt"))
-          .compose(na ->
-              createSampleTransformation(db, picaSamplePath + "pica-transformation.json"))
-          .compose(na ->
-              createSampleChannel(db, picaSamplePath + "pica-channel.json"));
+      return createPicaSampleConfigs(db).compose(na -> createMarcXmlSampleConfigs(db));
     }
     return Future.succeededFuture();
   }
+
+  private Future<Void> createPicaSampleConfigs(EntityStorage db) {
+    var picaSamplePath = "sampleconfigs/pica/";
+    return createSampleStep(db,
+        picaSamplePath + "step-pica2instance.json",
+        picaSamplePath + "step-pica2instance.xslt")
+        .compose(na ->
+            createSampleStep(db,
+                picaSamplePath + "step-relationships.json",
+                picaSamplePath + "step-relationships.xslt"))
+        .compose(na ->
+            createSampleStep(db,
+                picaSamplePath + "step-holdings-items.json",
+                picaSamplePath + "step-holdings-items.xslt"))
+        .compose(na ->
+            createSampleStep(db,
+                picaSamplePath + "step-locations2uuid.json",
+                picaSamplePath + "step-locations2uuid.xslt"))
+        .compose(na ->
+            createSampleStep(db,
+                picaSamplePath + "step-codes2uuid.json",
+                picaSamplePath + "step-codes2uuid.xslt"))
+        .compose(na ->
+            createSampleTransformation(db, picaSamplePath + "pica-transformation.json"))
+        .compose(na ->
+            createSampleChannel(db, picaSamplePath + "pica-channel.json"));
+  }
+
+  private Future<Void> createMarcXmlSampleConfigs(EntityStorage db) {
+    var samplesPath = "sampleconfigs/marcxml/";
+    return createSampleStep(db, samplesPath + "step-marc2instance.json", samplesPath + "step-marc2instance.xslt")
+        .compose( na ->
+            createSampleTransformation(db, samplesPath + "marc-transformation.json"))
+        .compose( na ->
+            createSampleChannel(db, samplesPath + "marcxml-channel.json"));
+  }
+
 
   private String getResourceAsString(String path) {
     String fileAsString = "";

@@ -1,0 +1,9 @@
+{
+  "id": "3b583823-601d-4e2f-8c42-3c550717703e",
+  "name": "Sample MARC XML Channel",
+  "tag": "marcxml-sample",
+  "type": "XML",
+  "enabled": true,
+  "listening": true,
+  "transformationId": "7890b1e2-3dbc-4c70-b6c8-3a828592a896"
+}

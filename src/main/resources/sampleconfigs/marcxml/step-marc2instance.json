@@ -1,0 +1,6 @@
+{
+  "id": "d56e755e-a27d-4c6d-bb87-2d33caad9782",
+  "name": "sample-step-marc2instance",
+  "script": "<xsl:stylesheet version=\"1.0\" xmlns:xsl=\"http://www.w3.org/1999/XSL/Transform\">\n    <xsl:template match=\"@*|node()\">\n        <xsl:copy>\n            <xsl:apply-templates select=\"@*|node()\"/>\n        </xsl:copy>\n    </xsl:template>\n</xsl:stylesheet>\n",
+  "type": "XmlTransformStep"
+}

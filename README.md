@@ -32,7 +32,7 @@ in PART II [How MIU works with the inventory record set](#part-ii-how-miu-works-
 
 <!-- TOC -->
   * [PART I. How to import XML files](#part-i-how-to-import-xml-files)
-    * [Try importing sample source files to inventory using the sample configuration](#try-importing-sample-source-files-to-inventory-using-the-sample-configuration)
+    * [Try importing sample source files to inventory using the sample configurations](#try-importing-sample-source-files-to-inventory-using-the-sample-configurations)
     * [Creating a transformation pipeline and assigning it to a channel](#creating-a-transformation-pipeline-and-assigning-it-to-a-channel)
     * [Managing channels](#managing-channels)
       * [Import jobs](#import-jobs)
@@ -120,12 +120,14 @@ The details of this structure are described in the API doc [Upsert APIs](src/mai
 and in [PART II. How MIU works with the inventory record set](#part-ii-how-miu-works-with-the-inventory-record-set), which explains how MIU uses the structure, especially 
 in regard to the processing instructions element.
 
-### Try importing sample source files to inventory using the sample configuration
+### Try importing sample source files to inventory using the sample configurations
 
-If the module is installed for the tenant with the parameter `loadSample` set to `true`, then a sample channel with a transformation 
-pipeline will be configured. The stylesheets are written to transform bibliographic records in PICA format, and they would map
-information in the PICA records to the reference data that would be loaded with mod-inventory-storage if mod-inventory-storage
-was likewise installed with `loadReference` set to `true`. The stylesheets would for example map PICA specified locations to 
+If the module is installed for the tenant with the parameter `loadSample` set to `true`, then a couple of sample channels with transformation 
+pipelines will be configured on installation. 
+
+One of them is a PICA channel with stylesheets written to transform bibliographic records in PICA format. They map
+information in the PICA records to the reference data that are loaded with mod-inventory-storage if mod-inventory-storage
+is also installed with `loadReference` set to `true`. The stylesheets would for example map PICA specified locations to 
 inventory storage's preloaded reference location 'Main Library' and material types to the preloaded material type 'book'. 
 
 There is a sample file [here](./doc/samplesourcefiles/pica/pica-record.xml) that can be imported with that channel using this request:
@@ -139,6 +141,14 @@ To investigate how the pipeline transform the sample file to inventory JSON, a r
 To see the intermediate XML transformation -- the XML right before conversion to JSON -- use
 
 `POST inventory-import/channels/pica-sample/try-transformation?output=xml -f pica-record.xml`
+
+The other sample channel is handling MARC XML. This channel has a very simple pipeline that transforms the mandatory 
+instance properties and a few more MARC fields. It does not attempt to import holdings or items. 
+
+There is a simplified MARC sample file [here](./doc/samplesourcefiles/marcxml/marc.xml) that can be imported through
+this MARC-XML channel:
+
+`POST inventory-import/channels/marcxml-sample/upload?filename=marc.xml -f marc.xml `
 
 The next paragraphs will explain how to populate the configuration structure to create an import channel with a transformation
 pipeline, and then create a transformation that brings the incoming XML onto the inventory record set structure. The example

@@ -695,8 +695,10 @@ public class ImportTests extends InventoryUpdateTestBase {
     deleteRecord(Service.PATH_CHANNELS, Files.JSON_CHANNEL.getString("id"), 200);
     getRecords(Service.PATH_CHANNELS).body("totalRecords", is(initChannels));
 
-    // Can create disabled channel
-    postJsonObject(PATH_CHANNELS, Files.JSON_CHANNEL.copy().put("enabled", false));
+    // Can create disabled channel (this one with no tag)
+    JsonObject disabledChannel = Files.JSON_CHANNEL.copy().put("enabled", false);
+    disabledChannel.remove("tag");
+    postJsonObject(PATH_CHANNELS, disabledChannel);
     // Can only delete channel with logged jobs if `force` set to `true`
     postJsonObject(Service.PATH_IMPORT_JOBS, Files.JSON_IMPORT_JOB);
     deleteRecord(Service.PATH_CHANNELS, Files.JSON_CHANNEL.getString("id"), 400);

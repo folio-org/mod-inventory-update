@@ -169,6 +169,7 @@ public abstract class Entity {
   protected String updateClauseColumnTemplates() {
     StringBuilder listOfColumnsValues = new StringBuilder();
     fields().entrySet().stream()
+        .filter(entry -> !entry.getKey().equalsIgnoreCase("id")) // Immutable.
         .filter(entry -> !entry.getValue().virtual)
         .forEach(field ->
         listOfColumnsValues.append(dbColumnName(field.getKey())).append(" = #{")

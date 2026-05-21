@@ -325,6 +325,12 @@ public abstract class Entity {
     return this;
   }
 
+  public void putIfNotNull(JsonObject json, String name, Object value) {
+    if (value != null) {
+      json.put(name, value);
+    }
+  }
+
   /**
    * Represents a field of an entity, containing JSON property name, database column name and other features of a field.
    *

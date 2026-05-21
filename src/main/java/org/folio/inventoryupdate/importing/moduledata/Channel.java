@@ -130,7 +130,7 @@ public class Channel extends Entity {
     JsonObject json = new JsonObject();
     json.put(jsonPropertyName(ID), theRecord.id());
     json.put(jsonPropertyName(NAME), theRecord.name());
-    json.put(jsonPropertyName(TAG), theRecord.tag());
+    putIfNotNull(json, jsonPropertyName(TAG), theRecord.tag());
     json.put(jsonPropertyName(TYPE), theRecord.type());
     json.put(jsonPropertyName(TRANSFORMATION_ID), theRecord.transformationId());
     json.put(jsonPropertyName(ENABLED), theRecord.enabled());

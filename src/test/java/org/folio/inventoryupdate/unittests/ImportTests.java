@@ -463,7 +463,8 @@ public class ImportTests extends InventoryUpdateTestBase {
     postJsonObject(Service.PATH_STEPS, step);
     assertThat(getRecords(Service.PATH_STEPS).extract().path("totalRecords"), is( initSteps + 1));
     await().until(() -> getRecords(Service.PATH_STEPS + "/" + STEP_ID + "/script").extract().asPrettyString(), equalTo(Files.XSLT_COPY_XML_DOC));
-    putJsonObject(Service.PATH_STEPS + "/" + STEP_ID, step, 204);
+    JsonObject stepGET = getEntityJsonById(PATH_STEPS, STEP_ID);
+    putJsonObject(Service.PATH_STEPS + "/" + STEP_ID, stepGET, 204);
     await().until(() -> getRecords(Service.PATH_STEPS + "/" + STEP_ID + "/script").extract().asPrettyString(), equalTo(Files.XSLT_COPY_XML_DOC));
     deleteRecord(Service.PATH_STEPS, STEP_ID, 200);
     deleteRecord(Service.PATH_STEPS, STEP_ID, 404);

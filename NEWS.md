@@ -1,7 +1,7 @@
 ## 5.1.1 2026-05-27
 
 * [MODINVUP-184](https://issues.folio.org/browse/MODINVUP-184), [MODINVUP-207](https://issues.folio.org/browse/MODINVUP-207) implement `loadSample` (MARC, PICA import configs).
-* [MODINVUP-206](https://issues.folio.org/browse/MODINVUP-206) Ensure tenant separation in file system handling.
+* [MODINVUP-206](https://issues.folio.org/browse/MODINVUP-206) Ensure tenant separation in worker thread clean-up.
 * [MODINVUP-208](https://issues.folio.org/browse/MODINVUP-208) Ensure that a channel JSON that you GET can also be PUT.
 * [MODINVUP-210](https://issues.folio.org/browse/MODINVUP-210) Ensure that primary keys (`id` properties) are immutable.
 

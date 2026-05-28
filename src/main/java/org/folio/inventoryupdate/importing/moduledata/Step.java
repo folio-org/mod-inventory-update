@@ -119,9 +119,9 @@ public class Step extends Entity {
     JsonObject json = new JsonObject();
     json.put(jsonPropertyName(ID), theRecord.id());
     json.put(jsonPropertyName(NAME), theRecord.name());
-    json.put(jsonPropertyName(TYPE), theRecord.type());
-    json.put(jsonPropertyName(DESCRIPTION), theRecord.description());
-    json.put(jsonPropertyName(SCRIPT), theRecord.script());
+    putIfNotNull(json, jsonPropertyName(TYPE), theRecord.type());
+    putIfNotNull(json, jsonPropertyName(DESCRIPTION), theRecord.description());
+    putIfNotNull(json, jsonPropertyName(SCRIPT), theRecord.script());
     putMetadata(json);
     return json;
   }

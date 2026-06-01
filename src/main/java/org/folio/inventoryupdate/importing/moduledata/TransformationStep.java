@@ -167,6 +167,7 @@ public class TransformationStep extends Entity {
   /**
    * Override to include STEP_NAME from STEP in transformation step association queries.
    */
+  @Override
   public SqlQuery cqlToSql(String query, String offset, String limit, String schema, String table, PgCqlDefinition definition) {
     String select = "SELECT " + table + ".*, " + Tables.STEP + ".name AS STEP_NAME ";
     String from = "FROM " + schema + "." + table + ", " + schema + "." + Tables.STEP;
@@ -243,6 +244,10 @@ public class TransformationStep extends Entity {
         });
   }
 
+  /**
+   * Override to include STEP_NAME from STEP table in GET by ID.
+   */
+  @Override
   public Future<Entity> getById (ServiceRequest getOrPutRequest) {
     UUID id = UUID.fromString(getOrPutRequest.requestParam("id"));
     return SqlTemplate.forQuery(getOrPutRequest.entityStorage().getTenantPool().getPool(),

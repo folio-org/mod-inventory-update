@@ -22,7 +22,7 @@ public class EntityResponses {
 
   public static Future<Void> getEntityAndRespond(ServiceRequest request, Entity entity) {
     UUID id = UUID.fromString(request.requestParam("id"));
-    return request.entityStorage().getEntity(id, entity).onSuccess(instance -> {
+    return entity.getById(request).onSuccess(instance -> {
       if (instance == null) {
         responseText(request.routingContext(), 404).end(entity.entityName() + " " + id + " not found.");
       } else {
@@ -35,7 +35,7 @@ public class EntityResponses {
     EntityStorage db = request.entityStorage();
     SqlQuery query;
     try {
-      query = entity.cqlToSql(request, db.schemaDotTable(entity.table()));
+      query = entity.cqlToSql(request);
     } catch (PgCqlException pce) {
       responseText(request.routingContext(), 400)
           .end("Could not execute query to retrieve " + entity.jsonCollectionName() + ": " + pce.getMessage()
@@ -77,7 +77,7 @@ public class EntityResponses {
   public static Future<Void> storeEntityRespondWith201(ServiceRequest request, Entity entity) {
     EntityStorage db = request.entityStorage();
     return db.storeEntity(entity.withCreatingUser(request.currentUser()))
-        .onSuccess(id -> db.getEntity(id, entity).map(stored ->
+        .onSuccess(id -> entity.getById(id, db).map(stored ->
             responseJson(request.routingContext(), 201).end(stored.asJson().encodePrettily()))).mapEmpty();
   }
 }

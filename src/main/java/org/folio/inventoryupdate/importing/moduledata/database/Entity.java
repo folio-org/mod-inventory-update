@@ -5,9 +5,12 @@ import static org.folio.inventoryupdate.importing.moduledata.Metadata.METADATA_P
 import io.vertx.core.Future;
 import io.vertx.core.json.JsonObject;
 import io.vertx.sqlclient.Row;
+import io.vertx.sqlclient.RowIterator;
 import io.vertx.sqlclient.RowSet;
 import io.vertx.sqlclient.templates.RowMapper;
+import io.vertx.sqlclient.templates.SqlTemplate;
 import io.vertx.sqlclient.templates.TupleMapper;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
@@ -177,6 +180,24 @@ public abstract class Entity {
     return listOfColumnsValues.append(metadata.updateClauseColumnTemplates()).toString();
   }
 
+  public Future<Entity> getById (ServiceRequest getOrPutRequest) {
+    UUID id = UUID.fromString(getOrPutRequest.requestParam("id"));
+    return getById(id, getOrPutRequest.entityStorage());
+  }
+
+  public Future<Entity> getById (UUID id, EntityStorage storage) {
+    return SqlTemplate.forQuery(storage.pool.getPool(),
+            "SELECT * "
+                + "FROM " + storage.schema() + "." + table().name() + " "
+                + "WHERE id = #{id}")
+        .mapTo(fromRow())
+        .execute(Collections.singletonMap("id", id))
+        .map(rows -> {
+          RowIterator<Entity> iterator = rows.iterator();
+          return iterator.hasNext() ? iterator.next().withTenant(tenant) : null;
+        });
+  }
+
   /**
    * Creates Vert.X row mapper that maps a database select result row onto data object(s).
    */
@@ -229,18 +250,28 @@ public abstract class Entity {
   /**
    * Gets a SQL query string from CQL.
    */
-  public SqlQuery cqlToSql(ServiceRequest request, String schemaDotTable) {
+  public SqlQuery cqlToSql(ServiceRequest request) {
     PgCqlDefinition definition = getQueryableFields();
 
     String query = request.requestParam("query");
     String offset = request.requestParam("offset");
     String limit = request.requestParam("limit");
-    return cqlToSql(query, offset, limit, schemaDotTable, definition);
+    return cqlToSql(query, offset, limit, request.dbSchema(), table().name(), definition);
   }
 
-  public SqlQuery cqlToSql(String query, String offset, String limit, String table, PgCqlDefinition definition) {
+  public SqlQuery cqlToSql(ServiceRequest request, String table) {
+    PgCqlDefinition definition = getQueryableFields();
+
+    String query = request.requestParam("query");
+    String offset = request.requestParam("offset");
+    String limit = request.requestParam("limit");
+    return cqlToSql(query, offset, limit, request.dbSchema(), table, definition);
+  }
+
+
+  public SqlQuery cqlToSql(String query, String offset, String limit, String schema, String table, PgCqlDefinition definition) {
     String select = "SELECT * ";
-    String from = "FROM " + table;
+    String from = "FROM " + schema + "." + table;
     String whereClause = "";
     String orderByClause = "";
     if (query != null && !query.isEmpty()) {
@@ -261,7 +292,7 @@ public abstract class Entity {
    * @param clause string containing names to translate
    * @return translated string
    */
-  private String jsonPropertiesToColumnNames(String clause) {
+  protected String jsonPropertiesToColumnNames(String clause) {
     if (clause != null) {
       Map<String, PgColumn> prop2col = getPropertyToColumnMap();
       for (Map.Entry<String, PgColumn> property : prop2col.entrySet()) {

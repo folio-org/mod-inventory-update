@@ -1,7 +1,9 @@
 package org.folio.inventoryupdate.importing.moduledata;
 
 import io.vertx.core.Future;
+import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
+import io.vertx.sqlclient.RowIterator;
 import io.vertx.sqlclient.SqlResult;
 import io.vertx.sqlclient.templates.RowMapper;
 import io.vertx.sqlclient.templates.SqlTemplate;
@@ -14,8 +16,11 @@ import java.util.Map;
 import java.util.UUID;
 import org.folio.inventoryupdate.importing.moduledata.database.Entity;
 import org.folio.inventoryupdate.importing.moduledata.database.PgColumn;
+import org.folio.inventoryupdate.importing.moduledata.database.SqlQuery;
 import org.folio.inventoryupdate.importing.moduledata.database.Tables;
 import org.folio.inventoryupdate.importing.service.ServiceRequest;
+import org.folio.tlib.postgres.PgCqlDefinition;
+import org.folio.tlib.postgres.PgCqlQuery;
 import org.folio.tlib.postgres.TenantPgPool;
 
 public class TransformationStep extends Entity {
@@ -95,21 +100,15 @@ public class TransformationStep extends Entity {
     json.put(jsonPropertyName(TRANSFORMATION_ID), theRecord.transformationId);
     json.put(jsonPropertyName(STEP_ID), theRecord.stepId);
     json.put(jsonPropertyName(POSITION), theRecord.position);
-    json.put(jsonPropertyName(STEP_NAME), this.stepName);
+    if (!this.stepName.isEmpty()) {
+      json.put(jsonPropertyName(STEP_NAME), this.stepName);
+    }
     putMetadata(json);
     return json;
   }
 
   @Override
   public RowMapper<Entity> fromRow() {
-    return row -> new TransformationStep(
-        row.getUUID(dbColumnName(ID)),
-        row.getUUID(dbColumnName(TRANSFORMATION_ID)),
-        row.getUUID(dbColumnName(STEP_ID)),
-        row.getInteger(dbColumnName(POSITION))).withMetadata(row);
-  }
-
-  public RowMapper<Entity> fromRowWithStepName() {
     return row -> new TransformationStep(
         row.getUUID(dbColumnName(ID)),
         row.getUUID(dbColumnName(TRANSFORMATION_ID)),
@@ -165,6 +164,26 @@ public class TransformationStep extends Entity {
         .mapEmpty();
   }
 
+  /**
+   * Override to include STEP_NAME from STEP in transformation step association queries.
+   */
+  public SqlQuery cqlToSql(String query, String offset, String limit, String schema, String table, PgCqlDefinition definition) {
+    String select = "SELECT " + table + ".*, " + Tables.STEP + ".name AS STEP_NAME ";
+    String from = "FROM " + schema + "." + table + ", " + schema + "." + Tables.STEP;
+    String whereClause = table + ".step_id = " + Tables.STEP + ".id ";
+    String orderByClause = "";
+    if (query != null && !query.isEmpty()) {
+      PgCqlQuery pgCqlQuery = definition.parse(query);
+      if (pgCqlQuery.getWhereClause() != null) {
+        whereClause += " AND " + jsonPropertiesToColumnNames(pgCqlQuery.getWhereClause());
+      }
+      if (pgCqlQuery.getOrderByClause() != null) {
+        orderByClause = jsonPropertiesToColumnNames(pgCqlQuery.getOrderByClause());
+      }
+    }
+    return new SqlQuery(select, from, whereClause, orderByClause, offset, limit);
+  }
+
   public Future<Void> updateTsaRepositionSteps(ServiceRequest request, int positionOfExistingTsa) {
     return findPositionOfLastStepOfTransformation(request.entityStorage().getTenantPool())
         .compose(maxPosition -> {
@@ -199,7 +218,7 @@ public class TransformationStep extends Entity {
             + "WHERE transformation_step.step_id = step.id "
             + "    AND transformation_id = #{transformationId} "
             + "ORDER BY position ")
-        .mapTo(this.fromRowWithStepName())
+        .mapTo(this.fromRow())
         .execute(Collections.singletonMap("transformationId", transformationId))
         .map(rows ->  {
           for (Entity entity : rows) {
@@ -209,6 +228,38 @@ public class TransformationStep extends Entity {
           return steps;
         });
   }
+
+  public Future<JsonObject> fetchTransformationSteps(ServiceRequest request) {
+    JsonArray steps = new JsonArray();
+    return SqlTemplate.forQuery(request.entityStorage().getTenantPool().getPool(), cqlToSql(request).getQueryWithLimits())
+        .mapTo(this.fromRow())
+        .execute(null)
+        .map(rows ->  {
+          for (Entity entity : rows) {
+            TransformationStep step = (TransformationStep) entity;
+            steps.add(step.asJson());
+          }
+          return new JsonObject().put(jsonCollectionName(), steps).put("totalRecords", steps.size());
+        });
+  }
+
+  public Future<Entity> getById (ServiceRequest getOrPutRequest) {
+    UUID id = UUID.fromString(getOrPutRequest.requestParam("id"));
+    return SqlTemplate.forQuery(getOrPutRequest.entityStorage().getTenantPool().getPool(),
+            "SELECT transformation_step.*, step.name AS step_name "
+                + "FROM " + schemaTable(getOrPutRequest.dbSchema()) + " AS transformation_step, "
+                + "     " + new Step().schemaTable(getOrPutRequest.dbSchema()) + " AS step "
+                + "WHERE transformation_step.step_id = step.id "
+                + "    AND transformation_step.id = #{id} "
+                + "ORDER BY position ")
+        .mapTo(this.fromRow())
+        .execute(Collections.singletonMap("id", id))
+        .map(rows -> {
+          RowIterator<Entity> iterator = rows.iterator();
+          return iterator.hasNext() ? iterator.next().withTenant(tenant) : null;
+        });
+  }
+
 
   public Future<Integer> deleteTransformationStepsByTransformationId(TenantPgPool pool, UUID transformationId) {
     return SqlTemplate.forUpdate(pool.getPool(),

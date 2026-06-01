@@ -54,7 +54,7 @@ public final class JobsAndMonitoring extends EntityResponses {
     SqlQuery query;
     try {
       query = new ImportJob()
-          .cqlToSql(request, db.schemaDotTable(Tables.IMPORT_JOB)).withAdditionalWhereClause(timeRange);
+          .cqlToSql(request).withAdditionalWhereClause(timeRange);
     } catch (PgCqlException pce) {
       responseText(request.routingContext(), 400)
           .end("Could not execute query to retrieve jobs: " + pce.getMessage() + " Request:" + request.absoluteUri());
@@ -105,7 +105,7 @@ public final class JobsAndMonitoring extends EntityResponses {
   public static Future<Void> getLogStatements(ServiceRequest request) {
     EntityStorage db = request.entityStorage();
     SqlQuery queryFromCql =
-        new LogLine().cqlToSql(request, db.schemaDotTable(Tables.JOB_LOG_VIEW)).withDefaultLimit("100");
+        new LogLine().cqlToSql(request, Tables.JOB_LOG_VIEW.name()).withDefaultLimit("100");
     String from = request.queryParam("from");
     String until = request.queryParam("until");
 
@@ -151,7 +151,7 @@ public final class JobsAndMonitoring extends EntityResponses {
   public static Future<Void> getFailedRecords(ServiceRequest request) {
     EntityStorage db = request.entityStorage();
     SqlQuery queryFromCql = new RecordFailure().usingView()
-        .cqlToSql(request, db.schemaDotTable(Tables.RECORD_FAILURE_VIEW)).withDefaultLimit("100");
+        .cqlToSql(request, Tables.RECORD_FAILURE_VIEW.name()).withDefaultLimit("100");
     String jobId = request.requestParam("id");
     String from = request.queryParam("from");
     String until = request.queryParam("until");
@@ -191,7 +191,7 @@ public final class JobsAndMonitoring extends EntityResponses {
 
   public static Future<Void> getFailedRecordById(ServiceRequest request) {
     UUID id = UUID.fromString(request.requestParam("id"));
-    return request.entityStorage().getEntity(id, new RecordFailure().usingView())
+    return new RecordFailure().usingView().getById(request)
         .compose(failedRecord -> {
           if (failedRecord == null) {
             return responseText(request.routingContext(), 404).end("Failed record with ID " + id + " not found.");

@@ -65,7 +65,7 @@ public final class Transformations extends EntityResponses {
 
   public static Future<Void> getScript(ServiceRequest request) {
     String id = request.requestParam("id");
-    return request.entityStorage().getEntity(UUID.fromString(id), new Step()).onComplete(step -> {
+    return new Step().getById(request).onComplete(step -> {
       if (step.result() != null) {
         responseText(request.routingContext(), 200).end(((Step) step.result()).getLineSeparatedXslt()).mapEmpty();
       } else {
@@ -81,7 +81,7 @@ public final class Transformations extends EntityResponses {
     String validationResponse = Step.validateStyleSheet(script);
     if (validationResponse.equals("OK")) {
       EntityStorage db = request.entityStorage();
-      return db.getEntity(UUID.fromString(id), new Step())
+      return new Step().getById(request)
           .onComplete(getStep -> {
             if (getStep.result() != null) {
               Step step = (Step) getStep.result().withUpdatingUser(request.currentUser());
@@ -106,7 +106,7 @@ public final class Transformations extends EntityResponses {
 
   public static Future<Void> getTransformationById(ServiceRequest request) {
     UUID id = UUID.fromString(request.requestParam("id"));
-    return request.entityStorage().getEntity(id, new Transformation())
+    return new Transformation().getById(request)
         .compose(transformation -> {
           if (transformation == null) {
             return responseText(request.routingContext(), 404).end("Transformation with ID " + id + " not found.");
@@ -160,14 +160,14 @@ public final class Transformations extends EntityResponses {
   }
 
   public static Future<Void> getTransformationSteps(ServiceRequest request) {
-    return getEntitiesAndRespond(request, new TransformationStep());
+    return new TransformationStep().fetchTransformationSteps(request)
+        .onSuccess(tsas ->  responseJson(request.routingContext(), 200)
+            .end(tsas.encodePrettily())).mapEmpty();
   }
 
   public static Future<Void> putTransformationStep(ServiceRequest request) {
     TransformationStep transformationStep = new TransformationStep().fromJson(request.bodyAsJson());
-
-    UUID id = UUID.fromString(request.requestParam("id"));
-    return request.entityStorage().getEntity(id, transformationStep).compose(existingTsa -> {
+    return transformationStep.getById(request).compose(existingTsa -> {
       if (existingTsa == null) {
         responseText(request.routingContext(), 404).end("Not found");
       } else {
@@ -180,9 +180,8 @@ public final class Transformations extends EntityResponses {
   }
 
   public static Future<Void> deleteTransformationStep(ServiceRequest request) {
-    UUID id = UUID.fromString(request.requestParam("id"));
     EntityStorage db = request.entityStorage();
-    return db.getEntity(id, new TransformationStep()).compose(existingTsa -> {
+    return new TransformationStep().getById(request).compose(existingTsa -> {
       if (existingTsa == null) {
         responseText(request.routingContext(), 404).end("Not found");
       } else {

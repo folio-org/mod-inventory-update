@@ -10,6 +10,7 @@ import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
 import org.folio.inventoryupdate.importing.moduledata.Channel;
 import org.folio.inventoryupdate.importing.moduledata.ImportJob;
+import org.folio.inventoryupdate.importing.moduledata.database.Entity;
 import org.folio.inventoryupdate.importing.moduledata.database.EntityStorage;
 import org.folio.inventoryupdate.importing.moduledata.database.SqlQuery;
 import org.folio.inventoryupdate.importing.moduledata.database.Tables;
@@ -33,7 +34,7 @@ public final class Channels extends EntityResponses {
         .map(id -> {
           FileQueue.get(request, id.toString()).createDirectoriesIfNotExist();
           return id;
-        }).compose(id -> db.getEntity(id, channel)).compose(cfg -> {
+        }).compose(id -> channel.withTenant(request.tenant()).getById(id, db)).compose(cfg -> {
           if (((Channel) cfg).isEnabled()) {
             return FileListeners.deployIfNotDeployed(request, (Channel) cfg).map(na -> cfg)
                 .compose(na -> responseJson(request.routingContext(), 201).end(cfg.asJson().encodePrettily()))
@@ -50,8 +51,8 @@ public final class Channels extends EntityResponses {
 
   public static Future<Void> getChannelById(ServiceRequest request) {
     UUID id = UUID.fromString(request.requestParam("id"));
-    Channel entity = new Channel();
-    return request.entityStorage().getEntity(id, entity).onSuccess(instance -> {
+    Entity entity = new Channel().withTenant(request.tenant());
+    return entity.getById(request).onSuccess(instance -> {
       if (instance == null) {
         responseText(request.routingContext(), 404).end(entity.entityName() + " " + id + " not found.");
       } else {
@@ -67,8 +68,7 @@ public final class Channels extends EntityResponses {
     return request.entityStorage().updateEntity(id, inputChannel.withUpdatingUser(request.currentUser()))
         .compose(result -> {
           if (result.rowCount() == 1) {
-            return request.entityStorage()
-                .getEntity(id, new Channel())
+            return new Channel().withTenant(request.tenant()).getById(request)
                 .map(Channel.class::cast)
                 .compose(channel -> {
                   if (channel.isEnabled() && channel.isCommissioned()) {
@@ -192,7 +192,7 @@ public final class Channels extends EntityResponses {
     EntityStorage db = request.entityStorage();
     SqlQuery queryFromCql = new Channel().cqlToSql(
         channelIdentifier.length() > 24 ? "id==" + channelIdentifier : "tag==" + channelIdentifier, "0", "1",
-        db.schemaDotTable(Tables.CHANNEL), new Channel().getQueryableFields());
+        request.dbSchema(), Tables.CHANNEL.name(), new Channel().getQueryableFields());
     return db.getEntities(queryFromCql.getQueryWithLimits(), new Channel()).map(entities -> {
       if (entities.isEmpty()) {
         return null;
@@ -205,7 +205,7 @@ public final class Channels extends EntityResponses {
   public static Future<List<Channel>> getDeployableChannels(ServiceRequest request) {
     EntityStorage db = request.entityStorage();
     SqlQuery queryFromCql = new Channel().cqlToSql("enabled==true", "0", "100",
-        db.schemaDotTable(Tables.CHANNEL), new Channel().getQueryableFields());
+        request.dbSchema(), Tables.CHANNEL.name(), new Channel().getQueryableFields());
     return db.getEntities(queryFromCql.getQueryWithLimits(), new Channel())
         .compose(entities -> {
           List<Channel> deployableChannels = entities.stream().map(Channel.class::cast)

@@ -3,7 +3,6 @@ package org.folio.inventoryupdate.importing.moduledata.database;
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
 import io.vertx.core.json.JsonObject;
-import io.vertx.sqlclient.RowIterator;
 import io.vertx.sqlclient.SqlResult;
 import io.vertx.sqlclient.templates.SqlTemplate;
 import java.util.ArrayList;
@@ -110,19 +109,6 @@ public class EntityStorage {
             records.add(entity.withTenant(tenant));
           }
         }).map(records);
-  }
-
-  public Future<Entity> getEntity(UUID id, Entity definition) {
-    return SqlTemplate.forQuery(pool.getPool(),
-            "SELECT * "
-                + "FROM " + schemaDotTable(definition.table()) + " "
-                + "WHERE id = #{id}")
-        .mapTo(definition.fromRow())
-        .execute(Collections.singletonMap("id", id))
-        .map(rows -> {
-          RowIterator<Entity> iterator = rows.iterator();
-          return iterator.hasNext() ? iterator.next().withTenant(tenant) : null;
-        });
   }
 
   public Future<Integer> deleteEntity(UUID id, Entity definition) {

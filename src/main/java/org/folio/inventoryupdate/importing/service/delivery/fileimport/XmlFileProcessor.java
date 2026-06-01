@@ -51,7 +51,7 @@ public class XmlFileProcessor extends FileProcessor {
    */
   public Future<XmlFileProcessor> withProcessingPipeline(String tenant, UUID channelId, Vertx vertx,
                                                          InventoryBatchUpdater inventoryBatchUpdater) {
-    return configStorage.getEntity(channelId, new Channel())
+    return new Channel().withTenant(tenant).getById(channelId, configStorage)
         .map(cfg -> ((Channel) cfg).getTransformationId())
         .compose(transformationId -> XmlTransformationPipeline.create(vertx, tenant, transformationId))
         .compose(pipelineCreated -> {
@@ -65,7 +65,7 @@ public class XmlFileProcessor extends FileProcessor {
   }
 
   private Future<XmlFileProcessor> withJobLog(UUID channelId) {
-    return configStorage.getEntity(channelId, new Channel())
+    return new Channel().withTenant(tenant).getById(channelId, configStorage)
         .compose(channel -> {
           importJob = new ImportJob().initiate((Channel) channel.withCreatingUser(null));
           return configStorage.storeEntity(importJob);

@@ -1392,13 +1392,46 @@ public class ImportTests extends InventoryUpdateTestBase {
 
     getRecordById(Service.PATH_CHANNELS, channelId);
     getRecordById(Service.PATH_TRANSFORMATIONS, transformationId);
-    postSourceXml(Service.PATH_CHANNELS + "/" + channelId + "/upload", Files.TWO_XML_INVENTOR_RECORD_SETS, 200);
+    postSourceXml(Service.PATH_CHANNELS + "/" + channelId + "/upload", Files.TWO_XML_INVENTORY_RECORD_SETS, 200);
     await().until(() -> getTotalRecords(Service.PATH_IMPORT_JOBS), is(1));
     String jobId = getRecords(Service.PATH_IMPORT_JOBS).extract().path("importJobs[0].id");
     String started = getRecordById(Service.PATH_IMPORT_JOBS, jobId).extract().path("started");
     await().until(() -> getRecordById(Service.PATH_IMPORT_JOBS, jobId).extract().path("finished"), greaterThan(started));
     await().until(() -> getTotalRecords(Service.PATH_JOB_LOGS), is(4));
     await().until(() -> getTotalRecords(Service.PATH_FAILED_RECORDS), is(2));
+  }
+
+  @Test
+  public void cannotImportRecordWithNoInstance() {
+    postJsonObject(Service.PATH_TRANSFORMATIONS, Files.JSON_TRANSFORMATION_CONFIG);
+
+    JsonObject step = new JsonObject();
+    step.put("id", STEP_ID)
+        .put("name", "test step")
+        .put("script", Files.XSLT_COPY_XML_DOC);
+    postJsonObject(Service.PATH_STEPS, step);
+    JsonObject tsa = new JsonObject();
+    tsa.put("stepId", STEP_ID)
+        .put("transformationId", Files.JSON_TRANSFORMATION_CONFIG.getString("id"))
+        .put("position", "1");
+    postJsonObject(Service.PATH_TSAS, tsa);
+    postJsonObject(Service.PATH_CHANNELS, Files.JSON_CHANNEL);
+
+    String channelId = Files.JSON_CHANNEL.getString("id");
+    String transformationId = Files.JSON_TRANSFORMATION_CONFIG.getString("id");
+
+    getRecordById(Service.PATH_CHANNELS, channelId);
+    getRecordById(Service.PATH_TRANSFORMATIONS, transformationId);
+    postSourceXml(Service.PATH_CHANNELS + "/" + channelId + "/upload", Files.TWO_IRS_ONE_MISSING_INSTANCE, 200);
+
+    await().until(() -> getTotalRecords(Service.PATH_IMPORT_JOBS), is(1));
+    String jobId = getRecords(Service.PATH_IMPORT_JOBS).extract().path("importJobs[0].id");
+    String started = getRecordById(Service.PATH_IMPORT_JOBS, jobId).extract().path("started");
+    await().until(() -> getRecordById(Service.PATH_IMPORT_JOBS, jobId).extract().path("finished"), greaterThan(started));
+    await().until(() -> getTotalRecords(Service.PATH_JOB_LOGS), is(4));
+    await().until(() -> getTotalRecords(Service.PATH_FAILED_RECORDS), is(2));
+    System.out.println(getRecords(PATH_FAILED_RECORDS).extract().asPrettyString());
+    getRecords(PATH_FAILED_RECORDS).body("failedRecords[0].recordErrors[0].message", equalTo("Record contains no Instance object."));
   }
 
   @Test

@@ -8,7 +8,7 @@ import java.util.List;
 
 public class RequestValidation {
 
-    List<ErrorReport> errors = new ArrayList<>();
+    public List<ErrorReport> errors = new ArrayList<>();
 
     public boolean hasErrors () {
         return !errors.isEmpty();
@@ -30,8 +30,8 @@ public class RequestValidation {
         return (hasErrors() ? errors.getFirst().getEntityType() : null);
     }
 
-    public String firstMessage() {
-        return (hasErrors() ? errors.getFirst().getMessageAsString() : "");
+    public JsonObject firstMessage() {
+        return (hasErrors() ? errors.getFirst().getMessage() : new JsonObject());
     }
 
     public String firstShortMessage() {

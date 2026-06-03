@@ -99,7 +99,7 @@ public abstract class UpdatePlan {
                                 }
                             });
         } else {
-            handleValidationError(promise, validations, batchOfOne);
+          handleValidationError(promise, validations, batchOfOne);
         }
         return promise.future();
     }
@@ -134,7 +134,7 @@ public abstract class UpdatePlan {
     }
 
     private void handleValidationError(Promise<InventoryUpdateOutcome> promise, RequestValidation validations, boolean batchOfOne) {
-        ErrorReport report = new ErrorReport(
+      ErrorReport report = new ErrorReport(
                 ErrorReport.ErrorCategory.VALIDATION,
                 UNPROCESSABLE_ENTITY,
                 validations.firstMessage())

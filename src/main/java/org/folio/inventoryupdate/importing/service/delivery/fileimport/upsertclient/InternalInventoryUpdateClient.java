@@ -35,8 +35,7 @@ public class InternalInventoryUpdateClient extends InventoryUpdateClient {
       JsonObject outcomeJson = outcome.getJson();
       if (outcome.getStatusCode() == 404) {
         if (outcome.getError() != null) {
-          outcomeJson.put("errors", new JsonArray().add(
-              new JsonObject().put("message", outcome.getError().getMessageAsString())));
+          outcomeJson.put("errors", new JsonArray().add(outcome.getError().getMessage()));
         } else {
           outcomeJson.put("errors", new JsonArray().add(new JsonObject().put("message", "No message to provide")));
         }

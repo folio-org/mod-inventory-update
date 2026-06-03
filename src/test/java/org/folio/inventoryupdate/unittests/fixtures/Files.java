@@ -33,7 +33,8 @@ public class Files {
   private static final String INSTANCE_TYPE_ID = "30fffe0e-e985-4144-b2e2-1e8179bdb41f";
 
   public static final String XML_INVENTORY_RECORD_SET = getSampleFile("samplesourcefiles/inventoryRecordSet.xml");
-  public static final String TWO_XML_INVENTOR_RECORD_SETS = getSampleFile("samplesourcefiles/twoInventoryRecordSets.xml");
+  public static final String TWO_XML_INVENTORY_RECORD_SETS = getSampleFile("samplesourcefiles/twoInventoryRecordSets.xml");
+  public static final String TWO_IRS_ONE_MISSING_INSTANCE = getSampleFile("samplesourcefiles/twoIrsOneMissingInstance.xml");
   public static final String XML_MARC_XML = getSampleFile("samplesourcefiles/marc3.xml");
   public static final String XML_MARC_XML_V2 = getSampleFile("samplesourcefiles/marc3v2.xml");
   public static final JsonObject JSON_TRANSFORMATION_CONFIG = new JsonObject(Objects.requireNonNull(getSampleFile("configs/transformation.json")));

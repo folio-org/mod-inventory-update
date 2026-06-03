@@ -37,7 +37,7 @@ public class LogLine extends Entity {
     FIELDS.put(VIEW_CHANNEL_NAME,
         new Field("channelName", "channel_name", PgColumn.Type.TEXT, true, true));
     FIELDS.put(TIME_STAMP,
-        new Field("timeStamp", "time_stamp", PgColumn.Type.TIMESTAMP, false, false));
+        new Field("timeStamp", "time_stamp", PgColumn.Type.TIMESTAMP, false, true));
     FIELDS.put(JOB_LABEL,
         new Field("jobLabel", "job_label", PgColumn.Type.TEXT, false, true));
     FIELDS.put(LOG_STATEMENT,

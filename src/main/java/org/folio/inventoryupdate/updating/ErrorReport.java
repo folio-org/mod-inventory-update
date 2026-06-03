@@ -6,6 +6,7 @@ import io.vertx.ext.web.RoutingContext;
 import org.folio.inventoryupdate.updating.entities.InventoryRecord;
 
 import static org.folio.inventoryupdate.updating.entities.InventoryRecord.getEntityTypeFromString;
+import static org.folio.inventoryupdate.updating.entities.InventoryRecord.messageAsJson;
 import static org.folio.okapi.common.HttpResponse.responseJson;
 
 public class ErrorReport {
@@ -57,10 +58,9 @@ public class ErrorReport {
       }
     } else {
       if (message != null) {
-        this.messageAsString = message.toString();
-        this.shortMessage = messageAsString.substring(0, Math.min(messageAsString.length(), 40));
+        this.messageAsJson = messageAsJson(message.toString());
+        this.shortMessage = message.toString().substring(0, Math.min(message.toString().length(), 40));
       } else {
-        messageAsString = "";
         this.shortMessage = "";
       }
     }
@@ -141,8 +141,8 @@ public class ErrorReport {
     return this;
   }
 
-  public String getMessageAsString() {
-    return messageAsString;
+  public JsonObject getMessage() {
+    return messageAsJson;
   }
 
   public JsonObject getEntity() {

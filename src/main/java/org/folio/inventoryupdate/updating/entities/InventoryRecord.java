@@ -279,7 +279,7 @@ public abstract class InventoryRecord {
                 .setRequestJson(originJson);
     }
 
-    protected static JsonObject messageAsJson(String message) {
+    public static JsonObject messageAsJson(String message) {
         try {
           return  new JsonObject(message);
         } catch (DecodeException de) {

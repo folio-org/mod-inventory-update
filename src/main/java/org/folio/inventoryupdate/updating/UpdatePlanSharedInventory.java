@@ -25,6 +25,7 @@ import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 
 import static org.folio.inventoryupdate.updating.ErrorReport.UNPROCESSABLE_ENTITY;
+import static org.folio.inventoryupdate.updating.entities.InventoryRecord.messageAsJson;
 import static org.folio.inventoryupdate.updating.entities.InventoryRecordSet.*;
 
 public class UpdatePlanSharedInventory extends UpdatePlan {
@@ -74,7 +75,7 @@ public class UpdatePlanSharedInventory extends UpdatePlan {
             new ErrorReport(
                 ErrorReport.ErrorCategory.VALIDATION,
                 UNPROCESSABLE_ENTITY,
-                "MatchKey " + set.getInstance().getMatchKey() + " occurs more that once in this batch.")
+                messageAsJson("MatchKey " + set.getInstance().getMatchKey() + " occurs more that once in this batch."))
                 .setShortMessage("A match key is repeated in this batch")
                 .setEntityType(InventoryRecord.Entity.INSTANCE)
                 .setEntity(recordSet.getJsonObject(INSTANCE)));

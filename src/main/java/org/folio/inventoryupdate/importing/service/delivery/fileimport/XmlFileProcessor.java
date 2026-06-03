@@ -112,10 +112,14 @@ public class XmlFileProcessor extends FileProcessor {
         + ".";
     if (transformationPipeline.getRecordsProcessed() > 0 && inventoryBatchUpdater.getRecordsProcessed() > 0) {
       stats += " Transformation: "
-          + (transformationPipeline.getRecordsProcessed() * 1000000000L / transformationPipeline.getProcessingTime())
+          + (transformationPipeline.getProcessingTime()>0
+          ? (transformationPipeline.getRecordsProcessed() * 1000000000L / transformationPipeline.getProcessingTime())
+          : " - ")
           + " recs/s."
           + " Upserting: "
-          + (inventoryBatchUpdater.getRecordsProcessed() * 1000000000L / inventoryBatchUpdater.getProcessingTime())
+          + (inventoryBatchUpdater.getProcessingTime()>0
+          ? (inventoryBatchUpdater.getRecordsProcessed() * 1000000000L / inventoryBatchUpdater.getProcessingTime())
+          : " - ")
           + " recs/s.";
     }
     return stats;

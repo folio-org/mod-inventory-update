@@ -1,3 +1,10 @@
+## 5.1.2 2026-06-03
+
+* [MODINVUP-187](https://issues.folio.org/browse/MODINVUP-187) Add virtual field `stepName` to GET `tsa` and GET `tsas`.
+* [MODINVUP-187](https://issues.folio.org/browse/MODINVUP-187) Support sorting of job log lines by `timeStamp`.
+* [MODINVUP-195](https://issues.folio.org/browse/MODINVUP-195) Remove null properties from GET step (so it can be PUT too).
+* [MODINVUP-204](https://issues.folio.org/browse/MODINVUP-204) Handle schema violations in transformed inventory record set.
+
 ## 5.1.1 2026-05-27
 
 * [MODINVUP-184](https://issues.folio.org/browse/MODINVUP-184), [MODINVUP-207](https://issues.folio.org/browse/MODINVUP-207) implement `loadSample` (MARC, PICA import configs).

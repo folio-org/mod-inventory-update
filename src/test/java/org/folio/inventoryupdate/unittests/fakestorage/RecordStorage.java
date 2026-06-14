@@ -274,15 +274,32 @@ public abstract class RecordStorage {
         records.clear();
     }
 
-  public void clearEnforcedFailures() {
-    failOnDelete = false;
-    failOnGetRecordById = false;
-    failOnGetRecords = false;
-    failOnUpdate = false;
-    failOnCreate = false;
-  }
+    public void clearEnforcedFailures() {
+      failOnDelete = false;
+      failOnGetRecordById = false;
+      failOnGetRecords = false;
+      failOnUpdate = false;
+      failOnCreate = false;
+      //delayGetRecordsMillis = 0L;
+    }
 
-  /**
+    /*
+    private boolean delayGetRecordsIfConfigured(RoutingContext routingContext) {
+        if (delayGetRecordsMillis <= 0) {
+          return true;
+        }
+        try {
+          Thread.sleep(delayGetRecordsMillis);
+          return true;
+        } catch (InterruptedException e) {
+          Thread.currentThread().interrupt();
+          respondWithMessage(routingContext, "Interrupted while delaying get records", 500);
+          return false;
+        }
+    }
+     */
+
+    /**
      * Handles POST
      *
      */
@@ -381,25 +398,15 @@ public abstract class RecordStorage {
         routingContext.response().end();
     }
 
-    /**
-     * Respond with text message (error response)
-     *
-     * @param res error condition
-     */
-    protected static void respondWithMessage(RoutingContext routingContext, Throwable res) {
-        routingContext.response().setStatusCode(500);
-        routingContext.response().end(res.getMessage());
-    }
-
     protected static void respondWithMessage (RoutingContext routingContext, String message, int code) {
         routingContext.response().setStatusCode(code);
         routingContext.response().end(message);
 
     }
-  public Collection<FakeRecord> getRecordsInternally() {
-    return getRecords();
-  }
 
+    public Collection<FakeRecord> getRecordsInternally() {
+      return getRecords();
+    }
 
     // UTILS
 

@@ -31,7 +31,7 @@ public class XmlFileProcessor extends FileProcessor {
 
   public static final Logger logger = LogManager.getLogger("ImportJob");
   XmlTransformationPipeline transformationPipeline;
-  RecordReceiver inventoryBatchUpdater;
+  InventoryBatchUpdater inventoryBatchUpdater;
   final Vertx vertx;
 
   public XmlFileProcessor(Vertx vertx, String tenant, UUID channelId) {
@@ -88,13 +88,21 @@ public class XmlFileProcessor extends FileProcessor {
     Promise<Void> promise = Promise.promise();
     try {
       reporting.nowProcessing(xmlFile.getName());
+      inventoryBatchUpdater.startFile();
+      Future<Void> fileFinished = inventoryBatchUpdater.fileFinished();
       String xmlFileContents = Files.readString(xmlFile.toPath(), StandardCharsets.UTF_8);
       vertx.executeBlocking(new XmlRecordsReader(xmlFileContents, transformationPipeline), true)
+          .compose(na -> fileFinished)
           .onComplete(processing -> {
             if (processing.succeeded()) {
               promise.complete();
             } else {
               logger.error("Processing failed with {}", processing.cause().getMessage());
+              if (!paused()) {
+                halt("Processing of " + xmlFile.getName() + " failed with "
+                    + processing.cause().getMessage());
+              }
+              inventoryBatchUpdater.failCurrentFile(processing.cause());
               halt("Processing of " + xmlFile.getName() + " failed with "
                   + processing.cause().getMessage());
               promise.complete();

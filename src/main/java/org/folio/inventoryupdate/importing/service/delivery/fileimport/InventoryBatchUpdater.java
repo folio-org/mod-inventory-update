@@ -94,10 +94,10 @@ public class InventoryBatchUpdater implements RecordReceiver {
             .onSuccess(na -> completeFileIfLastBatch(batch))
             .onFailure(na -> {
               logger.error("Fatal error during upsert. Pausing file processor, skipping pending batches. {}",
-              na.getMessage());
+                  na.getMessage());
               // Set job status to paused until resumed.
               fileProcessor.halt("Fatal error during upsert. Halting processing, skipping pending batches. "
-              + na.getMessage());
+                  + na.getMessage());
               failCurrentFile(na);
         }).onComplete(na -> turnstile.exitBatch());
       } else {
@@ -109,7 +109,6 @@ public class InventoryBatchUpdater implements RecordReceiver {
     } else {
       logger.info("Skipping through batch #{} because processing is halted.", batch.getBatchNumber());
       completeFileIfLastBatch(batch);
-      //turnstile.exitBatch();
     }
   }
 

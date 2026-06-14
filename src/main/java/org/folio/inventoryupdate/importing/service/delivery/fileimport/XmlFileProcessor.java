@@ -5,8 +5,6 @@ import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
 import java.io.File;
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
 import java.util.UUID;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -88,10 +86,8 @@ public class XmlFileProcessor extends FileProcessor {
     Promise<Void> promise = Promise.promise();
     try {
       reporting.nowProcessing(xmlFile.getName());
-      inventoryBatchUpdater.startFile();
-      Future<Void> fileFinished = inventoryBatchUpdater.fileFinished();
-      String xmlFileContents = Files.readString(xmlFile.toPath(), StandardCharsets.UTF_8);
-      vertx.executeBlocking(new XmlRecordsReader(xmlFileContents, transformationPipeline), true)
+      Future<Void> fileFinished = inventoryBatchUpdater.startFile();
+      vertx.executeBlocking(new XmlRecordsReader(xmlFile, transformationPipeline), true)
           .compose(na -> fileFinished)
           .onComplete(processing -> {
             if (processing.succeeded()) {
@@ -103,8 +99,6 @@ public class XmlFileProcessor extends FileProcessor {
                     + processing.cause().getMessage());
               }
               inventoryBatchUpdater.failCurrentFile(processing.cause());
-              halt("Processing of " + xmlFile.getName() + " failed with "
-                  + processing.cause().getMessage());
               promise.complete();
             }
           });

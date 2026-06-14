@@ -40,12 +40,9 @@ public class InventoryBatchUpdater implements RecordReceiver {
     return this;
   }
 
-  public void startFile() {
+  public Future<Void> startFile() {
     records.clear();
     fileFinished = Promise.promise();
-  }
-
-  public Future<Void> fileFinished() {
     return fileFinished.future();
   }
 

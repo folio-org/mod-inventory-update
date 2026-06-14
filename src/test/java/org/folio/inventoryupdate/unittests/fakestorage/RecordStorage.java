@@ -280,24 +280,7 @@ public abstract class RecordStorage {
       failOnGetRecords = false;
       failOnUpdate = false;
       failOnCreate = false;
-      //delayGetRecordsMillis = 0L;
     }
-
-    /*
-    private boolean delayGetRecordsIfConfigured(RoutingContext routingContext) {
-        if (delayGetRecordsMillis <= 0) {
-          return true;
-        }
-        try {
-          Thread.sleep(delayGetRecordsMillis);
-          return true;
-        } catch (InterruptedException e) {
-          Thread.currentThread().interrupt();
-          respondWithMessage(routingContext, "Interrupted while delaying get records", 500);
-          return false;
-        }
-    }
-     */
 
     /**
      * Handles POST
@@ -312,7 +295,6 @@ public abstract class RecordStorage {
             respondWithMessage(routingContext, response.responseBody, response.statusCode);
         }
     }
-
 
     /**
      * Handles PUT

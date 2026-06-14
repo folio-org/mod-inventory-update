@@ -96,7 +96,8 @@ public class InventoryBatchUpdater implements RecordReceiver {
               fileProcessor.halt("Fatal error during upsert. Halting processing, skipping pending batches. "
                   + na.getMessage());
               failCurrentFile(na);
-        }).onComplete(na -> turnstile.exitBatch());
+            })
+            .onComplete(na -> turnstile.exitBatch());
       } else {
         String message = "Something is blocking the process? Could not forward batch for upsert in 60 seconds.";
         logger.error(message);

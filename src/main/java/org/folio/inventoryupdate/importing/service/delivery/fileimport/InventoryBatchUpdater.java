@@ -1,6 +1,7 @@
 package org.folio.inventoryupdate.importing.service.delivery.fileimport;
 
 import io.vertx.core.Future;
+import io.vertx.core.Promise;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.RoutingContext;
 import java.util.ArrayList;
@@ -20,6 +21,7 @@ public class InventoryBatchUpdater implements RecordReceiver {
   private final ArrayList<ProcessingRecord> records = new ArrayList<>();
   private final InventoryUpdateClient updateClient;
   private final Turnstile turnstile = new Turnstile();
+  private Promise<Void> fileFinished = Promise.promise();
   private long batchNumber;
 
   private long processingTime;
@@ -36,6 +38,16 @@ public class InventoryBatchUpdater implements RecordReceiver {
   public InventoryBatchUpdater forFileProcessor(FileProcessor processor) {
     fileProcessor = processor;
     return this;
+  }
+
+  public Future<Void> startFile() {
+    records.clear();
+    fileFinished = Promise.promise();
+    return fileFinished.future();
+  }
+
+  public void failCurrentFile(Throwable cause) {
+    fileFinished.tryFail(cause);
   }
 
   @Override
@@ -65,6 +77,7 @@ public class InventoryBatchUpdater implements RecordReceiver {
       if (fileProcessor.paused()) {
         logger.info("Skipping remaining pending batch ({} records) because processing has been halted",
             copyOfRecords.size());
+        fileFinished.tryComplete();
       } else {
         releaseBatch(new BatchOfRecords(copyOfRecords, true, batchNumber));
       }
@@ -74,21 +87,32 @@ public class InventoryBatchUpdater implements RecordReceiver {
   private void releaseBatch(BatchOfRecords batch) {
     if (!fileProcessor.paused()) {
       if (turnstile.enterBatch(batch)) {
-        persistBatch().onFailure(na -> {
-          logger.error("Fatal error during upsert. Pausing file processor, skipping pending batches. {}",
-              na.getMessage());
-          // Set job status to paused until resumed.
-          fileProcessor.halt("Fatal error during upsert. Halting processing, skipping pending batches. "
-              + na.getMessage());
-          turnstile.exitBatch();
-        }).onComplete(na -> turnstile.exitBatch());
+        persistBatch()
+            .onSuccess(na -> completeFileIfLastBatch(batch))
+            .onFailure(na -> {
+              logger.error("Fatal error during upsert. Pausing file processor, skipping pending batches. {}",
+                  na.getMessage());
+              // Set job status to paused until resumed.
+              fileProcessor.halt("Fatal error during upsert. Halting processing, skipping pending batches. "
+                  + na.getMessage());
+              failCurrentFile(na);
+            })
+            .onComplete(na -> turnstile.exitBatch());
       } else {
-        turnstile.exitBatch();
-        logger.error("Something is blocking the process? Could not forward batch for upsert in 60 seconds.");
+        String message = "Something is blocking the process? Could not forward batch for upsert in 60 seconds.";
+        logger.error(message);
+        fileProcessor.halt(message);
+        failCurrentFile(new IllegalStateException(message));
       }
     } else {
       logger.info("Skipping through batch #{} because processing is halted.", batch.getBatchNumber());
-      turnstile.exitBatch();
+      completeFileIfLastBatch(batch);
+    }
+  }
+
+  private void completeFileIfLastBatch(BatchOfRecords batch) {
+    if (batch.isLastBatchOfFile()) {
+      fileFinished.tryComplete();
     }
   }
 

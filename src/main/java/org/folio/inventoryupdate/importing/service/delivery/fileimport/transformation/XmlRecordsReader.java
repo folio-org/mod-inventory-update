@@ -1,9 +1,11 @@
 package org.folio.inventoryupdate.importing.service.delivery.fileimport.transformation;
 
 import java.io.ByteArrayInputStream;
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.util.concurrent.Callable;
 import javax.xml.parsers.ParserConfigurationException;
 import org.apache.logging.log4j.LogManager;
@@ -25,6 +27,10 @@ public class XmlRecordsReader extends DefaultHandler implements RecordProvider, 
   StringBuilder theCollectionElement = new StringBuilder();
   RecordReceiver target;
   final String xmlCollectionOfRecords;
+
+  public XmlRecordsReader(File xmlFile, RecordReceiver target) throws IOException {
+    this(Files.readString(xmlFile.toPath(), StandardCharsets.UTF_8), target);
+  }
 
   public XmlRecordsReader(String recordsSource, RecordReceiver target) {
     this.xmlCollectionOfRecords = recordsSource;

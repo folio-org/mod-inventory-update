@@ -1,3 +1,7 @@
+## 5.1.3 2026-06-18
+
+* [MODINVUP-216](https://issues.folio.org/browse/MODINVUP-216) Retain source file for resumption after fatal storage error.
+
 ## 5.1.2 2026-06-03
 
 * [MODINVUP-187](https://issues.folio.org/browse/MODINVUP-187) Add virtual field `stepName` to GET `tsa` and GET `tsas`.

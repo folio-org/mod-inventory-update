@@ -273,12 +273,12 @@ public class ImportJob extends Entity {
         + ")";
   }
 
-  public Future<Integer> changeRunningToInterruptedByChannelId(EntityStorage db, String channelId) {
+  public Future<Integer> changeRunningToInterruptedByChannelId(EntityStorage db, UUID channelId) {
     String template = "UPDATE " + db.schema() + "." + table()
         + " SET "
         + dbColumnName(STATUS) + " = '"  + JobStatus.INTERRUPTED.name() + "', "
         + metadata.updateClauseColumnTemplates()
-        + " WHERE " + dbColumnName(CHANNEL_ID) + " = '" + channelId + "'"
+        + " WHERE " + dbColumnName(CHANNEL_ID) + " = '" + channelId.toString() + "'"
         + "  AND " + dbColumnName(STATUS) + " = '" + JobStatus.RUNNING.name() + "'";
     return db.updateEntitiesByStatement(this.withUpdatingUser(null), template)
         .map(SqlResult::rowCount);

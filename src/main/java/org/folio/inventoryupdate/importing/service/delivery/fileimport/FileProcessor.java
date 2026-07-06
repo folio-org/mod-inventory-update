@@ -1,7 +1,6 @@
 package org.folio.inventoryupdate.importing.service.delivery.fileimport;
 
 import io.vertx.core.Future;
-import java.io.File;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
 import org.folio.inventoryupdate.importing.moduledata.ImportJob;
@@ -33,7 +32,7 @@ public abstract class FileProcessor {
     return this;
   }
 
-  public abstract Future<Void> processFile(File file);
+  public abstract Future<Void> processFile(SourceFile file);
 
   public boolean paused() {
     return paused;
@@ -51,13 +50,21 @@ public abstract class FileProcessor {
     reporting.reportFileStats();
   }
 
-  public void resume(boolean discardFileInProcess) {
-    if (discardFileInProcess && fileListener.fileQueue.currentFile() != null) {
-      fileListener.fileQueue.deleteFile(fileListener.fileQueue.currentFile());
-    }
-    importJob.logStatus(ImportJob.JobStatus.RUNNING, "", reporting.getRecordsProcessed(), configStorage);
-    paused = false;
-    isResuming(true);
+  public Future<Void> resume(boolean discardFileInProcess) {
+    return fileListener.fileQueue.currentlyPromotedFile()
+        .compose(file -> {
+          if (discardFileInProcess && file != null) {
+            return file.discard();
+          } else {
+            return Future.succeededFuture();
+          }
+        })
+        .compose(na -> {
+          importJob.logStatus(ImportJob.JobStatus.RUNNING, "", reporting.getRecordsProcessed(), configStorage);
+          paused = false;
+          isResuming(true);
+          return Future.succeededFuture();
+        });
   }
 
   public ImportJob getImportJob() {
@@ -77,11 +84,14 @@ public abstract class FileProcessor {
     reporting.reportFileQueueStats(false);
   }
 
-  public boolean fileQueueDone(boolean atEndOfCurrentFile) {
-    if (atEndOfCurrentFile && fileListener.queueIsEmpty() && !reporting.pendingFileStats()) {
-      fileListener.markFileQueuePassive();
-    }
-    return fileListener.fileQueueIsPassive();
+  public Future<Boolean> fileQueueDone(boolean atEndOfCurrentFile) {
+    return fileListener.queueIsEmpty()
+        .compose(empty -> {
+          if (empty && atEndOfCurrentFile && !reporting.pendingFileStats()) {
+            fileListener.markFileQueuePassive();
+          }
+          return Future.succeededFuture(fileListener.fileQueueIsPassive());
+        });
   }
 
   public void logFinish(int recordCount) {

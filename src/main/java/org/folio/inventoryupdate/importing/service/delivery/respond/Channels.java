@@ -14,6 +14,7 @@ import org.folio.inventoryupdate.importing.moduledata.database.Entity;
 import org.folio.inventoryupdate.importing.moduledata.database.EntityStorage;
 import org.folio.inventoryupdate.importing.moduledata.database.SqlQuery;
 import org.folio.inventoryupdate.importing.moduledata.database.Tables;
+import org.folio.inventoryupdate.importing.service.ImportService;
 import org.folio.inventoryupdate.importing.service.ServiceRequest;
 import org.folio.inventoryupdate.importing.service.delivery.fileimport.FileListener;
 import org.folio.inventoryupdate.importing.service.delivery.fileimport.FileListeners;
@@ -31,10 +32,7 @@ public final class Channels extends EntityResponses {
     Channel channel = new Channel().fromJson(request.bodyAsJson());
     EntityStorage db = request.entityStorage();
     return db.storeEntity(channel.withCreatingUser(request.currentUser()))
-        .map(id -> {
-          FileQueue.get(request, id.toString()).createDirectoriesIfNotExist();
-          return id;
-        }).compose(id -> channel.withTenant(request.tenant()).getById(id, db)).compose(cfg -> {
+        .compose(id -> channel.withTenant(request.tenant()).getById(id, db)).compose(cfg -> {
           if (((Channel) cfg).isEnabled()) {
             return FileListeners.deployIfNotDeployed(request, (Channel) cfg).map(na -> cfg)
                 .compose(na -> responseJson(request.routingContext(), 201).end(cfg.asJson().encodePrettily()))
@@ -52,14 +50,20 @@ public final class Channels extends EntityResponses {
   public static Future<Void> getChannelById(ServiceRequest request) {
     UUID id = UUID.fromString(request.requestParam("id"));
     Entity entity = new Channel().withTenant(request.tenant());
-    return entity.getById(request).onSuccess(instance -> {
+    return entity.getById(request).compose(instance -> {
       if (instance == null) {
-        responseText(request.routingContext(), 404).end(entity.entityName() + " " + id + " not found.");
+        return responseText(request.routingContext(), 404).end(entity.entityName() + " " + id + " not found.");
       } else {
-        Channel channel = ((Channel) instance).withFileQueue(FileQueue.get(request, id.toString()));
-        responseJson(request.routingContext(), 200).end(channel.asJson().encodePrettily());
+        Channel channel = (Channel) instance;
+        FileQueue fq = ImportService.getFileQueue(request, id);
+        return fq.nameOfFileInProcess()
+            .map(channel::withNameOfProcessingFile)
+            .compose(na -> fq.size()
+                .map(channel::withLengthOfQueue)
+                .compose(x ->
+                    responseJson(request.routingContext(), 200).end(channel.asJson().encodePrettily())));
       }
-    }).mapEmpty();
+    });
   }
 
   public static Future<Void> putChannel(ServiceRequest request) {
@@ -72,7 +76,7 @@ public final class Channels extends EntityResponses {
                 .map(Channel.class::cast)
                 .compose(channel -> {
                   if (channel.isEnabled() && channel.isCommissioned()) {
-                    FileListeners.getFileListener(request.tenant(), id.toString()).updateChannel(channel);
+                    FileListeners.getFileListener(request.tenant(), id).updateChannel(channel);
                     return Future.succeededFuture();
                   } else if (!channel.isEnabled() && channel.isCommissioned()) {
                     return FileListeners.undeployIfDeployed(request, channel);
@@ -152,7 +156,7 @@ public final class Channels extends EntityResponses {
       if (channel != null) {
         return channel.setListening(true, request.entityStorage())
             .compose(na -> {
-              FileListener listener = FileListeners.getFileListener(request.tenant(), channel.getId().toString());
+              FileListener listener = FileListeners.getFileListener(request.tenant(), channel.getId());
               if (listener != null) {
                 listener.updateChannel(channel);
               }
@@ -173,7 +177,7 @@ public final class Channels extends EntityResponses {
       if (channel != null) {
         return channel.setListening(false, request.entityStorage())
             .compose(na -> {
-              FileListener listener = FileListeners.getFileListener(request.tenant(), channel.getId().toString());
+              FileListener listener = FileListeners.getFileListener(request.tenant(), channel.getId());
               if (listener != null) {
                 listener.updateChannel(channel);
               }
@@ -237,12 +241,13 @@ public final class Channels extends EntityResponses {
     }
   }
 
-  public static Future<Void> initFileSystemQueue(ServiceRequest request) {
+  public static Future<Void> initFileQueue(ServiceRequest request) {
     String channelId = request.requestParam("id");
     return getChannelByTagOrUuid(request, channelId).compose(channel -> {
       if (channel != null) {
-        String initMessage = FileQueue.get(request, channelId).initialize();
-        return responseText(request.routingContext(), 200).end(initMessage).mapEmpty();
+        return ImportService.getFileQueue(request, channel.getId())
+            .initialize(false)
+            .compose(initMessage -> responseText(request.routingContext(), 200).end(initMessage).mapEmpty());
       } else {
         return responseText(request.routingContext(), 404)
             .end("Could not find channel [" + channelId + "].").mapEmpty();

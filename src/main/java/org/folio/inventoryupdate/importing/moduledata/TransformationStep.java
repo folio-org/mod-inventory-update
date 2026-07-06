@@ -168,7 +168,8 @@ public class TransformationStep extends Entity {
    * Override to include STEP_NAME from STEP in transformation step association queries.
    */
   @Override
-  public SqlQuery cqlToSql(String query, String offset, String limit, String schema, String table, PgCqlDefinition definition) {
+  public SqlQuery cqlToSql(String query, String offset, String limit, String schema, String table,
+                           PgCqlDefinition definition) {
     String select = "SELECT " + table + ".*, " + Tables.STEP + ".name AS STEP_NAME ";
     String from = "FROM " + schema + "." + table + ", " + schema + "." + Tables.STEP;
     String whereClause = table + ".step_id = " + Tables.STEP + ".id ";
@@ -232,7 +233,8 @@ public class TransformationStep extends Entity {
 
   public Future<JsonObject> fetchTransformationSteps(ServiceRequest request) {
     JsonArray steps = new JsonArray();
-    return SqlTemplate.forQuery(request.entityStorage().getTenantPool().getPool(), cqlToSql(request).getQueryWithLimits())
+    return SqlTemplate.forQuery(request.entityStorage().getTenantPool().getPool(),
+            cqlToSql(request).getQueryWithLimits())
         .mapTo(this.fromRow())
         .execute(null)
         .map(rows ->  {
@@ -248,7 +250,7 @@ public class TransformationStep extends Entity {
    * Override to include STEP_NAME from STEP table in GET by ID.
    */
   @Override
-  public Future<Entity> getById (ServiceRequest getOrPutRequest) {
+  public Future<Entity> getById(ServiceRequest getOrPutRequest) {
     UUID id = UUID.fromString(getOrPutRequest.requestParam("id"));
     return SqlTemplate.forQuery(getOrPutRequest.entityStorage().getTenantPool().getPool(),
             "SELECT transformation_step.*, step.name AS step_name "
@@ -264,7 +266,6 @@ public class TransformationStep extends Entity {
           return iterator.hasNext() ? iterator.next().withTenant(tenant) : null;
         });
   }
-
 
   public Future<Integer> deleteTransformationStepsByTransformationId(TenantPgPool pool, UUID transformationId) {
     return SqlTemplate.forUpdate(pool.getPool(),
@@ -286,17 +287,17 @@ public class TransformationStep extends Entity {
                 // Update position while potentially adjusting the positions of other steps
                 "UPDATE " + schemaTable(request.dbSchema())
                     + " SET position = "
-                    + "     CASE "
+                    + "   CASE "
                     // set the new position of the step
-                    + "       WHEN id = '" + this.theRecord.id + "' THEN " + this.newPosition + " "
+                    + "      WHEN id = '" + this.theRecord.id + "' THEN " + this.newPosition + " "
                     // the step is moving towards end of pipeline, move affected steps back
-                    + "       WHEN " + this.newPosition + " > " + this.positionOfTheExistingStep + " THEN position - 1 "
+                    + "      WHEN " + this.newPosition + " > " + this.positionOfTheExistingStep + " THEN position - 1 "
                     // the step is moving towards beginning of pipeline, move affected steps forward
-                    + "       WHEN " + this.newPosition + " < " + this.positionOfTheExistingStep + " THEN position + 1 "
+                    + "      WHEN " + this.newPosition + " < " + this.positionOfTheExistingStep + " THEN position + 1 "
                     + "       ELSE position  "  // not a move (though we shouldn't get here due to the first WHEN
-                    + "     END "
+                    + "   END "
                     + " WHERE transformation_id = '" + theRecord.transformationId + "'"
-                    + "   AND position BETWEEN SYMMETRIC " + this.positionOfTheExistingStep + " AND " + this.newPosition
+                    + "  AND position BETWEEN SYMMETRIC " + this.positionOfTheExistingStep + " AND " + this.newPosition
             ))
         .mapEmpty();
   }

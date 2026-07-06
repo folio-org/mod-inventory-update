@@ -2,10 +2,10 @@ package org.folio.inventoryupdate.importing.utils;
 
 public final class EncodeXmlText {
 
+  private static final String REPLACEMENT_CHAR = "&#xFFFD;";
+
   private EncodeXmlText() {
   }
-
-  private static final String REPLACEMENT_CHAR = "&#xFFFD;";
 
   /**
    * Encode encode XML string.
@@ -19,7 +19,7 @@ public final class EncodeXmlText {
     for (int i = 0; i < len; ) {
       int c = s.codePointAt(i);
       if (c < 0x80) { // ASCII
-        if (c < 0x20 && (c != '\t' && c != '\r' && c != '\n')) {
+        if (c < 0x20 && c != '\t' && c != '\r' && c != '\n') {
           // illegal XML character even if escaped, substitute
           sb.append(REPLACEMENT_CHAR);
         } else {
@@ -44,7 +44,7 @@ public final class EncodeXmlText {
               sb.append((char) c);
           }
         }
-      } else if ((c >= 0xd800 && c <= 0xdfff) || c == 0xfffe || c == 0xffff) {
+      } else if (c >= 0xd800 && c <= 0xdfff || c == 0xfffe || c == 0xffff) {
         // illegal XML character even if escaped, replace
         sb.append(REPLACEMENT_CHAR);
       } else {

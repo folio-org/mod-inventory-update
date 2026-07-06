@@ -149,7 +149,6 @@ public final class JobsAndMonitoring extends EntityResponses {
   }
 
   public static Future<Void> getFailedRecords(ServiceRequest request) {
-    EntityStorage db = request.entityStorage();
     SqlQuery queryFromCql = new RecordFailure().usingView()
         .cqlToSql(request, Tables.RECORD_FAILURE_VIEW.name()).withDefaultLimit("100");
     String jobId = request.requestParam("id");
@@ -171,7 +170,7 @@ public final class JobsAndMonitoring extends EntityResponses {
     if (timeRange != null) {
       queryFromCql.withAdditionalWhereClause(timeRange);
     }
-
+    EntityStorage db = request.entityStorage();
     return db.getEntities(queryFromCql.getQueryWithLimits(), new RecordFailure()).onComplete(failuresList -> {
       if (failuresList.succeeded()) {
         JsonObject responseJson = new JsonObject();
@@ -225,9 +224,9 @@ public final class JobsAndMonitoring extends EntityResponses {
             .end("Found no channel with ID " + channelId + " to pause job for.").mapEmpty();
       } else {
         UUID channelUuid = channel.getId();
-        if (FileListeners.hasFileListener(request.tenant(), channelUuid.toString())) {
+        if (FileListeners.hasFileListener(request.tenant(), channelUuid)) {
           FileProcessor processor = FileListeners
-              .getFileListener(request.tenant(), channelUuid.toString()).getProcessor();
+              .getFileListener(request.tenant(), channelUuid).getProcessor();
           if (processor == null || !processor.getImportJob().markedRunning()) {
             return responseText(request.routingContext(), 404)
                 .end("No running job to pause found for this channel, [" + channelUuid + "].");
@@ -253,13 +252,13 @@ public final class JobsAndMonitoring extends EntityResponses {
             .end("Found no channel with ID " + channelId + " to resume job for.").mapEmpty();
       } else {
         UUID channelUuid = channel.getId();
-        if (FileListeners.hasFileListener(request.tenant(), channelUuid.toString())) {
+        if (FileListeners.hasFileListener(request.tenant(), channelUuid)) {
           FileProcessor processor = FileListeners
-              .getFileListener(request.tenant(), channelUuid.toString()).getProcessor();
+              .getFileListener(request.tenant(), channelUuid).getProcessor();
           if (processor != null && processor.paused()) {
-            processor.resume(discardFileInProcess);
-            return responseText(request.routingContext(), 200)
-                .end("Processing resumed for channel [" + channelId + "].");
+            return processor.resume(discardFileInProcess)
+                .compose(na -> responseText(request.routingContext(), 200)
+                    .end("Processing resumed for channel [" + channelId + "]."));
           } else {
             return responseText(request.routingContext(), 404)
                 .end("No paused job to resume found for this channel [" + channelId + "].");

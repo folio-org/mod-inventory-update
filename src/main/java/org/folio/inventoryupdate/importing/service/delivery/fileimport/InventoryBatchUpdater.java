@@ -212,10 +212,13 @@ public class InventoryBatchUpdater implements RecordReceiver {
 
   private void reportEndOfFile() {
     fileProcessor.reporting.endOfFile();
-    boolean queueDone = fileProcessor.fileQueueDone(true);
-    if (queueDone) {
-      fileProcessor.reporting.endOfQueue();
-    }
+    fileProcessor.fileQueueDone(true)
+        .compose(done -> {
+          if (done) {
+            fileProcessor.reporting.endOfQueue();
+          }
+          return null;
+        });
   }
 
   /**

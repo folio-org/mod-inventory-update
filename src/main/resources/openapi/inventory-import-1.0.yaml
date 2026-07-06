@@ -368,7 +368,7 @@ paths:
       description: create new file system queue, possibly deleting all sources files in an existing queue for the given channel
       responses:
         "200":
-          description: All files deleted from the queue
+          description: All files, if any, deleted from the queue
         "400":
           $ref: "#/components/responses/trait_400"
         "404":

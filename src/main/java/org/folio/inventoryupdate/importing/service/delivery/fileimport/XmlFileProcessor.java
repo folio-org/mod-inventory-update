@@ -3,8 +3,6 @@ package org.folio.inventoryupdate.importing.service.delivery.fileimport;
 import io.vertx.core.Future;
 import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
-import java.io.File;
-import java.io.IOException;
 import java.util.UUID;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -82,7 +80,7 @@ public class XmlFileProcessor extends FileProcessor {
    * @param xmlFile an XML file containing a `collection` of 0 or more `record`s
    * @return future completion of the file import
    */
-  public Future<Void> processFile(File xmlFile) {
+  public Future<Void> processFile(SourceFile xmlFile) {
     Promise<Void> promise = Promise.promise();
     try {
       reporting.nowProcessing(xmlFile.getName());
@@ -102,7 +100,7 @@ public class XmlFileProcessor extends FileProcessor {
               promise.complete();
             }
           });
-    } catch (IOException e) {
+    } catch (Exception e) {
       promise.fail("Could not open XML source file for importing " + e.getMessage());
     }
     return promise.future();
@@ -114,12 +112,12 @@ public class XmlFileProcessor extends FileProcessor {
         + ".";
     if (transformationPipeline.getRecordsProcessed() > 0 && inventoryBatchUpdater.getRecordsProcessed() > 0) {
       stats += " Transformation: "
-          + (transformationPipeline.getProcessingTime()>0
+          + (transformationPipeline.getProcessingTime() > 0
           ? (transformationPipeline.getRecordsProcessed() * 1000000000L / transformationPipeline.getProcessingTime())
           : " - ")
           + " recs/s."
           + " Upserting: "
-          + (inventoryBatchUpdater.getProcessingTime()>0
+          + (inventoryBatchUpdater.getProcessingTime() > 0
           ? (inventoryBatchUpdater.getRecordsProcessed() * 1000000000L / inventoryBatchUpdater.getProcessingTime())
           : " - ")
           + " recs/s.";

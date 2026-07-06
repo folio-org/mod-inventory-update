@@ -180,12 +180,12 @@ public abstract class Entity {
     return listOfColumnsValues.append(metadata.updateClauseColumnTemplates()).toString();
   }
 
-  public Future<Entity> getById (ServiceRequest getOrPutRequest) {
+  public Future<Entity> getById(ServiceRequest getOrPutRequest) {
     UUID id = UUID.fromString(getOrPutRequest.requestParam("id"));
     return getById(id, getOrPutRequest.entityStorage());
   }
 
-  public Future<Entity> getById (UUID id, EntityStorage storage) {
+  public Future<Entity> getById(UUID id, EntityStorage storage) {
     return SqlTemplate.forQuery(storage.pool.getPool(),
             "SELECT * "
                 + "FROM " + storage.schema() + "." + table().name() + " "
@@ -268,8 +268,8 @@ public abstract class Entity {
     return cqlToSql(query, offset, limit, request.dbSchema(), table, definition);
   }
 
-
-  public SqlQuery cqlToSql(String query, String offset, String limit, String schema, String table, PgCqlDefinition definition) {
+  public SqlQuery cqlToSql(String query, String offset, String limit, String schema, String table,
+                           PgCqlDefinition definition) {
     String select = "SELECT * ";
     String from = "FROM " + schema + "." + table;
     String whereClause = "";

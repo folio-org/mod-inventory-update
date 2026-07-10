@@ -1,7 +1,5 @@
 package org.folio.inventoryupdate.importing.service;
 
-import static org.folio.inventoryupdate.importing.service.delivery.fileimport.FileQueueFs.SOURCE_FILES_ROOT_DIR;
-import static org.folio.inventoryupdate.importing.service.delivery.fileimport.FileQueueFs.TENANT_DIR_PREFIX;
 import static org.folio.inventoryupdate.importing.service.delivery.respond.Channels.getChannelByTagOrUuid;
 import static org.folio.okapi.common.HttpResponse.responseError;
 import static org.folio.okapi.common.HttpResponse.responseText;
@@ -32,7 +30,6 @@ import org.folio.inventoryupdate.importing.moduledata.database.Tables;
 import org.folio.inventoryupdate.importing.service.delivery.fileimport.FileListeners;
 import org.folio.inventoryupdate.importing.service.delivery.fileimport.FileQueue;
 import org.folio.inventoryupdate.importing.service.delivery.fileimport.FileQueueDb;
-import org.folio.inventoryupdate.importing.service.delivery.fileimport.FileQueueFs;
 import org.folio.inventoryupdate.importing.service.delivery.respond.Channels;
 import org.folio.inventoryupdate.importing.service.delivery.respond.JobsAndMonitoring;
 import org.folio.inventoryupdate.importing.service.delivery.respond.LogPurging;
@@ -44,8 +41,6 @@ import org.folio.tlib.TenantInitHooks;
  * Main service.
  */
 public class ImportService implements RouterCreator, TenantInitHooks {
-
-  public static boolean useVertxFsFileQueue = false;
 
   public static final Logger logger = LogManager.getLogger("inventory-import");
 
@@ -173,7 +168,7 @@ public class ImportService implements RouterCreator, TenantInitHooks {
   }
 
   public static FileQueue getFileQueue(ServiceRequest request, UUID channelId) {
-    return useVertxFsFileQueue ? FileQueueFs.get(request, channelId) : FileQueueDb.get(request, channelId);
+    return FileQueueDb.get(request, channelId);
   }
 
   @Override
@@ -202,22 +197,11 @@ public class ImportService implements RouterCreator, TenantInitHooks {
 
   public Future<Void> clearTenantFileQueues(Vertx vertx, String tenant, String clearPastFileQueues) {
     if ("true".equalsIgnoreCase(clearPastFileQueues)) {
-      if (useVertxFsFileQueue) {
-        return vertx.fileSystem().exists(SOURCE_FILES_ROOT_DIR + "/" + TENANT_DIR_PREFIX + tenant)
-            .compose(exists -> {
-              if (exists) {
-                return vertx.fileSystem().deleteRecursive(SOURCE_FILES_ROOT_DIR + "/" + TENANT_DIR_PREFIX + tenant);
-              } else {
-                return Future.succeededFuture();
-              }
-            });
-      } else {
-        EntityStorage db = new EntityStorage(vertx, tenant);
-        return SqlTemplate.forUpdate(db.getTenantPool().getPool(),
-                "DELETE FROM " + db.getTenantPool().getSchema() + "." + Tables.SOURCE_FILE)
-            .execute(null)
-            .mapEmpty();
-      }
+      EntityStorage db = new EntityStorage(vertx, tenant);
+      return SqlTemplate.forUpdate(db.getTenantPool().getPool(),
+              "DELETE FROM " + db.getTenantPool().getSchema() + "." + Tables.SOURCE_FILE)
+          .execute(null)
+          .mapEmpty();
     } else {
       return Future.succeededFuture();
     }

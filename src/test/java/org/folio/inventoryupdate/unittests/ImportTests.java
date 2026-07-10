@@ -40,7 +40,6 @@ import org.folio.inventoryupdate.importing.foliodata.Folio;
 import org.folio.inventoryupdate.importing.foliodata.SettingsClient;
 import org.folio.inventoryupdate.importing.moduledata.database.DatabaseInit;
 import org.folio.inventoryupdate.importing.moduledata.database.Util;
-import org.folio.inventoryupdate.importing.service.ImportService;
 import org.folio.inventoryupdate.importing.service.delivery.fileimport.FileListeners;
 import org.folio.inventoryupdate.importing.service.delivery.respond.Channels;
 import org.folio.inventoryupdate.importing.service.delivery.respond.JobsAndMonitoring;
@@ -1187,28 +1186,6 @@ public class ImportTests extends InventoryUpdateTestBase {
     getRecordById(Service.PATH_IMPORT_JOBS, jobId).body("amountImported", is(500));
     assertThat("Instances in storage", fakeFolioApis.instanceStorage.getRecords().size(), is(500));
   }
-
-  @Test
-  public void canImportMultipleXmlSourceFilesUsingVertxFs() {
-    ImportService.useVertxFsFileQueue = true;
-    configureSamplePipeline();
-    String channelId = Files.JSON_CHANNEL.getString("id");
-    String transformationId = Files.JSON_TRANSFORMATION_CONFIG.getString("id");
-    getRecordById(Service.PATH_CHANNELS, channelId);
-    getRecordById(Service.PATH_TRANSFORMATIONS, transformationId);
-
-    Files.filesOfInventoryXmlRecords(5, 100, "204")
-        .forEach(xml -> postSourceXml(Service.PATH_CHANNELS + "/" + channelId + "/upload", xml, 200));
-
-    await().until(() -> getTotalRecords(Service.PATH_IMPORT_JOBS), is(1));
-    await().until(() -> getTotalRecords(Service.PATH_JOB_LOGS), greaterThan(1));
-    String jobId = getRecords(Service.PATH_IMPORT_JOBS).extract().path("importJobs[0].id");
-    String started = getRecordById(Service.PATH_IMPORT_JOBS, jobId).extract().path("started");
-    await().until(() -> getRecordById(Service.PATH_IMPORT_JOBS, jobId).extract().path("finished"), greaterThan(started));
-    getRecordById(Service.PATH_IMPORT_JOBS, jobId).body("amountImported", is(500));
-    assertThat("Instances in storage", fakeFolioApis.instanceStorage.getRecords().size(), is(500));
-  }
-
 
   @Test
   public void badSourceFileXmlWillHaltProcessing() {

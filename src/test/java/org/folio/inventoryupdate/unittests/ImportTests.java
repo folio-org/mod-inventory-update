@@ -9,6 +9,7 @@ import static org.folio.inventoryupdate.unittests.fixtures.Service.PATH_STEPS;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import io.restassured.RestAssured;
 import io.restassured.builder.RequestSpecBuilder;
@@ -18,6 +19,7 @@ import io.restassured.response.ExtractableResponse;
 import io.restassured.response.Response;
 import io.restassured.response.ValidatableResponse;
 import io.restassured.specification.RequestSpecification;
+import io.vertx.core.Future;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import java.io.File;
@@ -38,6 +40,7 @@ import java.util.concurrent.TimeUnit;
 
 import org.folio.inventoryupdate.importing.foliodata.Folio;
 import org.folio.inventoryupdate.importing.foliodata.SettingsClient;
+import org.folio.inventoryupdate.importing.moduledata.Channel;
 import org.folio.inventoryupdate.importing.moduledata.database.DatabaseInit;
 import org.folio.inventoryupdate.importing.moduledata.database.Util;
 import org.folio.inventoryupdate.importing.service.delivery.fileimport.FileListeners;
@@ -1587,6 +1590,23 @@ public class ImportTests extends InventoryUpdateTestBase {
       assertThat("Period was null", period != null);
       assertEquals(arg.expectedPeriod, period.toString());
     }
+  }
+
+  @Test
+  public void deployIfNotDeployedReturnsWhenChannelIsNull() {
+    Future<String> result = FileListeners.deployIfNotDeployed(null, null);
+
+    assertTrue(result.succeeded());
+    assertEquals("No channel provided to deploy.", result.result());
+  }
+
+  @Test
+  public void deployIfNotDeployedReturnsWhenChannelIdIsNull() {
+    Future<String> result = FileListeners.deployIfNotDeployed(null, new
+        Channel());
+
+    assertTrue(result.succeeded());
+    assertEquals("No channel provided to deploy.", result.result());
   }
 
 

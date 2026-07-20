@@ -36,7 +36,7 @@ public final class FileQueueDb implements FileQueue {
       return SqlTemplate.forUpdate(pool.getPool(),
           "DELETE FROM " + pool.getSchema() + "." + Tables.SOURCE_FILE
               + " WHERE channel_id = #{channelId}")
-          .execute(Collections.singletonMap("channelId", channelId))
+          .execute(Map.of("channelId", channelId))
           .compose(x -> Future.succeededFuture("Cleared file queue"))
           .map("Cleared file queue");
     }

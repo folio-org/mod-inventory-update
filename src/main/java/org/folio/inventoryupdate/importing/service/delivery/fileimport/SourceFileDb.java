@@ -42,7 +42,7 @@ public class SourceFileDb implements SourceFile {
                 + " WHERE file_name = #{fileName} "
                 + " AND channel_id = #{channelId} "
                 + " AND processing = 1 ")
-        .execute(params)
+        .execute(Map.of("channelId", channelId, "fileName", name))
         .mapEmpty();
   }
 }

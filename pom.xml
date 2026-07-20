@@ -456,7 +456,7 @@
           <violationSeverity>warning</violationSeverity>
           <consoleOutput>false</consoleOutput>
           <failsOnError>true</failsOnError>
-          <failOnViolation>false</failOnViolation>
+          <failOnViolation>true</failOnViolation>
           <linkXRef>false</linkXRef>
           <sourceDirectories>
             <sourceDirectory>${project.build.sourceDirectory}</sourceDirectory>

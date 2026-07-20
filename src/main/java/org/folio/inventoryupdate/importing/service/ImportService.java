@@ -6,7 +6,6 @@ import static org.folio.okapi.common.HttpResponse.responseText;
 
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
-import io.vertx.core.buffer.Buffer;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.Router;
@@ -14,6 +13,7 @@ import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.handler.impl.BodyHandlerImpl;
 import io.vertx.ext.web.openapi.router.RouterBuilder;
 import io.vertx.openapi.contract.OpenAPIContract;
+import io.vertx.sqlclient.templates.SqlTemplate;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -26,8 +26,10 @@ import org.folio.inventoryupdate.importing.moduledata.Channel;
 import org.folio.inventoryupdate.importing.moduledata.Step;
 import org.folio.inventoryupdate.importing.moduledata.Transformation;
 import org.folio.inventoryupdate.importing.moduledata.database.EntityStorage;
+import org.folio.inventoryupdate.importing.moduledata.database.Tables;
 import org.folio.inventoryupdate.importing.service.delivery.fileimport.FileListeners;
 import org.folio.inventoryupdate.importing.service.delivery.fileimport.FileQueue;
+import org.folio.inventoryupdate.importing.service.delivery.fileimport.FileQueueDb;
 import org.folio.inventoryupdate.importing.service.delivery.respond.Channels;
 import org.folio.inventoryupdate.importing.service.delivery.respond.JobsAndMonitoring;
 import org.folio.inventoryupdate.importing.service.delivery.respond.LogPurging;
@@ -58,7 +60,7 @@ public class ImportService implements RouterCreator, TenantInitHooks {
     validatingHandler(vertx, routerBuilder, "getChannel", Channels::getChannelById);
     validatingHandler(vertx, routerBuilder, "putChannel", Channels::putChannel);
     validatingHandler(vertx, routerBuilder, "deleteChannel", Channels::deleteChannel);
-    validatingHandler(vertx, routerBuilder, "initFileSystemQueue", Channels::initFileSystemQueue);
+    validatingHandler(vertx, routerBuilder, "initFileSystemQueue", Channels::initFileQueue);
     validatingHandler(vertx, routerBuilder, "commission", Channels::commission);
     validatingHandler(vertx, routerBuilder, "decommission", Channels::decommission);
     validatingHandler(vertx, routerBuilder, "listen", Channels::listen);
@@ -165,6 +167,10 @@ public class ImportService implements RouterCreator, TenantInitHooks {
     }
   }
 
+  public static FileQueue getFileQueue(ServiceRequest request, UUID channelId) {
+    return FileQueueDb.get(request, channelId);
+  }
+
   @Override
   public Future<Void> postInit(Vertx vertx, String tenant, JsonObject tenantAttributes) {
     return new EntityStorage(vertx, tenant).init(tenantAttributes).onFailure(x ->
@@ -173,7 +179,7 @@ public class ImportService implements RouterCreator, TenantInitHooks {
         .compose(x ->
             clearTenantFileQueues(vertx, tenant, getTenantParameter(tenantAttributes, "clearPastFileQueues")))
         .compose(na -> FileListeners.clearRegistry(tenant))
-        .compose( x -> loadSample(vertx, tenant, getTenantParameter(tenantAttributes, "loadSample")));
+        .compose(x -> loadSample(vertx, tenant, getTenantParameter(tenantAttributes, "loadSample")));
   }
 
   private static String getTenantParameter(JsonObject attributes, String parameterKey) {
@@ -191,9 +197,14 @@ public class ImportService implements RouterCreator, TenantInitHooks {
 
   public Future<Void> clearTenantFileQueues(Vertx vertx, String tenant, String clearPastFileQueues) {
     if ("true".equalsIgnoreCase(clearPastFileQueues)) {
-      FileQueue.clearTenantQueues(vertx, tenant);
+      EntityStorage db = new EntityStorage(vertx, tenant);
+      return SqlTemplate.forUpdate(db.getTenantPool().getPool(),
+              "DELETE FROM " + db.getTenantPool().getSchema() + "." + Tables.SOURCE_FILE)
+          .execute(null)
+          .mapEmpty();
+    } else {
+      return Future.succeededFuture();
     }
-    return Future.succeededFuture();
   }
 
   public Future<Void> loadSample(Vertx vertx, String tenant, String loadSample) {
@@ -234,12 +245,11 @@ public class ImportService implements RouterCreator, TenantInitHooks {
   private Future<Void> createMarcXmlSampleConfigs(EntityStorage db) {
     var samplesPath = "sampleconfigs/marcxml/";
     return createSampleStep(db, samplesPath + "step-marc2instance.json", samplesPath + "step-marc2instance.xslt")
-        .compose( na ->
+        .compose(na ->
             createSampleTransformation(db, samplesPath + "marc-transformation.json"))
-        .compose( na ->
+        .compose(na ->
             createSampleChannel(db, samplesPath + "marcxml-channel.json"));
   }
-
 
   private String getResourceAsString(String path) {
     String fileAsString = "";
@@ -283,7 +293,7 @@ public class ImportService implements RouterCreator, TenantInitHooks {
     final long fileStartTime = System.nanoTime();
     String channelId = request.requestParam("id");
     String fileName = request.queryParam("filename", UUID.randomUUID() + ".xml");
-    Buffer xmlContent = Buffer.buffer(request.bodyAsString());
+    String payload = request.bodyAsString();
 
     return getChannelByTagOrUuid(request, channelId).compose(channel -> {
       if (channel == null) {
@@ -293,18 +303,15 @@ public class ImportService implements RouterCreator, TenantInitHooks {
         return responseText(request.routingContext, 403)
             .end("The channel with id or tag [" + channelId + "] is not ready to accept files.").mapEmpty();
       } else if (channel.isCommissioned()) {
-        return FileQueue.get(request, channel.getId().toString())
-            .push(fileName, xmlContent)
+        return ImportService.getFileQueue(request, channel.getId()).push(fileName, payload)
             .compose(na -> responseText(request.routingContext, 200).end())
             .mapEmpty();
       } else {
-        return FileQueue.get(request, channel.getId().toString())
-            .push(fileName, xmlContent)
-            .compose(na -> FileListeners.deployIfNotDeployed(request, channel)
-                .compose(ignore -> FileQueue.get(request, channel.getId().toString()).push(fileName, xmlContent)
+        return FileListeners.deployIfNotDeployed(request, channel)
+                .compose(ignore -> ImportService.getFileQueue(request, channel.getId()).push(fileName, payload))
                 .compose(x -> responseText(request.routingContext, 200)
-                    .end("File queued for processing in ms " + (System.nanoTime() - fileStartTime) / 1000000L)))
-                .mapEmpty());
+                    .end("File queued for processing in ms " + (System.nanoTime() - fileStartTime) / 1000000L))
+                .mapEmpty();
       }
     });
   }

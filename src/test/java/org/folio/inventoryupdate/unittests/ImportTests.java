@@ -9,6 +9,7 @@ import static org.folio.inventoryupdate.unittests.fixtures.Service.PATH_STEPS;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import io.restassured.RestAssured;
 import io.restassured.builder.RequestSpecBuilder;
@@ -18,6 +19,7 @@ import io.restassured.response.ExtractableResponse;
 import io.restassured.response.Response;
 import io.restassured.response.ValidatableResponse;
 import io.restassured.specification.RequestSpecification;
+import io.vertx.core.Future;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import java.io.File;
@@ -38,6 +40,7 @@ import java.util.concurrent.TimeUnit;
 
 import org.folio.inventoryupdate.importing.foliodata.Folio;
 import org.folio.inventoryupdate.importing.foliodata.SettingsClient;
+import org.folio.inventoryupdate.importing.moduledata.Channel;
 import org.folio.inventoryupdate.importing.moduledata.database.DatabaseInit;
 import org.folio.inventoryupdate.importing.moduledata.database.Util;
 import org.folio.inventoryupdate.importing.service.delivery.fileimport.FileListeners;
@@ -59,7 +62,6 @@ import org.junit.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.testcontainers.containers.PostgreSQLContainer;
-
 
 public class ImportTests extends InventoryUpdateTestBase {
   public static final Logger logger = LoggerFactory.getLogger(ImportTests.class);
@@ -919,6 +921,24 @@ public class ImportTests extends InventoryUpdateTestBase {
     await().until(() -> getRecordById(Service.PATH_IMPORT_JOBS, jobId).extract().path("finished"), greaterThan(started));
     await().until(() -> getTotalRecords(Service.PATH_JOB_LOGS), is(4));
   }
+  @Test
+  public void willImportXmlSourceFileEvenAfterModuleRestart() throws Exception {
+    configureSamplePipeline();
+    insertChannelRecordToDatabase(
+        "Channel in a state as if module was redeployed",
+        "forced-state",
+        "XML",
+        UUID.fromString(Files.JSON_TRANSFORMATION_CONFIG.getString("id")),
+        true,
+        true);
+    postSourceXml(Service.PATH_CHANNELS + "/forced-state/upload?filename=test.xml",
+        Files.XML_INVENTORY_RECORD_SET, 200);
+    await().until(() -> getTotalRecords(Service.PATH_IMPORT_JOBS), is(1));
+    String jobId = getRecords(Service.PATH_IMPORT_JOBS).extract().path("importJobs[0].id");
+    String started = getRecordById(Service.PATH_IMPORT_JOBS, jobId).extract().path("started");
+    await().until(() -> getRecordById(Service.PATH_IMPORT_JOBS, jobId).extract().path("finished"), greaterThan(started));
+    await().until(() -> getTotalRecords(Service.PATH_JOB_LOGS), is(4));
+  }
 
   @Test
   public void canImportSourceXmlWithNamespace() {
@@ -1340,6 +1360,7 @@ public class ImportTests extends InventoryUpdateTestBase {
 
   @Test
   public void willPauseOnFatalErrorAndCanResumeWithCurrentFile() {
+    //ImportService.useVertxFsFileQueue = true;
     configureSamplePipeline();
     String channelId = Files.JSON_CHANNEL.getString("id");
     String transformationId = Files.JSON_TRANSFORMATION_CONFIG.getString("id");
@@ -1347,14 +1368,13 @@ public class ImportTests extends InventoryUpdateTestBase {
     getRecordById(Service.PATH_TRANSFORMATIONS, transformationId);
 
     fakeFolioApis.instanceStorage.failOnGetRecords = true;
-    postSourceXml(Service.PATH_CHANNELS + "/" + channelId + "/upload",
+    postSourceXml(Service.PATH_CHANNELS + "/" + channelId + "/upload?fileName=sourcefile.xml",
         Files.createCollectionOfInventoryXmlRecordsWithDeletes(1, 1, "200"), 200);
-
-    await().until(() -> filesInProcessingSlot(channelId), is(1));
+    await().until(() -> getRecordById(PATH_CHANNELS, channelId).extract().path("fileInProcess"), is("sourcefile.xml"));
     await().until(() -> getTotalRecords(Service.PATH_IMPORT_JOBS), is(1));
     String jobId = getRecords(Service.PATH_IMPORT_JOBS).extract().path("importJobs[0].id");
     await().until(() -> getRecordById(Service.PATH_IMPORT_JOBS, jobId).extract().path("status"), is("PAUSED"));
-    assertThat("Source XML should remain available for resume", filesInProcessingSlot(channelId), is(1));
+    await().until(() -> getRecordById(PATH_CHANNELS, channelId).extract().path("fileInProcess"), is("sourcefile.xml"));
 
     fakeFolioApis.instanceStorage.failOnGetRecords = false;
     given()
@@ -1366,7 +1386,7 @@ public class ImportTests extends InventoryUpdateTestBase {
         .then().statusCode(200);
 
     await().until(() -> getRecordById(Service.PATH_IMPORT_JOBS, jobId).extract().path("status"), is("DONE"));
-    assertThat("Processing slot should be clear after successful resume", filesInProcessingSlot(channelId), is(0));
+    await().until(() -> getRecordById(PATH_CHANNELS, channelId).extract().path("fileInProcess"), is("no file in process"));
     assertThat("Instances in storage", fakeFolioApis.instanceStorage.getRecords().size(), is(1));
   }
 
@@ -1461,7 +1481,6 @@ public class ImportTests extends InventoryUpdateTestBase {
     await().until(() -> getRecordById(Service.PATH_IMPORT_JOBS, jobId).extract().path("finished"), greaterThan(started));
     await().until(() -> getTotalRecords(Service.PATH_JOB_LOGS), is(4));
     await().until(() -> getTotalRecords(Service.PATH_FAILED_RECORDS), is(2));
-    System.out.println(getRecords(PATH_FAILED_RECORDS).extract().asPrettyString());
     getRecords(PATH_FAILED_RECORDS).body("failedRecords[0].recordErrors[0].message", equalTo("Record contains no Instance object."));
   }
 
@@ -1571,6 +1590,40 @@ public class ImportTests extends InventoryUpdateTestBase {
       assertThat("Period was null", period != null);
       assertEquals(arg.expectedPeriod, period.toString());
     }
+  }
+
+  @Test
+  public void deployIfNotDeployedReturnsWhenChannelIsNull() {
+    Future<String> result = FileListeners.deployIfNotDeployed(null, null);
+
+    assertTrue(result.succeeded());
+    assertEquals("No channel provided to deploy.", result.result());
+  }
+
+  @Test
+  public void deployIfNotDeployedReturnsWhenChannelIdIsNull() {
+    Future<String> result = FileListeners.deployIfNotDeployed(null, new
+        Channel());
+
+    assertTrue(result.succeeded());
+    assertEquals("No channel provided to deploy.", result.result());
+  }
+
+  @Test
+  public void undeployIfDeployedReturnsWhenChannelIsNull() {
+    Future<String> result = FileListeners.undeployIfDeployed(null, null);
+
+    assertTrue(result.succeeded());
+    assertEquals("No channel provided to undeploy.", result.result());
+  }
+
+  @Test
+  public void undeployIfDeployedReturnsWhenChannelIdIsNull() {
+    Future<String> result = FileListeners.undeployIfDeployed(null, new
+        Channel());
+
+    assertTrue(result.succeeded());
+    assertEquals("No channel provided to undeploy.", result.result());
   }
 
 
@@ -1708,16 +1761,6 @@ public class ImportTests extends InventoryUpdateTestBase {
   private void deleteFileQueues() {
     File queues = new File(System.getProperty("user.dir")+"/MIU_QUEUE");
     deleteDirectory(queues);
-  }
-
-  private int filesInProcessingSlot(String channelId) {
-      File[] files = processingSlot(channelId).listFiles(File::isFile);
-      return files == null ? 0 : files.length;
-  }
-
-  private File processingSlot(String channelId) {
-    return new File(System.getProperty("user.dir") + "/MIU_QUEUE/TENANT_" + Service.TENANT
-        + "/CHANNEL_" + channelId + "/.processing");
   }
 
   private void deleteDirectory(File directoryToBeDeleted) {

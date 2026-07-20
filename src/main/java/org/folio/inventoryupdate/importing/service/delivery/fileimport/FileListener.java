@@ -7,7 +7,6 @@ import io.vertx.core.ThreadingModel;
 import io.vertx.core.VerticleBase;
 import io.vertx.core.Vertx;
 import io.vertx.ext.web.RoutingContext;
-import java.io.File;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -39,11 +38,7 @@ public abstract class FileListener extends VerticleBase {
   }
 
   public UUID getConfigId() {
-    return channel.getRecord().id();
-  }
-
-  public String getConfigIdStr() {
-    return getConfigId().toString();
+    return channel.getId();
   }
 
   public void markFileQueuePassive() {
@@ -54,7 +49,7 @@ public abstract class FileListener extends VerticleBase {
     return fileQueuePassive.get();
   }
 
-  public boolean queueIsEmpty() {
+  public Future<Boolean> queueIsEmpty() {
     return fileQueue.isEmpty();
   }
 
@@ -80,12 +75,15 @@ public abstract class FileListener extends VerticleBase {
    *   all, to restart processing with that</li>
    *   <li>except, if there is no promoted file and no files in queue: returns null.</li>
    */
-  public File getNextFileIfPossible(boolean fileQueuePassive, boolean processorResuming) {
-    if (fileQueue.hasFileInProcess() && (fileQueuePassive || processorResuming)) {
-      return fileQueue.currentFile();
-    } else {
-      return fileQueue.nextFileIfPossible();
-    }
+  public Future<SourceFile> getNextFileIfPossible(boolean fileQueuePassive, boolean processorResuming) {
+    return fileQueue.hasFileInProcess()
+        .compose(inProcess -> {
+          if (inProcess && (fileQueuePassive || processorResuming)) {
+            return fileQueue.currentlyPromotedFile();
+          } else {
+            return fileQueue.promoteAndGetNextFileIfPossible();
+          }
+        });
   }
 
   public boolean importJobPaused() {

@@ -1,8 +1,8 @@
 package org.folio.inventoryupdate.importing.service.delivery.fileimport;
 
 import io.vertx.core.Future;
-import java.io.File;
 import org.folio.inventoryupdate.importing.moduledata.Channel;
+import org.folio.inventoryupdate.importing.service.ImportService;
 import org.folio.inventoryupdate.importing.service.ServiceRequest;
 
 /**
@@ -18,13 +18,13 @@ public class XmlFileListener extends FileListener {
     this.tenant = request.tenant();
     this.channel = channel;
     this.routingContext = request.routingContext();
-    this.fileQueue = FileQueue.get(request, getConfigIdStr());
+    this.fileQueue = ImportService.getFileQueue(request, getConfigId());
   }
 
   @Override
   public Future<?> start() throws Exception {
     logger.info("Listening for files to forward for processing by job configuration ID [{}}], tenant [{}}].",
-        getConfigIdStr(), tenant);
+        getConfigId(), tenant);
     listen();
     return super.start();
   }
@@ -38,19 +38,22 @@ public class XmlFileListener extends FileListener {
     vertx.setPeriodic(200, r -> {
       if (isListening() && !importJobPaused()) {
         boolean processorResuming = fileProcessor != null && fileProcessor.isResuming(false);
-        File currentFile = getNextFileIfPossible(fileQueuePassive.get(), processorResuming);
-        if (currentFile != null) {  // null if queue is either empty or already has a file in progress
-          boolean queueWentFromPassiveToActive = fileQueuePassive.getAndSet(false);
-          // Continue existing job if any (= not activating), or instantiate a new (= activating).
-          getFileProcessor(queueWentFromPassiveToActive)
-              .compose(fileProcessor -> fileProcessor.processFile(currentFile))
-              .onSuccess(na -> {
-                if (!importJobPaused()) { // if paused mid-file, keep file to resume
-                  fileQueue.deleteFile(currentFile);
-                }
-              })
-              .onFailure(f -> logger.error("Error processing file: {}", f.getMessage()));
-        }
+        getNextFileIfPossible(fileQueuePassive.get(), processorResuming)
+            .compose(currentFile -> {
+              if (currentFile != null) {  // null if queue is either empty or already has a file in progress
+                boolean queueWentFromPassiveToActive = fileQueuePassive.getAndSet(false);
+                // Continue existing job if any (= not activating), or instantiate a new (= activating).
+                getFileProcessor(queueWentFromPassiveToActive)
+                    .compose(fileProcessor -> fileProcessor.processFile(currentFile))
+                    .onSuccess(na -> {
+                      if (!importJobPaused()) { // if paused mid-file, keep file to resume
+                        currentFile.discard();
+                      }
+                    })
+                    .onFailure(f -> logger.error("Error processing file: {}", f.getMessage()));
+              }
+              return null;
+            });
       }
     });
   }

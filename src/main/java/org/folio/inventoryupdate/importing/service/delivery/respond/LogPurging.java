@@ -1,7 +1,6 @@
 package org.folio.inventoryupdate.importing.service.delivery.respond;
 
 import io.vertx.core.Future;
-import io.vertx.core.Vertx;
 import io.vertx.sqlclient.templates.SqlTemplate;
 import java.time.LocalDateTime;
 import java.time.Period;
@@ -15,40 +14,30 @@ import org.folio.inventoryupdate.importing.moduledata.database.Tables;
 import org.folio.inventoryupdate.importing.service.ServiceRequest;
 import org.folio.inventoryupdate.importing.utils.Miscellaneous;
 import org.folio.inventoryupdate.importing.utils.SettableClock;
-import org.folio.tlib.postgres.TenantPgPool;
 
 public class LogPurging  {
 
   protected static final Logger logger = LogManager.getLogger(LogPurging.class);
-  protected final TenantPgPool pool;
-  protected final String tenant;
-
-  public LogPurging(Vertx vertx, String tenant) {
-    this.pool = TenantPgPool.pool(vertx, tenant);
-    this.tenant = tenant;
-  }
 
   public static Future<Void> purgeAgedLogs(ServiceRequest request) {
     logger.info("Running process: purge aged logs");
     final String settings_scope = "mod-inventory-update";
     final String settings_key = "PURGE_LOGS_AFTER";
     return SettingsClient.getStringValue(request.routingContext(), settings_scope, settings_key)
-        .compose(purgeSetting ->
-            new LogPurging(request.vertx(), request.tenant())
-                .purgePastJobsBySetting(request, purgeSetting));
+        .map(LogPurging::getCutOffDate)
+        .compose(cutOff -> purgePreviousJobsByAge(request, cutOff).map(cutOff))
+        .onSuccess(result -> request.routingContext().response().setStatusCode(204).end())
+        .mapEmpty();
   }
 
-  private Future<Void> purgePastJobsBySetting(ServiceRequest request, String purgeSetting) {
+  private static LocalDateTime getCutOffDate(String purgeSetting) {
     Period ageForDeletion = Miscellaneous.getPeriod(purgeSetting, 3, "MONTHS");
-    LocalDateTime untilDate = SettableClock.getLocalDateTime().minus(ageForDeletion).truncatedTo(ChronoUnit.MINUTES);
-    logger.info("Purging aged logs from before {}", untilDate);
-    return new LogPurging(request.vertx(), request.tenant()).purgePreviousJobsByAge(untilDate)
-        .onSuccess(result -> request.routingContext().response().setStatusCode(204).end());
+    return SettableClock.getLocalDateTime().minus(ageForDeletion).truncatedTo(ChronoUnit.MINUTES);
   }
 
-  private Future<Void> purgePreviousJobsByAge(LocalDateTime untilDate) {
-    return SqlTemplate.forUpdate(pool.getPool(),
-            "DELETE FROM " + pool.getSchema() + "." + Tables.IMPORT_JOB
+  private static Future<Void> purgePreviousJobsByAge(ServiceRequest request, LocalDateTime untilDate) {
+    return SqlTemplate.forUpdate(request.entityStorage().getTenantPool().getPool(),
+            "DELETE FROM " + request.entityStorage().getTenantPool().getSchema() + "." + Tables.IMPORT_JOB
                 + " WHERE " + new ImportJob().field(ImportJob.STARTED).columnName() + " <#{untilDate} ")
         .execute(Collections.singletonMap("untilDate", untilDate))
         .onSuccess(result -> logger.info("{} import jobs deleted", result.rowCount()))

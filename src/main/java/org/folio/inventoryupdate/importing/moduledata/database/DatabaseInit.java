@@ -32,7 +32,9 @@ public final class DatabaseInit {
         .compose(na -> create(new LogLine(), pool))
         .compose(na -> create(new TransformationStep(), pool))
         .compose(na -> pool.query(createRecordFailureView(pool.getSchema())).execute())
-        .compose(na -> pool.query(createJobLogsView(pool.getSchema())).execute()).mapEmpty();
+        .compose(na -> pool.query(createJobLogsView(pool.getSchema())).execute())
+        .compose(na -> pool.query(createSourceFile(pool.getSchema())).execute())
+        .mapEmpty();
   }
 
   /**
@@ -91,5 +93,19 @@ public final class DatabaseInit {
         + "       " + schema + "." + Tables.IMPORT_JOB + " as ij "
         + "  WHERE ls.import_job_id = ij.id";
     return ddl;
+  }
+
+  public static String createSourceFile(String schema) {
+    return "CREATE TABLE IF NOT EXISTS " + schema + "." + Tables.SOURCE_FILE
+        + " ( id UUID PRIMARY KEY, "
+        + "   file_name VARCHAR(255) NOT NULL, "
+        + "   channel_id UUID NOT NULL CONSTRAINT source_file_channel_id_fkey REFERENCES "
+        +       schema + "." + Tables.CHANNEL + " (id) ON DELETE CASCADE, "
+        + "   uploaded_date TIMESTAMP NOT NULL, "
+        + "   processing SMALLINT NULL, "
+        + "   payload TEXT STORAGE EXTERNAL NOT NULL, "
+        + "   UNIQUE (file_name, channel_id), "
+        + "   CHECK (processing IN (1)), "
+        + "   UNIQUE (channel_id, processing)) ";
   }
 }

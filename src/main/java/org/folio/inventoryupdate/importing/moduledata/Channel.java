@@ -14,7 +14,6 @@ import org.folio.inventoryupdate.importing.moduledata.database.PgColumn;
 import org.folio.inventoryupdate.importing.moduledata.database.Tables;
 import org.folio.inventoryupdate.importing.moduledata.database.Util;
 import org.folio.inventoryupdate.importing.service.delivery.fileimport.FileListeners;
-import org.folio.inventoryupdate.importing.service.delivery.fileimport.FileQueue;
 import org.folio.tlib.postgres.TenantPgPool;
 
 public class Channel extends Entity {
@@ -30,7 +29,8 @@ public class Channel extends Entity {
   public static final String PROPERTY_COMMISSIONED = "commissioned";
   private static final Map<String, Field> CHANNEL_FIELDS = new HashMap<>();
   ChannelRecord theRecord;
-  private FileQueue fileQueue;
+  private int queueLength = 0;
+  private String nameOfProcessingFile = "no file processing";
 
   static {
     CHANNEL_FIELDS.put(ID,
@@ -76,8 +76,13 @@ public class Channel extends Entity {
     return "Channel";
   }
 
-  public Channel withFileQueue(FileQueue fileQueue) {
-    this.fileQueue = fileQueue;
+  public Channel withNameOfProcessingFile(String fileName) {
+    this.nameOfProcessingFile = fileName;
+    return this;
+  }
+
+  public Channel withLengthOfQueue(int size) {
+    this.queueLength = size;
     return this;
   }
 
@@ -136,10 +141,9 @@ public class Channel extends Entity {
     json.put(jsonPropertyName(ENABLED), theRecord.enabled());
     json.put(PROPERTY_COMMISSIONED, isCommissioned());
     json.put(jsonPropertyName(LISTENING), theRecord.listening());
-    if (fileQueue != null) {
-      json.put("queuedFiles", fileQueue.size());
-      json.put("fileInProcess", fileQueue.fileInProcess());
-    }
+    json.put("queuedFiles", queueLength);
+    json.put("fileInProcess", nameOfProcessingFile);
+
     putMetadata(json);
     return json;
   }
@@ -152,6 +156,10 @@ public class Channel extends Entity {
   @Override
   public UUID getId() {
     return theRecord == null ? null : theRecord.id();
+  }
+
+  public String getName() {
+    return theRecord == null ? null : theRecord.name();
   }
 
   @Override
@@ -179,7 +187,7 @@ public class Channel extends Entity {
           "Tenant not specified for this Channel object ({}), cannot say if the channel is commissioned",
           theRecord.name());
     }
-    return tenant != null && FileListeners.hasFileListener(tenant, theRecord.id().toString());
+    return tenant != null && FileListeners.hasFileListener(tenant, theRecord.id());
   }
 
   public boolean isEnabled() {
@@ -187,7 +195,7 @@ public class Channel extends Entity {
   }
 
   public boolean isListeningIfEnabled() {
-    return theRecord.listening();
+    return theRecord != null && theRecord.listening();
   }
 
   public UUID getTransformationId() {
@@ -195,6 +203,9 @@ public class Channel extends Entity {
   }
 
   public Future<Integer> setEnabledListening(boolean enabled, boolean listening, EntityStorage configStorage) {
+    if (theRecord == null) {
+      return Future.succeededFuture(0);
+    }
     theRecord = new ChannelRecord(theRecord.id(), theRecord.name(), theRecord.tag(), theRecord.type(),
         theRecord.transformationId(), enabled, listening);
     return configStorage.updateEntity(this.withUpdatingUser(null),

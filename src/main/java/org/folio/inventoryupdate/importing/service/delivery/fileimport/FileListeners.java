@@ -77,6 +77,9 @@ public final class FileListeners {
    * @return statement about the outcome of the operation
    */
   public static Future<String> undeployIfDeployed(ServiceRequest request, Channel channel) {
+    if (channel == null || channel.getId() == null) {
+      return Future.succeededFuture("No channel provided to undeploy.");
+    }
     boolean retainQueue = "true".equalsIgnoreCase(request.requestParam("retainQueue"));
     FileListener fileListener = FileListeners.getFileListener(request.tenant(), channel.getId());
     if (fileListener != null) {

@@ -307,10 +307,7 @@ public class ImportService implements RouterCreator, TenantInitHooks {
             .compose(na -> responseText(request.routingContext, 200).end())
             .mapEmpty();
       } else {
-        return //FileQueue.get(request, channel.getId().toString())
-            //.push(fileName, xmlContent)
-            //.compose( fq -> fq.persist(request, channel.getId(), fileName, xmlContent))
-            FileListeners.deployIfNotDeployed(request, channel)
+        return FileListeners.deployIfNotDeployed(request, channel)
                 .compose(ignore -> ImportService.getFileQueue(request, channel.getId()).push(fileName, payload))
                 .compose(x -> responseText(request.routingContext, 200)
                     .end("File queued for processing in ms " + (System.nanoTime() - fileStartTime) / 1000000L))

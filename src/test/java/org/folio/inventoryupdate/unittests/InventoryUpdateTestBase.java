@@ -1,12 +1,17 @@
 package org.folio.inventoryupdate.unittests;
 
+import io.vertx.sqlclient.Tuple;
+import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 import org.folio.inventoryupdate.unittests.fakestorage.FakeApis;
 import org.folio.inventoryupdate.MainVerticle;
 import org.folio.inventoryupdate.unittests.fakestorage.FakeFolioApisForImporting;
 import org.folio.inventoryupdate.unittests.fakestorage.RecordStorage;
 import org.folio.inventoryupdate.unittests.fakestorage.entities.InputInstance;
 import org.folio.inventoryupdate.unittests.fakestorage.entities.InputLocation;
+import org.folio.inventoryupdate.unittests.fixtures.Service;
 import org.folio.okapi.common.XOkapiHeaders;
+import org.folio.tlib.postgres.TenantPgPool;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
@@ -287,4 +292,18 @@ public abstract class InventoryUpdateTestBase {
     }
   }
 
+  protected void insertChannelRecordToDatabase(String name, String tag, String type, UUID transformationId,
+                                               boolean enabled, boolean listening) throws Exception {
+    UUID channelId = UUID.randomUUID();
+    TenantPgPool pool = TenantPgPool.pool(vertx, Service.TENANT);
+    pool.getPool()
+        .preparedQuery("""
+            INSERT INTO %s.CHANNEL
+              (id, name, tag, type, transformation_id, enabled, listening)
+            VALUES
+              ($1, $2, $3, $4, $5, $6, $7)
+            """.formatted(pool.getSchema()))
+        .execute(Tuple.of(channelId, name, tag, type, transformationId, enabled, listening))
+        .toCompletionStage().toCompletableFuture().get(10, TimeUnit.SECONDS);
+  }
 }

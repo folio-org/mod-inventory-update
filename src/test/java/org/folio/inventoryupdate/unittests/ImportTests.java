@@ -918,6 +918,24 @@ public class ImportTests extends InventoryUpdateTestBase {
     await().until(() -> getRecordById(Service.PATH_IMPORT_JOBS, jobId).extract().path("finished"), greaterThan(started));
     await().until(() -> getTotalRecords(Service.PATH_JOB_LOGS), is(4));
   }
+  @Test
+  public void willImportXmlSourceFileEvenAfterModuleRestart() throws Exception {
+    configureSamplePipeline();
+    insertChannelRecordToDatabase(
+        "Channel in a state as if module was redeployed",
+        "forced-state",
+        "XML",
+        UUID.fromString(Files.JSON_TRANSFORMATION_CONFIG.getString("id")),
+        true,
+        true);
+    postSourceXml(Service.PATH_CHANNELS + "/forced-state/upload?filename=test.xml",
+        Files.XML_INVENTORY_RECORD_SET, 200);
+    await().until(() -> getTotalRecords(Service.PATH_IMPORT_JOBS), is(1));
+    String jobId = getRecords(Service.PATH_IMPORT_JOBS).extract().path("importJobs[0].id");
+    String started = getRecordById(Service.PATH_IMPORT_JOBS, jobId).extract().path("started");
+    await().until(() -> getRecordById(Service.PATH_IMPORT_JOBS, jobId).extract().path("finished"), greaterThan(started));
+    await().until(() -> getTotalRecords(Service.PATH_JOB_LOGS), is(4));
+  }
 
   @Test
   public void canImportSourceXmlWithNamespace() {

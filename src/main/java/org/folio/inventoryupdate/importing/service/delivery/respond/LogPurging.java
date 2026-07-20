@@ -14,7 +14,6 @@ import org.folio.inventoryupdate.importing.moduledata.database.Tables;
 import org.folio.inventoryupdate.importing.service.ServiceRequest;
 import org.folio.inventoryupdate.importing.utils.Miscellaneous;
 import org.folio.inventoryupdate.importing.utils.SettableClock;
-import org.folio.tlib.postgres.TenantPgPool;
 
 public class LogPurging  {
 
@@ -27,9 +26,8 @@ public class LogPurging  {
     return SettingsClient.getStringValue(request.routingContext(), settings_scope, settings_key)
         .map(LogPurging::getCutOffDate)
         .compose(cutOff -> purgePreviousJobsByAge(request, cutOff).map(cutOff))
-        .compose(cutOff -> purgeImportedFilesFromQueue(request, cutOff))
-        .compose(na -> vacuumLogTables(request.entityStorage().getTenantPool()))
-        .onSuccess(result -> request.routingContext().response().setStatusCode(204).end());
+        .onSuccess(result -> request.routingContext().response().setStatusCode(204).end())
+        .mapEmpty();
   }
 
   private static LocalDateTime getCutOffDate(String purgeSetting) {
@@ -44,30 +42,6 @@ public class LogPurging  {
         .execute(Collections.singletonMap("untilDate", untilDate))
         .onSuccess(result -> logger.info("{} import jobs deleted", result.rowCount()))
         .onFailure(error -> logger.error("{} (occurred when attempting to delete import jobs)", error.getMessage()))
-        .mapEmpty();
-  }
-
-  private static Future<Void> purgeImportedFilesFromQueue(ServiceRequest request, LocalDateTime untilDate) {
-    return SqlTemplate.forUpdate(request.entityStorage().getTenantPool().getPool(),
-            "DELETE FROM " + request.entityStorage().getTenantPool().getSchema() + "." + Tables.SOURCE_FILE
-                + " WHERE done IS TRUE "
-                + "   AND uploaded_date < #{untilDate} ")
-        .execute(Collections.singletonMap("untilDate", untilDate))
-        .onSuccess(result -> logger.info("{} imported files deleted from queue", result.rowCount()))
-        .onFailure(error -> logger.error("{} (occurred when attempting to delete files from file queue)",
-            error.getMessage()))
-        .mapEmpty();
-  }
-
-  private static Future<Void> vacuumLogTables(TenantPgPool pool) {
-    return SqlTemplate.forQuery(pool.getPool(), "VACUUM "
-            + pool.getSchema() + "." + Tables.LOG_STATEMENT
-            + ", " + pool.getSchema() + "." + Tables.IMPORT_JOB
-            + ", " + pool.getSchema() + "." + Tables.SOURCE_FILE)
-        .execute(null)
-        .onSuccess(result -> logger.info("Vacuumed database tables 'log_statement', 'import_job'"))
-        .onFailure(error -> logger.error("Error [{}] occurred when attempting to vacuum {}",
-            error.getMessage(), Tables.LOG_STATEMENT + ", " + Tables.IMPORT_JOB))
         .mapEmpty();
   }
 }

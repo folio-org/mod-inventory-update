@@ -38,11 +38,10 @@ public class SourceFileDb implements SourceFile {
     params.put("channelId", channelId);
     params.put("fileName", name);
     return SqlTemplate.forUpdate(pool.getPool(),
-            "UPDATE " + pool.getSchema() + "." + Tables.SOURCE_FILE
-                + " SET done = true, "
-                + "     processing = NULL "
+            "DELETE FROM " + pool.getSchema() + "." + Tables.SOURCE_FILE
                 + " WHERE file_name = #{fileName} "
-                + " AND channel_id = #{channelId} ")
+                + " AND channel_id = #{channelId} "
+                + " AND processing = 1 ")
         .execute(params)
         .mapEmpty();
   }

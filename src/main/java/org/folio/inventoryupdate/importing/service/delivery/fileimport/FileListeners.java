@@ -62,7 +62,7 @@ public final class FileListeners {
           });
     } else {
       return Future.succeededFuture(
-          "File listener already commissioned for channel [" + channel.getRecord().name() + "].");
+          "File listener already commissioned for channel [" + channel.getName() + "].");
     }
   }
 
@@ -84,7 +84,7 @@ public final class FileListeners {
           }).map("Channel decommissioned." + channel.getRecord().name());
     } else {
       return Future.succeededFuture(
-          "Did not find channel [" + channel.getRecord().name() + "] in list of commissioned channels.");
+          "Did not find channel [" + channel.getName() + "] in list of commissioned channels.");
     }
   }
 

@@ -158,6 +158,10 @@ public class Channel extends Entity {
     return theRecord == null ? null : theRecord.id();
   }
 
+  public String getName() {
+    return theRecord == null ? null : theRecord.name();
+  }
+
   @Override
   public Future<Void> createDatabase(TenantPgPool pool) {
     return executeSqlStatements(pool,
@@ -191,7 +195,7 @@ public class Channel extends Entity {
   }
 
   public boolean isListeningIfEnabled() {
-    return theRecord.listening();
+    return theRecord != null && theRecord.listening();
   }
 
   public UUID getTransformationId() {

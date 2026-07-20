@@ -38,7 +38,7 @@ public abstract class FileListener extends VerticleBase {
   }
 
   public UUID getConfigId() {
-    return channel.getRecord().id();
+    return channel.getId();
   }
 
   public void markFileQueuePassive() {

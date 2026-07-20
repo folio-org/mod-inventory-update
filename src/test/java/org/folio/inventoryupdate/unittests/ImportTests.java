@@ -1609,6 +1609,23 @@ public class ImportTests extends InventoryUpdateTestBase {
     assertEquals("No channel provided to deploy.", result.result());
   }
 
+  @Test
+  public void undeployIfDeployedReturnsWhenChannelIsNull() {
+    Future<String> result = FileListeners.undeployIfDeployed(null, null);
+
+    assertTrue(result.succeeded());
+    assertEquals("No channel provided to undeploy.", result.result());
+  }
+
+  @Test
+  public void undeployIfDeployedReturnsWhenChannelIdIsNull() {
+    Future<String> result = FileListeners.undeployIfDeployed(null, new
+        Channel());
+
+    assertTrue(result.succeeded());
+    assertEquals("No channel provided to undeploy.", result.result());
+  }
+
 
   @Test
   public void unsupportedQueryReturnsBadRequest() {

@@ -203,6 +203,9 @@ public class Channel extends Entity {
   }
 
   public Future<Integer> setEnabledListening(boolean enabled, boolean listening, EntityStorage configStorage) {
+    if (theRecord == null) {
+      return Future.succeededFuture(0);
+    }
     theRecord = new ChannelRecord(theRecord.id(), theRecord.name(), theRecord.tag(), theRecord.type(),
         theRecord.transformationId(), enabled, listening);
     return configStorage.updateEntity(this.withUpdatingUser(null),

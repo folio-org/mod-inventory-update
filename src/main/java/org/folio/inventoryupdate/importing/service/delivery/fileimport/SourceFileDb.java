@@ -2,7 +2,6 @@ package org.folio.inventoryupdate.importing.service.delivery.fileimport;
 
 import io.vertx.core.Future;
 import io.vertx.sqlclient.templates.SqlTemplate;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 import org.folio.inventoryupdate.importing.moduledata.database.Tables;
@@ -34,16 +33,12 @@ public class SourceFileDb implements SourceFile {
 
   @Override
   public Future<Void> discard() {
-    Map<String, Object> params = new HashMap<>();
-    params.put("channelId", channelId);
-    params.put("fileName", name);
     return SqlTemplate.forUpdate(pool.getPool(),
-            "UPDATE " + pool.getSchema() + "." + Tables.SOURCE_FILE
-                + " SET done = true, "
-                + "     processing = NULL "
+            "DELETE FROM " + pool.getSchema() + "." + Tables.SOURCE_FILE
                 + " WHERE file_name = #{fileName} "
-                + " AND channel_id = #{channelId} ")
-        .execute(params)
+                + " AND channel_id = #{channelId} "
+                + " AND processing = 1 ")
+        .execute(Map.of("channelId", channelId, "fileName", name))
         .mapEmpty();
   }
 }

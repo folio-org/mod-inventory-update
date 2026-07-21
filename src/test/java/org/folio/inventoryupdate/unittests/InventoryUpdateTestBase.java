@@ -1,12 +1,18 @@
 package org.folio.inventoryupdate.unittests;
 
+import io.vertx.sqlclient.Tuple;
+import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 import org.folio.inventoryupdate.unittests.fakestorage.FakeApis;
 import org.folio.inventoryupdate.MainVerticle;
 import org.folio.inventoryupdate.unittests.fakestorage.FakeFolioApisForImporting;
 import org.folio.inventoryupdate.unittests.fakestorage.RecordStorage;
 import org.folio.inventoryupdate.unittests.fakestorage.entities.InputInstance;
 import org.folio.inventoryupdate.unittests.fakestorage.entities.InputLocation;
+import org.folio.inventoryupdate.unittests.fixtures.FileService;
+import org.folio.inventoryupdate.unittests.fixtures.Service;
 import org.folio.okapi.common.XOkapiHeaders;
+import org.folio.tlib.postgres.TenantPgPool;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
@@ -79,6 +85,7 @@ public abstract class InventoryUpdateTestBase {
   public static final String PROCESSING = "processing";
   public static final String STATISTICAL_CODING = "statisticalCoding";
   public static final String CLIENTS_RECORD_IDENTIFIER = "clientsRecordIdentifier";
+  public static final int PORT_FILE_SERVER = 8091;
 
   @ClassRule
   public static final TestName name = new TestName();
@@ -92,7 +99,8 @@ public abstract class InventoryUpdateTestBase {
     System.setProperty("port", String.valueOf(PORT_INVENTORY_UPDATE));
     vertx.deployVerticle(new MainVerticle(), new DeploymentOptions())
         .onComplete(testContext.asyncAssertSuccess(x ->
-            fakeFolioApis = new FakeFolioApisForImporting(vertx, testContext)));
+            fakeFolioApis = new FakeFolioApisForImporting(vertx, testContext)))
+        .onComplete(na -> FileService.start(PORT_FILE_SERVER));
   }
 
   @AfterClass
@@ -143,6 +151,15 @@ public abstract class InventoryUpdateTestBase {
         .then()
         .log().ifValidationFails()
         .statusCode(200).extract().response();
+  }
+
+  @Test
+  public void testFileServer() throws Exception {
+    RestAssured.given()
+        .baseUri("http://localhost:" + PORT_FILE_SERVER)
+        .get()
+        .then()
+        .statusCode(200);
   }
 
   public static void createInitialInstanceWithMatchKey() {
@@ -287,4 +304,18 @@ public abstract class InventoryUpdateTestBase {
     }
   }
 
+  protected void insertChannelRecordToDatabase(String name, String tag, String type, UUID transformationId,
+                                               boolean enabled, boolean listening, String harvestUrl) throws Exception {
+    UUID channelId = UUID.randomUUID();
+    TenantPgPool pool = TenantPgPool.pool(vertx, Service.TENANT);
+    pool.getPool()
+        .preparedQuery("""
+            INSERT INTO %s.CHANNEL
+              (id, name, tag, type, transformation_id, enabled, listening, harvest_url)
+            VALUES
+              ($1, $2, $3, $4, $5, $6, $7, $8)
+            """.formatted(pool.getSchema()))
+        .execute(Tuple.of(channelId, name, tag, type, transformationId, enabled, listening, harvestUrl))
+        .toCompletionStage().toCompletableFuture().get(10, TimeUnit.SECONDS);
+  }
 }

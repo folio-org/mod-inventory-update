@@ -471,6 +471,15 @@
         },
         {
           "methods": ["POST"],
+          "pathPattern": "/inventory-import/channels/{id}/harvest",
+          "permissionsRequired": ["inventory-update.import.harvest.post"],
+          "modulePermissions": [
+            "modperms.inventory-update.import"
+          ]
+        },
+
+        {
+          "methods": ["POST"],
           "pathPattern": "/inventory-import/channels/{id}/try-transformation",
           "permissionsRequired": ["inventory-update.import.try-transformation.post"]
         },
@@ -789,6 +798,11 @@
       "description": "Imports: Upload source file to a commissioned channel. If or when the channel is listening the file will be processed."
     },
     {
+      "permissionName": "inventory-update.import.harvest.post",
+      "displayName": "Harvest XML files for importing from URL specified on channel",
+      "description": "Imports: Harvest source files to a commissioned channel. If or when the channel is listening the files will be processed."
+    },
+    {
       "permissionName": "inventory-update.import.try-transformation.post",
       "displayName": "Upload XML file for synchronous test run",
       "description": "Imports: Upload source file for synchronous test run"
@@ -952,6 +966,7 @@
         "inventory-update.import.failed-records.item.delete",
 
         "inventory-update.import.upload.post",
+        "inventory-update.import.harvest.post",
         "inventory-update.import.try-transformation.post",
         "inventory-update.import.commission.post",
         "inventory-update.import.decommission.post",

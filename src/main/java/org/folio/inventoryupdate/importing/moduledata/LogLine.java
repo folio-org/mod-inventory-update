@@ -33,9 +33,9 @@ public class LogLine extends Entity {
     FIELDS.put(IMPORT_JOB_ID,
         new Field("importJobId", "import_job_id", PgColumn.Type.UUID, false, true));
     FIELDS.put(VIEW_CHANNEL_ID,
-        new Field("channelId", "channel_id", PgColumn.Type.UUID, true, true));
+        new Field("channelId", "channel_id", PgColumn.Type.UUID, true, true).isVirtual());
     FIELDS.put(VIEW_CHANNEL_NAME,
-        new Field("channelName", "channel_name", PgColumn.Type.TEXT, true, true));
+        new Field("channelName", "channel_name", PgColumn.Type.TEXT, true, true).isVirtual());
     FIELDS.put(TIME_STAMP,
         new Field("timeStamp", "time_stamp", PgColumn.Type.TIMESTAMP, false, true));
     FIELDS.put(JOB_LABEL,
@@ -43,8 +43,6 @@ public class LogLine extends Entity {
     FIELDS.put(LOG_STATEMENT,
         new Field("line", "statement", PgColumn.Type.TEXT, false, true));
   }
-
-  private static final String DATE_FORMAT = "YYYY-MM-DD''T''HH24:MI:SS,MS";
 
   LogLineRecord theRecord;
 
@@ -91,30 +89,6 @@ public class LogLine extends Entity {
         row.getString(dbColumnName(JOB_LABEL)),
         row.getString(dbColumnName(LOG_STATEMENT)))
         .withMetadata(row);
-  }
-
-  /**
-   * INSERT INTO statement.
-   */
-  @Override
-  public String insertTemplate(String schema) {
-    return "INSERT INTO " + schema + "." + table()
-        + " ("
-        + dbColumnName(ID) + ", "
-        + dbColumnName(IMPORT_JOB_ID) + ", "
-        + dbColumnName(TIME_STAMP) + ", "
-        + dbColumnName(JOB_LABEL) + ", "
-        + dbColumnName(LOG_STATEMENT) + ", "
-        + metadata.insertClauseColumns()
-        + ")"
-        + " VALUES ("
-        + "#{" + dbColumnName(ID) + "}, "
-        + "#{" + dbColumnName(IMPORT_JOB_ID) + "}, "
-        + "TO_TIMESTAMP(#{" + dbColumnName(TIME_STAMP) + "},'" + DATE_FORMAT + "'), "
-        + "#{" + dbColumnName(JOB_LABEL) + "}, "
-        + "#{" + dbColumnName(LOG_STATEMENT) + "}, "
-        + metadata.insertClauseValueTemplates()
-        + ")";
   }
 
   /**

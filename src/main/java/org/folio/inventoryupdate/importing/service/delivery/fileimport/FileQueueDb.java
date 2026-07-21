@@ -4,7 +4,6 @@ import io.vertx.core.Future;
 import io.vertx.sqlclient.Row;
 import io.vertx.sqlclient.templates.SqlTemplate;
 import io.vertx.sqlclient.templates.TupleMapper;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
@@ -36,7 +35,7 @@ public final class FileQueueDb implements FileQueue {
       return SqlTemplate.forUpdate(pool.getPool(),
           "DELETE FROM " + pool.getSchema() + "." + Tables.SOURCE_FILE
               + " WHERE channel_id = #{channelId}")
-          .execute(Collections.singletonMap("channelId", channelId))
+          .execute(Map.of("channelId", channelId))
           .compose(x -> Future.succeededFuture("Cleared file queue"))
           .map("Cleared file queue");
     }
@@ -87,8 +86,7 @@ public final class FileQueueDb implements FileQueue {
             "SELECT 1 "
                 + " FROM " + pool.getSchema() + "." + Tables.SOURCE_FILE
                 + " WHERE channel_id = #{channelId} "
-                + "   AND processing IS NULL "
-                + "   AND done IS FALSE ")
+                + "   AND processing IS NULL ")
         .execute(params)
         .map(rows -> rows.rowCount() == 0);
   }
@@ -100,8 +98,7 @@ public final class FileQueueDb implements FileQueue {
     return SqlTemplate.forQuery(pool.getPool(),
             "SELECT COUNT(id) AS queue_size "
                 + " FROM " + pool.getSchema() + "." + Tables.SOURCE_FILE
-                + " WHERE channel_id = #{channelId} "
-                + "   AND done IS FALSE ")
+                + " WHERE channel_id = #{channelId} ")
         .execute(params)
         .map(rows -> rows.iterator().next().getInteger("queue_size"));
   }
@@ -114,8 +111,7 @@ public final class FileQueueDb implements FileQueue {
         "SELECT file_name "
             + " FROM " + pool.getSchema() + "." + Tables.SOURCE_FILE
             + " WHERE channel_id = #{channelId} "
-            + "   AND processing = 1"
-            + "   AND done IS FALSE ")
+            + "   AND processing = 1")
         .execute(params)
         .compose(res -> {
           if (res.iterator().hasNext()) {
@@ -134,8 +130,7 @@ public final class FileQueueDb implements FileQueue {
             "SELECT file_name, payload "
                 + " FROM " + pool.getSchema() + "." + Tables.SOURCE_FILE
                 + " WHERE channel_id = #{channelId} "
-                + "   AND processing = 1 "
-                + "   AND done IS FALSE ")
+                + "   AND processing = 1 ")
         .execute(params)
         .compose(res -> {
           if (res.iterator().hasNext()) {
@@ -165,7 +160,6 @@ public final class FileQueueDb implements FileQueue {
                     + "              FROM " + pool.getSchema() + "." + Tables.SOURCE_FILE
                     + "              WHERE channel_id = #{channelId}"
                     + "                AND processing IS NULL "
-                    + "                AND done IS FALSE "
                     + "              ORDER BY uploaded_date LIMIT 1 )")
                 .execute(params)
                 .compose(na -> SqlTemplate.forQuery(pool.getPool(),

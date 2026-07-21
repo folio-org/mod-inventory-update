@@ -41,28 +41,32 @@ public final class FileListeners {
   }
 
   public static Future<String> deployIfNotDeployed(ServiceRequest request, Channel channel) {
-    boolean retainQueueIfAny = "true".equalsIgnoreCase(request.requestParam("retainQueue"));
-    FileQueue fq = ImportService.getFileQueue(request, channel.getId());
-    // Request parameter can override what is set on the channel record
-    boolean listening = request.requestParam("listening") == null
-        ? channel.isListeningIfEnabled()
-        : !"false".equalsIgnoreCase(request.requestParam("listening"));
-    FileListener fileListener = FileListeners.getFileListener(request.tenant(), channel.getId());
-    if (fileListener == null) {
-      FileListener listenerVerticle = addFileListener(request.tenant(), channel.getId(),
-          new XmlFileListener(request, channel));
-      return channel.setEnabledListening(true, listening, request.entityStorage())
-          .compose(na -> fq.initialize(retainQueueIfAny).mapEmpty())
-          .compose(na -> new ImportJob().changeRunningToInterruptedByChannelId(request.entityStorage(),
-              channel.getId()))
-          .compose(jobsInterrupted -> {
-            String jobsMarkedInterrupted = jobsInterrupted > 0
-                ? jobsInterrupted + " previous job was marked 'RUNNING', now marked 'INTERRUPTED'. " : "";
-            return listenerVerticle.deploy().map(resp -> jobsMarkedInterrupted + resp);
-          });
+    if (channel == null || channel.getId() == null) {
+      return Future.succeededFuture("No channel provided to deploy.");
     } else {
-      return Future.succeededFuture(
-          "File listener already commissioned for channel [" + channel.getRecord().name() + "].");
+      boolean retainQueueIfAny = "true".equalsIgnoreCase(request.requestParam("retainQueue"));
+      FileQueue fq = ImportService.getFileQueue(request, channel.getId());
+      // Request parameter can override what is set on the channel record
+      boolean listening = request.requestParam("listening") == null
+          ? channel.isListeningIfEnabled()
+          : !"false".equalsIgnoreCase(request.requestParam("listening"));
+      FileListener fileListener = FileListeners.getFileListener(request.tenant(), channel.getId());
+      if (fileListener == null) {
+        FileListener listenerVerticle = addFileListener(request.tenant(), channel.getId(),
+            new XmlFileListener(request, channel));
+        return channel.setEnabledListening(true, listening, request.entityStorage())
+            .compose(na -> fq.initialize(retainQueueIfAny).mapEmpty())
+            .compose(na -> new ImportJob().changeRunningToInterruptedByChannelId(request.entityStorage(),
+                channel.getId()))
+            .compose(jobsInterrupted -> {
+              String jobsMarkedInterrupted = jobsInterrupted > 0
+                  ? jobsInterrupted + " previous job was marked 'RUNNING', now marked 'INTERRUPTED'. " : "";
+              return listenerVerticle.deploy().map(resp -> jobsMarkedInterrupted + resp);
+            });
+      } else {
+        return Future.succeededFuture(
+            "File listener already commissioned for channel [" + channel.getName() + "].");
+      }
     }
   }
 
@@ -73,6 +77,9 @@ public final class FileListeners {
    * @return statement about the outcome of the operation
    */
   public static Future<String> undeployIfDeployed(ServiceRequest request, Channel channel) {
+    if (channel == null || channel.getId() == null) {
+      return Future.succeededFuture("No channel provided to undeploy.");
+    }
     boolean retainQueue = "true".equalsIgnoreCase(request.requestParam("retainQueue"));
     FileListener fileListener = FileListeners.getFileListener(request.tenant(), channel.getId());
     if (fileListener != null) {
@@ -84,7 +91,7 @@ public final class FileListeners {
           }).map("Channel decommissioned." + channel.getRecord().name());
     } else {
       return Future.succeededFuture(
-          "Did not find channel [" + channel.getRecord().name() + "] in list of commissioned channels.");
+          "Did not find channel [" + channel.getName() + "] in list of commissioned channels.");
     }
   }
 

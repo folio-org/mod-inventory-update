@@ -96,19 +96,16 @@ public final class DatabaseInit {
   }
 
   public static String createSourceFile(String schema) {
-    String ddl;
-    ddl = "CREATE TABLE IF NOT EXISTS " + schema + "." + Tables.SOURCE_FILE
+    return "CREATE TABLE IF NOT EXISTS " + schema + "." + Tables.SOURCE_FILE
         + " ( id UUID PRIMARY KEY, "
         + "   file_name VARCHAR(255) NOT NULL, "
         + "   channel_id UUID NOT NULL CONSTRAINT source_file_channel_id_fkey REFERENCES "
         +       schema + "." + Tables.CHANNEL + " (id) ON DELETE CASCADE, "
         + "   uploaded_date TIMESTAMP NOT NULL, "
         + "   processing SMALLINT NULL, "
-        + "   done BOOLEAN DEFAULT FALSE, " // Unused, currently done files are deleted.
         + "   payload TEXT STORAGE EXTERNAL NOT NULL, "
         + "   UNIQUE (file_name, channel_id), "
         + "   CHECK (processing IN (1)), "
         + "   UNIQUE (channel_id, processing)) ";
-    return ddl;
   }
 }

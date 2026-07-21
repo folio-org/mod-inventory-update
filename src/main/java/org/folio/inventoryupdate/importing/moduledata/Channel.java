@@ -1,5 +1,7 @@
 package org.folio.inventoryupdate.importing.moduledata;
 
+import static org.folio.inventoryupdate.importing.utils.DateTimeFormatter.formatDateTime;
+
 import io.vertx.core.Future;
 import io.vertx.core.json.JsonObject;
 import io.vertx.sqlclient.SqlResult;
@@ -23,6 +25,8 @@ public class Channel extends Entity {
   public static final String NAME = "NAME";
   public static final String TYPE = "TYPE";
   public static final String TRANSFORMATION_ID = "TRANSFORMATION_ID";
+  public static final String HARVEST_URL = "HARVEST_URL";
+  public static final String LAST_HARVESTED = "LAST_HARVESTED";
   public static final String ENABLED = "ENABLED";
   public static final String LISTENING = "LISTENING";
   // virtual (non-db) property
@@ -43,6 +47,10 @@ public class Channel extends Entity {
         new Field("type", "type", PgColumn.Type.TEXT, false, true));
     CHANNEL_FIELDS.put(TRANSFORMATION_ID,
         new Field("transformationId", "transformation_id", PgColumn.Type.UUID, false, true));
+    CHANNEL_FIELDS.put(HARVEST_URL,
+        new Field("harvestUrl", "harvest_url", PgColumn.Type.TEXT, true, true));
+    CHANNEL_FIELDS.put(LAST_HARVESTED,
+        new Field("lastHarvested", "last_harvested", PgColumn.Type.TIMESTAMP, true, true));
     CHANNEL_FIELDS.put(ENABLED,
         new Field("enabled", "enabled", PgColumn.Type.BOOLEAN, false, true));
     CHANNEL_FIELDS.put(LISTENING,
@@ -52,9 +60,10 @@ public class Channel extends Entity {
   public Channel() {
   }
 
-  public Channel(UUID id, String name, String tag, String type, UUID transformationId,
-                 boolean enabled, boolean listening) {
-    theRecord = new ChannelRecord(id, name, tag, type, transformationId, enabled, listening);
+  public Channel(UUID id, String name, String tag, String type, UUID transformationId, String harvestUrl,
+                 String lastHarvested, boolean enabled, boolean listening) {
+    theRecord = new ChannelRecord(id, name, tag, type, transformationId, harvestUrl, lastHarvested, enabled,
+        listening);
   }
 
   public ChannelRecord getRecord() {
@@ -93,6 +102,8 @@ public class Channel extends Entity {
         channelJson.getString(jsonPropertyName(TAG)),
         channelJson.getString(jsonPropertyName(TYPE)),
         Util.getUuid(channelJson, jsonPropertyName(TRANSFORMATION_ID)),
+        channelJson.getString(jsonPropertyName(HARVEST_URL)),
+        channelJson.getString(jsonPropertyName(LAST_HARVESTED)),
         "TRUE".equalsIgnoreCase(channelJson.getString(jsonPropertyName(ENABLED))),
         "TRUE".equalsIgnoreCase(channelJson.getString(jsonPropertyName(LISTENING))));
   }
@@ -105,6 +116,9 @@ public class Channel extends Entity {
         row.getString(dbColumnName(TAG)),
         row.getString(dbColumnName(TYPE)),
         row.getUUID(dbColumnName(TRANSFORMATION_ID)),
+        row.getString(dbColumnName(HARVEST_URL)),
+        row.getValue(dbColumnName(LAST_HARVESTED)) != null
+            ? formatDateTime(row.getLocalDateTime(dbColumnName(LAST_HARVESTED))) : null,
         row.getBoolean(dbColumnName(ENABLED)),
         row.getBoolean(dbColumnName(LISTENING)))
         .withMetadata(row);
@@ -121,6 +135,8 @@ public class Channel extends Entity {
           parameters.put(dbColumnName(TAG), rec.tag());
           parameters.put(dbColumnName(TYPE), rec.type());
           parameters.put(dbColumnName(TRANSFORMATION_ID), rec.transformationId());
+          parameters.put(dbColumnName(HARVEST_URL), rec.harvestUrl());
+          parameters.put(dbColumnName(LAST_HARVESTED), rec.lastHarvested());
           parameters.put(dbColumnName(ENABLED), rec.enabled());
           parameters.put(dbColumnName(LISTENING), rec.listening());
           putMetadata(parameters);
@@ -138,6 +154,8 @@ public class Channel extends Entity {
     putIfNotNull(json, jsonPropertyName(TAG), theRecord.tag());
     json.put(jsonPropertyName(TYPE), theRecord.type());
     json.put(jsonPropertyName(TRANSFORMATION_ID), theRecord.transformationId());
+    putIfNotNull(json, jsonPropertyName(HARVEST_URL), theRecord.harvestUrl());
+    putIfNotNull(json, jsonPropertyName(LAST_HARVESTED), theRecord.lastHarvested());
     json.put(jsonPropertyName(ENABLED), theRecord.enabled());
     json.put(PROPERTY_COMMISSIONED, isCommissioned());
     json.put(jsonPropertyName(LISTENING), theRecord.listening());
@@ -158,6 +176,10 @@ public class Channel extends Entity {
     return theRecord == null ? null : theRecord.id();
   }
 
+  public String getName() {
+    return theRecord == null ? null : theRecord.name();
+  }
+
   @Override
   public Future<Void> createDatabase(TenantPgPool pool) {
     return executeSqlStatements(pool,
@@ -170,10 +192,16 @@ public class Channel extends Entity {
             + field(TRANSFORMATION_ID).pgColumnDdl()
             + " REFERENCES " + pool.getSchema() + "." + Tables.TRANSFORMATION
             + " (" + new Transformation().dbColumnName(Transformation.ID) + "), "
+            + field(HARVEST_URL).pgColumnDdl() + ", "
+            + field(LAST_HARVESTED).pgColumnDdl() + ", "
             + field(ENABLED).pgColumnDdl() + ", "
             + field(LISTENING).pgColumnDdl() + ", "
             + metadata.columnsDdl()
-            + ")"
+            + ")",
+        "ALTER TABLE " + pool.getSchema() + "." + table()
+            + " ADD COLUMN IF NOT EXISTS " + field(HARVEST_URL).pgColumnDdl(),
+        "ALTER TABLE " + pool.getSchema() + "." + table()
+            + " ADD COLUMN IF NOT EXISTS " + field(LAST_HARVESTED).pgColumnDdl()
     ).mapEmpty();
   }
 
@@ -191,7 +219,11 @@ public class Channel extends Entity {
   }
 
   public boolean isListeningIfEnabled() {
-    return theRecord.listening();
+    return theRecord != null && theRecord.listening();
+  }
+
+  public boolean hasHarvestUrl() {
+    return theRecord.harvestUrl != null && !theRecord.harvestUrl.isBlank();
   }
 
   public UUID getTransformationId() {
@@ -199,8 +231,11 @@ public class Channel extends Entity {
   }
 
   public Future<Integer> setEnabledListening(boolean enabled, boolean listening, EntityStorage configStorage) {
+    if (theRecord == null) {
+      return Future.succeededFuture(0);
+    }
     theRecord = new ChannelRecord(theRecord.id(), theRecord.name(), theRecord.tag(), theRecord.type(),
-        theRecord.transformationId(), enabled, listening);
+        theRecord.transformationId(), theRecord.harvestUrl(), theRecord.lastHarvested(), enabled, listening);
     return configStorage.updateEntity(this.withUpdatingUser(null),
         "UPDATE " + configStorage.schema() + "." + table()
             + " SET "
@@ -214,7 +249,8 @@ public class Channel extends Entity {
 
   public Future<Integer> setListening(boolean listening, EntityStorage configStorage) {
     theRecord = new ChannelRecord(theRecord.id(), theRecord.name(), theRecord.tag(), theRecord.type(),
-        theRecord.transformationId(), theRecord.enabled(), listening);
+        theRecord.transformationId(), theRecord.harvestUrl(), theRecord.lastHarvested(), theRecord.enabled(),
+        listening);
     return configStorage.updateEntity(this.withUpdatingUser(null),
         "UPDATE " + configStorage.schema() + "." + table()
             + " SET "
@@ -224,7 +260,21 @@ public class Channel extends Entity {
             + " WHERE id = #{id}").map(SqlResult::rowCount);
   }
 
+  public Future<Integer> setLastHarvested(String lastHarvested, EntityStorage configStorage) {
+    theRecord = new ChannelRecord(theRecord.id(), theRecord.name(), theRecord.tag(), theRecord.type(),
+        theRecord.transformationId(), theRecord.harvestUrl(), lastHarvested, theRecord.enabled(),
+        theRecord.listening());
+    return configStorage.updateEntity(this.withUpdatingUser(null),
+        "UPDATE " + configStorage.schema() + "." + table()
+            + " SET "
+            + dbColumnName(LAST_HARVESTED) + " = TO_TIMESTAMP(#{"
+            + dbColumnName(LAST_HARVESTED) + "}, '" + DATE_FORMAT_TO_DB + "') "
+            + ", "
+            + metadata.updateClauseColumnTemplates()
+            + " WHERE id = #{id}").map(SqlResult::rowCount);
+  }
+
   // Import config record, the entity data.
   public record ChannelRecord(UUID id, String name, String tag, String type, UUID transformationId,
-                              boolean enabled, boolean listening) {}
+                              String harvestUrl, String lastHarvested, boolean enabled, boolean listening) {}
 }

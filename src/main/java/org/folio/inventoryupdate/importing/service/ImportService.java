@@ -352,7 +352,7 @@ public class ImportService implements RouterCreator, TenantInitHooks {
                 .end(harvestResult == null ? "" : "Queued " + harvestResult.queuedFiles() + " file"
                     + pluralS(harvestResult.queuedFiles())
                     + " (skipped " + harvestResult.skippedOldFiles() + " old file"
-                    + pluralS(harvestResult.skippedOldFiles()) + "."))
+                    + pluralS(harvestResult.skippedOldFiles()) + ")."))
             .mapEmpty();
       } else {
         FileQueue fq = ImportService.getFileQueue(request, channel.getId());
@@ -363,7 +363,7 @@ public class ImportService implements RouterCreator, TenantInitHooks {
                 .end(harvestResult == null ? "" : "Queued " + harvestResult.queuedFiles() + " file"
                     + pluralS(harvestResult.queuedFiles())
                     + "(skipped " + harvestResult.skippedOldFiles()
-                    + " old file" + pluralS(harvestResult.skippedOldFiles()) + "."))
+                    + " old file" + pluralS(harvestResult.skippedOldFiles()) + ")."))
             .mapEmpty();
       }
     });

@@ -35,6 +35,7 @@ import org.folio.inventoryupdate.importing.service.delivery.respond.Channels;
 import org.folio.inventoryupdate.importing.service.delivery.respond.JobsAndMonitoring;
 import org.folio.inventoryupdate.importing.service.delivery.respond.LogPurging;
 import org.folio.inventoryupdate.importing.service.delivery.respond.Transformations;
+import org.folio.inventoryupdate.importing.utils.SettableClock;
 import org.folio.tlib.RouterCreator;
 import org.folio.tlib.TenantInitHooks;
 
@@ -296,6 +297,7 @@ public class ImportService implements RouterCreator, TenantInitHooks {
     String channelId = request.requestParam("id");
     String fileName = request.queryParam("filename", UUID.randomUUID() + ".xml");
     String payload = request.bodyAsString();
+    String timeStamp = SettableClock.getLocalDateTime().toString();
 
     return getChannelByTagOrUuid(request, channelId).compose(channel -> {
       if (channel == null) {
@@ -308,7 +310,8 @@ public class ImportService implements RouterCreator, TenantInitHooks {
         FileQueue fq = ImportService.getFileQueue(request, channel.getId());
         return new HtmlDirectoryHarvester(request.vertx)
             .harvest(channel, fq, request.entityStorage())
-            .compose(harvestResult -> fq.push(fileName, payload).map(harvestResult))
+            .compose(harvestResult ->
+                fq.push(fileName, timeStamp, payload).map(harvestResult))
             .compose(harvestResult -> responseText(request.routingContext, 200)
                 .end(harvestResult != null && harvestResult.queuedFiles() > 0 ? "Queued " + harvestResult.queuedFiles()
                     + " file(s) from remote directory before pushing the posted file to the queue." : ""))
@@ -318,7 +321,8 @@ public class ImportService implements RouterCreator, TenantInitHooks {
         return FileListeners.deployIfNotDeployed(request, channel)
                 .compose(ignore -> new HtmlDirectoryHarvester(request.vertx)
                     .harvest(channel, fq, request.entityStorage())
-                    .compose(harvestResult -> fq.push(fileName, payload)
+                    .compose(harvestResult ->
+                        fq.push(fileName, timeStamp, payload)
                 ))
                 .compose(x -> responseText(request.routingContext, 200)
                     .end("File queued for processing in ms " + (System.nanoTime() - fileStartTime) / 1000000L))

@@ -9,7 +9,6 @@ import java.util.Map;
 import java.util.UUID;
 import org.folio.inventoryupdate.importing.moduledata.database.Tables;
 import org.folio.inventoryupdate.importing.service.ServiceRequest;
-import org.folio.inventoryupdate.importing.utils.SettableClock;
 import org.folio.tlib.postgres.TenantPgPool;
 
 public final class FileQueueDb implements FileQueue {
@@ -42,7 +41,7 @@ public final class FileQueueDb implements FileQueue {
   }
 
   @Override
-  public Future<Void> push(String fileName, String payload) {
+  public Future<Void> push(String fileName, String timeStamp, String payload) {
     return SqlTemplate.forUpdate(pool.getPool(),
             "INSERT INTO " + pool.getSchema() + "." + Tables.SOURCE_FILE
                 + " ( id, file_name, channel_id, uploaded_date, payload ) "
@@ -56,7 +55,7 @@ public final class FileQueueDb implements FileQueue {
               Map<String, Object> parameters = new HashMap<>();
               parameters.put("id", UUID.randomUUID().toString());
               parameters.put("fileName", fileName);
-              parameters.put("timeStamp", SettableClock.getLocalDateTime().toString());
+              parameters.put("timeStamp", timeStamp);
               parameters.put("channelId", this.channelId);
               parameters.put("payload", payload);
               return parameters;

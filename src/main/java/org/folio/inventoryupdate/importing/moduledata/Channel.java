@@ -267,9 +267,8 @@ public class Channel extends Entity {
     return configStorage.updateEntity(this.withUpdatingUser(null),
         "UPDATE " + configStorage.schema() + "." + table()
             + " SET "
-            + dbColumnName(LAST_HARVESTED) + " = TO_TIMESTAMP(#{"
-            + dbColumnName(LAST_HARVESTED) + "}, '" + DATE_FORMAT_TO_DB + "') "
-            + ", "
+            + dbColumnName(LAST_HARVESTED) + " = "
+            + " TO_TIMESTAMP(#{" + dbColumnName(LAST_HARVESTED) + "}, '" + DATE_FORMAT_TO_DB + "'), "
             + metadata.updateClauseColumnTemplates()
             + " WHERE id = #{id}").map(SqlResult::rowCount);
   }

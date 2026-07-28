@@ -128,7 +128,7 @@ public class HtmlDirectoryHarvesterTest {
     }
 
     @Override
-    public Future<Void> push(String fileName, String payload) {
+    public Future<Void> push(String fileName, String timeStamp, String payload) {
       fileNames.add(fileName);
       return Future.succeededFuture();
     }
@@ -163,5 +163,4 @@ public class HtmlDirectoryHarvesterTest {
       return Future.succeededFuture(null);
     }
   }
-
 }

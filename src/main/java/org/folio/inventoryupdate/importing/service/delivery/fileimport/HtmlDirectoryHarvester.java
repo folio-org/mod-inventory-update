@@ -75,7 +75,7 @@ public class HtmlDirectoryHarvester {
   }
 
   /**
-   * Runs one harvest cycle for the given channel.
+   * Fetches files from HTML directory for the given channel.
    *
    * <p>If the channel has no {@code harvestUrl}, this returns a succeeded future with {@code null}. If the index
    * page fetch, a selected source-file fetch, a queue push, or the final {@code lastHarvested} update fails, the
@@ -153,7 +153,10 @@ public class HtmlDirectoryHarvester {
     }
     DirectoryEntry entry = entries.get(position).entry();
     return fetchFile(entry.url())
-        .compose(payload -> fileQueue.push(entry.fileName(), payload))
+        .compose(payload -> fileQueue.push(entry.fileName(),
+            entry.timestamp().isPresent() // Should never be not present.
+                ? String.valueOf(entry.timestamp().get()) : SettableClock.getLocalDateTime().toString(),
+            payload))
         .compose(na -> {
           statistics.queued++;
           return fetchAndPushFilesToQueue(entries, position + 1, fileQueue, statistics);

@@ -217,7 +217,7 @@ public class InventoryBatchUpdater implements RecordReceiver {
           if (done) {
             fileProcessor.reporting.endOfQueue();
           }
-          return null;
+          return Future.succeededFuture(null);
         });
   }
 

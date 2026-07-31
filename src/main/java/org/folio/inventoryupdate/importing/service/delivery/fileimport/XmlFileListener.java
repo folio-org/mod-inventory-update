@@ -42,6 +42,7 @@ public class XmlFileListener extends FileListener {
         clear.set(false);
         boolean processorResuming = fileProcessor != null && fileProcessor.isResuming(false);
         getNextFileIfPossible(fileQueuePassive.get(), processorResuming)
+            .onFailure(f -> logger.error("Error when maybe fetching next file {}", f.getMessage()))
             .compose(currentFile -> {
               if (currentFile != null) {  // null if queue is either empty or already has a file in progress
                 boolean queueWentFromPassiveToActive = fileQueuePassive.getAndSet(false);

@@ -1,6 +1,7 @@
 package org.folio.inventoryupdate.importing.service.delivery.fileimport;
 
 import io.vertx.core.Future;
+import java.util.concurrent.atomic.AtomicBoolean;
 import org.folio.inventoryupdate.importing.moduledata.Channel;
 import org.folio.inventoryupdate.importing.service.ImportService;
 import org.folio.inventoryupdate.importing.service.ServiceRequest;
@@ -35,25 +36,31 @@ public class XmlFileListener extends FileListener {
 
   @Override
   public void listen() {
+    AtomicBoolean clear = new AtomicBoolean(true);
     vertx.setPeriodic(200, r -> {
-      if (isListening() && !importJobPaused()) {
+      if (isListening() && !importJobPaused() && clear.get()) {
+        clear.set(false);
         boolean processorResuming = fileProcessor != null && fileProcessor.isResuming(false);
         getNextFileIfPossible(fileQueuePassive.get(), processorResuming)
+            .onFailure(f -> logger.error("Error when maybe fetching next file {}", f.getMessage()))
             .compose(currentFile -> {
               if (currentFile != null) {  // null if queue is either empty or already has a file in progress
                 boolean queueWentFromPassiveToActive = fileQueuePassive.getAndSet(false);
                 // Continue existing job if any (= not activating), or instantiate a new (= activating).
-                getFileProcessor(queueWentFromPassiveToActive)
+                return getFileProcessor(queueWentFromPassiveToActive)
                     .compose(fileProcessor -> fileProcessor.processFile(currentFile))
-                    .onSuccess(na -> {
+                    .compose(na -> {
                       if (!importJobPaused()) { // if paused mid-file, keep file to resume
-                        currentFile.discard();
+                        return currentFile.discard().mapEmpty();
+                      } else {
+                        return Future.succeededFuture(null);
                       }
                     })
                     .onFailure(f -> logger.error("Error processing file: {}", f.getMessage()));
+              } else {
+                return Future.succeededFuture(null);
               }
-              return null;
-            });
+            }).andThen(na -> clear.set(true));
       }
     });
   }

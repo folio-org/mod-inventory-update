@@ -213,11 +213,12 @@ public class InventoryBatchUpdater implements RecordReceiver {
   private void reportEndOfFile() {
     fileProcessor.reporting.endOfFile();
     fileProcessor.fileQueueDone(true)
+        .onFailure(f -> logger.error("Error checking if file queue done {}", f.getMessage()))
         .compose(done -> {
           if (done) {
             fileProcessor.reporting.endOfQueue();
           }
-          return null;
+          return Future.succeededFuture(null);
         });
   }
 

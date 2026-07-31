@@ -31,6 +31,7 @@ import org.folio.inventoryupdate.importing.service.delivery.fileimport.FileListe
 import org.folio.inventoryupdate.importing.service.delivery.fileimport.FileQueue;
 import org.folio.inventoryupdate.importing.service.delivery.fileimport.FileQueueDb;
 import org.folio.inventoryupdate.importing.service.delivery.fileimport.HtmlDirectoryHarvester;
+import org.folio.inventoryupdate.importing.service.delivery.fileimport.HtmlDirectoryHarvester.HarvestResult;
 import org.folio.inventoryupdate.importing.service.delivery.respond.Channels;
 import org.folio.inventoryupdate.importing.service.delivery.respond.JobsAndMonitoring;
 import org.folio.inventoryupdate.importing.service.delivery.respond.LogPurging;
@@ -310,8 +311,9 @@ public class ImportService implements RouterCreator, TenantInitHooks {
         FileQueue fq = ImportService.getFileQueue(request, channel.getId());
         return new HtmlDirectoryHarvester(request.vertx)
             .harvest(channel, fq, request.entityStorage())
-            .compose(harvestResult ->
-                fq.push(fileName, timeStamp, payload).map(harvestResult))
+            .recover(f ->
+                ignoreHarvestErrorAndUploadFile(f, request, channel, fileName, fq, timeStamp, payload))
+            .compose(harvestResult -> fq.push(fileName, timeStamp, payload).map(harvestResult))
             .compose(harvestResult -> responseText(request.routingContext, 200)
                 .end(harvestResult != null && harvestResult.queuedFiles() > 0 ? "Queued " + harvestResult.queuedFiles()
                     + " file(s) from remote directory before pushing the posted file to the queue." : ""))
@@ -321,14 +323,31 @@ public class ImportService implements RouterCreator, TenantInitHooks {
         return FileListeners.deployIfNotDeployed(request, channel)
                 .compose(ignore -> new HtmlDirectoryHarvester(request.vertx)
                     .harvest(channel, fq, request.entityStorage())
+                    .recover(f ->
+                        ignoreHarvestErrorAndUploadFile(f, request, channel, fileName, fq, timeStamp, payload))
                     .compose(harvestResult ->
-                        fq.push(fileName, timeStamp, payload)
+                        fq.push(fileName, timeStamp, payload).map(harvestResult)
                 ))
-                .compose(x -> responseText(request.routingContext, 200)
-                    .end("File queued for processing in ms " + (System.nanoTime() - fileStartTime) / 1000000L))
+                .compose(harvestResult -> responseText(request.routingContext, 200)
+                    .end((harvestResult != null && harvestResult.queuedFiles() > 0
+                        ? "Queued " + harvestResult.queuedFiles()
+                            + " file(s) from remote directory before pushing the posted file to the queue."
+                        : "")
+                        + " File queued for processing in ms " + (System.nanoTime() - fileStartTime) / 1000000L))
                 .mapEmpty();
       }
     });
+  }
+
+  private static Future<HarvestResult> ignoreHarvestErrorAndUploadFile(
+      Throwable f, ServiceRequest request, Channel channel, String fileName, FileQueue fq, String timeStamp,
+      String payload) {
+    logger.error("Ignoring error attempting to harvest files from {} before uploading file {}: {}. ",
+        channel.getRecord().harvestUrl(), fileName, f.getMessage());
+    return fq.push(fileName, timeStamp, payload)
+        .compose(na -> responseText(request.routingContext(), 200)
+            .end("File uploaded while ignoring error when attempting to first harvest files from "
+                + channel.getHarvestUrl() + " " + f.getMessage())).mapEmpty();
   }
 
   private Future<Void> fetchRemoteXmlSourceFiles(ServiceRequest request) {

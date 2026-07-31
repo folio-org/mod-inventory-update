@@ -14,6 +14,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.OffsetDateTime;
+import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeFormatterBuilder;
@@ -151,11 +152,10 @@ public class HtmlDirectoryHarvester {
     if (position >= entries.size()) {
       return Future.succeededFuture(statistics.result());
     }
-    DirectoryEntry entry = entries.get(position).entry();
-    return fetchFile(entry.url())
-        .compose(payload -> fileQueue.push(entry.fileName(),
-            entry.timestamp().isPresent() // Should never be not present.
-                ? String.valueOf(entry.timestamp().get()) : SettableClock.getLocalDateTime().toString(),
+    TimedDirectoryEntry timedEntry = entries.get(position);
+    return fetchFile(timedEntry.entry().url())
+        .compose(payload -> fileQueue.push(timedEntry.entry().fileName(),
+            LocalDateTime.ofInstant(timedEntry.timestamp(), ZoneId.systemDefault()).toString(),
             payload))
         .compose(na -> {
           statistics.queued++;

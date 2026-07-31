@@ -180,6 +180,10 @@ public class Channel extends Entity {
     return theRecord == null ? null : theRecord.name();
   }
 
+  public String getHarvestUrl() {
+    return theRecord == null ? null : theRecord.harvestUrl();
+  }
+
   @Override
   public Future<Void> createDatabase(TenantPgPool pool) {
     return executeSqlStatements(pool,

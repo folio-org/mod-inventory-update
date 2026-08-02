@@ -168,12 +168,16 @@ public final class FileQueueDb implements FileQueue {
                         + "   AND processing = 1 ")
                     .execute(params)
                     .compose(res -> {
-                      Row row = res.iterator().next();
-                      return Future.succeededFuture(new SourceFileDb(
-                          row.getString("file_name"),
-                          row.getString("payload"),
-                          channelId,
-                          pool));
+                      if (res.iterator().hasNext()) {
+                        Row row = res.iterator().next();
+                        return Future.succeededFuture(new SourceFileDb(
+                            row.getString("file_name"),
+                            row.getString("payload"),
+                            channelId,
+                            pool));
+                      } else {
+                        return Future.succeededFuture(null);
+                      }
                     }));
           }
         });

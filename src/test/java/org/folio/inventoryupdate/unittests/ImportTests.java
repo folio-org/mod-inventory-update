@@ -702,7 +702,6 @@ public class ImportTests extends InventoryUpdateTestBase {
     update.put("lastHarvested", currentTime);
     putJsonObject(Service.PATH_CHANNELS + "/" + Files.JSON_CHANNEL.getString("id"), update, 200);
     JsonObject updatedChannel = getEntityJsonById(Service.PATH_CHANNELS, Files.JSON_CHANNEL.getString("id"));
-    System.out.println(updatedChannel.encodePrettily());
     assertEquals("https://example.org/harvest/channel-a-updated", updatedChannel.getString("harvestUrl"));
     assertEquals(currentTime + "+00:00", updatedChannel.getString("lastHarvested"));
     putJsonObject(Service.PATH_CHANNELS + "/" + UUID.randomUUID(), update, 404);
@@ -1293,7 +1292,6 @@ public class ImportTests extends InventoryUpdateTestBase {
     String channelId = Files.JSON_CHANNEL.getString("id");
     JsonObject channelWithHarvestUrl = Files.JSON_CHANNEL.copy();
     channelWithHarvestUrl.put("harvestUrl", "http://localhost:" + PORT_FILE_SERVER);
-    System.out.println(channelWithHarvestUrl.encodePrettily());
     putJsonObject(PATH_CHANNELS + "/" + channelId, channelWithHarvestUrl, 200);
     given()
         .baseUri(BASE_URI_INVENTORY_UPDATE)
@@ -1304,6 +1302,46 @@ public class ImportTests extends InventoryUpdateTestBase {
         .then().statusCode(200);
     await().until(() -> getTotalRecords(Service.PATH_IMPORT_JOBS), is(1));
     await().until(() -> getTotalRecords(Service.PATH_JOB_LOGS), greaterThan(1));
+    await().until(() -> getTotalRecords(Service.PATH_JOB_LOGS
+        + "?query=line=File #1 and line=inventoryRecordSet012.xml"), is(1));
+    await().until(() -> getTotalRecords(Service.PATH_JOB_LOGS
+        + "?query=line=File #2 and line=inventoryRecordSet123.xml"), is(1));
+
+  }
+
+  @Test
+  public void willPutAnyNewFilesFromRemoteDirectoryInQueueBeforeTheUploadedFile() {
+    configureSamplePipeline();
+    String channelId = Files.JSON_CHANNEL.getString("id");
+    JsonObject channelWithHarvestUrl = Files.JSON_CHANNEL.copy();
+    channelWithHarvestUrl.put("harvestUrl", "http://localhost:" + PORT_FILE_SERVER);
+    putJsonObject(PATH_CHANNELS + "/" + channelId, channelWithHarvestUrl, 200);
+    postSourceXml(Service.PATH_CHANNELS + "/" + channelId + "/upload?filename=uploaded.xml", Files.XML_INVENTORY_RECORD_SET, 200);
+    await().until(() -> getTotalRecords(Service.PATH_IMPORT_JOBS), is(1));
+    await().until(() -> getTotalRecords(Service.PATH_JOB_LOGS), greaterThan(1));
+    await().until(() -> getTotalRecords(Service.PATH_JOB_LOGS
+        + "?query=line=File #1 and line=inventoryRecordSet012.xml"), is(1));
+    await().until(() -> getTotalRecords(Service.PATH_JOB_LOGS
+        + "?query=line=File #2 and line=inventoryRecordSet123.xml"), is(1));
+    await().until(() -> getTotalRecords(Service.PATH_JOB_LOGS
+        + "?query=line=File #3 and line=inventoryRecordSet234.xml"), is(1));
+    await().until(() -> getTotalRecords(Service.PATH_JOB_LOGS
+        + "?query=line=File #4 and line=uploaded.xml"), is(1));
+  }
+
+  @Test
+  public void willStillUploadSourceFileWhenChannelHasBadHarvestUrl () {
+    configureSamplePipeline();
+    String channelId = Files.JSON_CHANNEL.getString("id");
+    JsonObject channelWithHarvestUrl = Files.JSON_CHANNEL.copy();
+    channelWithHarvestUrl.put("harvestUrl", "http://localhost:" + 1234);
+    putJsonObject(PATH_CHANNELS + "/" + channelId, channelWithHarvestUrl, 200);
+    postSourceXml(Service.PATH_CHANNELS + "/" + channelId + "/upload?filename=uploaded.xml",
+        Files.XML_INVENTORY_RECORD_SET, 200);
+    await().until(() -> getTotalRecords(Service.PATH_IMPORT_JOBS), is(1));
+    await().until(() -> getTotalRecords(Service.PATH_JOB_LOGS), greaterThan(1));
+    await().until(() -> getTotalRecords(Service.PATH_JOB_LOGS
+        + "?query=line=File #1 and line=uploaded.xml"), is(1));
 
   }
 

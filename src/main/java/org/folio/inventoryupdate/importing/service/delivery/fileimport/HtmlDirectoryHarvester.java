@@ -109,8 +109,10 @@ public class HtmlDirectoryHarvester {
               .compose(timedEntries -> {
                 timedEntries.sort(Comparator.comparing(TimedDirectoryEntry::timestamp)
                     .thenComparing(entry -> entry.entry().url()));
+                String previousHarvestTimestamp = channel.getLastHarvested();
                 channel.setLastHarvested(registeredFetchTime, db);
-                return fetchAndPushFilesToQueue(timedEntries, 0, fileQueue, statistics);
+                return fetchAndPushFilesToQueue(timedEntries, 0, fileQueue, statistics)
+                    .onFailure(t -> channel.setLastHarvested(previousHarvestTimestamp, db));
               })
               .map(result -> result.withLastHarvested(registeredFetchTime));
         });

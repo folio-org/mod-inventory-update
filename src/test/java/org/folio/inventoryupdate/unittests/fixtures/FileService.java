@@ -14,7 +14,6 @@ public class FileService {
 
   public static void start(int port) {
     if (fileServer == null) {
-      System.out.println(System.getProperties());
       fileServer = SimpleFileServer.createFileServer(
           new InetSocketAddress(port),
           Path.of(System.getProperty("user.dir"),

@@ -312,19 +312,21 @@ public class ImportService implements RouterCreator, TenantInitHooks {
         return new HtmlDirectoryHarvester(request.vertx)
             .harvest(channel, fq, request.entityStorage())
             .recover(f ->
-                ignoreHarvestErrorAndUploadFile(f, request, channel, fileName, fq, timeStamp, payload))
+                ignoreHarvestError(f, channel, fileName))
             .compose(harvestResult -> fq.push(fileName, timeStamp, payload).map(harvestResult))
             .compose(harvestResult -> responseText(request.routingContext, 200)
-                .end(harvestResult != null && harvestResult.queuedFiles() > 0 ? "Queued " + harvestResult.queuedFiles()
-                    + " file(s) from remote directory before pushing the posted file to the queue." : ""))
+                .end(harvestResult != null && harvestResult.queuedFiles() > 0
+                    ? "Queued " + harvestResult.queuedFiles()
+                    + " file(s) from remote directory before pushing the posted file to the queue."
+                    : "File uploaded while ignoring error when attempting to first harvest files from "
+                    + channel.getHarvestUrl()))
             .mapEmpty();
       } else {
         FileQueue fq = ImportService.getFileQueue(request, channel.getId());
         return FileListeners.deployIfNotDeployed(request, channel)
                 .compose(ignore -> new HtmlDirectoryHarvester(request.vertx)
                     .harvest(channel, fq, request.entityStorage())
-                    .recover(f ->
-                        ignoreHarvestErrorAndUploadFile(f, request, channel, fileName, fq, timeStamp, payload))
+                    .recover(f -> ignoreHarvestError(f, channel, fileName))
                     .compose(harvestResult ->
                         fq.push(fileName, timeStamp, payload).map(harvestResult)
                 ))
@@ -339,15 +341,11 @@ public class ImportService implements RouterCreator, TenantInitHooks {
     });
   }
 
-  private static Future<HarvestResult> ignoreHarvestErrorAndUploadFile(
-      Throwable f, ServiceRequest request, Channel channel, String fileName, FileQueue fq, String timeStamp,
-      String payload) {
+  private static Future<HarvestResult> ignoreHarvestError(
+      Throwable f, Channel channel, String fileName) {
     logger.error("Ignoring error attempting to harvest files from {} before uploading file {}: {}. ",
         channel.getRecord().harvestUrl(), fileName, f.getMessage());
-    return fq.push(fileName, timeStamp, payload)
-        .compose(na -> responseText(request.routingContext(), 200)
-            .end("File uploaded while ignoring error when attempting to first harvest files from "
-                + channel.getHarvestUrl() + " " + f.getMessage())).mapEmpty();
+    return Future.succeededFuture(null);
   }
 
   private Future<Void> fetchRemoteXmlSourceFiles(ServiceRequest request) {
@@ -381,7 +379,7 @@ public class ImportService implements RouterCreator, TenantInitHooks {
             .compose(harvestResult -> responseText(request.routingContext, 200)
                 .end(harvestResult == null ? "" : "Queued " + harvestResult.queuedFiles() + " file"
                     + pluralS(harvestResult.queuedFiles())
-                    + "(skipped " + harvestResult.skippedOldFiles()
+                    + " (skipped " + harvestResult.skippedOldFiles()
                     + " old file" + pluralS(harvestResult.skippedOldFiles()) + ")."))
             .mapEmpty();
       }

@@ -99,6 +99,8 @@ public class InventoryBatchUpdater implements RecordReceiver {
                   handlePersistenceFailure(toe);
                 }
               });
+        } else {
+          handlePersistenceFailure(new TimeoutException("Could not forward batch for upsert in 90 seconds."));
         }
       } catch (TimeoutException toe) {
         handlePersistenceFailure(toe);

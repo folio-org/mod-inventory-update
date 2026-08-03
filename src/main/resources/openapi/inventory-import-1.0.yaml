@@ -142,6 +142,8 @@ paths:
           description: Source file uploaded
         "400":
           $ref: "#/components/responses/trait_400"
+        "403":
+          description: Channels is not ready to accept source files
         "404":
           $ref: "#/components/responses/trait_404"
         "500":
@@ -166,8 +168,12 @@ paths:
           description: Source file(s) fetched
         "400":
           $ref: "#/components/responses/trait_400"
+        "403":
+          description: This channel is not ready to accept source files
         "404":
           $ref: "#/components/responses/trait_404"
+        "422":
+          description: This channel has no harvesting URL defined
         "500":
           $ref: "#/components/responses/trait_500"
 

@@ -184,6 +184,10 @@ public class Channel extends Entity {
     return theRecord == null ? null : theRecord.harvestUrl();
   }
 
+  public String getLastHarvested() {
+    return theRecord == null ? null : theRecord.lastHarvested();
+  }
+
   @Override
   public Future<Void> createDatabase(TenantPgPool pool) {
     return executeSqlStatements(pool,

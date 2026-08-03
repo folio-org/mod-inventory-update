@@ -94,7 +94,10 @@ public class InventoryBatchUpdater implements RecordReceiver {
               .onFailure(this::handlePersistenceFailure)
               .onComplete(na -> {
                 try {
-                  turnstile.exitBatch();
+                  BatchOfRecords batchInTurnstile = turnstile.exitBatch();
+                  if (batchInTurnstile == null) {
+                    throw new TimeoutException("Taking out the batch from batch queue of one timed out.");
+                  }
                 } catch (TimeoutException toe) {
                   handlePersistenceFailure(toe);
                 }
@@ -265,13 +268,13 @@ public class InventoryBatchUpdater implements RecordReceiver {
       }
     }
 
-    private void exitBatch() throws TimeoutException {
+    private BatchOfRecords exitBatch() throws TimeoutException {
       try {
-        gate.poll(10, TimeUnit.SECONDS);
+        return gate.poll(10, TimeUnit.SECONDS);
       } catch (InterruptedException ie) {
         logger.error("Taking batch from queue-of-one timed out after 10 seconds: {}", ie.getMessage());
         Thread.currentThread().interrupt();
-        throw new TimeoutException("Taking batch from queue-of-one timed out after 10 seconds: " + ie.getMessage());
+        throw new TimeoutException("Taking batch from queue-of-one failed: " + ie.getMessage());
       }
     }
 

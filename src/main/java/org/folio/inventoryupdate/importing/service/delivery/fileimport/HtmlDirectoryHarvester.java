@@ -110,9 +110,10 @@ public class HtmlDirectoryHarvester {
                 timedEntries.sort(Comparator.comparing(TimedDirectoryEntry::timestamp)
                     .thenComparing(entry -> entry.entry().url()));
                 String previousHarvestTimestamp = channel.getLastHarvested();
-                channel.setLastHarvested(registeredFetchTime, db);
-                return fetchAndPushFilesToQueue(timedEntries, 0, fileQueue, statistics)
-                    .onFailure(t -> channel.setLastHarvested(previousHarvestTimestamp, db));
+                return channel.setLastHarvested(registeredFetchTime, db)
+                    .compose(na ->
+                        fetchAndPushFilesToQueue(timedEntries, 0, fileQueue, statistics)
+                    .onFailure(t -> channel.setLastHarvested(previousHarvestTimestamp, db)));
               })
               .map(result -> result.withLastHarvested(registeredFetchTime));
         });
@@ -157,7 +158,7 @@ public class HtmlDirectoryHarvester {
     TimedDirectoryEntry timedEntry = entries.get(position);
     return fetchFile(timedEntry.entry().url())
         .compose(payload -> fileQueue.push(timedEntry.entry().fileName(),
-            LocalDateTime.ofInstant(timedEntry.timestamp(), ZoneId.systemDefault()).toString(),
+            LocalDateTime.ofInstant(timedEntry.timestamp(), ZoneId.of("UTC")).toString(),
             payload))
         .compose(na -> {
           statistics.queued++;

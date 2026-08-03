@@ -30,10 +30,13 @@ import org.folio.inventoryupdate.importing.moduledata.database.Tables;
 import org.folio.inventoryupdate.importing.service.delivery.fileimport.FileListeners;
 import org.folio.inventoryupdate.importing.service.delivery.fileimport.FileQueue;
 import org.folio.inventoryupdate.importing.service.delivery.fileimport.FileQueueDb;
+import org.folio.inventoryupdate.importing.service.delivery.fileimport.HtmlDirectoryHarvester;
+import org.folio.inventoryupdate.importing.service.delivery.fileimport.HtmlDirectoryHarvester.HarvestResult;
 import org.folio.inventoryupdate.importing.service.delivery.respond.Channels;
 import org.folio.inventoryupdate.importing.service.delivery.respond.JobsAndMonitoring;
 import org.folio.inventoryupdate.importing.service.delivery.respond.LogPurging;
 import org.folio.inventoryupdate.importing.service.delivery.respond.Transformations;
+import org.folio.inventoryupdate.importing.utils.SettableClock;
 import org.folio.tlib.RouterCreator;
 import org.folio.tlib.TenantInitHooks;
 
@@ -104,6 +107,7 @@ public class ImportService implements RouterCreator, TenantInitHooks {
 
     // Importing
     nonValidatingHandler(vertx, routerBuilder, "uploadXmlRecords", this::uploadXmlSourceFile);
+    validatingHandler(vertx, routerBuilder, "harvestXmlRecords", this::fetchRemoteXmlSourceFiles);
     // Dry run
     nonValidatingHandler(vertx, routerBuilder, "echoTransformation", Transformations::tryTransformation);
   }
@@ -124,7 +128,7 @@ public class ImportService implements RouterCreator, TenantInitHooks {
   }
 
   /**
-   * For POSTing text, PUTting xml, decoding the CQL query parameter.
+   * For POSTing text, PUTting XML, decoding the CQL query parameter.
    */
   private void nonValidatingHandler(Vertx vertx, RouterBuilder routerBuilder, String operation,
                                     Function<ServiceRequest, Future<Void>> method) {
@@ -294,6 +298,8 @@ public class ImportService implements RouterCreator, TenantInitHooks {
     String channelId = request.requestParam("id");
     String fileName = request.queryParam("filename", UUID.randomUUID() + ".xml");
     String payload = request.bodyAsString();
+    String timeStamp = SettableClock.getLocalDateTime()
+        .format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss,SSS"));
 
     return getChannelByTagOrUuid(request, channelId).compose(channel -> {
       if (channel == null) {
@@ -303,16 +309,86 @@ public class ImportService implements RouterCreator, TenantInitHooks {
         return responseText(request.routingContext, 403)
             .end("The channel with id or tag [" + channelId + "] is not ready to accept files.").mapEmpty();
       } else if (channel.isCommissioned()) {
-        return ImportService.getFileQueue(request, channel.getId()).push(fileName, payload)
-            .compose(na -> responseText(request.routingContext, 200).end())
+        FileQueue fq = ImportService.getFileQueue(request, channel.getId());
+        return new HtmlDirectoryHarvester(request.vertx)
+            .harvest(channel, fq, request.entityStorage())
+            .recover(f ->
+                ignoreHarvestError(f, channel, fileName))
+            .compose(harvestResult -> fq.push(fileName, timeStamp, payload).map(harvestResult))
+            .compose(harvestResult -> responseText(request.routingContext, 200)
+                .end(harvestResult == null
+                    ? "File uploaded while ignoring error when attempting to first harvest files."
+                    :  (harvestResult.queuedFiles() > 0
+                    ? "Queued " + harvestResult.queuedFiles()
+                    + " file(s) from remote directory before pushing the posted file to the queue."
+                    : "")))
             .mapEmpty();
       } else {
+        FileQueue fq = ImportService.getFileQueue(request, channel.getId());
         return FileListeners.deployIfNotDeployed(request, channel)
-                .compose(ignore -> ImportService.getFileQueue(request, channel.getId()).push(fileName, payload))
-                .compose(x -> responseText(request.routingContext, 200)
-                    .end("File queued for processing in ms " + (System.nanoTime() - fileStartTime) / 1000000L))
+                .compose(ignore -> new HtmlDirectoryHarvester(request.vertx)
+                    .harvest(channel, fq, request.entityStorage())
+                    .recover(f -> ignoreHarvestError(f, channel, fileName))
+                    .compose(harvestResult ->
+                        fq.push(fileName, timeStamp, payload).map(harvestResult)
+                ))
+                .compose(harvestResult -> responseText(request.routingContext, 200)
+                    .end((harvestResult != null && harvestResult.queuedFiles() > 0
+                        ? "Queued " + harvestResult.queuedFiles()
+                            + " file(s) from remote directory before pushing the posted file to the queue."
+                        : "")
+                        + " File queued for processing in ms " + (System.nanoTime() - fileStartTime) / 1000000L))
                 .mapEmpty();
       }
     });
+  }
+
+  private static Future<HarvestResult> ignoreHarvestError(
+      Throwable f, Channel channel, String fileName) {
+    logger.error("Ignoring error attempting to harvest files from {} before uploading file {}: {}. ",
+        channel.getRecord().harvestUrl(), fileName, f.getMessage());
+    return Future.succeededFuture(null);
+  }
+
+  private Future<Void> fetchRemoteXmlSourceFiles(ServiceRequest request) {
+    String channelId = request.requestParam("id");
+
+    return getChannelByTagOrUuid(request, channelId).compose(channel -> {
+      if (channel == null) {
+        return responseText(request.routingContext, 404)
+            .end("Could not find channel with id or tag [" + channelId + "] to invoke harvesting for.").mapEmpty();
+      } else if (!channel.isEnabled()) {
+        return responseText(request.routingContext, 403)
+            .end("The channel with id or tag [" + channelId + "] is not ready to accept source files.").mapEmpty();
+      } else if (!channel.hasHarvestUrl()) {
+        return responseText(request.routingContext, 422)
+            .end("The channel with id or tag [" + channelId + "] has no harvesting URL defined.").mapEmpty();
+      } else if (channel.isCommissioned()) {
+        FileQueue fq = ImportService.getFileQueue(request, channel.getId());
+        return new HtmlDirectoryHarvester(request.vertx)
+            .harvest(channel, fq, request.entityStorage())
+            .compose(harvestResult -> responseText(request.routingContext, 200)
+                .end(harvestResult == null ? "" : "Queued " + harvestResult.queuedFiles() + " file"
+                    + pluralS(harvestResult.queuedFiles())
+                    + " (skipped " + harvestResult.skippedOldFiles() + " old file"
+                    + pluralS(harvestResult.skippedOldFiles()) + ")."))
+            .mapEmpty();
+      } else {
+        FileQueue fq = ImportService.getFileQueue(request, channel.getId());
+        return FileListeners.deployIfNotDeployed(request, channel)
+            .compose(ignore -> new HtmlDirectoryHarvester(request.vertx)
+                .harvest(channel, fq, request.entityStorage()))
+            .compose(harvestResult -> responseText(request.routingContext, 200)
+                .end(harvestResult == null ? "" : "Queued " + harvestResult.queuedFiles() + " file"
+                    + pluralS(harvestResult.queuedFiles())
+                    + " (skipped " + harvestResult.skippedOldFiles()
+                    + " old file" + pluralS(harvestResult.skippedOldFiles()) + ")."))
+            .mapEmpty();
+      }
+    });
+  }
+
+  private String pluralS(int count) {
+    return count == 1 ? "" : "s";
   }
 }

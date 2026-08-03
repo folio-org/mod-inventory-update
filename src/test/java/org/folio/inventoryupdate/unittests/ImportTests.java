@@ -683,15 +683,27 @@ public class ImportTests extends InventoryUpdateTestBase {
   }
 
   @Test
-  public void canPostGetPutDeleteChannel() {
+  public void canPostGetPutDeleteChannel() throws Exception {
     int initChannels = getRecords(PATH_CHANNELS).extract().path("totalRecords");
     postJsonObject(Service.PATH_TRANSFORMATIONS, Files.JSON_TRANSFORMATION_CONFIG);
+    String currentTime = SettableClock.getLocalDateTime().toString();
     // Can create enabled channel
-    postJsonObject(Service.PATH_CHANNELS, Files.JSON_CHANNEL);
+    JsonObject channel = Files.JSON_CHANNEL.copy()
+        .put("harvestUrl", "https://example.org/harvest/channel-a")
+        .put("lastHarvested", currentTime);
+    postJsonObject(Service.PATH_CHANNELS, channel);
     getRecords(Service.PATH_CHANNELS).body("totalRecords", is(initChannels + 1));
-    JsonObject update = Files.JSON_CHANNEL.copy();
+    JsonObject createdChannel = getEntityJsonById(Service.PATH_CHANNELS, Files.JSON_CHANNEL.getString("id"));
+    assertEquals("https://example.org/harvest/channel-a", createdChannel.getString("harvestUrl"));
+    assertEquals(currentTime + "+00:00", createdChannel.getString("lastHarvested"));
+    JsonObject update = channel.copy();
     update.put("name", "updated name");
+    update.put("harvestUrl", "https://example.org/harvest/channel-a-updated");
+    update.put("lastHarvested", currentTime);
     putJsonObject(Service.PATH_CHANNELS + "/" + Files.JSON_CHANNEL.getString("id"), update, 200);
+    JsonObject updatedChannel = getEntityJsonById(Service.PATH_CHANNELS, Files.JSON_CHANNEL.getString("id"));
+    assertEquals("https://example.org/harvest/channel-a-updated", updatedChannel.getString("harvestUrl"));
+    assertEquals(currentTime + "+00:00", updatedChannel.getString("lastHarvested"));
     putJsonObject(Service.PATH_CHANNELS + "/" + UUID.randomUUID(), update, 404);
     getRecords(Service.PATH_CHANNELS).body("totalRecords", is(initChannels + 1));
     // Can delete channel with no logged jobs
@@ -709,8 +721,6 @@ public class ImportTests extends InventoryUpdateTestBase {
     deleteRecord(Service.PATH_CHANNELS, Files.JSON_CHANNEL.getString("id"), "force=true", 200);
     getRecords(Service.PATH_CHANNELS).body("totalRecords", is( initChannels));
     deleteRecord(Service.PATH_CHANNELS, Files.JSON_CHANNEL.getString("id"), 404);
-
-
   }
 
   @Test
@@ -921,6 +931,7 @@ public class ImportTests extends InventoryUpdateTestBase {
     await().until(() -> getRecordById(Service.PATH_IMPORT_JOBS, jobId).extract().path("finished"), greaterThan(started));
     await().until(() -> getTotalRecords(Service.PATH_JOB_LOGS), is(4));
   }
+
   @Test
   public void willImportXmlSourceFileEvenAfterModuleRestart() throws Exception {
     configureSamplePipeline();
@@ -930,7 +941,8 @@ public class ImportTests extends InventoryUpdateTestBase {
         "XML",
         UUID.fromString(Files.JSON_TRANSFORMATION_CONFIG.getString("id")),
         true,
-        true);
+        true,
+        "");
     postSourceXml(Service.PATH_CHANNELS + "/forced-state/upload?filename=test.xml",
         Files.XML_INVENTORY_RECORD_SET, 200);
     await().until(() -> getTotalRecords(Service.PATH_IMPORT_JOBS), is(1));
@@ -939,6 +951,32 @@ public class ImportTests extends InventoryUpdateTestBase {
     await().until(() -> getRecordById(Service.PATH_IMPORT_JOBS, jobId).extract().path("finished"), greaterThan(started));
     await().until(() -> getTotalRecords(Service.PATH_JOB_LOGS), is(4));
   }
+
+  @Test
+  public void willHarvestXmlSourceFileEvenAfterModuleRestart() throws Exception {
+    configureSamplePipeline();
+    insertChannelRecordToDatabase(
+        "Channel in a state as if module was redeployed",
+        "forced-state",
+        "XML",
+         UUID.fromString(Files.JSON_TRANSFORMATION_CONFIG.getString("id")),
+        true,
+        true,
+        "http://localhost:" + PORT_FILE_SERVER);
+    given()
+        .baseUri(BASE_URI_INVENTORY_UPDATE)
+        .header(Service.OKAPI_TENANT)
+        .header(Service.OKAPI_URL)
+        .header(Service.OKAPI_TOKEN)
+        .post(Service.PATH_CHANNELS + "/forced-state/harvest")
+        .then().statusCode(200);
+    await().until(() -> getTotalRecords(Service.PATH_IMPORT_JOBS), is(1));
+    String jobId = getRecords(Service.PATH_IMPORT_JOBS).extract().path("importJobs[0].id");
+    String started = getRecordById(Service.PATH_IMPORT_JOBS, jobId).extract().path("started");
+    await().until(() -> getRecordById(Service.PATH_IMPORT_JOBS, jobId).extract().path("finished"), greaterThan(started));
+    await().until(() -> getTotalRecords(Service.PATH_JOB_LOGS), is(8));
+  }
+
 
   @Test
   public void canImportSourceXmlWithNamespace() {
@@ -1033,6 +1071,38 @@ public class ImportTests extends InventoryUpdateTestBase {
   }
 
   @Test
+  public void cannotHarvestSourceXmlToDisabledChannel() {
+    configureSamplePipeline();
+    String channelId = Files.JSON_CHANNEL.getString("id");
+    String channelTag = Files.JSON_CHANNEL.getString("tag");
+    JsonObject channelUpdate = getEntityJsonById(Service.PATH_CHANNELS, channelId);
+    channelUpdate.put("enabled", false);
+    putJsonObject(Service.PATH_CHANNELS + "/" + channelId, channelUpdate, 200);
+    given()
+        .baseUri(BASE_URI_INVENTORY_UPDATE)
+        .header(Service.OKAPI_TENANT)
+        .header(Service.OKAPI_URL)
+        .header(Service.OKAPI_TOKEN)
+        .post(Service.PATH_CHANNELS + "/" + channelId + "/harvest")
+        .then().statusCode(403);
+  }
+
+  @Test
+  public void cannotHarvestSourceXmlToChannelWithoutHarvestUrl() {
+    configureSamplePipeline();
+    String channelId = Files.JSON_CHANNEL.getString("id");
+    JsonObject channelUpdate = getEntityJsonById(Service.PATH_CHANNELS, channelId);
+    putJsonObject(Service.PATH_CHANNELS + "/" + channelId, channelUpdate, 200);
+    given()
+        .baseUri(BASE_URI_INVENTORY_UPDATE)
+        .header(Service.OKAPI_TENANT)
+        .header(Service.OKAPI_URL)
+        .header(Service.OKAPI_TOKEN)
+        .post(Service.PATH_CHANNELS + "/" + channelId + "/harvest")
+        .then().statusCode(422);
+  }
+
+  @Test
   public void canClearFileQueue() {
     configureSamplePipeline();
     String channelId = Files.JSON_CHANNEL.getString("id");
@@ -1073,14 +1143,22 @@ public class ImportTests extends InventoryUpdateTestBase {
         .post("/inventory-import/recover-interrupted-channels")
         .then().statusCode(200)
         .extract().response();
-
   }
+
   @Test
   public void cannotUploadSourceXmlToNonExistingChannel() {
     configureSamplePipeline();
     UUID randomId = UUID.randomUUID();
     postSourceXml(Service.PATH_CHANNELS + "/" + randomId + "/upload", Files.XML_INVENTORY_RECORD_SET, 404);
   }
+
+  @Test
+  public void cannotHarvestSourceXmlToNonExistingChannel() {
+    configureSamplePipeline();
+    UUID randomId = UUID.randomUUID();
+    postSourceXml(Service.PATH_CHANNELS + "/" + randomId + "/harvest", Files.XML_INVENTORY_RECORD_SET, 404);
+  }
+
 
   @Test
   public void canDeleteInventoryRecordSet() {
@@ -1206,6 +1284,65 @@ public class ImportTests extends InventoryUpdateTestBase {
     await().until(() -> getRecordById(Service.PATH_IMPORT_JOBS, jobId).extract().path("finished"), greaterThan(started));
     getRecordById(Service.PATH_IMPORT_JOBS, jobId).body("amountImported", is(500));
     assertThat("Instances in storage", fakeFolioApis.instanceStorage.getRecords().size(), is(500));
+  }
+
+  @Test
+  public void canHarvestXmlSourceFiles() {
+    configureSamplePipeline();
+    String channelId = Files.JSON_CHANNEL.getString("id");
+    JsonObject channelWithHarvestUrl = Files.JSON_CHANNEL.copy();
+    channelWithHarvestUrl.put("harvestUrl", "http://localhost:" + PORT_FILE_SERVER);
+    putJsonObject(PATH_CHANNELS + "/" + channelId, channelWithHarvestUrl, 200);
+    given()
+        .baseUri(BASE_URI_INVENTORY_UPDATE)
+        .header(Service.OKAPI_TENANT)
+        .header(Service.OKAPI_URL)
+        .header(Service.OKAPI_TOKEN)
+        .post(Service.PATH_CHANNELS + "/" + channelId + "/harvest")
+        .then().statusCode(200);
+    await().until(() -> getTotalRecords(Service.PATH_IMPORT_JOBS), is(1));
+    await().until(() -> getTotalRecords(Service.PATH_JOB_LOGS), greaterThan(1));
+    await().until(() -> getTotalRecords(Service.PATH_JOB_LOGS
+        + "?query=line=File #1 and line=inventoryRecordSet012.xml"), is(1));
+    await().until(() -> getTotalRecords(Service.PATH_JOB_LOGS
+        + "?query=line=File #2 and line=inventoryRecordSet123.xml"), is(1));
+
+  }
+
+  @Test
+  public void willPutAnyNewFilesFromRemoteDirectoryInQueueBeforeTheUploadedFile() {
+    configureSamplePipeline();
+    String channelId = Files.JSON_CHANNEL.getString("id");
+    JsonObject channelWithHarvestUrl = Files.JSON_CHANNEL.copy();
+    channelWithHarvestUrl.put("harvestUrl", "http://localhost:" + PORT_FILE_SERVER);
+    putJsonObject(PATH_CHANNELS + "/" + channelId, channelWithHarvestUrl, 200);
+    postSourceXml(Service.PATH_CHANNELS + "/" + channelId + "/upload?filename=uploaded.xml", Files.XML_INVENTORY_RECORD_SET, 200);
+    await().until(() -> getTotalRecords(Service.PATH_IMPORT_JOBS), is(1));
+    await().until(() -> getTotalRecords(Service.PATH_JOB_LOGS), greaterThan(1));
+    await().until(() -> getTotalRecords(Service.PATH_JOB_LOGS
+        + "?query=line=File #1 and line=inventoryRecordSet012.xml"), is(1));
+    await().until(() -> getTotalRecords(Service.PATH_JOB_LOGS
+        + "?query=line=File #2 and line=inventoryRecordSet123.xml"), is(1));
+    await().until(() -> getTotalRecords(Service.PATH_JOB_LOGS
+        + "?query=line=File #3 and line=inventoryRecordSet234.xml"), is(1));
+    await().until(() -> getTotalRecords(Service.PATH_JOB_LOGS
+        + "?query=line=File #4 and line=uploaded.xml"), is(1));
+  }
+
+  @Test
+  public void willStillUploadSourceFileWhenChannelHasBadHarvestUrl () {
+    configureSamplePipeline();
+    String channelId = Files.JSON_CHANNEL.getString("id");
+    JsonObject channelWithHarvestUrl = Files.JSON_CHANNEL.copy();
+    channelWithHarvestUrl.put("harvestUrl", "http://localhost:" + 1234);
+    putJsonObject(PATH_CHANNELS + "/" + channelId, channelWithHarvestUrl, 200);
+    postSourceXml(Service.PATH_CHANNELS + "/" + channelId + "/upload?filename=uploaded.xml",
+        Files.XML_INVENTORY_RECORD_SET, 200);
+    await().until(() -> getTotalRecords(Service.PATH_IMPORT_JOBS), is(1));
+    await().until(() -> getTotalRecords(Service.PATH_JOB_LOGS), greaterThan(1));
+    await().until(() -> getTotalRecords(Service.PATH_JOB_LOGS
+        + "?query=line=File #1 and line=uploaded.xml"), is(1));
+
   }
 
   @Test
@@ -1360,7 +1497,6 @@ public class ImportTests extends InventoryUpdateTestBase {
 
   @Test
   public void willPauseOnFatalErrorAndCanResumeWithCurrentFile() {
-    //ImportService.useVertxFsFileQueue = true;
     configureSamplePipeline();
     String channelId = Files.JSON_CHANNEL.getString("id");
     String transformationId = Files.JSON_TRANSFORMATION_CONFIG.getString("id");

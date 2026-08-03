@@ -18,6 +18,7 @@ import java.util.stream.Collectors;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.folio.inventoryupdate.importing.moduledata.Metadata;
+import org.folio.inventoryupdate.importing.moduledata.database.PgColumn.Type;
 import org.folio.inventoryupdate.importing.service.ServiceRequest;
 import org.folio.inventoryupdate.importing.utils.SettableClock;
 import org.folio.tlib.postgres.PgCqlDefinition;
@@ -165,7 +166,14 @@ public abstract class Entity {
     StringBuilder valueListAsString = new StringBuilder();
     fields().entrySet().stream()
         .filter(entry -> !entry.getValue().virtual)
-        .forEach(field -> valueListAsString.append("#{").append(dbColumnName(field.getKey())).append("},"));
+        .forEach(field -> {
+          if (!field.getValue().pgType.equals(Type.TIMESTAMP)) {
+            valueListAsString.append("#{").append(dbColumnName(field.getKey())).append("},");
+          } else {
+            valueListAsString.append("TO_TIMESTAMP(#{").append(dbColumnName(field.getKey()))
+                .append("},'YYYY-MM-DD''T''HH24:MI:SS,MS'), ");
+          }
+        });
     return valueListAsString.append(metadata.insertClauseValueTemplates()).toString();
   }
 
@@ -174,9 +182,15 @@ public abstract class Entity {
     fields().entrySet().stream()
         .filter(entry -> !entry.getKey().equalsIgnoreCase("id")) // Immutable.
         .filter(entry -> !entry.getValue().virtual)
-        .forEach(field ->
-        listOfColumnsValues.append(dbColumnName(field.getKey())).append(" = #{")
-            .append(dbColumnName(field.getKey())).append("},"));
+        .forEach(field -> {
+          if (!field.getValue().pgType.equals(Type.TIMESTAMP)) {
+            listOfColumnsValues.append(dbColumnName(field.getKey())).append(" = #{")
+                .append(dbColumnName(field.getKey())).append("},");
+          } else {
+            listOfColumnsValues.append(dbColumnName(field.getKey())).append(" = TO_TIMESTAMP(#{")
+                .append(dbColumnName(field.getKey())).append("}, '").append(DATE_FORMAT_TO_DB).append("'), ");
+          }
+        });
     return listOfColumnsValues.append(metadata.updateClauseColumnTemplates()).toString();
   }
 

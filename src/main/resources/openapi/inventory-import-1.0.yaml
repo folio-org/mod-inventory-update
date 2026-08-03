@@ -1,7 +1,7 @@
 openapi: 3.1.1
 info:
   title: Inventory import API
-  version: v1.0
+  version: v1.1
 paths:
 
   /inventory-import/channels:
@@ -142,8 +142,38 @@ paths:
           description: Source file uploaded
         "400":
           $ref: "#/components/responses/trait_400"
+        "403":
+          description: This channel is not ready to accept source files
         "404":
           $ref: "#/components/responses/trait_404"
+        "500":
+          $ref: "#/components/responses/trait_500"
+
+  /inventory-import/channels/{id}/harvest:
+    parameters:
+      - $ref: "#/components/parameters/okapi_tenant"
+      - $ref: "#/components/parameters/okapi_token"
+      - $ref: "#/components/parameters/okapi_url"
+      - in: path
+        name: id
+        required: true
+        description: Channel identifier
+        schema:
+          type: string
+    post:
+      operationId: harvestXmlRecords
+      description: Load XML document(s) from configured URL to given import channel
+      responses:
+        "200":
+          description: Source file(s) fetched
+        "400":
+          $ref: "#/components/responses/trait_400"
+        "403":
+          description: This channel is not ready to accept source files
+        "404":
+          $ref: "#/components/responses/trait_404"
+        "422":
+          description: This channel has no harvesting URL defined
         "500":
           $ref: "#/components/responses/trait_500"
 
@@ -1337,6 +1367,14 @@ components:
           type: string
           format: uuid
           description: UUID referencing the transformation pipeline to use.
+        harvestUrl:
+          type: string
+          nullable: true
+          description: Optional URL used to identify the channel's harvest source.
+        lastHarvested:
+          type: string
+          nullable: true
+          description: Optional timestamp of the channel's most recent harvest.
         queuedFiles:
           type: integer
           description: Count of source files in the queue. A count of -1 means there is currently no queue in the file system.

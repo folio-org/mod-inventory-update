@@ -32,6 +32,7 @@ in PART II [How MIU works with the inventory record set](#part-ii-how-miu-works-
 
 <!-- TOC -->
   * [PART I. How to import XML files](#part-i-how-to-import-xml-files)
+    * [Channel configuration](#channel-configuration)
     * [Try importing sample source files to inventory using the sample configurations](#try-importing-sample-source-files-to-inventory-using-the-sample-configurations)
     * [Creating a transformation pipeline and assigning it to a channel](#creating-a-transformation-pipeline-and-assigning-it-to-a-channel)
     * [Managing channels](#managing-channels)
@@ -75,6 +76,33 @@ in PART II [How MIU works with the inventory record set](#part-ii-how-miu-works-
 The importing component of MIU consists of so-called import "channels". Each channel has a file queue that source files can 
 be uploaded to, and a processing pipeline that can perform the importing of source files from the queue to inventory storage.
 
+There are two ways for source files to enter MIU. The primary path is by making a request to the upload API with the 
+source file as the body, like 
+
+`POST inventory-import/channels/pica-sample/upload?filename=pica-record.xml  -f pica-record.xml`
+
+Alternatively files can be fetched by timestamps from a remote HTML directory over HTTP, provided that the URL of 
+the remote directory is specified on the channel (property `harvestUrl`), like 
+
+`POST inventory-import/channels/pica-sample/harvest`
+
+The two methods can be used interleaved. To ensure that files are still imported in chronological order, 
+the upload request will check if there are new files in the remote directory and fetch them before pushing the newly uploaded 
+file to the queue. It will discover new files based on the timestamp of the most recent harvest as registered on the channel. 
+
+The harvest mechanism is very basic. It does not have any scheduling mechanisms for example. It can be used as a fallback 
+to ensure that no files are lost client side in case MIU is down. The protocol would be like this:
+
+POST files one at a time to MIU `upload`
+If the requests are rejected because MIU is unresponsive, copy the files to the fallback directory that the file 
+server is serving up.
+Once MIU is back up, the next POST of a file will cause MIU to first look in the remote directory for new files to fetch
+since last fetch. 
+
+Alternatively, each file could be imported by putting it in the remote directory and issue a `harvest` request. This
+might seem like going the long way around. 
+
+### Channel configuration
 The channel design is meant to allow for multiple input formats, for example, potentially, binary MARC or JSON files. However, 
 the current pipeline implementation supports XML source files. 
 
@@ -85,7 +113,7 @@ configuration APIs.
 
 The main elements of the importing component are thus
 
-- a channel with an associated file queue
+- a channel with an associated file queue and possibly a remote harvest URL to fetch files from
 - a processing pipeline, called a "transformation"
 - the "transformation"  has an ordered set of "transformation steps" with XSLT style-sheets, where the last step will be a  generic (system supplied) crosswalk of the XML to JSON.
 - the outcome of this process is sent to CRUD component that will batch and persist the results to inventory storage.

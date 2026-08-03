@@ -6,7 +6,7 @@ public interface FileQueue {
 
   Future<String> initialize(boolean retainFilesIfAny);
 
-  Future<Void> push(String fileName, String payload);
+  Future<Void> push(String fileName, String timeStamp, String payload);
 
   Future<Boolean> hasFileInProcess();
 

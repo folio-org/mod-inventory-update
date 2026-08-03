@@ -298,7 +298,8 @@ public class ImportService implements RouterCreator, TenantInitHooks {
     String channelId = request.requestParam("id");
     String fileName = request.queryParam("filename", UUID.randomUUID() + ".xml");
     String payload = request.bodyAsString();
-String timeStamp = SettableClock.getLocalDateTime().format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss,SSS"));
+    String timeStamp = SettableClock.getLocalDateTime()
+        .format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss,SSS"));
 
     return getChannelByTagOrUuid(request, channelId).compose(channel -> {
       if (channel == null) {

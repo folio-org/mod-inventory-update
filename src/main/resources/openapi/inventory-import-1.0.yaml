@@ -1,7 +1,7 @@
 openapi: 3.1.1
 info:
   title: Inventory import API
-  version: v1.0
+  version: v1.1
 paths:
 
   /inventory-import/channels:

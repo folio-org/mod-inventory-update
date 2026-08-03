@@ -4,7 +4,7 @@
 
   <groupId>org.folio</groupId>
   <artifactId>mod-inventory-update</artifactId>
-  <version>5.1.4-SNAPSHOT</version>
+  <version>5.2.0-SNAPSHOT</version>
   <name>Inventory Update Module</name>
 
   <licenses>

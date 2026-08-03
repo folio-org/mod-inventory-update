@@ -315,8 +315,8 @@ public class ImportService implements RouterCreator, TenantInitHooks {
                 ignoreHarvestError(f, channel, fileName))
             .compose(harvestResult -> fq.push(fileName, timeStamp, payload).map(harvestResult))
             .compose(harvestResult -> responseText(request.routingContext, 200)
-                .end(harvestResult == null ?
-                    "File uploaded while ignoring error when attempting to first harvest files."
+                .end(harvestResult == null
+                    ? "File uploaded while ignoring error when attempting to first harvest files."
                     :  (harvestResult.queuedFiles() > 0
                     ? "Queued " + harvestResult.queuedFiles()
                     + " file(s) from remote directory before pushing the posted file to the queue."

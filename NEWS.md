@@ -1,3 +1,8 @@
+## 5.2.0 2026-08-03
+
+* [MODINVUP-219](https://issues.folio.org/browse/MODINVUP-219) Provide option to harvest source files from remote.
+* [MODINVUP-220](https://issues.folio.org/browse/MODINVUP-220) Use PostgreSQL instead of Vert.x file system for file queues.
+
 ## 5.1.3 2026-06-18
 
 * [MODINVUP-216](https://issues.folio.org/browse/MODINVUP-216) Retain source file for resumption after fatal storage error.

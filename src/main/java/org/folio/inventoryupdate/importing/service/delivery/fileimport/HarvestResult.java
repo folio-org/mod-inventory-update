@@ -1,19 +1,14 @@
 package org.folio.inventoryupdate.importing.service.delivery.fileimport;
 
 public class HarvestResult {
-  int discoveredFiles;
-  int queuedFiles;
-  int skippedOldFiles;
-  int skippedFilesWithoutTimestamp;
-  String lastHarvested;
-  String error;
+  private int queuedFiles;
+  private int skippedOldFiles;
+  private String error;
 
   public HarvestResult(int discoveredFiles, int queuedFiles, int skippedOldFiles,
                        int skippedFilesWithoutTimestamp) {
-    this.discoveredFiles = discoveredFiles;
     this.queuedFiles = queuedFiles;
     this.skippedOldFiles = skippedOldFiles;
-    this.skippedFilesWithoutTimestamp = skippedFilesWithoutTimestamp;
   }
 
   public HarvestResult(String error) {
@@ -21,7 +16,6 @@ public class HarvestResult {
   }
 
   public HarvestResult withLastHarvested(String lastHarvested) {
-    this.lastHarvested = lastHarvested;
     return this;
   }
 

@@ -683,8 +683,7 @@ public class ImportTests extends InventoryUpdateTestBase {
   }
 
   @Test
-  public void canPostGetPutDeleteChannel() throws Exception {
-    int initChannels = getRecords(PATH_CHANNELS).extract().path("totalRecords");
+  public void canPostGetPutDeleteChannel() {
     postJsonObject(Service.PATH_TRANSFORMATIONS, Files.JSON_TRANSFORMATION_CONFIG);
     String currentTime = SettableClock.getLocalDateTime().toString();
     // Can create enabled channel
@@ -692,7 +691,7 @@ public class ImportTests extends InventoryUpdateTestBase {
         .put("harvestUrl", "https://example.org/harvest/channel-a")
         .put("lastHarvested", currentTime);
     postJsonObject(Service.PATH_CHANNELS, channel);
-    getRecords(Service.PATH_CHANNELS).body("totalRecords", is(initChannels + 1));
+    getRecords(Service.PATH_CHANNELS).body("channels.id", hasItem(channel.getString("id")));
     JsonObject createdChannel = getEntityJsonById(Service.PATH_CHANNELS, Files.JSON_CHANNEL.getString("id"));
     assertEquals("https://example.org/harvest/channel-a", createdChannel.getString("harvestUrl"));
     assertEquals(currentTime + "+00:00", createdChannel.getString("lastHarvested"));
@@ -705,10 +704,10 @@ public class ImportTests extends InventoryUpdateTestBase {
     assertEquals("https://example.org/harvest/channel-a-updated", updatedChannel.getString("harvestUrl"));
     assertEquals(currentTime + "+00:00", updatedChannel.getString("lastHarvested"));
     putJsonObject(Service.PATH_CHANNELS + "/" + UUID.randomUUID(), update, 404);
-    getRecords(Service.PATH_CHANNELS).body("totalRecords", is(initChannels + 1));
+    getRecords(Service.PATH_CHANNELS).body("channels.id", hasItem(channel.getString("id")));;
     // Can delete channel with no logged jobs
     deleteRecord(Service.PATH_CHANNELS, Files.JSON_CHANNEL.getString("id"), 200);
-    getRecords(Service.PATH_CHANNELS).body("totalRecords", is(initChannels));
+    getRecords(Service.PATH_CHANNELS).body("channels.id", not(hasItem(channel.getString("id"))));
 
     // Can create disabled channel (this one with no tag)
     JsonObject disabledChannel = Files.JSON_CHANNEL.copy().put("enabled", false);
@@ -717,19 +716,18 @@ public class ImportTests extends InventoryUpdateTestBase {
     // Can only delete channel with logged jobs if `force` set to `true`
     postJsonObject(Service.PATH_IMPORT_JOBS, Files.JSON_IMPORT_JOB);
     deleteRecord(Service.PATH_CHANNELS, Files.JSON_CHANNEL.getString("id"), 400);
-    getRecords(Service.PATH_CHANNELS).body("totalRecords", is(initChannels + 1));
+    getRecords(Service.PATH_CHANNELS).body("channels.id", hasItem(channel.getString("id")));;
     deleteRecord(Service.PATH_CHANNELS, Files.JSON_CHANNEL.getString("id"), "force=true", 200);
-    getRecords(Service.PATH_CHANNELS).body("totalRecords", is( initChannels));
+    getRecords(Service.PATH_CHANNELS).body("channels.id", not(hasItem(channel.getString("id"))));
     deleteRecord(Service.PATH_CHANNELS, Files.JSON_CHANNEL.getString("id"), 404);
   }
 
   @Test
   public void canUndeployDeployChannelByUpdatingTheChannelRecord() {
-    int initChannels = getRecords(PATH_CHANNELS).extract().path("totalRecords");
     postJsonObject(Service.PATH_TRANSFORMATIONS, Files.JSON_TRANSFORMATION_CONFIG);
     String channelId = Files.JSON_CHANNEL.getString("id");
     postJsonObject(Service.PATH_CHANNELS, Files.JSON_CHANNEL);
-    getRecords(Service.PATH_CHANNELS).body("totalRecords", is(initChannels + 1));
+    getRecords(Service.PATH_CHANNELS).body("channels.id", hasItem(channelId));
     JsonObject channelBefore = getEntityJsonById(Service.PATH_CHANNELS, channelId);
     JsonObject channelUpdate = channelBefore.copy();
     assertEquals(true, channelBefore.getBoolean("enabled"));

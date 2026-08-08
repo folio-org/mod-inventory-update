@@ -1,5 +1,5 @@
 
-Copyright (C) 2019-2025 The Open Library Foundation
+Copyright (C) 2019-2026 The Open Library Foundation
 
 This software is distributed under the terms of the Apache License, Version 2.0. See the file "[LICENSE](LICENSE)" for
 more information.
@@ -61,6 +61,7 @@ in PART II [How MIU works with the inventory record set](#part-ii-how-miu-works-
       * [The _version fields and optimistic locking](#the-_version-fields-and-optimistic-locking)
   * [Prerequisites](#prerequisites)
   * [Building](#building)
+  * [Deployment note](#deployment-note)
   * [Additional information](#additional-information)
     * [Other documentation](#other-documentation)
     * [Code of Conduct](#code-of-conduct)
@@ -1291,6 +1292,11 @@ entities from storage and get the latest version numbers from that anyway.
 ## Building
 
 run `mvn install` from the root directory.
+
+## Deployment note
+
+Please note that the import APIs of mod-inventory-update do not support the deployment of multiple running
+instances of the module.
 
 ## Additional information
 

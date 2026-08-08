@@ -1295,9 +1295,8 @@ run `mvn install` from the root directory.
 
 ## Deployment note
 
-Please note that the import APIs of mod-inventory-update do not support the deployment of multiple running 
+Please note that the import APIs of mod-inventory-update do not support the deployment of multiple running
 instances of the module.
-
 
 ## Additional information
 

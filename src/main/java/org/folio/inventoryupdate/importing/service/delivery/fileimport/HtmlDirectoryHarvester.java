@@ -332,17 +332,6 @@ public class HtmlDirectoryHarvester {
 
   private record TimedDirectoryEntry(DirectoryEntry entry, Instant timestamp) {}
 
-  /**
-   * Summary of one successful harvest cycle.
-   */
-  public record HarvestResult(int discoveredFiles, int queuedFiles, int skippedOldFiles,
-                              int skippedFilesWithoutTimestamp, String lastHarvested) {
-    HarvestResult withLastHarvested(String timestamp) {
-      return new HarvestResult(discoveredFiles, queuedFiles, skippedOldFiles, skippedFilesWithoutTimestamp,
-          timestamp);
-    }
-  }
-
   private static class HarvestStats {
     private final int discovered;
     private int queued;
@@ -354,7 +343,7 @@ public class HtmlDirectoryHarvester {
     }
 
     HarvestResult result() {
-      return new HarvestResult(discovered, queued, skippedOld, skippedNoTimestamp, null);
+      return new HarvestResult(discovered, queued, skippedOld, skippedNoTimestamp);
     }
   }
 }

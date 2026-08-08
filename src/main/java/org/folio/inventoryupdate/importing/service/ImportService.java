@@ -30,8 +30,8 @@ import org.folio.inventoryupdate.importing.moduledata.database.Tables;
 import org.folio.inventoryupdate.importing.service.delivery.fileimport.FileListeners;
 import org.folio.inventoryupdate.importing.service.delivery.fileimport.FileQueue;
 import org.folio.inventoryupdate.importing.service.delivery.fileimport.FileQueueDb;
+import org.folio.inventoryupdate.importing.service.delivery.fileimport.HarvestResult;
 import org.folio.inventoryupdate.importing.service.delivery.fileimport.HtmlDirectoryHarvester;
-import org.folio.inventoryupdate.importing.service.delivery.fileimport.HtmlDirectoryHarvester.HarvestResult;
 import org.folio.inventoryupdate.importing.service.delivery.respond.Channels;
 import org.folio.inventoryupdate.importing.service.delivery.respond.JobsAndMonitoring;
 import org.folio.inventoryupdate.importing.service.delivery.respond.LogPurging;
@@ -312,16 +312,13 @@ public class ImportService implements RouterCreator, TenantInitHooks {
         FileQueue fq = ImportService.getFileQueue(request, channel.getId());
         return new HtmlDirectoryHarvester(request.vertx)
             .harvest(channel, fq, request.entityStorage())
-            .recover(f ->
-                ignoreHarvestError(f, channel, fileName))
+            .recover(f -> ignoreHarvestError(f, channel, fileName))
             .compose(harvestResult -> fq.push(fileName, timeStamp, payload).map(harvestResult))
             .compose(harvestResult -> responseText(request.routingContext, 200)
-                .end(harvestResult == null
-                    ? "File uploaded while ignoring error when attempting to first harvest files."
-                    :  (harvestResult.queuedFiles() > 0
-                    ? "Queued " + harvestResult.queuedFiles()
-                    + " file(s) from remote directory before pushing the posted file to the queue."
-                    : "")))
+                .end(harvestResult == null ? ""
+                    : (harvestResult.isInError())
+                    ? harvestResult.report()
+                    :  "File uploaded after harvesting: " + harvestResult.report()))
             .mapEmpty();
       } else {
         FileQueue fq = ImportService.getFileQueue(request, channel.getId());
@@ -329,15 +326,11 @@ public class ImportService implements RouterCreator, TenantInitHooks {
                 .compose(ignore -> new HtmlDirectoryHarvester(request.vertx)
                     .harvest(channel, fq, request.entityStorage())
                     .recover(f -> ignoreHarvestError(f, channel, fileName))
-                    .compose(harvestResult ->
-                        fq.push(fileName, timeStamp, payload).map(harvestResult)
-                ))
-                .compose(harvestResult -> responseText(request.routingContext, 200)
-                    .end((harvestResult != null && harvestResult.queuedFiles() > 0
-                        ? "Queued " + harvestResult.queuedFiles()
-                            + " file(s) from remote directory before pushing the posted file to the queue."
-                        : "")
-                        + " File queued for processing in ms " + (System.nanoTime() - fileStartTime) / 1000000L))
+                    .compose(harvestResult -> fq.push(fileName, timeStamp, payload).map(harvestResult))
+                ).compose(harvestResult -> responseText(request.routingContext, 200)
+                .end((harvestResult == null ? ""
+                        : "Harvest before uploading file to queue: " + harvestResult.report())
+                        + "\nFile queued for processing in ms " + (System.nanoTime() - fileStartTime) / 1000000L))
                 .mapEmpty();
       }
     });
@@ -347,7 +340,9 @@ public class ImportService implements RouterCreator, TenantInitHooks {
       Throwable f, Channel channel, String fileName) {
     logger.error("Ignoring error attempting to harvest files from {} before uploading file {}: {}. ",
         channel.getRecord().harvestUrl(), fileName, f.getMessage());
-    return Future.succeededFuture(null);
+    return Future.succeededFuture(new HarvestResult(
+        String.format("Ignoring error attempting to harvest files from %s before uploading file %s: %s. ",
+            channel.getRecord().harvestUrl(), fileName, f.getMessage())));
   }
 
   private Future<Void> fetchRemoteXmlSourceFiles(ServiceRequest request) {
@@ -368,10 +363,7 @@ public class ImportService implements RouterCreator, TenantInitHooks {
         return new HtmlDirectoryHarvester(request.vertx)
             .harvest(channel, fq, request.entityStorage())
             .compose(harvestResult -> responseText(request.routingContext, 200)
-                .end(harvestResult == null ? "" : "Queued " + harvestResult.queuedFiles() + " file"
-                    + pluralS(harvestResult.queuedFiles())
-                    + " (skipped " + harvestResult.skippedOldFiles() + " old file"
-                    + pluralS(harvestResult.skippedOldFiles()) + ")."))
+                .end(harvestResult == null ? "" : harvestResult.report()))
             .mapEmpty();
       } else {
         FileQueue fq = ImportService.getFileQueue(request, channel.getId());
@@ -379,16 +371,9 @@ public class ImportService implements RouterCreator, TenantInitHooks {
             .compose(ignore -> new HtmlDirectoryHarvester(request.vertx)
                 .harvest(channel, fq, request.entityStorage()))
             .compose(harvestResult -> responseText(request.routingContext, 200)
-                .end(harvestResult == null ? "" : "Queued " + harvestResult.queuedFiles() + " file"
-                    + pluralS(harvestResult.queuedFiles())
-                    + " (skipped " + harvestResult.skippedOldFiles()
-                    + " old file" + pluralS(harvestResult.skippedOldFiles()) + ")."))
+                .end(harvestResult == null ? "" : harvestResult.report()))
             .mapEmpty();
       }
     });
-  }
-
-  private String pluralS(int count) {
-    return count == 1 ? "" : "s";
   }
 }

@@ -1,5 +1,5 @@
 
-Copyright (C) 2019-2025 The Open Library Foundation
+Copyright (C) 2019-2026 The Open Library Foundation
 
 This software is distributed under the terms of the Apache License, Version 2.0. See the file "[LICENSE](LICENSE)" for
 more information.
@@ -1291,6 +1291,12 @@ entities from storage and get the latest version numbers from that anyway.
 ## Building
 
 run `mvn install` from the root directory.
+
+## Deployment note
+
+Please note that the import APIs of mod-inventory-update do not support the deployment of multiple running 
+instances of the module.
+
 
 ## Additional information
 

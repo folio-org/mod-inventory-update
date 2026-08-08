@@ -61,6 +61,7 @@ in PART II [How MIU works with the inventory record set](#part-ii-how-miu-works-
       * [The _version fields and optimistic locking](#the-_version-fields-and-optimistic-locking)
   * [Prerequisites](#prerequisites)
   * [Building](#building)
+  * [Deployment note](#deployment-note)
   * [Additional information](#additional-information)
     * [Other documentation](#other-documentation)
     * [Code of Conduct](#code-of-conduct)

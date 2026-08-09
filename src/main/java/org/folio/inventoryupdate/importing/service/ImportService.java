@@ -32,6 +32,8 @@ import org.folio.inventoryupdate.importing.service.delivery.fileimport.FileQueue
 import org.folio.inventoryupdate.importing.service.delivery.fileimport.FileQueueDb;
 import org.folio.inventoryupdate.importing.service.delivery.fileimport.HarvestResult;
 import org.folio.inventoryupdate.importing.service.delivery.fileimport.HtmlDirectoryHarvester;
+import org.folio.inventoryupdate.importing.service.delivery.fileimport.ProcessingException;
+import org.folio.inventoryupdate.importing.service.delivery.fileimport.SourceXmlCheck;
 import org.folio.inventoryupdate.importing.service.delivery.respond.Channels;
 import org.folio.inventoryupdate.importing.service.delivery.respond.JobsAndMonitoring;
 import org.folio.inventoryupdate.importing.service.delivery.respond.LogPurging;
@@ -298,6 +300,17 @@ public class ImportService implements RouterCreator, TenantInitHooks {
     String channelId = request.requestParam("id");
     String fileName = request.queryParam("filename", UUID.randomUUID() + ".xml");
     String payload = request.bodyAsString();
+    SourceXmlCheck xmlStructure = new SourceXmlCheck();
+    try {
+      xmlStructure.validate(payload);
+      if (!xmlStructure.isValid()) {
+        logger.error(xmlStructure.error());
+        return responseText(request.routingContext(), 422).end(xmlStructure.error());
+      }
+    } catch (ProcessingException pe) {
+      logger.error("Error validating source XML: {}", pe.getMessage());
+      return responseText(request.routingContext(), 422).end(pe.getMessage());
+    }
     String timeStamp = SettableClock.getLocalDateTime()
         .format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss,SSS"));
 

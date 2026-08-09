@@ -1285,6 +1285,24 @@ public class ImportTests extends InventoryUpdateTestBase {
   }
 
   @Test
+  public void canOnlyProcessWellFormedCollectionsOrSingleRecords() {
+    configureSamplePipeline();
+    String channelId = Files.JSON_CHANNEL.getString("id");
+    String transformationId = Files.JSON_TRANSFORMATION_CONFIG.getString("id");
+    getRecordById(Service.PATH_CHANNELS, channelId);
+    getRecordById(Service.PATH_TRANSFORMATIONS, transformationId);
+
+    // must be a collection or a record
+    postSourceXml(Service.PATH_CHANNELS + "/" + channelId + "/upload", "<myDoc></myDoc>", 422);
+    // must be a collection of records
+    postSourceXml(Service.PATH_CHANNELS + "/" + channelId + "/upload", "<collection><myDoc></myDoc></collection>", 422);
+    // must be well-formed
+    postSourceXml(Service.PATH_CHANNELS + "/" + channelId + "/upload", "<collection><record></record><record></collection>", 422);
+    // must be well-formed
+    postSourceXml(Service.PATH_CHANNELS + "/" + channelId + "/upload", "<record></record><record></record>", 422);
+  }
+
+  @Test
   public void canHarvestXmlSourceFiles() {
     configureSamplePipeline();
     String channelId = Files.JSON_CHANNEL.getString("id");
@@ -1341,37 +1359,6 @@ public class ImportTests extends InventoryUpdateTestBase {
     await().until(() -> getTotalRecords(Service.PATH_JOB_LOGS
         + "?query=line=File #1 and line=uploaded.xml"), is(1));
 
-  }
-
-  @Test
-  public void badSourceFileXmlWillHaltProcessing() {
-    configureSamplePipeline();
-    String channelId = Files.JSON_CHANNEL.getString("id");
-    String transformationId = Files.JSON_TRANSFORMATION_CONFIG.getString("id");
-    getRecordById(Service.PATH_CHANNELS, channelId);
-    getRecordById(Service.PATH_TRANSFORMATIONS, transformationId);
-
-    ArrayList<String> sourceFiles = Files.filesOfInventoryXmlRecords(3, 100, "204");
-    ArrayList<String> badSourceFiles = Files.filesOfInventoryXmlRecords(1, 100, "204");
-    String badSourceFile = badSourceFiles.getFirst().replace("</record>", "<record>");
-    sourceFiles.add(badSourceFile);
-    sourceFiles.addAll(Files.filesOfInventoryXmlRecords(2, 100, "204"));
-    sourceFiles.forEach(xml -> postSourceXml(Service.PATH_CHANNELS + "/" + channelId + "/upload", xml, 200));
-    await().until(() -> getTotalRecords(Service.PATH_IMPORT_JOBS), is(1));
-    String jobId = getRecords(Service.PATH_IMPORT_JOBS).extract().path("importJobs[0].id");
-    await().until(() -> getTotalRecords(Service.PATH_IMPORT_JOBS), is(1));
-    await().until(() -> getRecordById(Service.PATH_IMPORT_JOBS, jobId).extract().path("status"), is("PAUSED"));
-    getRecordById(Service.PATH_IMPORT_JOBS, jobId).body("amountImported", is(300));
-    getRecordById(Service.PATH_IMPORT_JOBS, jobId).body("finished", is(nullValue()));
-    // Clean up queue with bad file
-    given()
-        .baseUri(BASE_URI_INVENTORY_UPDATE)
-        .header(Service.OKAPI_TENANT)
-        .header(Service.OKAPI_URL)
-        .header(Service.OKAPI_TOKEN)
-        .post("/inventory-import/channels/" + channelId + "/init-queue")
-        .then().statusCode(200);
-    assertThat("Instances in storage", fakeFolioApis.instanceStorage.getRecords().size(), is(300));
   }
 
   @Test
@@ -1522,38 +1509,6 @@ public class ImportTests extends InventoryUpdateTestBase {
     await().until(() -> getRecordById(Service.PATH_IMPORT_JOBS, jobId).extract().path("status"), is("DONE"));
     await().until(() -> getRecordById(PATH_CHANNELS, channelId).extract().path("fileInProcess"), is("no file in process"));
     assertThat("Instances in storage", fakeFolioApis.instanceStorage.getRecords().size(), is(1));
-  }
-
-  @Test
-  public void canSkipBadSourceFileXmlToResumeJob() {
-    configureSamplePipeline();
-    String channelId = Files.JSON_CHANNEL.getString("id");
-    String transformationId = Files.JSON_TRANSFORMATION_CONFIG.getString("id");
-    getRecordById(Service.PATH_CHANNELS, channelId);
-    getRecordById(Service.PATH_TRANSFORMATIONS, transformationId);
-
-    ArrayList<String> sourceFiles = Files.filesOfInventoryXmlRecords(5, 100, "204");
-    ArrayList<String> badSourceFiles = Files.filesOfInventoryXmlRecords(1, 100, "204");
-    String badSourceFile = badSourceFiles.getFirst().replace("</record>", "<record>");
-    sourceFiles.add(3, badSourceFile);
-    sourceFiles.forEach(xml -> postSourceXml(Service.PATH_CHANNELS + "/" + channelId + "/upload", xml, 200));
-    await().until(() -> getTotalRecords(Service.PATH_IMPORT_JOBS), is(1));
-    String jobId = getRecords(Service.PATH_IMPORT_JOBS).extract().path("importJobs[0].id");
-    await().until(() -> getTotalRecords(Service.PATH_IMPORT_JOBS), is(1));
-    await().until(() -> getRecordById(Service.PATH_IMPORT_JOBS, jobId).extract().path("status"), is("PAUSED"));
-    getRecordById(Service.PATH_IMPORT_JOBS, jobId).body("amountImported", is(300));
-    getRecordById(Service.PATH_IMPORT_JOBS, jobId).body("finished", is(nullValue()));
-    // Resume while skipping bad source file
-    given()
-        .baseUri(BASE_URI_INVENTORY_UPDATE)
-        .header(Service.OKAPI_TENANT)
-        .header(Service.OKAPI_URL)
-        .header(Service.OKAPI_TOKEN)
-        .queryParam("skipCurrentFile", "true")
-        .post("/inventory-import/channels/" + channelId + "/resume-job")
-        .then().statusCode(200);
-    await().until(() -> getRecordById(Service.PATH_IMPORT_JOBS, jobId).extract().path("status"), is("DONE"));
-    assertThat("Instances in storage", fakeFolioApis.instanceStorage.getRecords().size(), is(500));
   }
 
   @Test

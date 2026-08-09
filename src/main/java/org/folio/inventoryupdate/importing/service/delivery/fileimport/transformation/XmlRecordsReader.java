@@ -23,7 +23,6 @@ public class XmlRecordsReader extends DefaultHandler implements RecordProvider, 
 
   public static final Logger logger = LogManager.getLogger("XmlRecordsFromFile");
   StringBuilder theRecord = new StringBuilder();
-  StringBuilder theCollectionElement = new StringBuilder();
   RecordReceiver target;
   final String xmlCollectionOfRecords;
 
@@ -49,15 +48,8 @@ public class XmlRecordsReader extends DefaultHandler implements RecordProvider, 
 
   @Override
   public void startElement(String uri, String localName, String qualifiedName, Attributes attributes) {
-    if (localName.equalsIgnoreCase("collection") && theRecord.isEmpty()) {
-      theCollectionElement.append("<").append(qualifiedName);
-      for (int index = 0; index < attributes.getLength(); index++) {
-        theCollectionElement.append(" ")
-            .append(attributes.getQName(index)).append("=\"").append(attributes.getValue(index)).append("\"");
-      }
-      theCollectionElement.append(">");
-    } else {
-      if (localName.equalsIgnoreCase("record")) {
+    if (!localName.equals("collection")) {
+      if (localName.equals("record")) {
         theRecord = new StringBuilder();
       }
       theRecord.append("<").append(qualifiedName);
@@ -80,7 +72,7 @@ public class XmlRecordsReader extends DefaultHandler implements RecordProvider, 
     theRecord.append("</").append(qqName).append(">");
     if (localName.equals("record")) {
       String collectionOfOneRecord =
-          theCollectionElement
+          "<collection>"
           + System.lineSeparator()
           + "  " + theRecord
           + System.lineSeparator()

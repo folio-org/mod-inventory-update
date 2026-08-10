@@ -300,10 +300,9 @@ public class ImportService implements RouterCreator, TenantInitHooks {
     String channelId = request.requestParam("id");
     String fileName = request.queryParam("filename", UUID.randomUUID() + ".xml");
     String payload = request.bodyAsString();
-    SourceXmlCheck xmlStructure = new SourceXmlCheck();
     try {
-      xmlStructure.validate(payload);
-      if (!xmlStructure.isValid()) {
+      SourceXmlCheck xmlStructure = new SourceXmlCheck(payload);
+      if (xmlStructure.isInvalid()) {
         logger.error(xmlStructure.error());
         return responseText(request.routingContext(), 422).end(xmlStructure.error());
       }

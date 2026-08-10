@@ -1292,13 +1292,21 @@ public class ImportTests extends InventoryUpdateTestBase {
     getRecordById(Service.PATH_CHANNELS, channelId);
     getRecordById(Service.PATH_TRANSFORMATIONS, transformationId);
 
-    // must be a collection or a record
+    // a collection of one or more records is valid
+    postSourceXml(Service.PATH_CHANNELS + "/" + channelId + "/upload", "<collection><record></record></collection>", 200);
+    postSourceXml(Service.PATH_CHANNELS + "/" + channelId + "/upload", "<collection><record></record><record></record></collection>", 200);
+
+    // cannot be stand-alone record
+    postSourceXml(Service.PATH_CHANNELS + "/" + channelId + "/upload", "<record></record>", 422);
+
+    // root must be a collection
     postSourceXml(Service.PATH_CHANNELS + "/" + channelId + "/upload", "<myDoc></myDoc>", 422);
+
     // must be a collection of records
     postSourceXml(Service.PATH_CHANNELS + "/" + channelId + "/upload", "<collection><myDoc></myDoc></collection>", 422);
+
     // must be well-formed
     postSourceXml(Service.PATH_CHANNELS + "/" + channelId + "/upload", "<collection><record></record><record></collection>", 422);
-    // must be well-formed
     postSourceXml(Service.PATH_CHANNELS + "/" + channelId + "/upload", "<record></record><record></record>", 422);
   }
 

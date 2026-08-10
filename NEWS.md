@@ -1,3 +1,9 @@
+## 5.2.1 2026-08-10
+
+* [MODINVUP-232](https://issues.folio.org/browse/MODINVUP-232) Remove misleading count on collection element in failed record log
+* [MODINVUP-233](https://issues.folio.org/browse/MODINVUP-233) Fail early on bad XML input to file upload  
+* [MODINVUP-231](https://issues.folio.org/browse/MODINVUP-231) Fix misleading message about failed harvest attempt on file upload
+
 ## 5.2.0 2026-08-03
 
 * [MODINVUP-219](https://issues.folio.org/browse/MODINVUP-219) Provide option to harvest source files from remote.

@@ -19,18 +19,21 @@ public class SourceXmlCheck extends DefaultHandler {
   private boolean isCollectionOfRecords = false;
   private boolean valid = false;
   private String rootName = "";
+  private String errorMessage;
 
-  public SourceXmlCheck(String xml) throws ProcessingException {
+  public SourceXmlCheck(String xml) {
     validate(xml);
   }
 
-  private void validate(String payload) throws ProcessingException {
+  private void validate(String payload) {
     try {
       InputStream inputStream = new ByteArrayInputStream(payload.getBytes(StandardCharsets.UTF_8));
       SecureSaxParser.get().parse(inputStream, this);
+      setError();
     } catch (ParserConfigurationException | SAXException | IOException e) {
+      valid = false;
       logger.error("SaxParsing error: {}", e.getMessage());
-      throw new ProcessingException("XML parsing error when reading source records " + e.getMessage());
+      errorMessage = "XML parsing error when reading source records " + e.getMessage();
     }
   }
 
@@ -66,16 +69,20 @@ public class SourceXmlCheck extends DefaultHandler {
     }
   }
 
-  public String error() {
-    String errorMessage = "";
+  public String getErrorMessage() {
+    return errorMessage;
+  }
+
+  private void setError() {
+    String message = "";
     if (isInvalid()) {
-      errorMessage = "Invalid XML input. ";
+      message = "Invalid XML input. ";
       if (isCollection() && !isCollectionOfRecords()) {
-        errorMessage += "The XML is a <collection> but must contain one or more <record>s.";
+        message += "The XML is a <collection> but must contain one or more <record>s.";
       } else if (!isCollection()) {
-        errorMessage += "The XML document must be a <collection> of <record>s. Found " + rootElement();
+        message += "The XML document must be a <collection> of <record>s. Found " + rootElement();
       }
     }
-    return errorMessage;
+    this.errorMessage = message;
   }
 }

@@ -77,7 +77,7 @@ public class Files {
    * @return a number of XML records (total records = lastRecord - firstRecord)
    */
   public static String createCollectionOfInventoryXmlRecordsWithDeletes(int firstRecord, int lastRecord, String fakedResponseStatus, int ... deletesPositions)  {
-      CollectionOfXmlRecords collection = new CollectionOfXmlRecords();
+      CollectionOfXmlRecords collection = new CollectionOfXmlRecords(lastRecord);
       for (int i=firstRecord; i<=lastRecord; i++) {
           if (arrayHasInt(deletesPositions, i)) {
               collection.addDeleteRecord(i);
@@ -93,7 +93,7 @@ public class Files {
   }
 
   public static String createCollectionOfOneDeleteRecord(int hrid) {
-      CollectionOfXmlRecords collection = new CollectionOfXmlRecords();
+      CollectionOfXmlRecords collection = new CollectionOfXmlRecords(1);
       collection.addDeleteRecord(hrid);
       return collection.asXmlString();
   }
@@ -102,12 +102,13 @@ public class Files {
 
       Document collection;
       ArrayList<Element> records = new ArrayList<>();
-      public CollectionOfXmlRecords() {
+      public CollectionOfXmlRecords(int count) {
           try {
               DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
               DocumentBuilder builder = factory.newDocumentBuilder();
               collection = builder.newDocument();
               Element root = collection.createElement("collection");
+              root.setAttribute("count", String.valueOf(count));
               collection.appendChild(root);
           } catch (ParserConfigurationException pce) {
               throw new RuntimeException(pce);

@@ -77,7 +77,7 @@ public class Files {
    * @return a number of XML records (total records = lastRecord - firstRecord)
    */
   public static String createCollectionOfInventoryXmlRecordsWithDeletes(int firstRecord, int lastRecord, String fakedResponseStatus, int ... deletesPositions)  {
-      CollectionOfXmlRecords collection = new CollectionOfXmlRecords(lastRecord);
+      CollectionOfXmlRecords collection = new CollectionOfXmlRecords(lastRecord-firstRecord+1);
       for (int i=firstRecord; i<=lastRecord; i++) {
           if (arrayHasInt(deletesPositions, i)) {
               collection.addDeleteRecord(i);

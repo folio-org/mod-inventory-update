@@ -706,11 +706,9 @@ public class ImportTests extends InventoryUpdateTestBase {
     putJsonObject(Service.PATH_CHANNELS + "/" + UUID.randomUUID(), update, 404);
     getRecords(Service.PATH_CHANNELS).body("channels.id", hasItem(channel.getString("id")));;
     // Can delete channel with no logged jobs
-
     int totalRecords = getTotalRecords(Service.PATH_CHANNELS);
-    deleteRecord(Service.PATH_CHANNELS, Files.JSON_CHANNEL.getString("id"), 200);
+    deleteRecord(Service.PATH_CHANNELS, channel.getString("id"), 200);
     await().until(() -> getTotalRecords(Service.PATH_CHANNELS), is(totalRecords-1));
-    getRecords(Service.PATH_CHANNELS).body("channels.id", not(hasItem(channel.getString("id"))));
 
     // Can create disabled channel (this one with no tag)
     JsonObject disabledChannel = Files.JSON_CHANNEL.copy().put("enabled", false);

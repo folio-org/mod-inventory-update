@@ -60,11 +60,9 @@ public class SourceXmlCheck extends DefaultHandler {
         rootName = qualifiedName;
         valid = false;
       }
-    } else if (elementCount == 2) {
-      if (rootIsCollection && localName.equals("record")) {
-        isCollectionOfRecords = true;
-        valid = true;
-      }
+    } else if (elementCount == 2 && rootIsCollection && localName.equals("record")) {
+      isCollectionOfRecords = true;
+      valid = true;
     }
   }
 

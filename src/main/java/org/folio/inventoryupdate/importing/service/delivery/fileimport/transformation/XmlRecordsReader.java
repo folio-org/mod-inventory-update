@@ -52,8 +52,10 @@ public class XmlRecordsReader extends DefaultHandler implements RecordProvider, 
     if (localName.equalsIgnoreCase("collection") && theRecord.isEmpty()) {
       theCollectionElement.append("<").append(qualifiedName);
       for (int index = 0; index < attributes.getLength(); index++) {
-        theCollectionElement.append(" ")
-            .append(attributes.getQName(index)).append("=\"").append(attributes.getValue(index)).append("\"");
+        if (!attributes.getQName(index).equals("count")) {
+          theCollectionElement.append(" ")
+              .append(attributes.getQName(index)).append("=\"").append(attributes.getValue(index)).append("\"");
+        }
       }
       theCollectionElement.append(">");
     } else {

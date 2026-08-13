@@ -161,14 +161,9 @@
         <scope>runtime</scope>
     </dependency>
     <dependency>
-        <groupId>net.sf.saxon</groupId>
-        <artifactId>saxon</artifactId>
-        <version>8.7</version>
-    </dependency>
-    <dependency>
-        <groupId>net.sf.saxon</groupId>
-        <artifactId>saxon-dom</artifactId>
-        <version>8.7</version>
+      <groupId>net.sf.saxon</groupId>
+      <artifactId>Saxon-HE</artifactId>
+      <version>12.4</version>
     </dependency>
     <dependency>
       <groupId>org.apache.commons</groupId>
@@ -363,6 +358,19 @@
               <artifact>*:*</artifact>
               <excludes>
                 <exclude>**/Log4j2Plugins.dat</exclude>
+                <!-- Excluding signature files because their presence breaks the integration test.
+                 The Saxon-HE 12.4 is signed by Saxonica. If not excluded, these signature files are copied
+                 into the shaded fat JAR: META-INF/TE-4DB6C.SF, META-INF/TE-4DB6C.RSA.
+
+                 The shade plugin combines and modifies the signed JAR, including replacing its manifest,
+                 but if it retains those signature files, their recorded digest no longer matches the resulting fat
+                 JAR manifest, so Java rejects the JAR before loading Main-Class.
+		 
+                 (Unit tests run classes and dependencies separately, so the signature remains valid even if
+                 those files are included. Thus, the unit tests would work with the signature files included.)
+                -->
+                <exclude>META-INF/TE-4DB6C.SF</exclude>
+                <exclude>META-INF/TE-4DB6C.RSA</exclude>
               </excludes>
             </filter>
           </filters>

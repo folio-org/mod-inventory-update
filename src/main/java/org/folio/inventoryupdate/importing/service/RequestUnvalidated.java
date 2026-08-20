@@ -12,7 +12,6 @@ public class RequestUnvalidated extends ServiceRequest {
     this.routingContext = routingContext;
     this.tenant = TenantUtil.tenant(routingContext);
     this.request = routingContext.request();
-    this.requestPath = request.path();
   }
 
   @Override

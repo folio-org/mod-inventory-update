@@ -256,6 +256,7 @@ public final class JobsAndMonitoring extends EntityResponses {
           FileProcessor processor = FileListeners
               .getFileListener(request.tenant(), channelUuid).getProcessor();
           if (processor != null && processor.paused()) {
+            processor.renewCachedContext(request.routingContext());
             return processor.resume(discardFileInProcess)
                 .compose(na -> responseText(request.routingContext(), 200)
                     .end("Processing resumed for channel [" + channelId + "]."));

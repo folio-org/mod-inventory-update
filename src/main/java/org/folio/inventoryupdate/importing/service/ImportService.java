@@ -315,6 +315,7 @@ public class ImportService implements RouterCreator, TenantInitHooks {
         return responseText(request.routingContext, 403)
             .end("The channel with id or tag [" + channelId + "] is not ready to accept files.").mapEmpty();
       } else if (channel.isCommissioned()) {
+        FileListeners.getFileListener(request.tenant(), channel.getId()).renewCachedContext(request.routingContext());
         FileQueue fq = ImportService.getFileQueue(request, channel.getId());
         return new HtmlDirectoryHarvester(request.vertx)
             .harvest(channel, fq, request.entityStorage())

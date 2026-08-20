@@ -19,10 +19,14 @@ public class InternalInventoryUpdateClient extends InventoryUpdateClient {
   public static final Logger logger = LogManager.getLogger("InventoryUpdateClient");
 
   private final Vertx vertx;
-  private final RoutingContext routingContext;
+  private RoutingContext routingContext;
 
   public InternalInventoryUpdateClient(Vertx vertx, RoutingContext routingContext) {
     this.vertx = vertx;
+    this.routingContext = routingContext;
+  }
+
+  public void renewCachedContext(RoutingContext routingContext) {
     this.routingContext = routingContext;
   }
 

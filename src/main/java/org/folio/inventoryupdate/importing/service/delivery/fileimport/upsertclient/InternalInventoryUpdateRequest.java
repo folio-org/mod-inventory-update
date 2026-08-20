@@ -16,7 +16,6 @@ public class InternalInventoryUpdateRequest extends UpdateRequest {
     this.tenant = TenantUtil.tenant(routingContext);
     this.requestBody = jsonBody;
     this.request = routingContext.request();
-    this.requestPath = request.path();
   }
 
   @Override

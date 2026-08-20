@@ -3,12 +3,15 @@ package org.folio.inventoryupdate.importing.service.delivery.fileimport.upsertcl
 import io.vertx.core.Future;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
+import io.vertx.ext.web.RoutingContext;
 
 public abstract class InventoryUpdateClient {
 
   public abstract Future<UpdateResponse> inventoryDeletion(JsonObject theRecord);
 
   public abstract Future<UpdateResponse> inventoryUpsert(JsonObject recordSets);
+
+  public abstract void renewCachedContext(RoutingContext routingContext);
 
   public record UpdateResponse(int statusCode, JsonObject json) {
     public JsonObject getMetrics() {

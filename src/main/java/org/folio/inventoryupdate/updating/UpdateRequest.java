@@ -12,7 +12,6 @@ public abstract class UpdateRequest {
   protected RoutingContext routingContext;
   protected String tenant;
   protected HttpServerRequest request;
-  protected String requestPath;
 
   public abstract JsonObject bodyAsJson();
 

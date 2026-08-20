@@ -71,7 +71,7 @@ public class XmlFileListener extends FileListener {
           .forFileListener(this)
           .withProcessingPipeline(tenant, getConfigId(), vertx, new InventoryBatchUpdater(routingContext))
           .compose(newFileProcessor -> {
-            this.fileProcessor = newFileProcessor.running();
+            this.fileProcessor = (XmlFileProcessor) newFileProcessor.running();
             return Future.succeededFuture(fileProcessor);
           });
     } else {

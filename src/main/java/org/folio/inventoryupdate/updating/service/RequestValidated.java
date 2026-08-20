@@ -16,7 +16,6 @@ public class RequestValidated extends UpdateRequest {
     this.validatedRequest = routingContext.get(RouterBuilder.KEY_META_DATA_VALIDATED_REQUEST);
     this.tenant = TenantUtil.tenant(routingContext);
     this.request = routingContext.request();
-    this.requestPath = request.path();
   }
 
   @Override

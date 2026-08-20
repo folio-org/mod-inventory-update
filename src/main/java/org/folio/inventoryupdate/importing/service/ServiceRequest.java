@@ -13,7 +13,6 @@ public abstract class ServiceRequest {
   protected RoutingContext routingContext;
   protected String tenant;
   protected HttpServerRequest request;
-  protected String requestPath;
 
   public Vertx vertx() {
     return vertx;
@@ -47,10 +46,6 @@ public abstract class ServiceRequest {
 
   public String absoluteUri() {
     return request.absoluteURI();
-  }
-
-  public String path() {
-    return requestPath;
   }
 
   public RoutingContext routingContext() {

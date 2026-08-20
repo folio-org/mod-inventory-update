@@ -21,7 +21,7 @@ public abstract class FileListener extends VerticleBase {
   protected String tenant;
   protected Channel channel;
   protected RoutingContext routingContext;
-  protected FileProcessor fileProcessor;
+  protected XmlFileProcessor fileProcessor;
   protected FileQueue fileQueue;
   protected Vertx deploymentVertx;
   protected String deploymentId;
@@ -31,6 +31,12 @@ public abstract class FileListener extends VerticleBase {
 
   public FileProcessor getProcessor() {
     return fileProcessor;
+  }
+
+  public void renewCachedContext(RoutingContext routingContext) {
+    if (fileProcessor != null) {
+      fileProcessor.renewCachedContext(routingContext);
+    }
   }
 
   public void updateChannel(Channel channel) {

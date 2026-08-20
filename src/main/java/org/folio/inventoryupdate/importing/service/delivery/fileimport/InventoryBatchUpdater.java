@@ -33,6 +33,10 @@ public class InventoryBatchUpdater implements RecordReceiver {
     batchNumber = 0L;
   }
 
+  public void renewCachedContext(RoutingContext routingContext) {
+    updateClient.renewCachedContext(routingContext);
+  }
+
   /**
    * Sets a reference back to the controller.
    */

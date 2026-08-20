@@ -3,6 +3,7 @@ package org.folio.inventoryupdate.importing.service.delivery.fileimport;
 import io.vertx.core.Future;
 import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
+import io.vertx.ext.web.RoutingContext;
 import java.util.UUID;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -72,6 +73,11 @@ public class XmlFileProcessor extends FileProcessor {
   public XmlFileProcessor forFileListener(FileListener fileListener) {
     this.fileListener = fileListener;
     return this;
+  }
+
+  @Override
+  public void renewCachedContext(RoutingContext routingContext) {
+    inventoryBatchUpdater.renewCachedContext(routingContext);
   }
 
   /**

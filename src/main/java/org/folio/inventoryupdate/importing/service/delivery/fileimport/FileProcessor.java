@@ -1,6 +1,7 @@
 package org.folio.inventoryupdate.importing.service.delivery.fileimport;
 
 import io.vertx.core.Future;
+import io.vertx.ext.web.RoutingContext;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
 import org.folio.inventoryupdate.importing.moduledata.ImportJob;
@@ -66,6 +67,8 @@ public abstract class FileProcessor {
           return Future.succeededFuture();
         });
   }
+
+  public abstract void renewCachedContext(RoutingContext routingContext);
 
   public ImportJob getImportJob() {
     return importJob;

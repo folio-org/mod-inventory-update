@@ -4,13 +4,14 @@ import io.vertx.core.Vertx;
 import io.vertx.core.http.HttpServerRequest;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.RoutingContext;
+import io.vertx.ext.web.client.WebClient;
 import org.folio.okapi.common.OkapiClient;
 import org.folio.inventoryupdate.importing.foliodata.Folio;
 
 public abstract class UpdateRequest {
   protected Vertx vertx;
   protected RoutingContext routingContext;
-  protected String tenant;
+  protected WebClient webClient;
   protected HttpServerRequest request;
   protected String requestPath;
 
@@ -21,7 +22,7 @@ public abstract class UpdateRequest {
   public abstract String queryParam(String paramName);
 
   public OkapiClient getOkapiClient() {
-    return Folio.okapiClient(routingContext);
+    return Folio.okapiClient(webClient, routingContext);
   }
 
   public RoutingContext routingContext() {

@@ -7,6 +7,7 @@ import io.vertx.core.ThreadingModel;
 import io.vertx.core.VerticleBase;
 import io.vertx.core.Vertx;
 import io.vertx.ext.web.RoutingContext;
+import io.vertx.ext.web.client.WebClient;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -25,9 +26,14 @@ public abstract class FileListener extends VerticleBase {
   protected FileQueue fileQueue;
   protected Vertx deploymentVertx;
   protected String deploymentId;
+  protected WebClient webClient;
 
   // For demarcating jobs by start/end
   protected AtomicBoolean fileQueuePassive = new AtomicBoolean(true);
+
+  public Vertx getVertx() {
+    return vertx;
+  }
 
   public FileProcessor getProcessor() {
     return fileProcessor;
@@ -96,10 +102,6 @@ public abstract class FileListener extends VerticleBase {
 
   public Future<String> deploy() {
     Promise<String> promise = Promise.promise();
-    // Use new Vertx so that we can close it -- if the channel is removed again -- without closing the Okapi client
-    // for all other requests (it's the underlying Vert.X WebClient that we avoid closing, to be accurate).
-    // Creating a new Vertx will give us a warning in the logs.
-    deploymentVertx = Vertx.vertx();
     deploymentVertx.deployVerticle(this,
         new DeploymentOptions()
             .setWorkerPoolSize(4)
@@ -110,7 +112,7 @@ public abstract class FileListener extends VerticleBase {
               if (started.succeeded()) {
                 deploymentId = started.result();
                 logger.info("Started verticle [{}] on Vertx {} for [{}] and channel [{}].",
-                    started.result(), deploymentVertx, tenant, channel.getRecord().name());
+                    started.result(), vertx, tenant, channel.getRecord().name());
                 promise.complete("Started verticle [" + started.result() + "] for channel ID ["
                     + channel.getRecord().name() + "].");
               } else {

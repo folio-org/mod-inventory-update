@@ -4,6 +4,7 @@ import io.vertx.core.Future;
 import io.vertx.core.Promise;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.RoutingContext;
+import io.vertx.ext.web.client.WebClient;
 import java.util.ArrayList;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
@@ -28,8 +29,8 @@ public class InventoryBatchUpdater implements RecordReceiver {
   private long processingTime;
   private int recordsProcessed;
 
-  public InventoryBatchUpdater(RoutingContext routingContext) {
-    updateClient = new InternalInventoryUpdateClient(routingContext.vertx(), routingContext);
+  public InventoryBatchUpdater(WebClient webClient, RoutingContext routingContext) {
+    updateClient = new InternalInventoryUpdateClient(webClient, routingContext.vertx(), routingContext);
     batchNumber = 0L;
   }
 

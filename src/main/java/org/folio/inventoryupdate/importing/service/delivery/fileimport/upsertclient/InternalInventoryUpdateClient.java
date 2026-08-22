@@ -5,6 +5,7 @@ import io.vertx.core.Vertx;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.RoutingContext;
+import io.vertx.ext.web.client.WebClient;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.folio.inventoryupdate.updating.DeletePlan;
@@ -20,17 +21,20 @@ public class InternalInventoryUpdateClient extends InventoryUpdateClient {
 
   private final Vertx vertx;
   private final RoutingContext routingContext;
+  private final WebClient webClient;
 
-  public InternalInventoryUpdateClient(Vertx vertx, RoutingContext routingContext) {
+  public InternalInventoryUpdateClient(WebClient webClient, Vertx vertx, RoutingContext routingContext) {
     this.vertx = vertx;
     this.routingContext = routingContext;
+    this.webClient = webClient;
   }
 
   @Override
   public Future<UpdateResponse> inventoryDeletion(JsonObject theRecord) {
     InventoryQuery queryByInstanceHrid = new QueryByHrid(theRecord.getString("hrid"));
     DeletePlan deletePlan = DeletePlanAllHRIDs.getDeletionPlan(queryByInstanceHrid);
-    InternalInventoryDeleteRequest deleteRequest = new InternalInventoryDeleteRequest(vertx, routingContext, theRecord);
+    InternalInventoryDeleteRequest deleteRequest =
+        new InternalInventoryDeleteRequest(webClient, vertx, routingContext, theRecord);
     return deletePlan.runDeletionPlan(deleteRequest).map(outcome -> {
       JsonObject outcomeJson = outcome.getJson();
       if (outcome.getStatusCode() == 404) {
@@ -47,7 +51,8 @@ public class InternalInventoryUpdateClient extends InventoryUpdateClient {
 
   @Override
   public Future<UpdateResponse> inventoryUpsert(JsonObject recordSets) {
-    InternalInventoryUpdateRequest req = new InternalInventoryUpdateRequest(vertx, routingContext, recordSets);
+    InternalInventoryUpdateRequest req =
+        new InternalInventoryUpdateRequest(webClient, vertx, routingContext, recordSets);
     HandlersUpdating upsertMethods = new HandlersUpdating();
     return upsertMethods.doBatchUpsert(req, new UpdatePlanAllHRIDs()).map(
             outcome -> {

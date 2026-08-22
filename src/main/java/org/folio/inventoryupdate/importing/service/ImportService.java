@@ -10,6 +10,7 @@ import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
+import io.vertx.ext.web.client.WebClient;
 import io.vertx.ext.web.handler.impl.BodyHandlerImpl;
 import io.vertx.ext.web.openapi.router.RouterBuilder;
 import io.vertx.openapi.contract.OpenAPIContract;
@@ -47,6 +48,11 @@ import org.folio.tlib.TenantInitHooks;
 public class ImportService implements RouterCreator, TenantInitHooks {
 
   public static final Logger logger = LogManager.getLogger("inventory-import");
+  private final WebClient webClient;
+
+  public ImportService(WebClient webClient) {
+    this.webClient = webClient;
+  }
 
   @Override
   public Future<Router> createRouter(Vertx vertx) {
@@ -117,7 +123,7 @@ public class ImportService implements RouterCreator, TenantInitHooks {
                                  Function<ServiceRequest, Future<Void>> method) {
     routerBuilder.getRoute(operation).addHandler(ctx -> {
       try {
-        method.apply(new RequestValidated(vertx, ctx)).onFailure(cause -> {
+        method.apply(new RequestValidated(vertx, ctx, webClient)).onFailure(cause -> {
           logger.error("Handler failure {}: {}", operation, cause.getMessage());
           exceptionResponse(cause, ctx);
         });
@@ -136,7 +142,7 @@ public class ImportService implements RouterCreator, TenantInitHooks {
     routerBuilder.getRoute(operation).addHandler(new BodyHandlerImpl().setBodyLimit(104857600)).setDoValidation(false)
         .addHandler(ctx -> {
           try {
-            method.apply(new RequestUnvalidated(vertx, ctx)).onFailure(cause -> {
+            method.apply(new RequestUnvalidated(vertx, ctx, webClient)).onFailure(cause -> {
               logger.error("Non-validating handler failure {}: {}", operation, cause.getMessage());
               exceptionResponse(cause, ctx);
             });

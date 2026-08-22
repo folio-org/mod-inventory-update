@@ -20,6 +20,8 @@ public class XmlFileListener extends FileListener {
     this.channel = channel;
     this.routingContext = request.routingContext();
     this.fileQueue = ImportService.getFileQueue(request, getConfigId());
+    this.webClient = request.webClient();
+    this.deploymentVertx = request.vertx();
   }
 
   @Override
@@ -69,7 +71,7 @@ public class XmlFileListener extends FileListener {
     if (instantiate) {
       return new XmlFileProcessor(vertx, tenant, getConfigId())
           .forFileListener(this)
-          .withProcessingPipeline(tenant, getConfigId(), vertx, new InventoryBatchUpdater(routingContext))
+          .withProcessingPipeline(tenant, getConfigId(), vertx, new InventoryBatchUpdater(webClient, routingContext))
           .compose(newFileProcessor -> {
             this.fileProcessor = newFileProcessor.running();
             return Future.succeededFuture(fileProcessor);

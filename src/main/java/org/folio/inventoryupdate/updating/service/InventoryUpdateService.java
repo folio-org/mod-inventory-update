@@ -4,6 +4,7 @@ import io.vertx.core.Future;
 import io.vertx.core.Vertx;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
+import io.vertx.ext.web.client.WebClient;
 import io.vertx.ext.web.openapi.router.RouterBuilder;
 import io.vertx.openapi.contract.OpenAPIContract;
 import org.apache.logging.log4j.LogManager;
@@ -24,10 +25,13 @@ public class InventoryUpdateService implements RouterCreator, TenantInitHooks {
 
   public static final Logger logger = LogManager.getLogger("inventory-update");
   public static final String HEALTH_CHECK = "/admin/health";
-
+  private final WebClient webClient;
   HandlersUpdating updating = new HandlersUpdating();
   HandlersFetching fetching = new HandlersFetching();
 
+  public InventoryUpdateService (WebClient webClient) {
+      this.webClient = webClient;
+  }
 
   @Override
   public Future<Router> createRouter(Vertx vertx) {
@@ -59,7 +63,7 @@ public class InventoryUpdateService implements RouterCreator, TenantInitHooks {
     routerBuilder.getRoute(operation)
         .addHandler(ctx -> {
           try {
-            method.accept(new RequestValidated(vertx, ctx));
+            method.accept(new RequestValidated(vertx, ctx, webClient));
           } catch (RuntimeException e) {
             logger.error("Handler exception {}: {}", operation, e.getMessage(), e);
             exceptionResponse(e, ctx);

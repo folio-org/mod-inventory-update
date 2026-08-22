@@ -3,6 +3,7 @@ package org.folio.inventoryupdate.importing.service;
 import io.vertx.core.Vertx;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.RoutingContext;
+import io.vertx.ext.web.client.WebClient;
 import io.vertx.ext.web.openapi.router.RouterBuilder;
 import io.vertx.openapi.validation.ValidatedRequest;
 import org.folio.tlib.util.TenantUtil;
@@ -11,13 +12,14 @@ public class RequestValidated extends ServiceRequest {
 
   private final ValidatedRequest validatedRequest;
 
-  public RequestValidated(Vertx vertx, RoutingContext routingContext) {
+  public RequestValidated(Vertx vertx, RoutingContext routingContext, WebClient webClient) {
     this.vertx = vertx;
     this.routingContext = routingContext;
     this.validatedRequest = routingContext.get(RouterBuilder.KEY_META_DATA_VALIDATED_REQUEST);
     this.tenant = TenantUtil.tenant(routingContext);
     this.request = routingContext.request();
     this.requestPath = request.path();
+    this.webClient = webClient;
   }
 
   public String queryParam(String paramName) {

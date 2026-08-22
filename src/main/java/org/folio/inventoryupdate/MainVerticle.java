@@ -3,9 +3,11 @@ package org.folio.inventoryupdate;
 import io.vertx.core.AbstractVerticle;
 import io.vertx.core.Promise;
 import io.vertx.core.http.HttpServerOptions;
+import io.vertx.ext.web.client.WebClient;
 import org.folio.inventoryupdate.importing.service.ImportService;
 import org.folio.inventoryupdate.updating.service.InventoryUpdateService;
 import org.folio.okapi.common.Config;
+import org.folio.okapi.common.WebClientFactory;
 import org.folio.tlib.RouterCreator;
 import org.folio.tlib.api.HealthApi;
 import org.folio.tlib.api.Tenant2Api;
@@ -18,12 +20,12 @@ public class MainVerticle extends AbstractVerticle {
   public void start(Promise<Void> promise) {
 
     TenantPgPool.setModule(MODULE); // Postgres - schema separation
-
     // listening port
     final int port = Integer.parseInt(Config.getSysConf("http.port", "port", "8080", config()));
 
-    InventoryUpdateService updateService = new InventoryUpdateService();
-    ImportService importService = new ImportService();
+    WebClient webClient = WebClientFactory.getWebClient(vertx);
+    InventoryUpdateService updateService = new InventoryUpdateService(webClient);
+    ImportService importService = new ImportService(webClient);
 
     RouterCreator[] routerCreators = {
       importService,

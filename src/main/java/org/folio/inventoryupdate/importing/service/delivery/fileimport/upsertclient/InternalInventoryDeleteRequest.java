@@ -3,20 +3,21 @@ package org.folio.inventoryupdate.importing.service.delivery.fileimport.upsertcl
 import io.vertx.core.Vertx;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.RoutingContext;
+import io.vertx.ext.web.client.WebClient;
 import org.folio.inventoryupdate.updating.UpdateRequest;
-import org.folio.tlib.util.TenantUtil;
 
 public class InternalInventoryDeleteRequest extends UpdateRequest {
 
   private final JsonObject requestBody;
 
-  public InternalInventoryDeleteRequest(Vertx vertx, RoutingContext routingContext, JsonObject jsonBody) {
+  public InternalInventoryDeleteRequest(WebClient webClient, Vertx vertx, RoutingContext routingContext,
+                                        JsonObject jsonBody) {
     this.vertx = vertx;
     this.routingContext = routingContext;
-    this.tenant = TenantUtil.tenant(routingContext);
     this.requestBody = jsonBody;
     this.request = routingContext.request();
     this.requestPath = request.path();
+    this.webClient = webClient;
   }
 
   @Override

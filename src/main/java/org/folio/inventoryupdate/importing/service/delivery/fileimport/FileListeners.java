@@ -105,7 +105,7 @@ public final class FileListeners {
     if (FILE_LISTENERS.get(tenant) != null) {
       for (Map.Entry<UUID, FileListener> listener : FILE_LISTENERS.get(tenant).entrySet()) {
         FileListener fileListener = FILE_LISTENERS.get(tenant).get(listener.getKey());
-        undeployFutures.add(fileListener.deploymentVertx.undeploy(fileListener.deploymentId));
+        undeployFutures.add(fileListener.getVertx().undeploy(fileListener.deploymentId));
       }
     }
     return Future.all(undeployFutures).onComplete(na -> FILE_LISTENERS.clear()).mapEmpty();

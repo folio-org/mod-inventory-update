@@ -23,7 +23,7 @@ public class LogPurging  {
     logger.info("Running process: purge aged logs");
     final String settings_scope = "mod-inventory-update";
     final String settings_key = "PURGE_LOGS_AFTER";
-    return SettingsClient.getStringValue(request.routingContext(), settings_scope, settings_key)
+    return SettingsClient.getStringValue(request.webClient(), request.routingContext(), settings_scope, settings_key)
         .map(LogPurging::getCutOffDate)
         .compose(cutOff -> purgePreviousJobsByAge(request, cutOff).map(cutOff))
         .onSuccess(result -> request.routingContext().response().setStatusCode(204).end())

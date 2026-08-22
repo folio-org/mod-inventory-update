@@ -4,6 +4,7 @@ import io.vertx.core.Vertx;
 import io.vertx.core.http.HttpServerRequest;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.RoutingContext;
+import io.vertx.ext.web.client.WebClient;
 import java.util.UUID;
 import org.folio.inventoryupdate.importing.moduledata.database.EntityStorage;
 
@@ -14,6 +15,7 @@ public abstract class ServiceRequest {
   protected String tenant;
   protected HttpServerRequest request;
   protected String requestPath;
+  protected WebClient webClient;
 
   public Vertx vertx() {
     return vertx;
@@ -55,6 +57,10 @@ public abstract class ServiceRequest {
 
   public RoutingContext routingContext() {
     return routingContext;
+  }
+
+  public WebClient webClient() {
+    return webClient;
   }
 
   public String requestParam(String paramName) {

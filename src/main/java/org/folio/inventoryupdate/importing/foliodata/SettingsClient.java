@@ -3,6 +3,7 @@ package org.folio.inventoryupdate.importing.foliodata;
 import io.vertx.core.Future;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.RoutingContext;
+import io.vertx.ext.web.client.WebClient;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import org.apache.logging.log4j.LogManager;
@@ -18,9 +19,10 @@ public final class SettingsClient {
     throw new UnsupportedOperationException("Utility class");
   }
 
-  public static Future<String> getStringValue(RoutingContext routingContext, String scope, String key) {
+  public static Future<String> getStringValue(WebClient webClient, RoutingContext routingContext,
+                                              String scope, String key) {
     String query = "scope==\"" + scope + "\" and key==\"" + key + "\"";
-    return Folio.okapiClient(routingContext).get(SETTINGS_PATH
+    return Folio.okapiClient(webClient, routingContext).get(SETTINGS_PATH
             + "?query=" + URLEncoder.encode(query, StandardCharsets.UTF_8))
         .map(response ->
             new JsonObject(response).getJsonArray(RECORDS).isEmpty() ? null :

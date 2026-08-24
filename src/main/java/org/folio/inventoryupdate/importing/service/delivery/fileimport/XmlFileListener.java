@@ -4,6 +4,7 @@ import io.vertx.core.Future;
 import java.util.concurrent.atomic.AtomicBoolean;
 import org.folio.inventoryupdate.importing.moduledata.Channel;
 import org.folio.inventoryupdate.importing.service.ImportService;
+import org.folio.inventoryupdate.importing.service.Messaging;
 import org.folio.inventoryupdate.importing.service.ServiceRequest;
 
 /**
@@ -29,6 +30,8 @@ public class XmlFileListener extends FileListener {
     logger.info("Listening for files to forward for processing by job configuration ID [{}}], tenant [{}}].",
         getConfigId(), tenant);
     listen();
+    Messaging.consumeChannelUpdates(vertx, channel.getId().toString(),
+        channelAsJson -> this.channel = new Channel().fromJson(channelAsJson.body()));
     return super.start();
   }
 

@@ -4,6 +4,7 @@ import static org.folio.inventoryupdate.importing.utils.DateTimeFormatter.format
 
 import io.vertx.core.Future;
 import io.vertx.core.Promise;
+import io.vertx.core.Vertx;
 import io.vertx.core.json.JsonObject;
 import io.vertx.sqlclient.SqlResult;
 import io.vertx.sqlclient.templates.RowMapper;
@@ -17,7 +18,7 @@ import org.folio.inventoryupdate.importing.moduledata.database.PgColumn;
 import org.folio.inventoryupdate.importing.moduledata.database.PgColumn.Type;
 import org.folio.inventoryupdate.importing.moduledata.database.Tables;
 import org.folio.inventoryupdate.importing.moduledata.database.Util;
-import org.folio.inventoryupdate.importing.service.delivery.fileimport.FileListeners;
+import org.folio.inventoryupdate.importing.service.ServiceRequest;
 import org.folio.tlib.postgres.TenantPgPool;
 
 public class Channel extends Entity {
@@ -38,6 +39,7 @@ public class Channel extends Entity {
   ChannelRecord theRecord;
   private int queueLength = 0;
   private String nameOfProcessingFile = "no file processing";
+  private boolean isCommissioned = false;
 
   static {
     CHANNEL_FIELDS.put(ID,
@@ -59,7 +61,7 @@ public class Channel extends Entity {
     CHANNEL_FIELDS.put(LISTENING,
         new Field("listening", "listening", PgColumn.Type.BOOLEAN, false, true));
     CHANNEL_FIELDS.put(DEPLOYMENT_ID,
-        new Field("deploymentId", "deployment_id", Type.TEXT, true, true));
+        new Field("deploymentId", "deployment_id", Type.TEXT, true, true).isRestricted());
   }
 
   public Channel() {
@@ -100,7 +102,13 @@ public class Channel extends Entity {
     return this;
   }
 
+  public Channel withCommissioned(boolean isCommissioned) {
+    this.isCommissioned = isCommissioned;
+    return this;
+  }
+
   public Channel fromJson(JsonObject channelJson) {
+    logger.info("fromJson: " + channelJson.encode());
     return new Channel(
         getUuidOrGenerate(channelJson.getString(jsonPropertyName(ID))),
         channelJson.getString(jsonPropertyName(NAME)),
@@ -111,24 +119,27 @@ public class Channel extends Entity {
         channelJson.getString(jsonPropertyName(LAST_HARVESTED)),
         "TRUE".equalsIgnoreCase(channelJson.getString(jsonPropertyName(ENABLED))),
         "TRUE".equalsIgnoreCase(channelJson.getString(jsonPropertyName(LISTENING))),
-        channelJson.getString(jsonPropertyName(DEPLOYMENT_ID), ""));
+        channelJson.getString(jsonPropertyName(DEPLOYMENT_ID)));
   }
 
   @Override
   public RowMapper<Entity> fromRow() {
-    return row -> new Channel(
-        row.getUUID(dbColumnName(ID)),
-        row.getString(dbColumnName(NAME)),
-        row.getString(dbColumnName(TAG)),
-        row.getString(dbColumnName(TYPE)),
-        row.getUUID(dbColumnName(TRANSFORMATION_ID)),
-        row.getString(dbColumnName(HARVEST_URL)),
-        row.getValue(dbColumnName(LAST_HARVESTED)) != null
-            ? formatDateTime(row.getLocalDateTime(dbColumnName(LAST_HARVESTED))) : null,
-        row.getBoolean(dbColumnName(ENABLED)),
-        row.getBoolean(dbColumnName(LISTENING)),
-        row.getString(dbColumnName(DEPLOYMENT_ID)))
-        .withMetadata(row);
+    return row -> {
+      logger.info("Row: {}", row.deepToString());
+      return new Channel(
+          row.getUUID(dbColumnName(ID)),
+          row.getString(dbColumnName(NAME)),
+          row.getString(dbColumnName(TAG)),
+          row.getString(dbColumnName(TYPE)),
+          row.getUUID(dbColumnName(TRANSFORMATION_ID)),
+          row.getString(dbColumnName(HARVEST_URL)),
+          row.getValue(dbColumnName(LAST_HARVESTED)) != null
+              ? formatDateTime(row.getLocalDateTime(dbColumnName(LAST_HARVESTED))) : null,
+          row.getBoolean(dbColumnName(ENABLED)),
+          row.getBoolean(dbColumnName(LISTENING)),
+          row.getString(dbColumnName(DEPLOYMENT_ID)))
+          .withMetadata(row);
+    };
   }
 
   @Override
@@ -146,9 +157,32 @@ public class Channel extends Entity {
           parameters.put(dbColumnName(LAST_HARVESTED), rec.lastHarvested());
           parameters.put(dbColumnName(ENABLED), rec.enabled());
           parameters.put(dbColumnName(LISTENING), rec.listening());
+          putMetadata(parameters);
+          logger.info("Parameters: {}", parameters);
+          return parameters;
+        });
+  }
+
+  public TupleMapper<Entity> toParametersForSettingDeployment() {
+    return TupleMapper.mapper(
+        entity -> {
+          ChannelRecord rec = ((Channel) entity).theRecord;
+          Map<String, Object> parameters = new HashMap<>();
+          parameters.put(dbColumnName(ID), rec.id());
           parameters.put(dbColumnName(DEPLOYMENT_ID), rec.deploymentId());
           putMetadata(parameters);
+          logger.info("Parameters: {}", parameters);
           return parameters;
+        });
+  }
+
+
+  public Future<Entity> getById(ServiceRequest getOrPutRequest) {
+    UUID id = UUID.fromString(getOrPutRequest.requestParam("id"));
+    return getById(id, getOrPutRequest.entityStorage())
+        .compose(entity -> {
+          this.isCommissioned = ((Channel)entity).isCommissioned(getOrPutRequest.vertx());
+          return Future.succeededFuture(entity);
         });
   }
 
@@ -165,7 +199,7 @@ public class Channel extends Entity {
     putIfNotNull(json, jsonPropertyName(HARVEST_URL), theRecord.harvestUrl());
     putIfNotNull(json, jsonPropertyName(LAST_HARVESTED), theRecord.lastHarvested());
     json.put(jsonPropertyName(ENABLED), theRecord.enabled());
-    json.put(PROPERTY_COMMISSIONED, isCommissioned());
+    json.put(PROPERTY_COMMISSIONED, isCommissioned);
     json.put(jsonPropertyName(LISTENING), theRecord.listening());
     json.put(jsonPropertyName(DEPLOYMENT_ID), theRecord.deploymentId());
     json.put("queuedFiles", queueLength);
@@ -232,13 +266,13 @@ public class Channel extends Entity {
         ).mapEmpty();
   }
 
-  public boolean isCommissioned() {
+  public boolean isCommissioned(Vertx vertx) {
     if (tenant == null) {
       logger.warn(
           "Tenant not specified for this Channel object ({}), cannot say if the channel is commissioned",
           theRecord.name());
     }
-    return tenant != null && FileListeners.hasFileListener(tenant, theRecord.id());
+    return tenant != null && this.hasDeploymentId() && vertx.deploymentIDs().contains(getDeploymentId()) ;
   }
 
   public boolean isEnabled() {
@@ -269,8 +303,12 @@ public class Channel extends Entity {
             + dbColumnName(DEPLOYMENT_ID) + " = #{" + dbColumnName(DEPLOYMENT_ID) + "} "
             + ", "
             + metadata.updateClauseColumnTemplates()
-            + " WHERE id = #{id}")
-        .onFailure(x -> promise.complete(0))
+            + " WHERE id = #{id}",
+            toParametersForSettingDeployment())
+        .onFailure(x -> {
+          logger.error("error: {}", x.getMessage());
+          promise.complete(0);
+        })
         .compose(res -> {
           promise.complete(res.rowCount());
           return Future.succeededFuture(res);
@@ -284,7 +322,7 @@ public class Channel extends Entity {
     }
     theRecord = new ChannelRecord(theRecord.id(), theRecord.name(), theRecord.tag(), theRecord.type(),
         theRecord.transformationId(), theRecord.harvestUrl(), theRecord.lastHarvested(), enabled, listening,
-        theRecord.deploymentId);
+        theRecord.deploymentId());
     return configStorage.updateEntity(this.withUpdatingUser(null),
         "UPDATE " + configStorage.schema() + "." + table()
             + " SET "

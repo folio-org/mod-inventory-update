@@ -28,7 +28,7 @@ import org.folio.inventoryupdate.importing.moduledata.Step;
 import org.folio.inventoryupdate.importing.moduledata.Transformation;
 import org.folio.inventoryupdate.importing.moduledata.database.EntityStorage;
 import org.folio.inventoryupdate.importing.moduledata.database.Tables;
-import org.folio.inventoryupdate.importing.service.delivery.fileimport.FileListeners;
+import org.folio.inventoryupdate.importing.service.delivery.fileimport.FileListener;
 import org.folio.inventoryupdate.importing.service.delivery.fileimport.FileQueue;
 import org.folio.inventoryupdate.importing.service.delivery.fileimport.FileQueueDb;
 import org.folio.inventoryupdate.importing.service.delivery.fileimport.HarvestResult;
@@ -189,7 +189,6 @@ public class ImportService implements RouterCreator, TenantInitHooks {
             logger.info("Tenant '{}' database initialized", tenant))
         .compose(x ->
             clearTenantFileQueues(vertx, tenant, getTenantParameter(tenantAttributes, "clearPastFileQueues")))
-        .compose(na -> FileListeners.clearRegistry(tenant))
         .compose(x -> loadSample(vertx, tenant, getTenantParameter(tenantAttributes, "loadSample")));
   }
 
@@ -320,7 +319,7 @@ public class ImportService implements RouterCreator, TenantInitHooks {
       } else if (!channel.isEnabled()) {
         return responseText(request.routingContext, 403)
             .end("The channel with id or tag [" + channelId + "] is not ready to accept files.").mapEmpty();
-      } else if (channel.isCommissioned()) {
+      } else if (channel.isCommissioned(request.vertx())) {
         FileQueue fq = ImportService.getFileQueue(request, channel.getId());
         return new HtmlDirectoryHarvester(request.vertx)
             .harvest(channel, fq, request.entityStorage())
@@ -334,7 +333,7 @@ public class ImportService implements RouterCreator, TenantInitHooks {
             .mapEmpty();
       } else {
         FileQueue fq = ImportService.getFileQueue(request, channel.getId());
-        return FileListeners.deployIfNotDeployed(request, channel)
+        return FileListener.deployIfNotDeployed(request, channel)
                 .compose(ignore -> new HtmlDirectoryHarvester(request.vertx)
                     .harvest(channel, fq, request.entityStorage())
                     .recover(f -> ignoreHarvestError(f, channel, fileName))
@@ -370,7 +369,7 @@ public class ImportService implements RouterCreator, TenantInitHooks {
       } else if (!channel.hasHarvestUrl()) {
         return responseText(request.routingContext, 422)
             .end("The channel with id or tag [" + channelId + "] has no harvesting URL defined.").mapEmpty();
-      } else if (channel.isCommissioned()) {
+      } else if (channel.isCommissioned(request.vertx())) {
         FileQueue fq = ImportService.getFileQueue(request, channel.getId());
         return new HtmlDirectoryHarvester(request.vertx)
             .harvest(channel, fq, request.entityStorage())
@@ -379,7 +378,7 @@ public class ImportService implements RouterCreator, TenantInitHooks {
             .mapEmpty();
       } else {
         FileQueue fq = ImportService.getFileQueue(request, channel.getId());
-        return FileListeners.deployIfNotDeployed(request, channel)
+        return FileListener.deployIfNotDeployed(request, channel)
             .compose(ignore -> new HtmlDirectoryHarvester(request.vertx)
                 .harvest(channel, fq, request.entityStorage()))
             .compose(harvestResult -> responseText(request.routingContext, 200)

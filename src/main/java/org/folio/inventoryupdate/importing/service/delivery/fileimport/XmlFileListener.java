@@ -1,6 +1,7 @@
 package org.folio.inventoryupdate.importing.service.delivery.fileimport;
 
 import io.vertx.core.Future;
+import io.vertx.core.json.JsonObject;
 import java.util.concurrent.atomic.AtomicBoolean;
 import org.folio.inventoryupdate.importing.moduledata.Channel;
 import org.folio.inventoryupdate.importing.moduledata.database.EntityStorage;
@@ -32,10 +33,33 @@ public class XmlFileListener extends FileListener {
             + "for channel {} [{}], tenant [{}}].",
         deploymentID(), channel.getName(), channel.getId(), tenant);
     listen();
+
     Messaging.consumeChannelUpdates(vertx, channel.getId().toString(),
-        channelAsJson -> this.channel = new Channel().fromJson(channelAsJson.body()));
+        channelAsJson -> handleChannelUpdate(channelAsJson.body()));
+
+    Messaging.consumeImportJobCommands(vertx, channel.getId().toString(),
+        command -> handleImportJobCommand(command.body()));
+
     return super.start()
         .compose(na -> channel.setDeploymentId(deploymentID(), new EntityStorage(vertx, tenant)));
+  }
+
+  public void handleImportJobCommand(JsonObject command) {
+    if (command != null && command.containsKey("command")) {
+      if (command.getString("command").equalsIgnoreCase("pause")) {
+        if (getProcessor().paused()) {
+          logger.info("Received pause command but job is already paused");
+        } else {
+          getProcessor().pause();
+        }
+      } else if (command.getString("command").equalsIgnoreCase("resume")) {
+        getProcessor().resume(command.getBoolean("discardFileInProcess"));
+      }
+    }
+  }
+
+  public void handleChannelUpdate(JsonObject channelAsJson) {
+    this.channel = new Channel().fromJson(channelAsJson);
   }
 
   public Future<?> stop() throws Exception {

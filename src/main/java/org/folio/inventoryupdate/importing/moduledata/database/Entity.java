@@ -17,6 +17,7 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.folio.inventoryupdate.importing.moduledata.Channel;
 import org.folio.inventoryupdate.importing.moduledata.Metadata;
 import org.folio.inventoryupdate.importing.moduledata.database.PgColumn.Type;
 import org.folio.inventoryupdate.importing.service.ServiceRequest;
@@ -157,6 +158,7 @@ public abstract class Entity {
     StringBuilder columnListAsString = new StringBuilder();
     fields().entrySet().stream()
         .filter(entry -> !entry.getValue().virtual)
+        .filter(entry -> !entry.getValue().restricted)
         .forEach(field -> columnListAsString.append(dbColumnName(field.getKey())).append(",")
     );
     return columnListAsString.append(metadata.insertClauseColumns()).toString();
@@ -166,6 +168,7 @@ public abstract class Entity {
     StringBuilder valueListAsString = new StringBuilder();
     fields().entrySet().stream()
         .filter(entry -> !entry.getValue().virtual)
+        .filter(entry -> !entry.getValue().restricted)
         .forEach(field -> {
           if (!field.getValue().pgType.equals(Type.TIMESTAMP)) {
             valueListAsString.append("#{").append(dbColumnName(field.getKey())).append("},");
@@ -182,6 +185,7 @@ public abstract class Entity {
     fields().entrySet().stream()
         .filter(entry -> !entry.getKey().equalsIgnoreCase("id")) // Immutable.
         .filter(entry -> !entry.getValue().virtual)
+        .filter(entry -> !entry.getValue().restricted)
         .forEach(field -> {
           if (!field.getValue().pgType.equals(Type.TIMESTAMP)) {
             listOfColumnsValues.append(dbColumnName(field.getKey())).append(" = #{")
@@ -208,7 +212,11 @@ public abstract class Entity {
         .execute(Collections.singletonMap("id", id))
         .map(rows -> {
           RowIterator<Entity> iterator = rows.iterator();
-          return iterator.hasNext() ? iterator.next().withTenant(tenant) : null;
+          Entity entity = iterator.hasNext() ? iterator.next().withTenant(tenant) : null;
+          if (entity instanceof Channel) {
+            System.out.println(entity.asJson());
+          }
+          return entity;
         });
   }
 
@@ -390,6 +398,7 @@ public abstract class Entity {
     boolean primaryKey;
     boolean unique;
     boolean virtual; // cannot create, update this
+    boolean restricted; // exclude from generic insert/update
 
     public Field(String jsonPropertyName, String columnName, PgColumn.Type pgType,
                  boolean nullable, boolean queryable) {
@@ -424,6 +433,11 @@ public abstract class Entity {
 
     public Field isVirtual() {
       this.virtual = true;
+      return this;
+    }
+
+    public Field isRestricted() {
+      this.restricted = true;
       return this;
     }
 

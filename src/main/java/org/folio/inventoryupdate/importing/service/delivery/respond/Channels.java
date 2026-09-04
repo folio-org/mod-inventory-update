@@ -17,7 +17,7 @@ import org.folio.inventoryupdate.importing.moduledata.database.Tables;
 import org.folio.inventoryupdate.importing.service.ImportService;
 import org.folio.inventoryupdate.importing.service.Messaging;
 import org.folio.inventoryupdate.importing.service.ServiceRequest;
-import org.folio.inventoryupdate.importing.service.delivery.fileimport.FileListeners;
+import org.folio.inventoryupdate.importing.service.delivery.fileimport.FileListener;
 import org.folio.inventoryupdate.importing.service.delivery.fileimport.FileQueue;
 
 public final class Channels extends EntityResponses {
@@ -34,7 +34,7 @@ public final class Channels extends EntityResponses {
     return db.storeEntity(channel.withCreatingUser(request.currentUser()))
         .compose(id -> channel.withTenant(request.tenant()).getById(id, db)).compose(cfg -> {
           if (((Channel) cfg).isEnabled()) {
-            return FileListeners.deployIfNotDeployed(request, (Channel) cfg).map(na -> cfg)
+            return FileListener.deployIfNotDeployed(request, (Channel) cfg).map(na -> cfg)
                 .compose(na -> responseJson(request.routingContext(), 201).end(cfg.asJson().encodePrettily()))
                 .mapEmpty();
           } else {
@@ -60,8 +60,9 @@ public final class Channels extends EntityResponses {
             .map(channel::withNameOfProcessingFile)
             .compose(na -> fq.size()
                 .map(channel::withLengthOfQueue)
-                .compose(x ->
-                    responseJson(request.routingContext(), 200).end(channel.asJson().encodePrettily())));
+                .compose(x -> Future.succeededFuture(channel.withCommissioned(channel.isCommissioned(request.vertx())))
+                .compose(y ->
+                    responseJson(request.routingContext(), 200).end(channel.asJson().encodePrettily()))));
       }
     });
   }
@@ -75,13 +76,13 @@ public final class Channels extends EntityResponses {
             return new Channel().withTenant(request.tenant()).getById(request)
                 .map(Channel.class::cast)
                 .compose(channel -> {
-                  if (channel.isEnabled() && channel.isCommissioned()) {
+                  if (channel.isEnabled() && channel.isCommissioned(request.vertx())) {
                     Messaging.publishChannelUpdate(request.vertx(), channel);
                     return Future.succeededFuture();
-                  } else if (!channel.isEnabled() && channel.isCommissioned()) {
-                    return FileListeners.undeployIfDeployed(request, channel);
-                  } else if (channel.isEnabled() && !channel.isCommissioned()) {
-                    return FileListeners.deployIfNotDeployed(request, channel);
+                  } else if (!channel.isEnabled() && channel.isCommissioned(request.vertx())) {
+                    return FileListener.undeployIfDeployed(request, channel);
+                  } else if (channel.isEnabled() && !channel.isCommissioned(request.vertx())) {
+                    return FileListener.deployIfNotDeployed(request, channel);
                   } else {
                     return Future.succeededFuture();
                   }
@@ -132,7 +133,7 @@ public final class Channels extends EntityResponses {
         return responseText(request.routingContext(), 404)
             .end("Found no channel with tag or id " + channelId + " to deploy.").mapEmpty();
       } else {
-        return FileListeners.deployIfNotDeployed(request, channel);
+        return FileListener.deployIfNotDeployed(request, channel);
       }
     });
   }
@@ -141,7 +142,7 @@ public final class Channels extends EntityResponses {
     String channelId = request.requestParam("id");
     return getChannelByTagOrUuid(request, channelId).compose(channel -> {
       if (channel != null) {
-        return FileListeners.undeployIfDeployed(request, channel)
+        return FileListener.undeployIfDeployed(request, channel)
             .onSuccess(response -> responseText(request.routingContext(), 200).end(response)).mapEmpty();
       } else {
         return responseText(request.routingContext(), 404)
@@ -207,7 +208,7 @@ public final class Channels extends EntityResponses {
     return db.getEntities(queryFromCql.getQueryWithLimits(), new Channel())
         .compose(entities -> {
           List<Channel> deployableChannels = entities.stream().map(Channel.class::cast)
-              .filter(channel -> !channel.isCommissioned()).toList();
+              .filter(channel -> !channel.isCommissioned(request.vertx())).toList();
           return Future.succeededFuture(deployableChannels);
         });
   }

@@ -5,6 +5,7 @@ import io.vertx.core.Vertx;
 import io.vertx.core.json.JsonObject;
 import io.vertx.sqlclient.SqlResult;
 import io.vertx.sqlclient.templates.SqlTemplate;
+import io.vertx.sqlclient.templates.TupleMapper;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -66,6 +67,12 @@ public class EntityStorage {
   public Future<SqlResult<Void>> updateEntity(Entity entity, String updateTemplate) {
     return SqlTemplate.forUpdate(pool.getPool(), updateTemplate)
         .mapFrom(entity.toTemplateParameters())
+        .execute(entity);
+  }
+
+  public Future<SqlResult<Void>> updateEntity(Entity entity, String updateTemplate, TupleMapper<Entity> params) {
+    return SqlTemplate.forUpdate(pool.getPool(), updateTemplate)
+        .mapFrom(params)
         .execute(entity);
   }
 

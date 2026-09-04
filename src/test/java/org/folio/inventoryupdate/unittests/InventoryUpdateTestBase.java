@@ -86,6 +86,7 @@ public abstract class InventoryUpdateTestBase {
   public static final String STATISTICAL_CODING = "statisticalCoding";
   public static final String CLIENTS_RECORD_IDENTIFIER = "clientsRecordIdentifier";
   public static final int PORT_FILE_SERVER = 8091;
+  public static String serviceDeploymentId;
 
   @ClassRule
   public static final TestName name = new TestName();
@@ -98,9 +99,11 @@ public abstract class InventoryUpdateTestBase {
     vertx.exceptionHandler(testContext.exceptionHandler());
     System.setProperty("port", String.valueOf(PORT_INVENTORY_UPDATE));
     vertx.deployVerticle(new MainVerticle(), new DeploymentOptions())
-        .onComplete(testContext.asyncAssertSuccess(x ->
-            fakeFolioApis = new FakeFolioApisForImporting(vertx, testContext)))
-        .onComplete(na -> FileService.start(PORT_FILE_SERVER));
+        .onComplete(testContext.asyncAssertSuccess(deployId -> {
+          fakeFolioApis = new FakeFolioApisForImporting(vertx, testContext);
+          FileService.start(PORT_FILE_SERVER);
+          serviceDeploymentId = deployId;
+        }));
   }
 
   @AfterClass

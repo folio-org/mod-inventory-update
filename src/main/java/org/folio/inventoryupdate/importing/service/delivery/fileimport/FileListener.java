@@ -14,6 +14,9 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.folio.inventoryupdate.importing.moduledata.Channel;
+import org.folio.inventoryupdate.importing.moduledata.ImportJob;
+import org.folio.inventoryupdate.importing.service.ImportService;
+import org.folio.inventoryupdate.importing.service.ServiceRequest;
 
 public abstract class FileListener extends VerticleBase {
 
@@ -110,8 +113,7 @@ public abstract class FileListener extends VerticleBase {
               if (started.succeeded()) {
                 logger.info("Started verticle [{}] on Vertx {} for [{}] and channel [{}].",
                     started.result(), vertx, tenant, channel.getRecord().name());
-                promise.complete("Started verticle [" + started.result() + "] for channel ID ["
-                    + channel.getRecord().name() + "].");
+                promise.complete(started.result());
               } else {
                 logger.error("Couldn't start file processor verticle for tenant [{}] and channel ID [{}].",
                     tenant, channel.getRecord().name());
@@ -120,4 +122,61 @@ public abstract class FileListener extends VerticleBase {
             });
     return promise.future();
   }
+
+  public static Future<String> deployIfNotDeployed(ServiceRequest request, Channel channel) {
+    if (channel == null || channel.getId() == null) {
+      return Future.succeededFuture("No channel provided to deploy.");
+    } else {
+      boolean retainQueueIfAny = "true".equalsIgnoreCase(request.requestParam("retainQueue"));
+      FileQueue fq = ImportService.getFileQueue(request, channel.getId());
+      // Request parameter can override what is set on the channel record
+      boolean listening = request.requestParam("listening") == null
+          ? channel.isListeningIfEnabled()
+          : !"false".equalsIgnoreCase(request.requestParam("listening"));
+      logger.info("Channels deployment ID: {}. Deployed verticle IDs {} ", channel.getDeploymentId(), request.vertx().deploymentIDs());
+      if (!channel.hasDeploymentId() || !request.vertx().deploymentIDs().contains(channel.getDeploymentId())) {
+        logger.info("Deploying verticle for channel {}", channel.getName());
+        return channel.setEnabledListening(true, listening, request.entityStorage())
+            .compose(na -> fq.initialize(retainQueueIfAny).mapEmpty())
+            .compose(na -> new ImportJob().changeRunningToInterruptedByChannelId(request.entityStorage(),
+                channel.getId()))
+            .compose(jobsInterrupted -> {
+              String jobsMarkedInterrupted = jobsInterrupted > 0
+                  ? jobsInterrupted + " previous job was marked 'RUNNING', now marked 'INTERRUPTED'. " : "";
+              return new XmlFileListener(request, channel).deploy()
+                  .compose(id -> channel.setDeploymentId(id, request.entityStorage()))
+                  .map(resp -> jobsMarkedInterrupted + resp);
+            });
+      } else {
+        return Future.succeededFuture(
+            "File listener already commissioned for channel [" + channel.getName() + "].");
+      }
+    }
+  }
+
+  /**
+   * If a verticle is deployed for the channel, un-deploys the verticle, deletes the file queue,
+   * and de-registers the channel from static list of deployed verticles.
+   *
+   * @return statement about the outcome of the operation
+   */
+  public static Future<String> undeployIfDeployed(ServiceRequest request, Channel channel) {
+    if (channel == null || channel.getId() == null) {
+      return Future.succeededFuture("No channel provided to undeploy.");
+    }
+    boolean retainQueue = "true".equalsIgnoreCase(request.requestParam("retainQueue"));
+    if (channel.hasDeploymentId() && request.vertx().deploymentIDs().contains(channel.getDeploymentId())) {
+      return channel.setEnabledListening(false, channel.isListeningIfEnabled(), request.entityStorage())
+          .compose(na -> request.vertx().undeploy(channel.getDeploymentId()))
+          .compose(na -> channel.setDeploymentId("", request.entityStorage()))
+          .map(na -> {
+            ImportService.getFileQueue(request, channel.getId()).initialize(retainQueue);
+            return channel.getId();
+          }).map("Channel decommissioned." + channel.getRecord().name());
+    } else {
+      return Future.succeededFuture(
+          "Did not find channel [" + channel.getName() + "] in list of commissioned channels.");
+    }
+  }
+
 }

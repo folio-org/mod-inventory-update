@@ -19,9 +19,8 @@ import org.folio.inventoryupdate.importing.moduledata.database.Entity;
 import org.folio.inventoryupdate.importing.moduledata.database.EntityStorage;
 import org.folio.inventoryupdate.importing.moduledata.database.SqlQuery;
 import org.folio.inventoryupdate.importing.moduledata.database.Tables;
+import org.folio.inventoryupdate.importing.service.Messaging;
 import org.folio.inventoryupdate.importing.service.ServiceRequest;
-import org.folio.inventoryupdate.importing.service.delivery.fileimport.FileListeners;
-import org.folio.inventoryupdate.importing.service.delivery.fileimport.FileProcessor;
 import org.folio.tlib.postgres.PgCqlException;
 
 public final class JobsAndMonitoring extends EntityResponses {
@@ -224,17 +223,10 @@ public final class JobsAndMonitoring extends EntityResponses {
             .end("Found no channel with ID " + channelId + " to pause job for.").mapEmpty();
       } else {
         UUID channelUuid = channel.getId();
-        if (FileListeners.hasFileListener(request.tenant(), channelUuid)) {
-          FileProcessor processor = FileListeners
-              .getFileListener(request.tenant(), channelUuid).getProcessor();
-          if (processor == null || !processor.getImportJob().markedRunning()) {
-            return responseText(request.routingContext(), 404)
-                .end("No running job to pause found for this channel, [" + channelUuid + "].");
-          } else {
-            processor.pause();
+        if (channel.hasDeploymentId() && request.vertx().deploymentIDs().contains(channel.getDeploymentId())) {
+            Messaging.publishImportJobCommand(request.vertx(), channel, Messaging.COMMAND_IMPORT_JOB_PAUSE);
             return responseText(request.routingContext(), 200)
                 .end("Processing paused for channel [" + channelUuid + "].");
-          }
         } else {
           return responseText(request.routingContext(), 404)
               .end("Channel is not commissioned [" + channelUuid + "].");
@@ -252,17 +244,12 @@ public final class JobsAndMonitoring extends EntityResponses {
             .end("Found no channel with ID " + channelId + " to resume job for.").mapEmpty();
       } else {
         UUID channelUuid = channel.getId();
-        if (FileListeners.hasFileListener(request.tenant(), channelUuid)) {
-          FileProcessor processor = FileListeners
-              .getFileListener(request.tenant(), channelUuid).getProcessor();
-          if (processor != null && processor.paused()) {
-            return processor.resume(discardFileInProcess)
-                .compose(na -> responseText(request.routingContext(), 200)
-                    .end("Processing resumed for channel [" + channelId + "]."));
-          } else {
-            return responseText(request.routingContext(), 404)
-                .end("No paused job to resume found for this channel [" + channelId + "].");
-          }
+        if (channel.hasDeploymentId() && request.vertx().deploymentIDs().contains(channel.getDeploymentId())) {
+          Messaging.publishImportJobCommand(request.vertx(), channel,
+              discardFileInProcess
+                  ? Messaging.COMMAND_IMPORT_JOB_RESUME_DISCARD_FILE : Messaging.COMMAND_IMPORT_JOB_RESUME);
+          return responseText(request.routingContext(), 200)
+              .end("Processing resumed for channel [" + channelId + "].");
         } else {
           return responseText(request.routingContext(), 404)
               .end("Channel is not commissioned [" + channelUuid + "].");

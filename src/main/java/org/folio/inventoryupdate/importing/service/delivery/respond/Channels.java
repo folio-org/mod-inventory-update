@@ -15,8 +15,8 @@ import org.folio.inventoryupdate.importing.moduledata.database.EntityStorage;
 import org.folio.inventoryupdate.importing.moduledata.database.SqlQuery;
 import org.folio.inventoryupdate.importing.moduledata.database.Tables;
 import org.folio.inventoryupdate.importing.service.ImportService;
+import org.folio.inventoryupdate.importing.service.Messaging;
 import org.folio.inventoryupdate.importing.service.ServiceRequest;
-import org.folio.inventoryupdate.importing.service.delivery.fileimport.FileListener;
 import org.folio.inventoryupdate.importing.service.delivery.fileimport.FileListeners;
 import org.folio.inventoryupdate.importing.service.delivery.fileimport.FileQueue;
 
@@ -76,7 +76,7 @@ public final class Channels extends EntityResponses {
                 .map(Channel.class::cast)
                 .compose(channel -> {
                   if (channel.isEnabled() && channel.isCommissioned()) {
-                    FileListeners.getFileListener(request.tenant(), id).updateChannel(channel);
+                    Messaging.publishChannelUpdate(request.vertx(), channel);
                     return Future.succeededFuture();
                   } else if (!channel.isEnabled() && channel.isCommissioned()) {
                     return FileListeners.undeployIfDeployed(request, channel);
@@ -156,10 +156,7 @@ public final class Channels extends EntityResponses {
       if (channel != null) {
         return channel.setListening(true, request.entityStorage())
             .compose(na -> {
-              FileListener listener = FileListeners.getFileListener(request.tenant(), channel.getId());
-              if (listener != null) {
-                listener.updateChannel(channel);
-              }
+              Messaging.publishChannelUpdate(request.vertx(), channel);
               return Future.succeededFuture();
             })
             .onSuccess(response -> responseText(request.routingContext(), 200)
@@ -177,10 +174,7 @@ public final class Channels extends EntityResponses {
       if (channel != null) {
         return channel.setListening(false, request.entityStorage())
             .compose(na -> {
-              FileListener listener = FileListeners.getFileListener(request.tenant(), channel.getId());
-              if (listener != null) {
-                listener.updateChannel(channel);
-              }
+              Messaging.publishChannelUpdate(request.vertx(), channel);
               return Future.succeededFuture();
             })
             .onSuccess(response -> responseText(request.routingContext(), 200)

@@ -38,10 +38,6 @@ public abstract class FileListener extends VerticleBase {
     return fileProcessor;
   }
 
-  public void updateChannel(Channel channel) {
-    this.channel = channel;
-  }
-
   public UUID getConfigId() {
     return channel.getId();
   }
@@ -112,9 +108,8 @@ public abstract class FileListener extends VerticleBase {
             .setThreadingModel(ThreadingModel.WORKER)
             .setMaxWorkerExecuteTimeUnit(TimeUnit.MINUTES)).onComplete(started -> {
               if (started.succeeded()) {
-                logger.info("Started verticle [{}] for [{}] and channel [{}].",
-                    deploymentID(), tenant, channel.getRecord().name());
-                logger.info("Running verticles now: {}", vertx.deploymentIDs());
+                logger.info("Started verticle [{}] on Vertx {} for [{}] and channel [{}].",
+                    started.result(), vertx, tenant, channel.getRecord().name());
                 promise.complete("Started verticle [" + started.result() + "] for channel ID ["
                     + channel.getRecord().name() + "].");
               } else {

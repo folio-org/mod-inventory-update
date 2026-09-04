@@ -5,6 +5,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import org.folio.inventoryupdate.importing.moduledata.Channel;
 import org.folio.inventoryupdate.importing.moduledata.database.EntityStorage;
 import org.folio.inventoryupdate.importing.service.ImportService;
+import org.folio.inventoryupdate.importing.service.Messaging;
 import org.folio.inventoryupdate.importing.service.ServiceRequest;
 
 /**
@@ -31,6 +32,8 @@ public class XmlFileListener extends FileListener {
             + "for channel {} [{}], tenant [{}}].",
         deploymentID(), channel.getName(), channel.getId(), tenant);
     listen();
+    Messaging.consumeChannelUpdates(vertx, channel.getId().toString(),
+        channelAsJson -> this.channel = new Channel().fromJson(channelAsJson.body()));
     return super.start()
         .compose(na -> channel.setDeploymentId(deploymentID(), new EntityStorage(vertx, tenant)));
   }
@@ -50,8 +53,6 @@ public class XmlFileListener extends FileListener {
   public void listen() {
     AtomicBoolean clear = new AtomicBoolean(true);
     vertx.setPeriodic(200, r -> {
-      //logger.info("Verticle with deployment ID {} is alive with timer ID {}. Listening? {}. Job paused? {}",
-      //    deploymentID(), r, isListening(), importJobPaused());
       if (isListening() && !importJobPaused() && clear.get()) {
         clear.set(false);
         boolean processorResuming = fileProcessor != null && fileProcessor.isResuming(false);

@@ -50,6 +50,16 @@ public final class FileListeners {
       boolean listening = request.requestParam("listening") == null
           ? channel.isListeningIfEnabled()
           : !"false".equalsIgnoreCase(request.requestParam("listening"));
+      if (!channel.hasDeploymentId() || !request.vertx().deploymentIDs().contains(channel.getDeploymentId())) {
+        logger.info("Channels deployment ID: '{}'{}",
+            channel.getDeploymentId(), channel.hasDeploymentId() ? "" : " (has none)");
+        logger.info("Vert.x's deployment IDs: {}", request.vertx().deploymentIDs());
+        if (channel.hasDeploymentId()) {
+          logger.info("Channels deployment ID among Vert.x's active verticle IDs: {}",
+              request.vertx().deploymentIDs().contains(channel.getDeploymentId()));
+        }
+      }
+
       FileListener fileListener = FileListeners.getFileListener(request.tenant(), channel.getId());
       if (fileListener == null) {
         FileListener listenerVerticle = addFileListener(request.tenant(), channel.getId(),
@@ -86,6 +96,7 @@ public final class FileListeners {
       return channel.setEnabledListening(false, channel.isListeningIfEnabled(), request.entityStorage())
           .compose(na -> fileListener.undeploy())
           .map(na -> {
+
             ImportService.getFileQueue(request, channel.getId()).initialize(retainQueue);
             return FILE_LISTENERS.get(request.tenant()).remove(channel.getId());
           }).map("Channel decommissioned." + channel.getRecord().name());
@@ -105,7 +116,7 @@ public final class FileListeners {
     if (FILE_LISTENERS.get(tenant) != null) {
       for (Map.Entry<UUID, FileListener> listener : FILE_LISTENERS.get(tenant).entrySet()) {
         FileListener fileListener = FILE_LISTENERS.get(tenant).get(listener.getKey());
-        undeployFutures.add(fileListener.getVertx().undeploy(fileListener.deploymentId));
+        undeployFutures.add(fileListener.getVertx().undeploy(fileListener.deploymentID()));
       }
     }
     return Future.all(undeployFutures).onComplete(na -> FILE_LISTENERS.clear()).mapEmpty();

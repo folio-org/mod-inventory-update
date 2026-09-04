@@ -95,7 +95,7 @@ public class UpdateMetrics {
         return metrics;
     }
 
-    public abstract class EntityMetrics {
+    public abstract static class EntityMetrics {
         protected final TransactionMetrics create = new TransactionMetrics();
         protected final TransactionMetrics update = new TransactionMetrics();
         protected final TransactionMetrics delete = new TransactionMetrics();

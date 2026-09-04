@@ -25,7 +25,6 @@ public abstract class FileListener extends VerticleBase {
   protected FileProcessor fileProcessor;
   protected FileQueue fileQueue;
   protected Vertx deploymentVertx;
-  protected String deploymentId;
   protected WebClient webClient;
 
   // For demarcating jobs by start/end
@@ -97,7 +96,10 @@ public abstract class FileListener extends VerticleBase {
   }
 
   public Future<Void> undeploy() {
-    return deploymentVertx.undeploy(deploymentId);
+    return deploymentVertx.undeploy(deploymentID()).compose(res -> {
+      logger.info("Verticles remaining after undeploy: {}", vertx.deploymentIDs());
+      return Future.succeededFuture();
+    });
   }
 
   public Future<String> deploy() {
@@ -110,9 +112,9 @@ public abstract class FileListener extends VerticleBase {
             .setThreadingModel(ThreadingModel.WORKER)
             .setMaxWorkerExecuteTimeUnit(TimeUnit.MINUTES)).onComplete(started -> {
               if (started.succeeded()) {
-                deploymentId = started.result();
-                logger.info("Started verticle [{}] on Vertx {} for [{}] and channel [{}].",
-                    started.result(), vertx, tenant, channel.getRecord().name());
+                logger.info("Started verticle [{}] for [{}] and channel [{}].",
+                    deploymentID(), tenant, channel.getRecord().name());
+                logger.info("Running verticles now: {}", vertx.deploymentIDs());
                 promise.complete("Started verticle [" + started.result() + "] for channel ID ["
                     + channel.getRecord().name() + "].");
               } else {

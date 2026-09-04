@@ -3,6 +3,7 @@ package org.folio.inventoryupdate.importing.service.delivery.fileimport;
 import io.vertx.core.Future;
 import java.util.concurrent.atomic.AtomicBoolean;
 import org.folio.inventoryupdate.importing.moduledata.Channel;
+import org.folio.inventoryupdate.importing.moduledata.database.EntityStorage;
 import org.folio.inventoryupdate.importing.service.ImportService;
 import org.folio.inventoryupdate.importing.service.ServiceRequest;
 
@@ -26,10 +27,19 @@ public class XmlFileListener extends FileListener {
 
   @Override
   public Future<?> start() throws Exception {
-    logger.info("Listening for files to forward for processing by job configuration ID [{}}], tenant [{}}].",
-        getConfigId(), tenant);
+    logger.info("Starting verticle with deployment ID {}, listening for files "
+            + "for channel {} [{}], tenant [{}}].",
+        deploymentID(), channel.getName(), channel.getId(), tenant);
     listen();
-    return super.start();
+    return super.start()
+        .compose(na -> channel.setDeploymentId(deploymentID(), new EntityStorage(vertx, tenant)));
+  }
+
+  public Future<?> stop() throws Exception {
+    logger.info("Verticle with deployment ID {} for channel {} ({}) stopping.",
+        deploymentID(), channel.getName(), channel.getId());
+    return super.stop()
+        .compose(na -> channel.setDeploymentId("", new EntityStorage(vertx, tenant)));
   }
 
   public boolean isListening() {
@@ -40,6 +50,8 @@ public class XmlFileListener extends FileListener {
   public void listen() {
     AtomicBoolean clear = new AtomicBoolean(true);
     vertx.setPeriodic(200, r -> {
+      //logger.info("Verticle with deployment ID {} is alive with timer ID {}. Listening? {}. Job paused? {}",
+      //    deploymentID(), r, isListening(), importJobPaused());
       if (isListening() && !importJobPaused() && clear.get()) {
         clear.set(false);
         boolean processorResuming = fileProcessor != null && fileProcessor.isResuming(false);

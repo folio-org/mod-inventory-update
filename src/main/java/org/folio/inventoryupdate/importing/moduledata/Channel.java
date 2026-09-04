@@ -3,6 +3,7 @@ package org.folio.inventoryupdate.importing.moduledata;
 import static org.folio.inventoryupdate.importing.utils.DateTimeFormatter.formatDateTime;
 
 import io.vertx.core.Future;
+import io.vertx.core.Promise;
 import io.vertx.core.json.JsonObject;
 import io.vertx.sqlclient.SqlResult;
 import io.vertx.sqlclient.templates.RowMapper;
@@ -13,6 +14,7 @@ import java.util.UUID;
 import org.folio.inventoryupdate.importing.moduledata.database.Entity;
 import org.folio.inventoryupdate.importing.moduledata.database.EntityStorage;
 import org.folio.inventoryupdate.importing.moduledata.database.PgColumn;
+import org.folio.inventoryupdate.importing.moduledata.database.PgColumn.Type;
 import org.folio.inventoryupdate.importing.moduledata.database.Tables;
 import org.folio.inventoryupdate.importing.moduledata.database.Util;
 import org.folio.inventoryupdate.importing.service.delivery.fileimport.FileListeners;
@@ -29,6 +31,7 @@ public class Channel extends Entity {
   public static final String LAST_HARVESTED = "LAST_HARVESTED";
   public static final String ENABLED = "ENABLED";
   public static final String LISTENING = "LISTENING";
+  public static final String DEPLOYMENT_ID = "DEPLOYMENT_ID";
   // virtual (non-db) property
   public static final String PROPERTY_COMMISSIONED = "commissioned";
   private static final Map<String, Field> CHANNEL_FIELDS = new HashMap<>();
@@ -55,15 +58,17 @@ public class Channel extends Entity {
         new Field("enabled", "enabled", PgColumn.Type.BOOLEAN, false, true));
     CHANNEL_FIELDS.put(LISTENING,
         new Field("listening", "listening", PgColumn.Type.BOOLEAN, false, true));
+    CHANNEL_FIELDS.put(DEPLOYMENT_ID,
+        new Field("deploymentId", "deployment_id", Type.TEXT, true, true));
   }
 
   public Channel() {
   }
 
   public Channel(UUID id, String name, String tag, String type, UUID transformationId, String harvestUrl,
-                 String lastHarvested, boolean enabled, boolean listening) {
+                 String lastHarvested, boolean enabled, boolean listening, String deploymentId) {
     theRecord = new ChannelRecord(id, name, tag, type, transformationId, harvestUrl, lastHarvested, enabled,
-        listening);
+        listening, deploymentId);
   }
 
   public ChannelRecord getRecord() {
@@ -105,7 +110,8 @@ public class Channel extends Entity {
         channelJson.getString(jsonPropertyName(HARVEST_URL)),
         channelJson.getString(jsonPropertyName(LAST_HARVESTED)),
         "TRUE".equalsIgnoreCase(channelJson.getString(jsonPropertyName(ENABLED))),
-        "TRUE".equalsIgnoreCase(channelJson.getString(jsonPropertyName(LISTENING))));
+        "TRUE".equalsIgnoreCase(channelJson.getString(jsonPropertyName(LISTENING))),
+        channelJson.getString(jsonPropertyName(DEPLOYMENT_ID), ""));
   }
 
   @Override
@@ -120,7 +126,8 @@ public class Channel extends Entity {
         row.getValue(dbColumnName(LAST_HARVESTED)) != null
             ? formatDateTime(row.getLocalDateTime(dbColumnName(LAST_HARVESTED))) : null,
         row.getBoolean(dbColumnName(ENABLED)),
-        row.getBoolean(dbColumnName(LISTENING)))
+        row.getBoolean(dbColumnName(LISTENING)),
+        row.getString(dbColumnName(DEPLOYMENT_ID)))
         .withMetadata(row);
   }
 
@@ -139,6 +146,7 @@ public class Channel extends Entity {
           parameters.put(dbColumnName(LAST_HARVESTED), rec.lastHarvested());
           parameters.put(dbColumnName(ENABLED), rec.enabled());
           parameters.put(dbColumnName(LISTENING), rec.listening());
+          parameters.put(dbColumnName(DEPLOYMENT_ID), rec.deploymentId());
           putMetadata(parameters);
           return parameters;
         });
@@ -159,6 +167,7 @@ public class Channel extends Entity {
     json.put(jsonPropertyName(ENABLED), theRecord.enabled());
     json.put(PROPERTY_COMMISSIONED, isCommissioned());
     json.put(jsonPropertyName(LISTENING), theRecord.listening());
+    json.put(jsonPropertyName(DEPLOYMENT_ID), theRecord.deploymentId());
     json.put("queuedFiles", queueLength);
     json.put("fileInProcess", nameOfProcessingFile);
 
@@ -188,6 +197,14 @@ public class Channel extends Entity {
     return theRecord == null ? null : theRecord.lastHarvested();
   }
 
+  public boolean hasDeploymentId() {
+    return theRecord != null && theRecord.deploymentId() != null && ! theRecord.deploymentId().isEmpty();
+  }
+
+  public String getDeploymentId() {
+    return theRecord == null ? null : theRecord.deploymentId();
+  }
+
   @Override
   public Future<Void> createDatabase(TenantPgPool pool) {
     return executeSqlStatements(pool,
@@ -209,8 +226,10 @@ public class Channel extends Entity {
         "ALTER TABLE " + pool.getSchema() + "." + table()
             + " ADD COLUMN IF NOT EXISTS " + field(HARVEST_URL).pgColumnDdl(),
         "ALTER TABLE " + pool.getSchema() + "." + table()
-            + " ADD COLUMN IF NOT EXISTS " + field(LAST_HARVESTED).pgColumnDdl()
-    ).mapEmpty();
+            + " ADD COLUMN IF NOT EXISTS " + field(LAST_HARVESTED).pgColumnDdl(),
+        "ALTER TABLE " + pool.getSchema() + "." + table()
+            + " ADD COLUMN IF NOT EXISTS " + field(DEPLOYMENT_ID).pgColumnDdl()
+        ).mapEmpty();
   }
 
   public boolean isCommissioned() {
@@ -238,12 +257,34 @@ public class Channel extends Entity {
     return theRecord.transformationId;
   }
 
+  public Future<Integer> setDeploymentId(String deploymentId, EntityStorage configStorage) {
+    Promise<Integer> promise = Promise.promise();
+    theRecord = new ChannelRecord(theRecord.id(), theRecord.name(), theRecord.tag(), theRecord.type(),
+        theRecord.transformationId(), theRecord.harvestUrl(), theRecord.lastHarvested(), theRecord.enabled(),
+        theRecord.listening, deploymentId);
+    logger.info("Setting deployment ID to '{}' for channel ID {} ({})", deploymentId, theRecord.id, theRecord.name());
+    configStorage.updateEntity(this.withUpdatingUser(null),
+        "UPDATE " + configStorage.schema() + "." + table()
+            + " SET "
+            + dbColumnName(DEPLOYMENT_ID) + " = #{" + dbColumnName(DEPLOYMENT_ID) + "} "
+            + ", "
+            + metadata.updateClauseColumnTemplates()
+            + " WHERE id = #{id}")
+        .onFailure(x -> promise.complete(0))
+        .compose(res -> {
+          promise.complete(res.rowCount());
+          return Future.succeededFuture(res);
+        });
+    return promise.future();
+  }
+
   public Future<Integer> setEnabledListening(boolean enabled, boolean listening, EntityStorage configStorage) {
     if (theRecord == null) {
       return Future.succeededFuture(0);
     }
     theRecord = new ChannelRecord(theRecord.id(), theRecord.name(), theRecord.tag(), theRecord.type(),
-        theRecord.transformationId(), theRecord.harvestUrl(), theRecord.lastHarvested(), enabled, listening);
+        theRecord.transformationId(), theRecord.harvestUrl(), theRecord.lastHarvested(), enabled, listening,
+        theRecord.deploymentId);
     return configStorage.updateEntity(this.withUpdatingUser(null),
         "UPDATE " + configStorage.schema() + "." + table()
             + " SET "
@@ -258,7 +299,7 @@ public class Channel extends Entity {
   public Future<Integer> setListening(boolean listening, EntityStorage configStorage) {
     theRecord = new ChannelRecord(theRecord.id(), theRecord.name(), theRecord.tag(), theRecord.type(),
         theRecord.transformationId(), theRecord.harvestUrl(), theRecord.lastHarvested(), theRecord.enabled(),
-        listening);
+        listening, theRecord.deploymentId());
     return configStorage.updateEntity(this.withUpdatingUser(null),
         "UPDATE " + configStorage.schema() + "." + table()
             + " SET "
@@ -271,7 +312,7 @@ public class Channel extends Entity {
   public Future<Integer> setLastHarvested(String lastHarvested, EntityStorage configStorage) {
     theRecord = new ChannelRecord(theRecord.id(), theRecord.name(), theRecord.tag(), theRecord.type(),
         theRecord.transformationId(), theRecord.harvestUrl(), lastHarvested, theRecord.enabled(),
-        theRecord.listening());
+        theRecord.listening(), theRecord.deploymentId);
     return configStorage.updateEntity(this.withUpdatingUser(null),
         "UPDATE " + configStorage.schema() + "." + table()
             + " SET "
@@ -283,5 +324,6 @@ public class Channel extends Entity {
 
   // Import config record, the entity data.
   public record ChannelRecord(UUID id, String name, String tag, String type, UUID transformationId,
-                              String harvestUrl, String lastHarvested, boolean enabled, boolean listening) {}
+                              String harvestUrl, String lastHarvested, boolean enabled, boolean listening,
+                              String deploymentId) {}
 }

@@ -110,8 +110,8 @@ public class HtmlDirectoryHarvesterTest {
   }
 
   private Channel channel(String harvestUrl) {
-    return new Channel(UUID.randomUUID(), "Channel", "channel", "XML", UUID.randomUUID(), harvestUrl, null,
-        true, true) {
+    return new Channel(UUID.randomUUID(), "Channel", "channel", "XML", UUID.randomUUID(), harvestUrl,
+        null, true, true, "") {
       @Override
       public Future<Integer> setLastHarvested(String lastHarvested, EntityStorage configStorage) {
         return Future.succeededFuture(1);

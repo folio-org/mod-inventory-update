@@ -224,9 +224,9 @@ public final class JobsAndMonitoring extends EntityResponses {
       } else {
         UUID channelUuid = channel.getId();
         if (channel.hasDeploymentId() && request.vertx().deploymentIDs().contains(channel.getDeploymentId())) {
-            Messaging.publishImportJobCommand(request.vertx(), channel, Messaging.COMMAND_IMPORT_JOB_PAUSE);
-            return responseText(request.routingContext(), 200)
-                .end("Processing paused for channel [" + channelUuid + "].");
+          Messaging.publishImportJobCommand(request.vertx(), channel, Messaging.COMMAND_IMPORT_JOB_PAUSE);
+          return responseText(request.routingContext(), 200)
+              .end("Processing paused for channel [" + channelUuid + "].");
         } else {
           return responseText(request.routingContext(), 404)
               .end("Channel is not commissioned [" + channelUuid + "].");

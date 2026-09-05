@@ -108,7 +108,6 @@ public class Channel extends Entity {
   }
 
   public Channel fromJson(JsonObject channelJson) {
-    logger.info("fromJson: " + channelJson.encode());
     return new Channel(
         getUuidOrGenerate(channelJson.getString(jsonPropertyName(ID))),
         channelJson.getString(jsonPropertyName(NAME)),
@@ -125,7 +124,6 @@ public class Channel extends Entity {
   @Override
   public RowMapper<Entity> fromRow() {
     return row -> {
-      logger.info("Row: {}", row.deepToString());
       return new Channel(
           row.getUUID(dbColumnName(ID)),
           row.getString(dbColumnName(NAME)),
@@ -158,7 +156,6 @@ public class Channel extends Entity {
           parameters.put(dbColumnName(ENABLED), rec.enabled());
           parameters.put(dbColumnName(LISTENING), rec.listening());
           putMetadata(parameters);
-          logger.info("Parameters: {}", parameters);
           return parameters;
         });
   }
@@ -171,17 +168,15 @@ public class Channel extends Entity {
           parameters.put(dbColumnName(ID), rec.id());
           parameters.put(dbColumnName(DEPLOYMENT_ID), rec.deploymentId());
           putMetadata(parameters);
-          logger.info("Parameters: {}", parameters);
           return parameters;
         });
   }
-
 
   public Future<Entity> getById(ServiceRequest getOrPutRequest) {
     UUID id = UUID.fromString(getOrPutRequest.requestParam("id"));
     return getById(id, getOrPutRequest.entityStorage())
         .compose(entity -> {
-          this.isCommissioned = ((Channel)entity).isCommissioned(getOrPutRequest.vertx());
+          this.isCommissioned = ((Channel) entity).isCommissioned(getOrPutRequest.vertx());
           return Future.succeededFuture(entity);
         });
   }
@@ -272,7 +267,7 @@ public class Channel extends Entity {
           "Tenant not specified for this Channel object ({}), cannot say if the channel is commissioned",
           theRecord.name());
     }
-    return tenant != null && this.hasDeploymentId() && vertx.deploymentIDs().contains(getDeploymentId()) ;
+    return tenant != null && this.hasDeploymentId() && vertx.deploymentIDs().contains(getDeploymentId());
   }
 
   public boolean isEnabled() {
@@ -296,7 +291,6 @@ public class Channel extends Entity {
     theRecord = new ChannelRecord(theRecord.id(), theRecord.name(), theRecord.tag(), theRecord.type(),
         theRecord.transformationId(), theRecord.harvestUrl(), theRecord.lastHarvested(), theRecord.enabled(),
         theRecord.listening, deploymentId);
-    logger.info("Setting deployment ID to '{}' for channel ID {} ({})", deploymentId, theRecord.id, theRecord.name());
     configStorage.updateEntity(this.withUpdatingUser(null),
         "UPDATE " + configStorage.schema() + "." + table()
             + " SET "

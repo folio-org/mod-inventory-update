@@ -94,13 +94,6 @@ public abstract class FileListener extends VerticleBase {
     return fileProcessor != null && fileProcessor.paused();
   }
 
-  public Future<Void> undeploy() {
-    return deploymentVertx.undeploy(deploymentID()).compose(res -> {
-      logger.info("Verticles remaining after undeploy: {}", vertx.deploymentIDs());
-      return Future.succeededFuture();
-    });
-  }
-
   public Future<String> deploy() {
     Promise<String> promise = Promise.promise();
     deploymentVertx.deployVerticle(this,
@@ -178,5 +171,4 @@ public abstract class FileListener extends VerticleBase {
           "Did not find channel [" + channel.getName() + "] in list of commissioned channels.");
     }
   }
-
 }

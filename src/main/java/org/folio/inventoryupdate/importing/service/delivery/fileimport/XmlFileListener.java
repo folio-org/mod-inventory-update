@@ -60,6 +60,11 @@ public class XmlFileListener extends FileListener {
 
   public void handleChannelUpdate(JsonObject channelAsJson) {
     this.channel = new Channel().fromJson(channelAsJson);
+    if (!channel.getDeploymentId().equals(deploymentID())) {
+      logger.warn("Mismatch between the deployment id registered on the channel ({}) "
+          + "and the deployment ID of this verticle ({}) servicing the channel",
+          channel.getDeploymentId(), deploymentID());
+    }
   }
 
   public Future<?> stop() throws Exception {

@@ -19,7 +19,6 @@ public class Messaging {
   public static final JsonObject COMMAND_IMPORT_JOB_RESUME_DISCARD_FILE
       = new JsonObject("{\"command\": \"resume\", \"discardFileInProcess\": true}");
 
-
   public static void publishChannelUpdate(Vertx vertx, Channel channel) {
     vertx.eventBus().publish(Messaging.CHANNELS + "-" + channel.getId().toString(), channel.asJson());
   }

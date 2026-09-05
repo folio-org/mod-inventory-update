@@ -29,9 +29,11 @@ public class XmlFileListener extends FileListener {
 
   @Override
   public Future<?> start() throws Exception {
+    logCtx();
     logger.info("Starting verticle with deployment ID {}, listening for files "
             + "for channel {} [{}], tenant [{}}].",
         deploymentID(), channel.getName(), channel.getId(), tenant);
+
     listen();
 
     Messaging.consumeChannelUpdates(vertx, channel.getId().toString(),

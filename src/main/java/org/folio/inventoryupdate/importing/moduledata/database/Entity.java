@@ -17,7 +17,6 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.folio.inventoryupdate.importing.moduledata.Channel;
 import org.folio.inventoryupdate.importing.moduledata.Metadata;
 import org.folio.inventoryupdate.importing.moduledata.database.PgColumn.Type;
 import org.folio.inventoryupdate.importing.service.ServiceRequest;
@@ -212,11 +211,7 @@ public abstract class Entity {
         .execute(Collections.singletonMap("id", id))
         .map(rows -> {
           RowIterator<Entity> iterator = rows.iterator();
-          Entity entity = iterator.hasNext() ? iterator.next().withTenant(tenant) : null;
-          if (entity instanceof Channel) {
-            System.out.println(entity.asJson());
-          }
-          return entity;
+          return iterator.hasNext() ? iterator.next().withTenant(tenant) : null;
         });
   }
 

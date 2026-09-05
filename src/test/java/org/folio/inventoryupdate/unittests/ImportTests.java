@@ -61,13 +61,13 @@ import org.folio.tlib.postgres.testing.TenantPgPoolContainer;
 import org.junit.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.testcontainers.containers.PostgreSQLContainer;
+import org.testcontainers.postgresql.PostgreSQLContainer;
 
 public class ImportTests extends InventoryUpdateTestBase {
   public static final Logger logger = LoggerFactory.getLogger(ImportTests.class);
 
   @ClassRule
-  public static PostgreSQLContainer<?> postgresSQLContainer = TenantPgPoolContainer.create();
+  public static PostgreSQLContainer postgresSQLContainer = TenantPgPoolContainer.create();
 
   @Before
   public void initSchema() {

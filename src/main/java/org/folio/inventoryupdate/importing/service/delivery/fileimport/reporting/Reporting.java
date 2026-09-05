@@ -41,6 +41,7 @@ public class Reporting {
   }
 
   public void nowProcessing(String fileName) {
+    fileProcessor.logCtx();
     try {
       logger.info("Processing file {}", fileName);
       fileStats.put(new FileStats(fileName));
@@ -99,7 +100,7 @@ public class Reporting {
             .compose(na -> log("File: " + stats.getInventoryMetrics().report()));
         fileStats.take();
       } else {
-        logger.info("reportFileStats(): FileStatus queue was empty");
+        logger.info("reportFileStats(): Queue was empty");
       }
     } catch (InterruptedException ie) {
       logger.error("Error reporting file statistics: {}", ie.getMessage());

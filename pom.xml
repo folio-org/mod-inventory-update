@@ -18,9 +18,9 @@
     <argLine />
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <docker.registry>docker.indexdata.com:5000</docker.registry>
-    <folio-vertx-lib.version>4.0.1</folio-vertx-lib.version>
-    <okapi.version>7.0.0</okapi.version>
-    <vertx.version>5.0.4</vertx.version>
+    <folio-vertx-lib.version>4.1.3</folio-vertx-lib.version>
+    <okapi.version>7.0.9</okapi.version>
+    <vertx.version>5.1.6</vertx.version>
     <mockito.version>5.18.0</mockito.version>
     <folio-module-descriptor-validator.version>1.0.1</folio-module-descriptor-validator.version>
   </properties>
@@ -376,6 +376,7 @@
             </goals>
             <configuration>
               <transformers>
+                <transformer implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer"/>
                 <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
                   <manifestEntries>
                     <Main-Class>org.folio.okapi.common.MainLauncher</Main-Class>

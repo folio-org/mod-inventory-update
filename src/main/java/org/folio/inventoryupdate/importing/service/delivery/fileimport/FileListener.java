@@ -6,6 +6,7 @@ import io.vertx.core.Promise;
 import io.vertx.core.ThreadingModel;
 import io.vertx.core.VerticleBase;
 import io.vertx.core.Vertx;
+import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.client.WebClient;
 import java.util.UUID;
@@ -17,10 +18,12 @@ import org.folio.inventoryupdate.importing.moduledata.Channel;
 import org.folio.inventoryupdate.importing.moduledata.ImportJob;
 import org.folio.inventoryupdate.importing.service.ImportService;
 import org.folio.inventoryupdate.importing.service.ServiceRequest;
+import org.folio.okapi.common.logging.FolioLocal;
+import org.folio.okapi.common.logging.FolioLoggingContext;
 
 public abstract class FileListener extends VerticleBase {
 
-  public static final Logger logger = LogManager.getLogger("queued-files-processing");
+  public static final Logger logger = LogManager.getLogger(FileListener.class);
 
   protected String tenant;
   protected Channel channel;
@@ -95,9 +98,11 @@ public abstract class FileListener extends VerticleBase {
   }
 
   public Future<String> deploy() {
+    logger.info("Deploy verticle {}", this);
     Promise<String> promise = Promise.promise();
     deploymentVertx.deployVerticle(this,
         new DeploymentOptions()
+            .setConfig(makeConfig())
             .setWorkerPoolSize(4)
             .setInstances(1)
             .setMaxWorkerExecuteTime(10)
@@ -126,7 +131,8 @@ public abstract class FileListener extends VerticleBase {
       boolean listening = request.requestParam("listening") == null
           ? channel.isListeningIfEnabled()
           : !"false".equalsIgnoreCase(request.requestParam("listening"));
-      logger.info("Channels deployment ID: {}. Deployed verticle IDs {} ", channel.getDeploymentId(), request.vertx().deploymentIDs());
+      logger.info("Channels deployment ID: {}. Deployed verticle IDs {} ",
+          channel.getDeploymentId(), request.vertx().deploymentIDs());
       if (!channel.hasDeploymentId() || !request.vertx().deploymentIDs().contains(channel.getDeploymentId())) {
         logger.info("Deploying verticle for channel {}", channel.getName());
         return channel.setEnabledListening(true, listening, request.entityStorage())
@@ -170,5 +176,21 @@ public abstract class FileListener extends VerticleBase {
       return Future.succeededFuture(
           "Did not find channel [" + channel.getName() + "] in list of commissioned channels.");
     }
+  }
+
+  public void logCtx() {
+    FolioLoggingContext.put(FolioLocal.TENANT_ID, config().getString("tenantId"));
+    FolioLoggingContext.put(FolioLocal.REQUEST_ID, config().getString("requestId"));
+    FolioLoggingContext.put(FolioLocal.MODULE_ID, config().getString("moduleId"));
+    FolioLoggingContext.put(FolioLocal.USER_ID, config().getString("userId"));
+  }
+
+  private JsonObject makeConfig() {
+    JsonObject cfg = new JsonObject();
+    cfg.put("tenantId", new FolioLoggingContext().lookup("tenantId"));
+    cfg.put("requestId", new FolioLoggingContext().lookup("requestId"));
+    cfg.put("moduleId", new FolioLoggingContext().lookup("moduleId"));
+    cfg.put("userId", new FolioLoggingContext().lookup("userId"));
+    return cfg;
   }
 }

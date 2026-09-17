@@ -9,6 +9,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.folio.inventoryupdate.updating.DeletePlan;
 import org.folio.inventoryupdate.updating.DeletePlanAllHRIDs;
+import org.folio.inventoryupdate.updating.ErrorReport;
 import org.folio.inventoryupdate.updating.InventoryQuery;
 import org.folio.inventoryupdate.updating.QueryByHrid;
 import org.folio.inventoryupdate.updating.UpdatePlanAllHRIDs;
@@ -51,11 +52,18 @@ public class InternalInventoryUpdateClient extends InventoryUpdateClient {
     HandlersUpdating upsertMethods = new HandlersUpdating();
     return upsertMethods.doBatchUpsert(req, new UpdatePlanAllHRIDs()).map(
             outcome -> {
+              logger.info("Internal client: {}", outcome.toString());
               if (outcome.getStatusCode() == 207) {
                 logger.warn("Upsert issue: {}",
                     outcome.getErrorResponse() != null ? outcome.getErrorResponse().getShortMessage() : "");
+                return new UpdateResponse(outcome.getStatusCode(), outcome.getJson());
+              } else if (outcome.hasErrors()) {
+                ErrorReport firstError = outcome.getError();
+                return new UpdateResponse(outcome.getStatusCode(), outcome.getJson().put("errors",
+                    firstError.getMessage().getJsonArray("errors")));
+              } else {
+                return new UpdateResponse(outcome.getStatusCode(), outcome.getJson());
               }
-              return new UpdateResponse(outcome.getStatusCode(), outcome.getJson());
             })
         .onFailure(e -> logger.error("Could not upsert batch: {}", e.getMessage()));
   }

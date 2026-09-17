@@ -70,6 +70,7 @@ public abstract class UpdatePlan {
         RequestValidation validations = validateIncomingRecordSets (inventoryRecordSets);
         final boolean batchOfOne = (inventoryRecordSets.size() == 1);
         if (validations.passed()) {
+          logger.info("Validation passed");
             setIncomingRecordSets(inventoryRecordSets)
                     .buildRepositoryFromStorage(request).onComplete(
                             result -> {
@@ -99,6 +100,7 @@ public abstract class UpdatePlan {
                                 }
                             });
         } else {
+          logger.info("Validation failed");
           handleValidationError(promise, validations, batchOfOne);
         }
         return promise.future();
@@ -143,17 +145,21 @@ public abstract class UpdatePlan {
                 .setEntity(validations.firstEntity())
                 .setShortMessage(validations.firstShortMessage())
                 .setRequestJson(validations.getFirstRequestJson());
+      logger.info("validations.firstMessage(): {}", validations.firstMessage().encode());
         if (batchOfOne) {
+          logger.info("Error triggered by batch of one");
             UpdateMetrics metrics = getUpdateMetricsFromRepository();
             metrics.entity(Entity.INSTANCE)
                     .transaction(Transaction.CREATE)
                     .outcomes.increment(InventoryRecord.Outcome.SKIPPED);
             InventoryUpdateOutcome validationErrorOutcome =
                     new InventoryUpdateOutcome(report).setMetrics(metrics);
+            logger.info("Validation error outcome {}", validationErrorOutcome.toString());
             promise.complete(validationErrorOutcome);
         } else {
             // Pre-validation of batch of multiple record sets failed, switch to record-by-record upsert
             // to process the good record sets, if any.
+            logger.info("prevalidation failed, report as json: {}", report.asJsonString());
             promise.fail(report.asJsonString());
         }
     }

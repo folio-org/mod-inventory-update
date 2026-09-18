@@ -1,7 +1,7 @@
 package org.folio.inventoryupdate.updating.service;
 
 import io.vertx.core.Future;
-import io.vertx.core.Promise;
+import io.vertx.core.VertxException;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import org.folio.inventoryupdate.updating.InventoryQuery;
@@ -164,18 +164,15 @@ public class HandlersFetching {
    * @param inventoryRecordSet the record set being mutated
    */
   private Future<Void> transformInstanceRelations (JsonObject inventoryRecordSet, UpdateRequest request) {
-    Promise<Void> promise = Promise.promise();
     String instanceId = inventoryRecordSet.getJsonObject(INSTANCE).getString("id");
     JsonObject instanceRelations = inventoryRecordSet.getJsonObject( InstanceReferences.INSTANCE_RELATIONS );
     JsonArray existingParentChildRelations = instanceRelations.getJsonArray( InstanceReferences.EXISTING_PARENT_CHILD_RELATIONS );
     JsonArray existingPrecedingSucceedingTitles = instanceRelations.getJsonArray( InstanceReferences.EXISTING_PRECEDING_SUCCEEDING_TITLES );
     if (existingParentChildRelations.size() + existingPrecedingSucceedingTitles.size() == 0) {
-      promise.complete();
-    } else {
-      createInstanceUuidToHridMap( inventoryRecordSet, request ).onComplete( idToHridMap -> {
-        if (idToHridMap.succeeded())
-        {
-          Map<String,String> uuidToHrid = idToHridMap.result();
+      return Future.succeededFuture();
+    }
+    return createInstanceUuidToHridMap( inventoryRecordSet, request )
+        .map(uuidToHrid -> {
           JsonArray parentInstances = new JsonArray();
           JsonArray childInstances = new JsonArray();
           if ( !existingParentChildRelations.isEmpty() )
@@ -229,11 +226,8 @@ public class HandlersFetching {
           instanceRelations.remove( InstanceReferences.EXISTING_PRECEDING_SUCCEEDING_TITLES );
           instanceRelations.put( InstanceReferences.PRECEDING_TITLES, precedingTitles );
           instanceRelations.put( InstanceReferences.SUCCEEDING_TITLES, succeedingTitles );
-          promise.complete();
-        }
-      } );
-    }
-    return promise.future();
+          return null;
+        });
   }
 
   /**
@@ -241,8 +235,7 @@ public class HandlersFetching {
    * @param inventoryRecordSet the record set containing the UUIDs to map if any
    * @return map of instance HRIDs by instance UUIDs
    */
-  private Future<Map<String,String>>  createInstanceUuidToHridMap (JsonObject inventoryRecordSet, UpdateRequest request) {
-    Promise<Map<String,String>> promise = Promise.promise();
+  private Future<Map<String,String>> createInstanceUuidToHridMap (JsonObject inventoryRecordSet, UpdateRequest request) {
     OkapiClient client = request.getOkapiClient();
     List<String> relatedIds = new ArrayList<>();
     JsonObject instanceRelations = inventoryRecordSet.getJsonObject( INSTANCE_RELATIONS );
@@ -271,27 +264,21 @@ public class HandlersFetching {
       instanceFutures.add(InventoryStorage.lookupInstance( client, query ));
     }
     if (instanceFutures.isEmpty()) {
-      promise.complete(new HashMap<>());
-    } else
-    {
-      Future.all( instanceFutures ).onComplete( relatedInstances -> {
-        if ( relatedInstances.succeeded() )
-        {
-          if ( relatedInstances.result().list() != null )
-          {
-            Map<String,String> uuidToHridMap = new HashMap<>();
-            for ( Object o : relatedInstances.result().list()) {
-              JsonObject instance = (JsonObject) o;
-              uuidToHridMap.put(instance.getString( PK ), instance.getString( HRID_IDENTIFIER_KEY ));
-            }
-            promise.complete(uuidToHridMap);
-          }
-        } else {
-          promise.fail( "Failed to look up some of the Instance's relations" );
-        }
-      } );
+      return Future.succeededFuture(new HashMap<>());
     }
-    return promise.future();
+    return Future.all( instanceFutures )
+        .map(relatedInstances -> {
+          Map<String,String> uuidToHridMap = new HashMap<>();
+          for (Object o : relatedInstances.list()) {
+            JsonObject instance = (JsonObject) o;
+            uuidToHridMap.put(instance.getString( PK ), instance.getString( HRID_IDENTIFIER_KEY ));
+          }
+          return uuidToHridMap;
+        })
+        .recover(e -> {
+          var e2 = new VertxException("Failed to look up some of the Instance's relations: " + e.getMessage(), e);
+          return Future.failedFuture(e2);
+        });
   }
 
 }

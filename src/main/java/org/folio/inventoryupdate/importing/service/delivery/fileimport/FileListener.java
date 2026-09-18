@@ -115,7 +115,7 @@ public abstract class FileListener extends VerticleBase {
         .recover(e -> {
           var msg = "Couldn't start file processor verticle for tenant [%s] and channel ID [%s]."
               .formatted(tenant, channel.getRecord().name());
-          logger.error("{}", e);
+          logger.error("{}", msg, e);
           return Future.failedFuture(msg);
         });
   }

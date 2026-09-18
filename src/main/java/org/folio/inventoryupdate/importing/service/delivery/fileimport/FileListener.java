@@ -2,7 +2,6 @@ package org.folio.inventoryupdate.importing.service.delivery.fileimport;
 
 import io.vertx.core.DeploymentOptions;
 import io.vertx.core.Future;
-import io.vertx.core.Promise;
 import io.vertx.core.ThreadingModel;
 import io.vertx.core.VerticleBase;
 import io.vertx.core.Vertx;
@@ -95,30 +94,28 @@ public abstract class FileListener extends VerticleBase {
   }
 
   public Future<String> deploy() {
-    Promise<String> promise = Promise.promise();
     // Use new Vertx so that we can close it -- if the channel is removed again -- without closing the Okapi client
     // for all other requests (it's the underlying Vert.X WebClient that we avoid closing, to be accurate).
     // Creating a new Vertx will give us a warning in the logs.
+    var deploymentOptions = new DeploymentOptions()
+        .setWorkerPoolSize(4)
+        .setInstances(1)
+        .setThreadingModel(ThreadingModel.WORKER)
+        .setMaxWorkerExecuteTime(10)
+        .setMaxWorkerExecuteTimeUnit(TimeUnit.MINUTES);
     deploymentVertx = Vertx.vertx();
-    deploymentVertx.deployVerticle(this,
-        new DeploymentOptions()
-            .setWorkerPoolSize(4)
-            .setInstances(1)
-            .setMaxWorkerExecuteTime(10)
-            .setThreadingModel(ThreadingModel.WORKER)
-            .setMaxWorkerExecuteTimeUnit(TimeUnit.MINUTES)).onComplete(started -> {
-              if (started.succeeded()) {
-                deploymentId = started.result();
-                logger.info("Started verticle [{}] on Vertx {} for [{}] and channel [{}].",
-                    started.result(), deploymentVertx, tenant, channel.getRecord().name());
-                promise.complete("Started verticle [" + started.result() + "] for channel ID ["
-                    + channel.getRecord().name() + "].");
-              } else {
-                logger.error("Couldn't start file processor verticle for tenant [{}] and channel ID [{}].",
-                    tenant, channel.getRecord().name());
-                promise.fail("Couldn't launch file processor for channel [" + channel.getRecord().name() + "].");
-              }
-            });
-    return promise.future();
+    return deploymentVertx.deployVerticle(this, deploymentOptions)
+        .map(deploymentId -> {
+          var msg = "Started verticle [%s] on Vertx %s for [%s] and channel [%s]."
+              .formatted(deploymentId, deploymentVertx, tenant, channel.getRecord().name());
+          logger.info("{}", msg);
+          return msg;
+        })
+        .recover(e -> {
+          var msg = "Couldn't start file processor verticle for tenant [%s] and channel ID [%s]."
+              .formatted(tenant, channel.getRecord().name());
+          logger.error("{}", e);
+          return Future.failedFuture(msg);
+        });
   }
 }

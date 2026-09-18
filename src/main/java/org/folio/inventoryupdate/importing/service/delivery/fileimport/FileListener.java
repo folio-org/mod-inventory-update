@@ -105,7 +105,8 @@ public abstract class FileListener extends VerticleBase {
         .setMaxWorkerExecuteTimeUnit(TimeUnit.MINUTES);
     deploymentVertx = Vertx.vertx();
     return deploymentVertx.deployVerticle(this, deploymentOptions)
-        .map(deploymentId -> {
+        .map(id -> {
+          deploymentId = id;
           var msg = "Started verticle [%s] on Vertx %s for [%s] and channel [%s]."
               .formatted(deploymentId, deploymentVertx, tenant, channel.getRecord().name());
           logger.info("{}", msg);

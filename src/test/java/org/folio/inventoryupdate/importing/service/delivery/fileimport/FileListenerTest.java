@@ -27,8 +27,9 @@ class FileListenerTest {
 
     @Override
     public void listen() {
+      // mock
     }
-  };
+  }
 
   @Test
   void deployFailure(VertxTestContext vtc) {

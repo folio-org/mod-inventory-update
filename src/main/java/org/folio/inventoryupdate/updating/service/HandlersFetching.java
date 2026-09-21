@@ -235,7 +235,7 @@ public class HandlersFetching {
    * @param inventoryRecordSet the record set containing the UUIDs to map if any
    * @return map of instance HRIDs by instance UUIDs
    */
-  private Future<Map<String,String>> createInstanceUuidToHridMap (JsonObject inventoryRecordSet, UpdateRequest request) {
+  Future<Map<String,String>> createInstanceUuidToHridMap (JsonObject inventoryRecordSet, UpdateRequest request) {
     OkapiClient client = request.getOkapiClient();
     List<String> relatedIds = new ArrayList<>();
     JsonObject instanceRelations = inventoryRecordSet.getJsonObject( INSTANCE_RELATIONS );

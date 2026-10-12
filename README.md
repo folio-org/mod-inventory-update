@@ -639,7 +639,7 @@ and if the external problem can be resolved, then the job should be resumed from
 #### Using `tag` for channel ID
 
 The <channel id> in the paths can either be the UUID of the channel record (`channel.id`) or the value of the property
-`channel.tag`. The tag is an optional, unique, max 24 character long string without spaces. If it's set on a channel,
+`channel.tag`. The tag is an optional, unique, max 31 character long string without spaces. If it's set on a channel,
 that channel can be referenced by the tag in the various channel commands. The basic REST requests (GET, PUT, DELETE channel)
 use the UUID like standard FOLIO APIs.
 

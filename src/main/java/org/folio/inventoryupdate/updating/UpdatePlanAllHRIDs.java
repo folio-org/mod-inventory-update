@@ -145,6 +145,7 @@ public class UpdatePlanAllHRIDs extends UpdatePlan {
             }
             if (recordSet.containsKey(HOLDINGS_RECORDS)) {
               Set<String> localHoldingsHrids = new HashSet<>();
+              Set<String> localItemHrids = new HashSet<>();
               for (Object holdingsObject : recordSet.getJsonArray(HOLDINGS_RECORDS)) {
                     JsonObject holdingsRecord = ((JsonObject) holdingsObject);
                     String holdingsHrid = holdingsRecord.getString(HRID_IDENTIFIER_KEY);
@@ -169,7 +170,6 @@ public class UpdatePlanAllHRIDs extends UpdatePlan {
                         }
                     }
                     if (holdingsRecord.containsKey(ITEMS)) {
-                      Set<String> localItemHrids = new HashSet<>();
                       for (Object itemObject : holdingsRecord.getJsonArray(ITEMS)) {
                             String itemHrid = ((JsonObject) itemObject).getString(HRID_IDENTIFIER_KEY);
                             if (itemHrid != null) {

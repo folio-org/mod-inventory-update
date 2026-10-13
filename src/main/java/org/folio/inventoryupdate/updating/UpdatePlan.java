@@ -340,20 +340,24 @@ public abstract class UpdatePlan {
         Promise<Void> promise = Promise.promise();
         List<Future<JsonObject>> deleteRelationsDeleteItems = Stream.of(
                         repository.getInstanceRelationsToDelete().stream()
-                                .map(record -> InventoryStorage.deleteInventoryRecord(okapiClient, record)),
+                                .map(relationRecord ->
+                                    InventoryStorage.deleteInventoryRecord(okapiClient, relationRecord)),
                         repository.getItemsToDelete().stream()
-                                .map(record -> InventoryStorage.deleteInventoryRecord(okapiClient, record)),
+                                .map(itemRecord -> InventoryStorage.deleteInventoryRecord(okapiClient, itemRecord)),
                         repository.getDeletingItemsToSilentlyUpdate().stream()
-                                .map(record -> InventoryStorage.putInventoryRecordOutcomeLess(okapiClient, record)))
+                                .map(itemRecord ->
+                                    InventoryStorage.putInventoryRecordOutcomeLess(okapiClient, itemRecord)))
                 .flatMap(stream -> stream)
                 .toList();
         Future.join(deleteRelationsDeleteItems).onComplete ( relationshipsAndItemsDeleted -> {
             if (relationshipsAndItemsDeleted.succeeded()) {
                 List<Future<JsonObject>> deleteHoldingsRecords = Stream.concat(
                                 repository.getHoldingsToDelete().stream()
-                                        .map(record -> InventoryStorage.deleteInventoryRecord(okapiClient, record)),
+                                        .map(holdingsRecordRecord ->
+                                            InventoryStorage.deleteInventoryRecord(okapiClient, holdingsRecordRecord)),
                                 repository.getDeletingHoldingsToSilentlyUpdate().stream()
-                                        .map(record -> InventoryStorage.putInventoryRecordOutcomeLess(okapiClient, record)))
+                                        .map(holdingsRecordRecord ->
+                                            InventoryStorage.putInventoryRecordOutcomeLess(okapiClient, holdingsRecordRecord)))
                         .toList();
                 Future.join(deleteHoldingsRecords).onComplete( holdingsDeleted -> {
                     if (holdingsDeleted.succeeded()) {

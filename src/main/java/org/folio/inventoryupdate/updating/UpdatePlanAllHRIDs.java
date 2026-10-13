@@ -406,19 +406,15 @@ public class UpdatePlanAllHRIDs extends UpdatePlan {
     public Future<Void> doCreateInstanceRelations(OkapiClient okapiClient){
         Promise<Void> promise = Promise.promise();
 
-        List<Future<JsonObject>> provisionalInstancesFutures = new ArrayList<>();
-        for (Instance instance : ((RepositoryByHrids) repository).provisionalInstancesByHrid.values()) {
-          provisionalInstancesFutures.add(
-              InventoryStorage.postInventoryRecord(
-                  okapiClient, instance));
-
-        }
+        List<Future<JsonObject>> provisionalInstancesFutures =
+            ((RepositoryByHrids) repository).provisionalInstancesByHrid.values().stream()
+                .map(instance -> InventoryStorage.postInventoryRecord(okapiClient, instance))
+                .toList();
         Future.join(provisionalInstancesFutures).onComplete(allProvisionalInstancesCreated -> {
             if (allProvisionalInstancesCreated.succeeded()) {
-                List<Future<JsonObject>> createFutures = new ArrayList<>();
-                for (InstanceToInstanceRelation relation : repository.getInstanceRelationsToCreate()) {
-                    createFutures.add(InventoryStorage.postInventoryRecord(okapiClient, relation));
-                }
+                List<Future<JsonObject>> createFutures = repository.getInstanceRelationsToCreate().stream()
+                    .map(relation -> InventoryStorage.postInventoryRecord(okapiClient, relation))
+                    .toList();
                 Future.join(createFutures).onComplete( allRelationsCreated -> {
                     if (allRelationsCreated.succeeded()) {
                         promise.complete();

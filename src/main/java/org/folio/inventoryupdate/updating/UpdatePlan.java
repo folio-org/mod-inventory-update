@@ -145,7 +145,7 @@ public abstract class UpdatePlan {
                 .setEntity(validations.firstEntity())
                 .setShortMessage(validations.firstShortMessage())
                 .setRequestJson(validations.getFirstRequestJson());
-      logger.info("validations.firstMessage(): {}", validations.firstMessage().encode());
+      logger.info("validations.firstMessage(): {}", () -> validations.firstMessage().encode());
         if (batchOfOne) {
           logger.info("Error triggered by batch of one");
             UpdateMetrics metrics = getUpdateMetricsFromRepository();
@@ -154,13 +154,14 @@ public abstract class UpdatePlan {
                     .outcomes.increment(InventoryRecord.Outcome.SKIPPED);
             InventoryUpdateOutcome validationErrorOutcome =
                     new InventoryUpdateOutcome(report).setMetrics(metrics);
-            logger.info("Validation error outcome {}", validationErrorOutcome.toString());
+            logger.info("Validation error outcome {}", validationErrorOutcome);
             promise.complete(validationErrorOutcome);
         } else {
             // Pre-validation of batch of multiple record sets failed, switch to record-by-record upsert
             // to process the good record sets, if any.
-            logger.info("prevalidation failed, report as json: {}", report.asJsonString());
-            promise.fail(report.asJsonString());
+            String reportJson = report.asJsonString();
+            logger.info("prevalidation failed, report as json: {}", reportJson);
+            promise.fail(reportJson);
         }
     }
 

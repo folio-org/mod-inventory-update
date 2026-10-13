@@ -52,7 +52,7 @@ public class InternalInventoryUpdateClient extends InventoryUpdateClient {
     HandlersUpdating upsertMethods = new HandlersUpdating();
     return upsertMethods.doBatchUpsert(req, new UpdatePlanAllHRIDs()).map(
             outcome -> {
-              logger.info("Internal client: {}", outcome.toString());
+              logger.info("Internal client: {}", outcome);
               if (outcome.getStatusCode() == 207) {
                 logger.warn("Upsert issue: {}",
                     outcome.getErrorResponse() != null ? outcome.getErrorResponse().getShortMessage() : "");

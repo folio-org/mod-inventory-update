@@ -31,7 +31,9 @@ public class UpdatePlanAllHRIDs extends UpdatePlan {
     @Override
     public RequestValidation validateIncomingRecordSets (JsonArray incomingRecordSets) {
         RequestValidation requestValidation = super.validateIncomingRecordSets(incomingRecordSets);
-        UpdatePlanAllHRIDs.checkForUniqueHRIDsInBatch(requestValidation, incomingRecordSets);
+        if (incomingRecordSets.size()>1) {
+          UpdatePlanAllHRIDs.checkForUniqueHRIDsInBatch(requestValidation, incomingRecordSets);
+        }
         return requestValidation;
     }
 
@@ -142,12 +144,17 @@ public class UpdatePlanAllHRIDs extends UpdatePlan {
               }
             }
             if (recordSet.containsKey(HOLDINGS_RECORDS)) {
-                for (Object holdingsObject : recordSet.getJsonArray(HOLDINGS_RECORDS)) {
+              Set<String> localHoldingsHrids = new HashSet<>();
+              Set<String> localItemHrids = new HashSet<>();
+              for (Object holdingsObject : recordSet.getJsonArray(HOLDINGS_RECORDS)) {
                     JsonObject holdingsRecord = ((JsonObject) holdingsObject);
                     String holdingsHrid = holdingsRecord.getString(HRID_IDENTIFIER_KEY);
                     if (holdingsHrid != null) {
-                        if (holdingsHrids.contains(holdingsHrid)) {
-                            validation.registerError(
+                        if (holdingsHrids.contains(holdingsHrid)
+                            && !localHoldingsHrids.contains(holdingsHrid)) {
+                              // accept input with duplicate holdingsHrids within same instance as long as they
+                              // are not duplicates of a holdings HRID used elsewhere in the batch
+                          validation.registerError(
                                new ErrorReport(
                                     ErrorReport.ErrorCategory.VALIDATION,
                                     UNPROCESSABLE_ENTITY,
@@ -158,14 +165,16 @@ public class UpdatePlanAllHRIDs extends UpdatePlan {
                                     .setEntityType(InventoryRecord.Entity.HOLDINGS_RECORD)
                             );
                         } else {
-                            holdingsHrids.add(holdingsHrid);
+                          localHoldingsHrids.add(holdingsHrid);
+                          holdingsHrids.add(holdingsHrid);
                         }
                     }
                     if (holdingsRecord.containsKey(ITEMS)) {
-                        for (Object itemObject : holdingsRecord.getJsonArray(ITEMS)) {
+                      for (Object itemObject : holdingsRecord.getJsonArray(ITEMS)) {
                             String itemHrid = ((JsonObject) itemObject).getString(HRID_IDENTIFIER_KEY);
                             if (itemHrid != null) {
-                                if (itemHrids.contains(itemHrid)) {
+                                if (itemHrids.contains(itemHrid)
+                                    && !localItemHrids.contains(itemHrid)) {
                                     validation.registerError(
                                             new ErrorReport(
                                                     ErrorReport.ErrorCategory.VALIDATION,
@@ -176,7 +185,8 @@ public class UpdatePlanAllHRIDs extends UpdatePlan {
                                                     .setEntityType(InventoryRecord.Entity.ITEM)
                                                     .setEntity((JsonObject) itemObject));
                                 } else {
-                                    itemHrids.add(itemHrid);
+                                  localItemHrids.add(itemHrid);
+                                  itemHrids.add(itemHrid);
                                 }
                             }
                         }
@@ -396,19 +406,15 @@ public class UpdatePlanAllHRIDs extends UpdatePlan {
     public Future<Void> doCreateInstanceRelations(OkapiClient okapiClient){
         Promise<Void> promise = Promise.promise();
 
-        List<Future<JsonObject>> provisionalInstancesFutures = new ArrayList<>();
-        for (Instance instance : ((RepositoryByHrids) repository).provisionalInstancesByHrid.values()) {
-          provisionalInstancesFutures.add(
-              InventoryStorage.postInventoryRecord(
-                  okapiClient, instance));
-
-        }
+        List<Future<JsonObject>> provisionalInstancesFutures =
+            ((RepositoryByHrids) repository).provisionalInstancesByHrid.values().stream()
+                .map(instance -> InventoryStorage.postInventoryRecord(okapiClient, instance))
+                .toList();
         Future.join(provisionalInstancesFutures).onComplete(allProvisionalInstancesCreated -> {
             if (allProvisionalInstancesCreated.succeeded()) {
-                List<Future<JsonObject>> createFutures = new ArrayList<>();
-                for (InstanceToInstanceRelation relation : repository.getInstanceRelationsToCreate()) {
-                    createFutures.add(InventoryStorage.postInventoryRecord(okapiClient, relation));
-                }
+                List<Future<JsonObject>> createFutures = repository.getInstanceRelationsToCreate().stream()
+                    .map(relation -> InventoryStorage.postInventoryRecord(okapiClient, relation))
+                    .toList();
                 Future.join(createFutures).onComplete( allRelationsCreated -> {
                     if (allRelationsCreated.succeeded()) {
                         promise.complete();

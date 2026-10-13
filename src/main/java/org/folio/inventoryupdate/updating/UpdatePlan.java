@@ -5,8 +5,8 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.function.BiFunction;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import java.util.stream.StreamSupport;
 
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.LogManager;
@@ -70,6 +70,7 @@ public abstract class UpdatePlan {
         RequestValidation validations = validateIncomingRecordSets (inventoryRecordSets);
         final boolean batchOfOne = (inventoryRecordSets.size() == 1);
         if (validations.passed()) {
+          logger.info("Validation passed");
             setIncomingRecordSets(inventoryRecordSets)
                     .buildRepositoryFromStorage(request).onComplete(
                             result -> {
@@ -99,6 +100,7 @@ public abstract class UpdatePlan {
                                 }
                             });
         } else {
+          logger.info("Validation failed");
           handleValidationError(promise, validations, batchOfOne);
         }
         return promise.future();
@@ -143,18 +145,23 @@ public abstract class UpdatePlan {
                 .setEntity(validations.firstEntity())
                 .setShortMessage(validations.firstShortMessage())
                 .setRequestJson(validations.getFirstRequestJson());
+      logger.info("validations.firstMessage(): {}", () -> validations.firstMessage().encode());
         if (batchOfOne) {
+          logger.info("Error triggered by batch of one");
             UpdateMetrics metrics = getUpdateMetricsFromRepository();
             metrics.entity(Entity.INSTANCE)
                     .transaction(Transaction.CREATE)
                     .outcomes.increment(InventoryRecord.Outcome.SKIPPED);
             InventoryUpdateOutcome validationErrorOutcome =
                     new InventoryUpdateOutcome(report).setMetrics(metrics);
+            logger.info("Validation error outcome {}", validationErrorOutcome);
             promise.complete(validationErrorOutcome);
         } else {
             // Pre-validation of batch of multiple record sets failed, switch to record-by-record upsert
             // to process the good record sets, if any.
-            promise.fail(report.asJsonString());
+            String reportJson = report.asJsonString();
+            logger.info("prevalidation failed, report as json: {}", reportJson);
+            promise.fail(reportJson);
         }
     }
 
@@ -165,12 +172,11 @@ public abstract class UpdatePlan {
 
     public RequestValidation validateIncomingRecordSets (JsonArray incomingRecordSets) {
         RequestValidation validations = new RequestValidation();
-        for (Object recordSetObject : incomingRecordSets) {
-            RequestValidation validation = validateIncomingRecordSet((JsonObject) recordSetObject);
-            if (validation.hasErrors()) {
-                validations.addValidation(validation);
-            }
-        }
+        StreamSupport.stream(incomingRecordSets.spliterator(), false)
+                .map(JsonObject.class::cast)
+                .map(this::validateIncomingRecordSet)
+                .filter(RequestValidation::hasErrors)
+                .forEach(validations::addValidation);
         return validations;
     }
 
@@ -332,25 +338,27 @@ public abstract class UpdatePlan {
 
   public Future<Void> doDeleteRelationsItemsHoldings(OkapiClient okapiClient) {
         Promise<Void> promise = Promise.promise();
-        List<Future<JsonObject>> deleteRelationsDeleteItems = new ArrayList<>();
-        for (InstanceToInstanceRelation relation : repository.getInstanceRelationsToDelete()) {
-            deleteRelationsDeleteItems.add(InventoryStorage.deleteInventoryRecord(okapiClient,relation));
-        }
-        for (Item item : repository.getItemsToDelete()) {
-            deleteRelationsDeleteItems.add(InventoryStorage.deleteInventoryRecord(okapiClient, item));
-        }
-        for (Item item : repository.getDeletingItemsToSilentlyUpdate()) {
-            deleteRelationsDeleteItems.add(InventoryStorage.putInventoryRecordOutcomeLess(okapiClient,item));
-        }
+        List<Future<JsonObject>> deleteRelationsDeleteItems = Stream.of(
+                        repository.getInstanceRelationsToDelete().stream()
+                                .map(relationRecord ->
+                                    InventoryStorage.deleteInventoryRecord(okapiClient, relationRecord)),
+                        repository.getItemsToDelete().stream()
+                                .map(itemRecord -> InventoryStorage.deleteInventoryRecord(okapiClient, itemRecord)),
+                        repository.getDeletingItemsToSilentlyUpdate().stream()
+                                .map(itemRecord ->
+                                    InventoryStorage.putInventoryRecordOutcomeLess(okapiClient, itemRecord)))
+                .flatMap(stream -> stream)
+                .toList();
         Future.join(deleteRelationsDeleteItems).onComplete ( relationshipsAndItemsDeleted -> {
             if (relationshipsAndItemsDeleted.succeeded()) {
-                List<Future<JsonObject>> deleteHoldingsRecords = new ArrayList<>();
-                for (HoldingsRecord holdingsRecord : repository.getHoldingsToDelete()) {
-                    deleteHoldingsRecords.add(InventoryStorage.deleteInventoryRecord(okapiClient, holdingsRecord));
-                }
-                for (HoldingsRecord holdingsRecord : repository.getDeletingHoldingsToSilentlyUpdate()) {
-                   deleteHoldingsRecords.add(InventoryStorage.putInventoryRecordOutcomeLess(okapiClient, holdingsRecord));
-                }
+                List<Future<JsonObject>> deleteHoldingsRecords = Stream.concat(
+                                repository.getHoldingsToDelete().stream()
+                                        .map(holdingsRecordRecord ->
+                                            InventoryStorage.deleteInventoryRecord(okapiClient, holdingsRecordRecord)),
+                                repository.getDeletingHoldingsToSilentlyUpdate().stream()
+                                        .map(holdingsRecordRecord ->
+                                            InventoryStorage.putInventoryRecordOutcomeLess(okapiClient, holdingsRecordRecord)))
+                        .toList();
                 Future.join(deleteHoldingsRecords).onComplete( holdingsDeleted -> {
                     if (holdingsDeleted.succeeded()) {
                         promise.complete();
@@ -381,21 +389,20 @@ public abstract class UpdatePlan {
 
     public UpdateMetrics getUpdateMetricsFromRepository() {
         UpdateMetrics metrics = new UpdateMetrics();
-        for (PairedRecordSets pair : repository.getPairsOfRecordSets()) {
-            if (pair.hasIncomingRecordSet()) {
+        repository.getPairsOfRecordSets().stream()
+            .filter(PairedRecordSets::hasIncomingRecordSet)
+            .forEach(pair -> {
                 InventoryRecordSet updatingSet = pair.getIncomingRecordSet();
                 Instance updatingInstance = pair.getIncomingRecordSet().getInstance();
                 metrics.entity(Entity.INSTANCE).transaction(updatingInstance.getTransaction()).outcomes.increment(
                         updatingInstance.getOutcome());
-                List<InventoryRecord> holdingsRecordsAndItemsInUpdatingSet = Stream.of(
-                        updatingSet.getHoldingsRecords(), updatingSet.getItems()).flatMap(
-                        Collection::stream).collect(Collectors.toList());
-                for (InventoryRecord inventoryRecord : holdingsRecordsAndItemsInUpdatingSet) {
-                    metrics.entity(inventoryRecord.entityType()).transaction(inventoryRecord.getTransaction()).outcomes.increment(inventoryRecord.getOutcome());
-                }
-                if (!updatingSet.getInstanceToInstanceRelations().isEmpty()) {
-                    for (InstanceToInstanceRelation instanceToInstanceRelation : updatingSet.getInstanceToInstanceRelations()) {
-                        if (!instanceToInstanceRelation.getTransaction().equals(InventoryRecord.Transaction.NONE)) {
+                Stream.of(updatingSet.getHoldingsRecords(), updatingSet.getItems())
+                    .flatMap(Collection::stream)
+                    .forEach(inventoryRecord -> metrics.entity(inventoryRecord.entityType())
+                        .transaction(inventoryRecord.getTransaction()).outcomes.increment(inventoryRecord.getOutcome()));
+                updatingSet.getInstanceToInstanceRelations().stream()
+                    .filter(relation -> !relation.getTransaction().equals(InventoryRecord.Transaction.NONE))
+                    .forEach(instanceToInstanceRelation -> {
                             if (instanceToInstanceRelation.getTransaction().equals(Transaction.UNKNOWN)) {
                                 logger.debug("Cannot increment outcome for transaction UNKNOWN");
                             } else {
@@ -407,28 +414,22 @@ public abstract class UpdatePlan {
                                 {
                                   Instance provisional = provisionalInstances.get(instanceToInstanceRelation.getReferenceInstanceHrid());
                                   ( (UpdateMetrics.InstanceRelationsMetrics) metrics.entity(instanceToInstanceRelation.entityType()) ).provisionalInstanceMetrics.increment(
-                                      provisional.getOutcome());
+                                  provisional.getOutcome());
                                 }
                               }
                             }
-                        }
-                    }
-                }
-            }
-        }
+                    });
+            });
         if (!repository.getPairsOfRecordSets().isEmpty() && repository.getPairsOfRecordSets().getFirst().hasExistingRecordSet()) {
             InventoryRecordSet existingSet = repository.getPairsOfRecordSets().getFirst().getExistingRecordSet();
-            List<InventoryRecord> holdingsRecordsAndItemsInExistingSet = Stream.of(existingSet.getHoldingsRecords(),
-                    existingSet.getItems()).flatMap(Collection::stream).collect(Collectors.toList());
-
-            for (InventoryRecord inventoryRecord : holdingsRecordsAndItemsInExistingSet) {
-                if (inventoryRecord.isDeleting()) {
-                    metrics.entity(inventoryRecord.entityType()).transaction(inventoryRecord.getTransaction()).outcomes.increment(inventoryRecord.getOutcome());
-                }
-            }
-            if (!existingSet.getInstanceToInstanceRelations().isEmpty()) {
-                for (InstanceToInstanceRelation instanceToInstanceRelation : existingSet.getInstanceToInstanceRelations()) {
-                    if (!instanceToInstanceRelation.getTransaction().equals(InventoryRecord.Transaction.NONE)) {
+            Stream.of(existingSet.getHoldingsRecords(), existingSet.getItems())
+                .flatMap(Collection::stream)
+                .filter(InventoryRecord::isDeleting)
+                .forEach(inventoryRecord -> metrics.entity(inventoryRecord.entityType())
+                    .transaction(inventoryRecord.getTransaction()).outcomes.increment(inventoryRecord.getOutcome()));
+            existingSet.getInstanceToInstanceRelations().stream()
+                .filter(relation -> !relation.getTransaction().equals(InventoryRecord.Transaction.NONE))
+                .forEach(instanceToInstanceRelation -> {
                         metrics.entity(instanceToInstanceRelation.entityType()).transaction(instanceToInstanceRelation.getTransaction()).outcomes.increment(
                                 instanceToInstanceRelation.getOutcome());
                         if (repository instanceof RepositoryByHrids repositoryByHrids) {
@@ -437,12 +438,10 @@ public abstract class UpdatePlan {
                           {
                             Instance provisional = provisionalInstances.get(instanceToInstanceRelation.getReferenceInstanceHrid());
                               ( (UpdateMetrics.InstanceRelationsMetrics) metrics.entity(instanceToInstanceRelation.entityType()) ).provisionalInstanceMetrics.increment(
-                                  provisional.getOutcome());
+                              provisional.getOutcome());
                           }
                         }
-                    }
-                }
-            }
+                });
         }
         return metrics;
     }

@@ -29,7 +29,12 @@ public abstract class FileProcessor {
    */
   public FileProcessor forFileListener(FileListener fileListener) {
     this.fileListener = fileListener;
+    this.fileListener.logCtx();
     return this;
+  }
+
+  public void logCtx() {
+    fileListener.logCtx();
   }
 
   public abstract Future<Void> processFile(SourceFile file);

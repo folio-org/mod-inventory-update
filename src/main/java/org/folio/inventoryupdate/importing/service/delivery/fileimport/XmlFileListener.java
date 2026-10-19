@@ -24,8 +24,11 @@ public class XmlFileListener extends FileListener {
 
   @Override
   public Future<?> start() throws Exception {
-    logger.info("Listening for files to forward for processing by job configuration ID [{}}], tenant [{}}].",
-        getConfigId(), tenant);
+    logCtx();
+    logger.info("Starting verticle with deployment ID {}, listening for files "
+            + "for channel {} [{}], tenant [{}}].",
+        deploymentID(), channel.getName(), channel.getId(), tenant);
+
     listen();
     return super.start();
   }

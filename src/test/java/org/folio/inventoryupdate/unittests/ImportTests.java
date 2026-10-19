@@ -840,7 +840,7 @@ public class ImportTests extends InventoryUpdateTestBase {
         .header(Service.OKAPI_TENANT)
         .header(Service.OKAPI_URL)
         .header(Service.OKAPI_TOKEN)
-        .post("/inventory-import/channels/" + channelId + "/commission")
+        .post("/inventory-import/channels/" + channelId + "/commission?retainQueue=false")
         .then().statusCode(200);
 
     assertThat(getRecordById(Service.PATH_CHANNELS, channelId).extract().path("queuedFiles"), is(0));

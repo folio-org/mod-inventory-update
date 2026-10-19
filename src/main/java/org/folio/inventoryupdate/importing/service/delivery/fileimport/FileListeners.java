@@ -71,7 +71,7 @@ public final class FileListeners {
   }
 
   /**
-   * If a verticle is deployed for the channel, un-deploys the verticle, deletes the file queue,
+   * If a verticle is deployed for the channel, un-deploys the verticle,
    * and de-registers the channel from static list of deployed verticles.
    *
    * @return statement about the outcome of the operation

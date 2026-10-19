@@ -27,7 +27,7 @@ public class XmlFileListener extends FileListener {
     logCtx();
     logger.info("Starting verticle with deployment ID {}, listening for files "
             + "for channel {} [{}], tenant [{}}].",
-        deploymentID(), channel.getName(), channel.getId(), tenant);
+        this::deploymentID, () -> channel.getName(), () -> channel.getId(), () -> tenant);
 
     listen();
     return super.start();

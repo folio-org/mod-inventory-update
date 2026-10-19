@@ -31,6 +31,7 @@ public class XmlFileProcessor extends FileProcessor {
   final Vertx vertx;
 
   public XmlFileProcessor(Vertx vertx, String tenant, UUID channelId) {
+    super();
     this.vertx = vertx;
     this.channelId = channelId;
     this.configStorage = new EntityStorage(vertx, tenant);

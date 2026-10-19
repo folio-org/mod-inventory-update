@@ -717,7 +717,7 @@ public class ImportTests extends InventoryUpdateTestBase {
     // Can only delete channel with logged jobs if `force` set to `true`
     postJsonObject(Service.PATH_IMPORT_JOBS, Files.JSON_IMPORT_JOB);
     deleteRecord(Service.PATH_CHANNELS, Files.JSON_CHANNEL.getString("id"), 400);
-    getRecords(Service.PATH_CHANNELS).body("channels.id", hasItem(channel.getString("id")));;
+    getRecords(Service.PATH_CHANNELS).body("channels.id", hasItem(channel.getString("id")));
     deleteRecord(Service.PATH_CHANNELS, Files.JSON_CHANNEL.getString("id"), "force=true", 200);
     getRecords(Service.PATH_CHANNELS).body("channels.id", not(hasItem(channel.getString("id"))));
     deleteRecord(Service.PATH_CHANNELS, Files.JSON_CHANNEL.getString("id"), 404);
@@ -792,6 +792,84 @@ public class ImportTests extends InventoryUpdateTestBase {
   }
 
   @Test
+  public void retainQueueParameterWillKeepOrDeleteQueue () {
+    configureSamplePipeline();
+    String channelId = Files.JSON_CHANNEL.getString("id");
+    String transformationId = Files.JSON_TRANSFORMATION_CONFIG.getString("id");
+    getRecordById(Service.PATH_CHANNELS, channelId);
+    getRecordById(Service.PATH_TRANSFORMATIONS, transformationId);
+
+    Files.filesOfInventoryXmlRecords(10, 100, "200")
+        .forEach(xml -> postSourceXml(Service.PATH_CHANNELS + "/" + channelId + "/upload", xml, 200));
+    await().until(() -> getTotalRecords(Service.PATH_IMPORT_JOBS), is(1));
+    getRecords(Service.PATH_IMPORT_JOBS).extract().path("importJobs[0].id");
+    await().until(() -> getTotalRecords(Service.PATH_JOB_LOGS), greaterThan(1));
+
+    given()
+        .baseUri(BASE_URI_INVENTORY_UPDATE)
+        .header(Service.OKAPI_TENANT)
+        .header(Service.OKAPI_URL)
+        .header(Service.OKAPI_TOKEN)
+        .post("/inventory-import/channels/" + channelId + "/decommission")
+        .then().statusCode(200);
+
+    assertThat(getRecordById(Service.PATH_CHANNELS, channelId).extract().path("queuedFiles"), is(greaterThan(0)));
+
+    given()
+        .baseUri(BASE_URI_INVENTORY_UPDATE)
+        .header(Service.OKAPI_TENANT)
+        .header(Service.OKAPI_URL)
+        .header(Service.OKAPI_TOKEN)
+        .post("/inventory-import/channels/" + channelId + "/commission")
+        .then().statusCode(200);
+
+    assertThat(getRecordById(Service.PATH_CHANNELS, channelId).extract().path("queuedFiles"), is(greaterThan(0)));
+
+    given()
+        .baseUri(BASE_URI_INVENTORY_UPDATE)
+        .header(Service.OKAPI_TENANT)
+        .header(Service.OKAPI_URL)
+        .header(Service.OKAPI_TOKEN)
+        .post("/inventory-import/channels/" + channelId + "/decommission?retainQueue=false")
+        .then().statusCode(200);
+
+    assertThat(getRecordById(Service.PATH_CHANNELS, channelId).extract().path("queuedFiles"), is(0));
+
+    given()
+        .baseUri(BASE_URI_INVENTORY_UPDATE)
+        .header(Service.OKAPI_TENANT)
+        .header(Service.OKAPI_URL)
+        .header(Service.OKAPI_TOKEN)
+        .post("/inventory-import/channels/" + channelId + "/commission?listening=false")
+        .then().statusCode(200);
+
+    postSourceXml(Service.PATH_CHANNELS + "/" + channelId + "/upload",
+        Files.XML_INVENTORY_RECORD_SET, 200);
+
+    given()
+        .baseUri(BASE_URI_INVENTORY_UPDATE)
+        .header(Service.OKAPI_TENANT)
+        .header(Service.OKAPI_URL)
+        .header(Service.OKAPI_TOKEN)
+        .post("/inventory-import/channels/" + channelId + "/decommission")
+        .then().statusCode(200);
+
+    assertThat(getRecordById(Service.PATH_CHANNELS, channelId).extract().path("queuedFiles"), is(greaterThan(0)));
+
+    given()
+        .baseUri(BASE_URI_INVENTORY_UPDATE)
+        .header(Service.OKAPI_TENANT)
+        .header(Service.OKAPI_URL)
+        .header(Service.OKAPI_TOKEN)
+        .post("/inventory-import/channels/" + channelId + "/commission?retainQueue=false&listening=false")
+        .then().statusCode(200);
+
+    assertThat(getRecordById(Service.PATH_CHANNELS, channelId).extract().path("queuedFiles"), is(0));
+
+  }
+
+
+    @Test
   public void canSwitchChannelListeningOnOff() {
     postJsonObject(Service.PATH_TRANSFORMATIONS, Files.JSON_TRANSFORMATION_CONFIG);
     String channelId = Files.JSON_CHANNEL.getString("id");
@@ -1073,7 +1151,7 @@ public class ImportTests extends InventoryUpdateTestBase {
   public void cannotHarvestSourceXmlToDisabledChannel() {
     configureSamplePipeline();
     String channelId = Files.JSON_CHANNEL.getString("id");
-    String channelTag = Files.JSON_CHANNEL.getString("tag");
+    Files.JSON_CHANNEL.getString("tag");
     JsonObject channelUpdate = getEntityJsonById(Service.PATH_CHANNELS, channelId);
     channelUpdate.put("enabled", false);
     putJsonObject(Service.PATH_CHANNELS + "/" + channelId, channelUpdate, 200);
@@ -1519,6 +1597,8 @@ public class ImportTests extends InventoryUpdateTestBase {
     await().until(() -> getRecordById(PATH_CHANNELS, channelId).extract().path("fileInProcess"), is("no file in process"));
     assertThat("Instances in storage", fakeFolioApis.instanceStorage.getRecords().size(), is(1));
   }
+
+
 
   @Test
   public void canFileAndRetrieveFailedRecordInCaseOfUpsertResponse207() {

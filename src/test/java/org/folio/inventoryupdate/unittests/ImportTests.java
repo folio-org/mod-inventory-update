@@ -840,7 +840,28 @@ public class ImportTests extends InventoryUpdateTestBase {
         .header(Service.OKAPI_TENANT)
         .header(Service.OKAPI_URL)
         .header(Service.OKAPI_TOKEN)
-        .post("/inventory-import/channels/" + channelId + "/commission?retainQueue=false")
+        .post("/inventory-import/channels/" + channelId + "/commission?listening=false")
+        .then().statusCode(200);
+
+    postSourceXml(Service.PATH_CHANNELS + "/" + channelId + "/upload",
+        Files.XML_INVENTORY_RECORD_SET, 200);
+
+    given()
+        .baseUri(BASE_URI_INVENTORY_UPDATE)
+        .header(Service.OKAPI_TENANT)
+        .header(Service.OKAPI_URL)
+        .header(Service.OKAPI_TOKEN)
+        .post("/inventory-import/channels/" + channelId + "/decommission")
+        .then().statusCode(200);
+
+    assertThat(getRecordById(Service.PATH_CHANNELS, channelId).extract().path("queuedFiles"), is(greaterThan(0)));
+
+    given()
+        .baseUri(BASE_URI_INVENTORY_UPDATE)
+        .header(Service.OKAPI_TENANT)
+        .header(Service.OKAPI_URL)
+        .header(Service.OKAPI_TOKEN)
+        .post("/inventory-import/channels/" + channelId + "/commission?retainQueue=false&listening=false")
         .then().statusCode(200);
 
     assertThat(getRecordById(Service.PATH_CHANNELS, channelId).extract().path("queuedFiles"), is(0));

@@ -44,7 +44,7 @@ public final class FileListeners {
     if (channel == null || channel.getId() == null) {
       return Future.succeededFuture("No channel provided to deploy.");
     } else {
-      boolean retainQueueIfAny = "true".equalsIgnoreCase(request.requestParam("retainQueue"));
+      boolean retainQueueIfAny = !"false".equalsIgnoreCase(request.requestParam("retainQueue"));
       FileQueue fq = ImportService.getFileQueue(request, channel.getId());
       // Request parameter can override what is set on the channel record
       boolean listening = request.requestParam("listening") == null
@@ -80,7 +80,7 @@ public final class FileListeners {
     if (channel == null || channel.getId() == null) {
       return Future.succeededFuture("No channel provided to undeploy.");
     }
-    boolean retainQueue = "true".equalsIgnoreCase(request.requestParam("retainQueue"));
+    boolean retainQueue = !"false".equalsIgnoreCase(request.requestParam("retainQueue"));
     FileListener fileListener = FileListeners.getFileListener(request.tenant(), channel.getId());
     if (fileListener != null) {
       return channel.setEnabledListening(false, channel.isListeningIfEnabled(), request.entityStorage())

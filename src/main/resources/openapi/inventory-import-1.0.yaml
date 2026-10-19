@@ -227,7 +227,7 @@ paths:
       - in: query
         name: retainQueue
         required: false
-        description: If true, Use past file queue if any found in the file system, defaults to false, meaning create new empty queue.
+        description: If true, Use past file queue if any found in the file system, defaults to true, meaning create new empty queue.
         schema:
           type: string
       - in: query
@@ -263,7 +263,7 @@ paths:
       - in: query
         name: retainQueue
         required: false
-        description: Keep the existing file queue and source files if any. Defaults to false, meaning delete the queue.
+        description: Keep the existing file queue and source files if any. Defaults to true, meaning delete the queue.
         schema:
           type: string
     post:

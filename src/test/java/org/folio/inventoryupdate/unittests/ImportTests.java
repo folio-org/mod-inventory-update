@@ -717,7 +717,7 @@ public class ImportTests extends InventoryUpdateTestBase {
     // Can only delete channel with logged jobs if `force` set to `true`
     postJsonObject(Service.PATH_IMPORT_JOBS, Files.JSON_IMPORT_JOB);
     deleteRecord(Service.PATH_CHANNELS, Files.JSON_CHANNEL.getString("id"), 400);
-    getRecords(Service.PATH_CHANNELS).body("channels.id", hasItem(channel.getString("id")));;
+    getRecords(Service.PATH_CHANNELS).body("channels.id", hasItem(channel.getString("id")));
     deleteRecord(Service.PATH_CHANNELS, Files.JSON_CHANNEL.getString("id"), "force=true", 200);
     getRecords(Service.PATH_CHANNELS).body("channels.id", not(hasItem(channel.getString("id"))));
     deleteRecord(Service.PATH_CHANNELS, Files.JSON_CHANNEL.getString("id"), 404);
@@ -802,7 +802,7 @@ public class ImportTests extends InventoryUpdateTestBase {
     Files.filesOfInventoryXmlRecords(10, 100, "200")
         .forEach(xml -> postSourceXml(Service.PATH_CHANNELS + "/" + channelId + "/upload", xml, 200));
     await().until(() -> getTotalRecords(Service.PATH_IMPORT_JOBS), is(1));
-    String jobId = getRecords(Service.PATH_IMPORT_JOBS).extract().path("importJobs[0].id");
+    getRecords(Service.PATH_IMPORT_JOBS).extract().path("importJobs[0].id");
     await().until(() -> getTotalRecords(Service.PATH_JOB_LOGS), greaterThan(1));
 
     given()
@@ -1130,7 +1130,7 @@ public class ImportTests extends InventoryUpdateTestBase {
   public void cannotHarvestSourceXmlToDisabledChannel() {
     configureSamplePipeline();
     String channelId = Files.JSON_CHANNEL.getString("id");
-    String channelTag = Files.JSON_CHANNEL.getString("tag");
+    Files.JSON_CHANNEL.getString("tag");
     JsonObject channelUpdate = getEntityJsonById(Service.PATH_CHANNELS, channelId);
     channelUpdate.put("enabled", false);
     putJsonObject(Service.PATH_CHANNELS + "/" + channelId, channelUpdate, 200);

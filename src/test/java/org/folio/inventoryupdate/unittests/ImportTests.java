@@ -704,7 +704,7 @@ public class ImportTests extends InventoryUpdateTestBase {
     assertEquals("https://example.org/harvest/channel-a-updated", updatedChannel.getString("harvestUrl"));
     assertEquals(currentTime + "+00:00", updatedChannel.getString("lastHarvested"));
     putJsonObject(Service.PATH_CHANNELS + "/" + UUID.randomUUID(), update, 404);
-    getRecords(Service.PATH_CHANNELS).body("channels.id", hasItem(channel.getString("id")));;
+    getRecords(Service.PATH_CHANNELS).body("channels.id", hasItem(channel.getString("id")));
     // Can delete channel with no logged jobs
     int totalRecords = getTotalRecords(Service.PATH_CHANNELS);
     deleteRecord(Service.PATH_CHANNELS, channel.getString("id"), 200);
@@ -1598,6 +1598,36 @@ public class ImportTests extends InventoryUpdateTestBase {
     assertThat("Instances in storage", fakeFolioApis.instanceStorage.getRecords().size(), is(1));
   }
 
+  @Test
+  public void willPauseOnFatalErrorAndCanResumeWhileSkippingCurrentFile() {
+    configureSamplePipeline();
+    String channelId = Files.JSON_CHANNEL.getString("id");
+    String transformationId = Files.JSON_TRANSFORMATION_CONFIG.getString("id");
+    getRecordById(Service.PATH_CHANNELS, channelId);
+    getRecordById(Service.PATH_TRANSFORMATIONS, transformationId);
+
+    fakeFolioApis.instanceStorage.failOnGetRecords = true;
+    postSourceXml(Service.PATH_CHANNELS + "/" + channelId + "/upload?fileName=sourcefile.xml",
+        Files.createCollectionOfInventoryXmlRecordsWithDeletes(1, 1, "200"), 200);
+    await().until(() -> getRecordById(PATH_CHANNELS, channelId).extract().path("fileInProcess"), is("sourcefile.xml"));
+    await().until(() -> getTotalRecords(Service.PATH_IMPORT_JOBS), is(1));
+    String jobId = getRecords(Service.PATH_IMPORT_JOBS).extract().path("importJobs[0].id");
+    await().until(() -> getRecordById(Service.PATH_IMPORT_JOBS, jobId).extract().path("status"), is("PAUSED"));
+    await().until(() -> getRecordById(PATH_CHANNELS, channelId).extract().path("fileInProcess"), is("sourcefile.xml"));
+
+    fakeFolioApis.instanceStorage.failOnGetRecords = false;
+    given()
+        .baseUri(BASE_URI_INVENTORY_UPDATE)
+        .header(Service.OKAPI_TENANT)
+        .header(Service.OKAPI_URL)
+        .header(Service.OKAPI_TOKEN)
+        .post("/inventory-import/channels/" + channelId + "/resume-job?skipCurrentFile=true")
+        .then().statusCode(200);
+
+    await().until(() -> getRecordById(Service.PATH_IMPORT_JOBS, jobId).extract().path("status"), is("DONE"));
+    await().until(() -> getRecordById(PATH_CHANNELS, channelId).extract().path("fileInProcess"), is("no file in process"));
+    assertThat("Instances in storage", fakeFolioApis.instanceStorage.getRecords().size(), is(0));
+  }
 
 
   @Test

@@ -284,9 +284,9 @@ public class ImportJob extends Entity {
         .map(SqlResult::rowCount);
   }
 
-  public void logFinish(LocalDateTime finished, int recordCount, EntityStorage configStorage) {
+  public Future<Void> logFinish(LocalDateTime finished, int recordCount, EntityStorage configStorage) {
     setFinished(finished, recordCount);
-    configStorage.updateEntity(this.withUpdatingUser(null),
+    return configStorage.updateEntity(this.withUpdatingUser(null),
         "UPDATE " + configStorage.schema() + "." + table()
             + " SET "
             + dbColumnName(FINISHED)
@@ -297,7 +297,7 @@ public class ImportJob extends Entity {
             + dbColumnName(AMOUNT_IMPORTED) + " = #{" + dbColumnName(AMOUNT_IMPORTED) + "}"
             + ", "
             + metadata.updateClauseColumnTemplates()
-            + " WHERE id = #{id}");
+            + " WHERE id = #{id}").mapEmpty();
   }
 
   private void setFinished(LocalDateTime finished, int recordCount) {
@@ -306,11 +306,11 @@ public class ImportJob extends Entity {
         JobStatus.DONE, theRecord.started, finished.toString(), recordCount, theRecord.message);
   }
 
-  public void logStatus(JobStatus status, String message, int recordCount, EntityStorage configStorage) {
+  public Future<Void> logStatus(JobStatus status, String message, int recordCount, EntityStorage configStorage) {
     theRecord = new ImportJobRecord(theRecord.id, theRecord.channelId, theRecord.channelName, theRecord.importType,
         theRecord.transformation,
         status, theRecord.started, theRecord.finished, recordCount, message);
-    configStorage.updateEntity(this.withUpdatingUser(null),
+    return configStorage.updateEntity(this.withUpdatingUser(null),
         "UPDATE " + configStorage.schema() + "." + table()
             + " SET "
             + dbColumnName(STATUS) + " = #{" + dbColumnName(STATUS) + "} "
@@ -320,7 +320,7 @@ public class ImportJob extends Entity {
             + dbColumnName(AMOUNT_IMPORTED) + " = #{" + dbColumnName(AMOUNT_IMPORTED) + "}"
             + ", "
             + metadata.updateClauseColumnTemplates()
-            + " WHERE id = #{id}");
+            + " WHERE id = #{id}").mapEmpty();
   }
 
   @Override

@@ -59,17 +59,27 @@ public abstract class FileProcessor {
     return fileListener.fileQueue.currentlyPromotedFile()
         .compose(file -> {
           if (discardFileInProcess && file != null) {
-            return file.discard();
+            return file.discard().map(true);
           } else {
-            return Future.succeededFuture();
+            return Future.succeededFuture(false);
           }
         })
-        .compose(na -> {
-          importJob.logStatus(ImportJob.JobStatus.RUNNING, "", reporting.getRecordsProcessed(), configStorage);
+        .compose(fileDiscarded -> this.fileListener.fileQueue.isEmpty().compose(noMoreFiles -> {
+          if (fileDiscarded && noMoreFiles) {
+            return importJob
+                .logStatus(ImportJob.JobStatus.DONE, "", reporting.getRecordsProcessed(), configStorage)
+                .compose(v -> logFinish(reporting.getRecordsProcessed()))
+                .onSuccess(v -> fileListener.markFileQueuePassive());
+          } else {
+            return importJob
+                .logStatus(ImportJob.JobStatus.RUNNING, "", reporting.getRecordsProcessed(), configStorage);
+          }
+        }).compose(v -> {
           paused = false;
           isResuming(true);
           return Future.succeededFuture();
-        });
+        })
+      );
   }
 
   public ImportJob getImportJob() {
@@ -99,8 +109,8 @@ public abstract class FileProcessor {
         });
   }
 
-  public void logFinish(int recordCount) {
-    importJob.logFinish(SettableClock.getLocalDateTime(), recordCount, configStorage);
+  public Future<Void> logFinish(int recordCount) {
+    return importJob.logFinish(SettableClock.getLocalDateTime(), recordCount, configStorage);
   }
 
   public abstract String getStats();

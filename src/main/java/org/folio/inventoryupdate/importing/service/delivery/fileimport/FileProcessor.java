@@ -64,12 +64,21 @@ public abstract class FileProcessor {
             return Future.succeededFuture();
           }
         })
-        .compose(na -> {
-          importJob.logStatus(ImportJob.JobStatus.RUNNING, "", reporting.getRecordsProcessed(), configStorage);
+        .compose(na -> this.fileListener.fileQueue.isEmpty().compose(noMoreFiles -> {
+          if (noMoreFiles) {
+            return importJob
+                .logStatus(ImportJob.JobStatus.DONE, "", reporting.getRecordsProcessed(), configStorage)
+                .compose(v -> logFinish(reporting.getRecordsProcessed()));
+          } else {
+            return importJob
+                .logStatus(ImportJob.JobStatus.RUNNING, "", reporting.getRecordsProcessed(), configStorage);
+          }
+        }).compose(v -> {
           paused = false;
           isResuming(true);
           return Future.succeededFuture();
-        });
+        })
+      );
   }
 
   public ImportJob getImportJob() {
@@ -99,8 +108,8 @@ public abstract class FileProcessor {
         });
   }
 
-  public void logFinish(int recordCount) {
-    importJob.logFinish(SettableClock.getLocalDateTime(), recordCount, configStorage);
+  public Future<Void> logFinish(int recordCount) {
+    return importJob.logFinish(SettableClock.getLocalDateTime(), recordCount, configStorage);
   }
 
   public abstract String getStats();

@@ -59,16 +59,17 @@ public abstract class FileProcessor {
     return fileListener.fileQueue.currentlyPromotedFile()
         .compose(file -> {
           if (discardFileInProcess && file != null) {
-            return file.discard();
+            return file.discard().map(true);
           } else {
-            return Future.succeededFuture();
+            return Future.succeededFuture(false);
           }
         })
-        .compose(na -> this.fileListener.fileQueue.isEmpty().compose(noMoreFiles -> {
-          if (noMoreFiles) {
+        .compose(fileDiscarded -> this.fileListener.fileQueue.isEmpty().compose(noMoreFiles -> {
+          if (fileDiscarded && noMoreFiles) {
             return importJob
                 .logStatus(ImportJob.JobStatus.DONE, "", reporting.getRecordsProcessed(), configStorage)
-                .compose(v -> logFinish(reporting.getRecordsProcessed()));
+                .compose(v -> logFinish(reporting.getRecordsProcessed()))
+                .onSuccess(v -> fileListener.markFileQueuePassive());
           } else {
             return importJob
                 .logStatus(ImportJob.JobStatus.RUNNING, "", reporting.getRecordsProcessed(), configStorage);

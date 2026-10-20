@@ -1,230 +1,237 @@
 {
-  "failedRecords" : [ {
-    "id" : "cea83fe2-48cf-40ab-acb3-cc7f31bd6b36",
-    "importJobId" : "42ae09ec-8afd-41dc-b529-ac112a607271",
-    "recordNumber" : "022560084",
-    "timeStamp" : "2024-05-07T14:19:35",
-    "recordErrors" : [ {
-      "error" : {
-        "label" : "Error encountered during upsert of Inventory record set",
-        "entity" : {
-          "id" : "b799081c-9e97-4fc3-9c20-19b5d7a79359",
-          "hrid" : "576745545",
-          "status" : {
-            "name" : "Available"
-          },
-          "volume" : null,
-          "chronology" : null,
-          "copyNumber" : null,
-          "enumeration" : null,
-          "materialTypeId" : "1a54b431-2e4f-452d-9cae-9cee66c9a892",
-          "accessionNumber" : null,
-          "holdingsRecordId" : "2d026f8c-7d7f-494f-9f03-26380e7db4f3",
-          "discoverySuppress" : "false",
-          "descriptionOfPieces" : null,
-          "permanentLoanTypeId" : "a8cacfd0-b284-47ae-b5fa-235d768411e7"
-        },
-        "message" : {
-          "errors" : [ {
-            "code" : "-1",
-            "type" : "1",
-            "message" : "lower(jsonb ->> 'barcode'::text) value already exists in table item: 7/037$00321583",
-            "parameters" : [ {
-              "key" : "lower(jsonb ->> 'barcode'::text)",
-              "value" : "7/037$00321583"
-            } ]
-          } ]
-        },
-        "transaction" : "",
-        "typeOfError" : {
-          "errors" : [ {
-            "code" : "-1",
-            "type" : "1",
-            "message" : "lower(jsonb ->> 'barcode'::text) value already exists in table item: 7/037$00321583",
-            "parameters" : [ {
-              "key" : "lower(jsonb ->> 'barcode'::text)",
-              "value" : "7/037$00321583"
-            } ]
-          } ]
-        },
-        "typeOfRecord" : "ITEM"
-      }
-    } ],
-    "originalRecord" : "<?xml version=\"1.0\" encoding=\"UTF-8\"?><original>\n  <collection count=\"47\">\n    <record>\n      <status>upsert</status>\n      <hrid>022560084</hrid>\n      <metadata>\n        <datafield fulltag=\"001@\" tag=\"001@\">\n          <subfield code=\"0\">20-22,24,40,72,130,285</subfield>\n        </datafield>\n        <datafield fulltag=\"001A\" tag=\"001A\">\n          <subfield code=\"0\">2000:08-12-89</subfield>\n        </datafield>\n        <datafield fulltag=\"001B\" tag=\"001B\">\n          <subfield code=\"0\">1999:07-05-24</subfield>\n          <subfield code=\"t\">14:19:06.000</subfield>\n        </datafield>\n        <datafield fulltag=\"001D\" tag=\"001D\">\n          <subfield code=\"0\">9999:99-99-99</subfield>\n        </datafield>\n        <datafield fulltag=\"001U\" tag=\"001U\">\n          <subfield code=\"0\">utf8</subfield>\n        </datafield>\n        <datafield fulltag=\"001X\" tag=\"001X\">\n          <subfield code=\"0\">0</subfield>\n        </datafield>\n        <datafield fulltag=\"002@\" tag=\"002@\">\n          <subfield code=\"0\">Aau</subfield>\n        </datafield>\n        <datafield fulltag=\"002C\" tag=\"002C\">\n          <subfield code=\"a\">Text</subfield>\n          <subfield code=\"b\">txt</subfield>\n        </datafield>\n        <datafield fulltag=\"002D\" tag=\"002D\">\n          <subfield code=\"a\">ohne Hilfsmittel zu benutzen</subfield>\n          <subfield code=\"b\">n</subfield>\n        </datafield>\n        <datafield fulltag=\"002E\" tag=\"002E\">\n          <subfield code=\"a\">Band</subfield>\n          <subfield code=\"b\">nc</subfield>\n        </datafield>\n        <datafield fulltag=\"003@\" tag=\"003@\">\n          <subfield code=\"0\">022560084</subfield>\n        </datafield>\n        <datafield fulltag=\"003O\" tag=\"003O\">\n          <subfield code=\"a\">OCoLC</subfield>\n          <subfield code=\"0\">174329348</subfield>\n          <subfield code=\"v\">2012-12-31</subfield>\n        </datafield>\n        <datafield fulltag=\"006G\" tag=\"006G\">\n          <subfield code=\"0\">481141375</subfield>\n        </datafield>\n        <datafield fulltag=\"007G\" tag=\"007G\">\n          <subfield code=\"i\">GBV</subfield>\n          <subfield code=\"0\">022560084</subfield>\n        </datafield>\n        <datafield fulltag=\"007Y\" tag=\"007Y\">\n          <subfield code=\"i\">Hochschulschriftennummer</subfield>\n          <subfield code=\"0\">U 62.3728</subfield>\n        </datafield>\n        <datafield fulltag=\"010@\" tag=\"010@\">\n          <subfield code=\"a\">ger</subfield>\n        </datafield>\n        <datafield fulltag=\"011@\" tag=\"011@\">\n          <subfield code=\"a\">1962</subfield>\n        </datafield>\n        <datafield fulltag=\"013D\" tag=\"013D\">\n          <subfield code=\"9\">105825778</subfield>\n          <subfield code=\"8\">Hochschulschrift ; ID: gnd/4113937-9</subfield>\n        </datafield>\n        <datafield fulltag=\"019@\" tag=\"019@\">\n          <subfield code=\"a\">XA-DE</subfield>\n        </datafield>\n        <datafield fulltag=\"021A\" tag=\"021A\">\n          <subfield code=\"a\">Die @Idee des Föderalismus in der Verfassung der UdSSR von 1936</subfield>\n          <subfield code=\"h\">von Hans-Georg Belz</subfield>\n        </datafield>\n        <datafield fulltag=\"028A\" tag=\"028A\">\n          <subfield code=\"9\">861809122</subfield>\n          <subfield code=\"8\">Belz, Hans-Georg *1936-* ; ID: gnd/1104384175</subfield>\n          <subfield code=\"k\">cgwrk</subfield>\n          <subfield code=\"v\">2024-03-09</subfield>\n        </datafield>\n        <datafield fulltag=\"033D\" tag=\"033D\">\n          <subfield code=\"p\">Göttingen</subfield>\n          <subfield code=\"4\">uvp</subfield>\n        </datafield>\n        <datafield fulltag=\"034D\" tag=\"034D\">\n          <subfield code=\"a\">129 S.</subfield>\n        </datafield>\n        <datafield fulltag=\"037C\" tag=\"037C\">\n          <subfield code=\"a\">Göttingen, Univ., Diss., 1962</subfield>\n        </datafield>\n        <datafield fulltag=\"045M/10\" occurrence=\"10\" tag=\"045M\">\n          <subfield code=\"i\">8</subfield>\n          <subfield code=\"a\">retro004</subfield>\n        </datafield>\n        <datafield fulltag=\"045Q/01\" occurrence=\"01\" tag=\"045Q\">\n          <subfield code=\"9\">106422499</subfield>\n          <subfield code=\"8\">86.10 Recht einzelner Länder, Gebiete und Völker</subfield>\n        </datafield>\n        <datafield fulltag=\"045Q/01\" occurrence=\"01\" tag=\"045Q\">\n          <subfield code=\"9\">10642260X</subfield>\n          <subfield code=\"8\">86.44 Staatsrecht Verfassungsrecht: Allgemeines</subfield>\n        </datafield>\n        <item epn=\"576745545\">\n          <datafield fulltag=\"201B/01\" occurrence=\"01\" tag=\"201B\">\n            <subfield code=\"0\">27-12-10</subfield>\n            <subfield code=\"t\">19:57:41.000</subfield>\n          </datafield>\n          <datafield fulltag=\"201U/01\" occurrence=\"01\" tag=\"201U\">\n            <subfield code=\"0\">utf8</subfield>\n          </datafield>\n          <datafield fulltag=\"202D/01\" occurrence=\"01\" tag=\"202D\">\n            <subfield code=\"0\">27-12-10</subfield>\n            <subfield code=\"b\">r40sel2</subfield>\n            <subfield code=\"a\">0007</subfield>\n          </datafield>\n          <datafield fulltag=\"203@/01\" occurrence=\"01\" tag=\"203@\">\n            <subfield code=\"0\">576745545</subfield>\n          </datafield>\n          <datafield fulltag=\"208@/01\" occurrence=\"01\" tag=\"208@\">\n            <subfield code=\"a\">01-11-02</subfield>\n            <subfield code=\"b\">xsn</subfield>\n          </datafield>\n          <datafield fulltag=\"209A/01\" occurrence=\"01\" tag=\"209A\">\n            <subfield code=\"a\">8 U 62.3728</subfield>\n            <subfield code=\"d\">u</subfield>\n            <subfield code=\"x\">00</subfield>\n          </datafield>\n        </item>\n        <item epn=\"263483789\">\n          <datafield fulltag=\"201B/02\" occurrence=\"02\" tag=\"201B\">\n            <subfield code=\"0\">23-07-18</subfield>\n            <subfield code=\"t\">20:37:50.000</subfield>\n          </datafield>\n          <datafield fulltag=\"201U/02\" occurrence=\"02\" tag=\"201U\">\n            <subfield code=\"0\">utf8</subfield>\n          </datafield>\n          <datafield fulltag=\"202D/02\" occurrence=\"02\" tag=\"202D\">\n            <subfield code=\"0\">23-07-18</subfield>\n            <subfield code=\"b\">1910</subfield>\n            <subfield code=\"a\">0007/0037</subfield>\n          </datafield>\n          <datafield fulltag=\"203@/02\" occurrence=\"02\" tag=\"203@\">\n            <subfield code=\"0\">263483789</subfield>\n          </datafield>\n          <datafield fulltag=\"208@/02\" occurrence=\"02\" tag=\"208@\">\n            <subfield code=\"a\">07-11-97</subfield>\n            <subfield code=\"b\">ki037</subfield>\n          </datafield>\n          <datafield fulltag=\"209A/02\" occurrence=\"02\" tag=\"209A\">\n            <subfield code=\"b\">7</subfield>\n            <subfield code=\"j\">45</subfield>\n            <subfield code=\"f\">7/037</subfield>\n            <subfield code=\"a\">XXIX, 100</subfield>\n            <subfield code=\"d\">i</subfield>\n            <subfield code=\"i\">c</subfield>\n            <subfield code=\"x\">00</subfield>\n          </datafield>\n          <datafield fulltag=\"209C/02\" occurrence=\"02\" tag=\"209C\">\n            <subfield code=\"a\">5379</subfield>\n            <subfield code=\"x\">00</subfield>\n          </datafield>\n          <datafield fulltag=\"209G/02\" occurrence=\"02\" tag=\"209G\">\n            <subfield code=\"a\">7/037$00321583</subfield>\n          </datafield>\n          <datafield fulltag=\"237A/02\" occurrence=\"02\" tag=\"237A\">\n            <subfield code=\"a\">Mikrokopie - Promotionsjahr 1961</subfield>\n          </datafield>\n          <datafield fulltag=\"237A/02\" occurrence=\"02\" tag=\"237A\">\n            <subfield code=\"a\">Göttinger Dissertationen, Bd. 197. Sammelband 1 A - D (1962)</subfield>\n          </datafield>\n        </item>\n        <item epn=\"274840278\">\n          <datafield fulltag=\"201B/03\" occurrence=\"03\" tag=\"201B\">\n            <subfield code=\"0\">05-10-11</subfield>\n            <subfield code=\"t\">13:45:14.000</subfield>\n          </datafield>\n          <datafield fulltag=\"201U/03\" occurrence=\"03\" tag=\"201U\">\n            <subfield code=\"0\">utf8</subfield>\n          </datafield>\n          <datafield fulltag=\"202D/03\" occurrence=\"03\" tag=\"202D\">\n            <subfield code=\"0\">05-10-11</subfield>\n            <subfield code=\"b\">1929</subfield>\n            <subfield code=\"a\">0007/0200</subfield>\n          </datafield>\n          <datafield fulltag=\"203@/03\" occurrence=\"03\" tag=\"203@\">\n            <subfield code=\"0\">274840278</subfield>\n          </datafield>\n          <datafield fulltag=\"208@/03\" occurrence=\"03\" tag=\"208@\">\n            <subfield code=\"a\">27-02-98</subfield>\n            <subfield code=\"b\">zi200</subfield>\n          </datafield>\n          <datafield fulltag=\"209A/03\" occurrence=\"03\" tag=\"209A\">\n            <subfield code=\"b\">7</subfield>\n            <subfield code=\"j\">45</subfield>\n            <subfield code=\"f\">7/200</subfield>\n            <subfield code=\"a\">13 VII 1</subfield>\n            <subfield code=\"d\">i</subfield>\n            <subfield code=\"x\">00</subfield>\n          </datafield>\n          <datafield fulltag=\"209C/03\" occurrence=\"03\" tag=\"209C\">\n            <subfield code=\"a\">A 1831/62</subfield>\n            <subfield code=\"x\">00</subfield>\n          </datafield>\n        </item>\n      </metadata>\n      <rawrecord>001@ ƒ020-22,24,40,72,130,285\n001A ƒ02000:08-12-89\n001B ƒ01999:07-05-24ƒt14:19:06.000\n001D ƒ09999:99-99-99\n001U ƒ0utf8\n001X ƒ00\n002@ ƒ0Aau\n002C ƒaTextƒbtxt\n002D ƒaohne Hilfsmittel zu benutzenƒbn\n002E ƒaBandƒbnc\n003@ ƒ0022560084\n003O ƒaOCoLCƒ0174329348ƒv2012-12-31\n006G ƒ0481141375\n007G ƒiGBVƒ0022560084\n007Y ƒiHochschulschriftennummerƒ0U 62.3728\n010@ ƒager\n011@ ƒa1962\n013D ƒ9105825778ƒ8Hochschulschrift ; ID: gnd/4113937-9\n019@ ƒaXA-DE\n021A ƒaDie @Idee des Föderalismus in der Verfassung der UdSSR von 1936ƒhvon Hans-Georg Belz\n028A ƒ9861809122ƒ8Belz, Hans-Georg *1936-* ; ID: gnd/1104384175ƒkcgwrkƒv2024-03-09\n033D ƒpGöttingenƒ4uvp\n034D ƒa129 S.\n037C ƒaGöttingen, Univ., Diss., 1962\n045M/10 ƒi8ƒaretro004\n045Q/01 ƒ9106422499ƒ886.10$jRecht einzelner Länder, Gebiete und Völker\n045Q/01 ƒ910642260Xƒ886.44$jStaatsrecht$jVerfassungsrecht: Allgemeines\n\n201B/01 ƒ027-12-10ƒt19:57:41.000\n201U/01 ƒ0utf8\n202D/01 ƒ027-12-10ƒbr40sel2ƒa0007\n203@/01 ƒ0576745545\n208@/01 ƒa01-11-02ƒbxsn\n209A/01 ƒa8 U 62.3728ƒduƒx00\n\n201B/02 ƒ023-07-18ƒt20:37:50.000\n201U/02 ƒ0utf8\n202D/02 ƒ023-07-18ƒb1910ƒa0007/0037\n203@/02 ƒ0263483789\n208@/02 ƒa07-11-97ƒbki037\n209A/02 ƒb7ƒj45ƒf7/037ƒaXXIX, 100ƒdiƒicƒx00\n209C/02 ƒa5379ƒx00\n209G/02 ƒa7/037$00321583\n237A/02 ƒaMikrokopie - Promotionsjahr 1961\n237A/02 ƒaGöttinger Dissertationen, Bd. 197. Sammelband 1 A - D (1962)\n\n201B/03 ƒ005-10-11ƒt13:45:14.000\n201U/03 ƒ0utf8\n202D/03 ƒ005-10-11ƒb1929ƒa0007/0200\n203@/03 ƒ0274840278\n208@/03 ƒa27-02-98ƒbzi200\n209A/03 ƒb7ƒj45ƒf7/200ƒa13 VII 1ƒdiƒx00\n209C/03 ƒaA 1831/62ƒx00\n\n</rawrecord>\n    </record>\n  </collection>\n</original>\n",
-    "transformedRecord" : {
-      "instance" : {
-        "hrid" : "022560084",
-        "notes" : [ {
-          "note" : "Göttingen, Univ., Diss., 1962",
-          "instanceNoteTypeId" : "b73cc9c2-c9fa-49aa-964f-5ae1aa754ecd"
-        } ],
-        "title" : "Die Idee des Föderalismus in der Verfassung der UdSSR von 1936 / von Hans-Georg Belz",
-        "series" : null,
-        "source" : "K10plus",
-        "languages" : [ "ger" ],
-        "indexTitle" : "Idee des Föderalismus in der Verfassung der UdSSR von 1936 von HansGeorg Belz",
-        "identifiers" : [ {
-          "value" : "022560084",
-          "identifierTypeId" : "1d5cb40c-508f-451b-8952-87c92be4255a"
-        }, {
-          "value" : "174329348",
-          "identifierTypeId" : "439bfbae-75bc-4f74-9fc7-b2a2d47ce3ef"
-        }, {
-          "value" : "481141375",
-          "identifierTypeId" : "63fd8fa0-a939-4d1e-869c-6dcc24c9d507"
-        }, {
-          "value" : "GBV: 022560084",
-          "identifierTypeId" : "8e33c1be-e2c4-43ac-a975-8fb50f71137a"
-        } ],
-        "publication" : [ ],
-        "contributors" : [ {
-          "name" : "Belz, Hans-Georg *1936-*",
-          "primary" : "true",
-          "contributorNameTypeId" : "2b94c631-fca9-4892-a730-03ee529ffe2a"
-        } ],
-        "instanceTypeId" : "6312d172-f0cf-40f6-b27d-9fa8feaf332f",
-        "electronicAccess" : [ ],
-        "modeOfIssuanceId" : "9d18a02f-5897-4c31-9106-c9abb5c7ae8b",
-        "alternativeTitles" : [ ],
-        "instanceFormatIds" : [ "8d511d33-5e85-4c5d-9bce-6e3c9cd0c324" ],
-        "administrativeNotes" : [ "Aau (0500: Bibliografische Gattung)", "07.05.24, 14:19 (0210: Datum der letzten Änderung)" ],
-        "physicalDescriptions" : [ "129 S." ],
-        "natureOfContentTermIds" : [ "94f6d06a-61e0-47c1-bbcb-6186989e6040" ]
-      },
-      "processing" : {
-        "item" : {
-          "status" : {
-            "policy" : "overwrite",
-            "ifStatusWas" : [ {
-              "name" : "On order"
-            }, {
+  "failedRecords" : [
+    {
+      "id" : "02e14ac3-b0e1-4932-9b10-cdd8aac572f4",
+      "importJobId" : "42ae09ec-8afd-41dc-b529-ac112a607271",
+      "recordNumber" : "failed-record-missing-errors-original-transformed",
+      "timeStamp" : "2024-05-07T14:19:35"
+    },
+    {
+      "id" : "cea83fe2-48cf-40ab-acb3-cc7f31bd6b36",
+      "importJobId" : "42ae09ec-8afd-41dc-b529-ac112a607271",
+      "recordNumber" : "022560084",
+      "timeStamp" : "2024-05-07T14:19:35",
+      "recordErrors" : [ {
+        "error" : {
+          "label" : "Error encountered during upsert of Inventory record set",
+          "entity" : {
+            "id" : "b799081c-9e97-4fc3-9c20-19b5d7a79359",
+            "hrid" : "576745545",
+            "status" : {
               "name" : "Available"
-            }, {
-              "name" : "Intellectual item"
-            }, {
-              "name" : "Missing"
-            }, {
-              "name" : "Restricted"
-            }, {
-              "name" : "Unknown"
+            },
+            "volume" : null,
+            "chronology" : null,
+            "copyNumber" : null,
+            "enumeration" : null,
+            "materialTypeId" : "1a54b431-2e4f-452d-9cae-9cee66c9a892",
+            "accessionNumber" : null,
+            "holdingsRecordId" : "2d026f8c-7d7f-494f-9f03-26380e7db4f3",
+            "discoverySuppress" : "false",
+            "descriptionOfPieces" : null,
+            "permanentLoanTypeId" : "a8cacfd0-b284-47ae-b5fa-235d768411e7"
+          },
+          "message" : {
+            "errors" : [ {
+              "code" : "-1",
+              "type" : "1",
+              "message" : "lower(jsonb ->> 'barcode'::text) value already exists in table item: 7/037$00321583",
+              "parameters" : [ {
+                "key" : "lower(jsonb ->> 'barcode'::text)",
+                "value" : "7/037$00321583"
+              } ]
             } ]
           },
-          "retainOmittedRecord" : {
-            "ifField" : "hrid",
-            "matchesPattern" : "\\D+.*"
+          "transaction" : "",
+          "typeOfError" : {
+            "errors" : [ {
+              "code" : "-1",
+              "type" : "1",
+              "message" : "lower(jsonb ->> 'barcode'::text) value already exists in table item: 7/037$00321583",
+              "parameters" : [ {
+                "key" : "lower(jsonb ->> 'barcode'::text)",
+                "value" : "7/037$00321583"
+              } ]
+            } ]
           },
-          "retainExistingValues" : {
-            "forOmittedProperties" : "true"
+          "typeOfRecord" : "ITEM"
+        }
+      } ],
+      "originalRecord" : "<?xml version=\"1.0\" encoding=\"UTF-8\"?><original>\n  <collection count=\"47\">\n    <record>\n      <status>upsert</status>\n      <hrid>022560084</hrid>\n      <metadata>\n        <datafield fulltag=\"001@\" tag=\"001@\">\n          <subfield code=\"0\">20-22,24,40,72,130,285</subfield>\n        </datafield>\n        <datafield fulltag=\"001A\" tag=\"001A\">\n          <subfield code=\"0\">2000:08-12-89</subfield>\n        </datafield>\n        <datafield fulltag=\"001B\" tag=\"001B\">\n          <subfield code=\"0\">1999:07-05-24</subfield>\n          <subfield code=\"t\">14:19:06.000</subfield>\n        </datafield>\n        <datafield fulltag=\"001D\" tag=\"001D\">\n          <subfield code=\"0\">9999:99-99-99</subfield>\n        </datafield>\n        <datafield fulltag=\"001U\" tag=\"001U\">\n          <subfield code=\"0\">utf8</subfield>\n        </datafield>\n        <datafield fulltag=\"001X\" tag=\"001X\">\n          <subfield code=\"0\">0</subfield>\n        </datafield>\n        <datafield fulltag=\"002@\" tag=\"002@\">\n          <subfield code=\"0\">Aau</subfield>\n        </datafield>\n        <datafield fulltag=\"002C\" tag=\"002C\">\n          <subfield code=\"a\">Text</subfield>\n          <subfield code=\"b\">txt</subfield>\n        </datafield>\n        <datafield fulltag=\"002D\" tag=\"002D\">\n          <subfield code=\"a\">ohne Hilfsmittel zu benutzen</subfield>\n          <subfield code=\"b\">n</subfield>\n        </datafield>\n        <datafield fulltag=\"002E\" tag=\"002E\">\n          <subfield code=\"a\">Band</subfield>\n          <subfield code=\"b\">nc</subfield>\n        </datafield>\n        <datafield fulltag=\"003@\" tag=\"003@\">\n          <subfield code=\"0\">022560084</subfield>\n        </datafield>\n        <datafield fulltag=\"003O\" tag=\"003O\">\n          <subfield code=\"a\">OCoLC</subfield>\n          <subfield code=\"0\">174329348</subfield>\n          <subfield code=\"v\">2012-12-31</subfield>\n        </datafield>\n        <datafield fulltag=\"006G\" tag=\"006G\">\n          <subfield code=\"0\">481141375</subfield>\n        </datafield>\n        <datafield fulltag=\"007G\" tag=\"007G\">\n          <subfield code=\"i\">GBV</subfield>\n          <subfield code=\"0\">022560084</subfield>\n        </datafield>\n        <datafield fulltag=\"007Y\" tag=\"007Y\">\n          <subfield code=\"i\">Hochschulschriftennummer</subfield>\n          <subfield code=\"0\">U 62.3728</subfield>\n        </datafield>\n        <datafield fulltag=\"010@\" tag=\"010@\">\n          <subfield code=\"a\">ger</subfield>\n        </datafield>\n        <datafield fulltag=\"011@\" tag=\"011@\">\n          <subfield code=\"a\">1962</subfield>\n        </datafield>\n        <datafield fulltag=\"013D\" tag=\"013D\">\n          <subfield code=\"9\">105825778</subfield>\n          <subfield code=\"8\">Hochschulschrift ; ID: gnd/4113937-9</subfield>\n        </datafield>\n        <datafield fulltag=\"019@\" tag=\"019@\">\n          <subfield code=\"a\">XA-DE</subfield>\n        </datafield>\n        <datafield fulltag=\"021A\" tag=\"021A\">\n          <subfield code=\"a\">Die @Idee des Föderalismus in der Verfassung der UdSSR von 1936</subfield>\n          <subfield code=\"h\">von Hans-Georg Belz</subfield>\n        </datafield>\n        <datafield fulltag=\"028A\" tag=\"028A\">\n          <subfield code=\"9\">861809122</subfield>\n          <subfield code=\"8\">Belz, Hans-Georg *1936-* ; ID: gnd/1104384175</subfield>\n          <subfield code=\"k\">cgwrk</subfield>\n          <subfield code=\"v\">2024-03-09</subfield>\n        </datafield>\n        <datafield fulltag=\"033D\" tag=\"033D\">\n          <subfield code=\"p\">Göttingen</subfield>\n          <subfield code=\"4\">uvp</subfield>\n        </datafield>\n        <datafield fulltag=\"034D\" tag=\"034D\">\n          <subfield code=\"a\">129 S.</subfield>\n        </datafield>\n        <datafield fulltag=\"037C\" tag=\"037C\">\n          <subfield code=\"a\">Göttingen, Univ., Diss., 1962</subfield>\n        </datafield>\n        <datafield fulltag=\"045M/10\" occurrence=\"10\" tag=\"045M\">\n          <subfield code=\"i\">8</subfield>\n          <subfield code=\"a\">retro004</subfield>\n        </datafield>\n        <datafield fulltag=\"045Q/01\" occurrence=\"01\" tag=\"045Q\">\n          <subfield code=\"9\">106422499</subfield>\n          <subfield code=\"8\">86.10 Recht einzelner Länder, Gebiete und Völker</subfield>\n        </datafield>\n        <datafield fulltag=\"045Q/01\" occurrence=\"01\" tag=\"045Q\">\n          <subfield code=\"9\">10642260X</subfield>\n          <subfield code=\"8\">86.44 Staatsrecht Verfassungsrecht: Allgemeines</subfield>\n        </datafield>\n        <item epn=\"576745545\">\n          <datafield fulltag=\"201B/01\" occurrence=\"01\" tag=\"201B\">\n            <subfield code=\"0\">27-12-10</subfield>\n            <subfield code=\"t\">19:57:41.000</subfield>\n          </datafield>\n          <datafield fulltag=\"201U/01\" occurrence=\"01\" tag=\"201U\">\n            <subfield code=\"0\">utf8</subfield>\n          </datafield>\n          <datafield fulltag=\"202D/01\" occurrence=\"01\" tag=\"202D\">\n            <subfield code=\"0\">27-12-10</subfield>\n            <subfield code=\"b\">r40sel2</subfield>\n            <subfield code=\"a\">0007</subfield>\n          </datafield>\n          <datafield fulltag=\"203@/01\" occurrence=\"01\" tag=\"203@\">\n            <subfield code=\"0\">576745545</subfield>\n          </datafield>\n          <datafield fulltag=\"208@/01\" occurrence=\"01\" tag=\"208@\">\n            <subfield code=\"a\">01-11-02</subfield>\n            <subfield code=\"b\">xsn</subfield>\n          </datafield>\n          <datafield fulltag=\"209A/01\" occurrence=\"01\" tag=\"209A\">\n            <subfield code=\"a\">8 U 62.3728</subfield>\n            <subfield code=\"d\">u</subfield>\n            <subfield code=\"x\">00</subfield>\n          </datafield>\n        </item>\n        <item epn=\"263483789\">\n          <datafield fulltag=\"201B/02\" occurrence=\"02\" tag=\"201B\">\n            <subfield code=\"0\">23-07-18</subfield>\n            <subfield code=\"t\">20:37:50.000</subfield>\n          </datafield>\n          <datafield fulltag=\"201U/02\" occurrence=\"02\" tag=\"201U\">\n            <subfield code=\"0\">utf8</subfield>\n          </datafield>\n          <datafield fulltag=\"202D/02\" occurrence=\"02\" tag=\"202D\">\n            <subfield code=\"0\">23-07-18</subfield>\n            <subfield code=\"b\">1910</subfield>\n            <subfield code=\"a\">0007/0037</subfield>\n          </datafield>\n          <datafield fulltag=\"203@/02\" occurrence=\"02\" tag=\"203@\">\n            <subfield code=\"0\">263483789</subfield>\n          </datafield>\n          <datafield fulltag=\"208@/02\" occurrence=\"02\" tag=\"208@\">\n            <subfield code=\"a\">07-11-97</subfield>\n            <subfield code=\"b\">ki037</subfield>\n          </datafield>\n          <datafield fulltag=\"209A/02\" occurrence=\"02\" tag=\"209A\">\n            <subfield code=\"b\">7</subfield>\n            <subfield code=\"j\">45</subfield>\n            <subfield code=\"f\">7/037</subfield>\n            <subfield code=\"a\">XXIX, 100</subfield>\n            <subfield code=\"d\">i</subfield>\n            <subfield code=\"i\">c</subfield>\n            <subfield code=\"x\">00</subfield>\n          </datafield>\n          <datafield fulltag=\"209C/02\" occurrence=\"02\" tag=\"209C\">\n            <subfield code=\"a\">5379</subfield>\n            <subfield code=\"x\">00</subfield>\n          </datafield>\n          <datafield fulltag=\"209G/02\" occurrence=\"02\" tag=\"209G\">\n            <subfield code=\"a\">7/037$00321583</subfield>\n          </datafield>\n          <datafield fulltag=\"237A/02\" occurrence=\"02\" tag=\"237A\">\n            <subfield code=\"a\">Mikrokopie - Promotionsjahr 1961</subfield>\n          </datafield>\n          <datafield fulltag=\"237A/02\" occurrence=\"02\" tag=\"237A\">\n            <subfield code=\"a\">Göttinger Dissertationen, Bd. 197. Sammelband 1 A - D (1962)</subfield>\n          </datafield>\n        </item>\n        <item epn=\"274840278\">\n          <datafield fulltag=\"201B/03\" occurrence=\"03\" tag=\"201B\">\n            <subfield code=\"0\">05-10-11</subfield>\n            <subfield code=\"t\">13:45:14.000</subfield>\n          </datafield>\n          <datafield fulltag=\"201U/03\" occurrence=\"03\" tag=\"201U\">\n            <subfield code=\"0\">utf8</subfield>\n          </datafield>\n          <datafield fulltag=\"202D/03\" occurrence=\"03\" tag=\"202D\">\n            <subfield code=\"0\">05-10-11</subfield>\n            <subfield code=\"b\">1929</subfield>\n            <subfield code=\"a\">0007/0200</subfield>\n          </datafield>\n          <datafield fulltag=\"203@/03\" occurrence=\"03\" tag=\"203@\">\n            <subfield code=\"0\">274840278</subfield>\n          </datafield>\n          <datafield fulltag=\"208@/03\" occurrence=\"03\" tag=\"208@\">\n            <subfield code=\"a\">27-02-98</subfield>\n            <subfield code=\"b\">zi200</subfield>\n          </datafield>\n          <datafield fulltag=\"209A/03\" occurrence=\"03\" tag=\"209A\">\n            <subfield code=\"b\">7</subfield>\n            <subfield code=\"j\">45</subfield>\n            <subfield code=\"f\">7/200</subfield>\n            <subfield code=\"a\">13 VII 1</subfield>\n            <subfield code=\"d\">i</subfield>\n            <subfield code=\"x\">00</subfield>\n          </datafield>\n          <datafield fulltag=\"209C/03\" occurrence=\"03\" tag=\"209C\">\n            <subfield code=\"a\">A 1831/62</subfield>\n            <subfield code=\"x\">00</subfield>\n          </datafield>\n        </item>\n      </metadata>\n      <rawrecord>001@ ƒ020-22,24,40,72,130,285\n001A ƒ02000:08-12-89\n001B ƒ01999:07-05-24ƒt14:19:06.000\n001D ƒ09999:99-99-99\n001U ƒ0utf8\n001X ƒ00\n002@ ƒ0Aau\n002C ƒaTextƒbtxt\n002D ƒaohne Hilfsmittel zu benutzenƒbn\n002E ƒaBandƒbnc\n003@ ƒ0022560084\n003O ƒaOCoLCƒ0174329348ƒv2012-12-31\n006G ƒ0481141375\n007G ƒiGBVƒ0022560084\n007Y ƒiHochschulschriftennummerƒ0U 62.3728\n010@ ƒager\n011@ ƒa1962\n013D ƒ9105825778ƒ8Hochschulschrift ; ID: gnd/4113937-9\n019@ ƒaXA-DE\n021A ƒaDie @Idee des Föderalismus in der Verfassung der UdSSR von 1936ƒhvon Hans-Georg Belz\n028A ƒ9861809122ƒ8Belz, Hans-Georg *1936-* ; ID: gnd/1104384175ƒkcgwrkƒv2024-03-09\n033D ƒpGöttingenƒ4uvp\n034D ƒa129 S.\n037C ƒaGöttingen, Univ., Diss., 1962\n045M/10 ƒi8ƒaretro004\n045Q/01 ƒ9106422499ƒ886.10$jRecht einzelner Länder, Gebiete und Völker\n045Q/01 ƒ910642260Xƒ886.44$jStaatsrecht$jVerfassungsrecht: Allgemeines\n\n201B/01 ƒ027-12-10ƒt19:57:41.000\n201U/01 ƒ0utf8\n202D/01 ƒ027-12-10ƒbr40sel2ƒa0007\n203@/01 ƒ0576745545\n208@/01 ƒa01-11-02ƒbxsn\n209A/01 ƒa8 U 62.3728ƒduƒx00\n\n201B/02 ƒ023-07-18ƒt20:37:50.000\n201U/02 ƒ0utf8\n202D/02 ƒ023-07-18ƒb1910ƒa0007/0037\n203@/02 ƒ0263483789\n208@/02 ƒa07-11-97ƒbki037\n209A/02 ƒb7ƒj45ƒf7/037ƒaXXIX, 100ƒdiƒicƒx00\n209C/02 ƒa5379ƒx00\n209G/02 ƒa7/037$00321583\n237A/02 ƒaMikrokopie - Promotionsjahr 1961\n237A/02 ƒaGöttinger Dissertationen, Bd. 197. Sammelband 1 A - D (1962)\n\n201B/03 ƒ005-10-11ƒt13:45:14.000\n201U/03 ƒ0utf8\n202D/03 ƒ005-10-11ƒb1929ƒa0007/0200\n203@/03 ƒ0274840278\n208@/03 ƒa27-02-98ƒbzi200\n209A/03 ƒb7ƒj45ƒf7/200ƒa13 VII 1ƒdiƒx00\n209C/03 ƒaA 1831/62ƒx00\n\n</rawrecord>\n    </record>\n  </collection>\n</original>\n",
+      "transformedRecord" : {
+        "instance" : {
+          "hrid" : "022560084",
+          "notes" : [ {
+            "note" : "Göttingen, Univ., Diss., 1962",
+            "instanceNoteTypeId" : "b73cc9c2-c9fa-49aa-964f-5ae1aa754ecd"
+          } ],
+          "title" : "Die Idee des Föderalismus in der Verfassung der UdSSR von 1936 / von Hans-Georg Belz",
+          "series" : null,
+          "source" : "K10plus",
+          "languages" : [ "ger" ],
+          "indexTitle" : "Idee des Föderalismus in der Verfassung der UdSSR von 1936 von HansGeorg Belz",
+          "identifiers" : [ {
+            "value" : "022560084",
+            "identifierTypeId" : "1d5cb40c-508f-451b-8952-87c92be4255a"
+          }, {
+            "value" : "174329348",
+            "identifierTypeId" : "439bfbae-75bc-4f74-9fc7-b2a2d47ce3ef"
+          }, {
+            "value" : "481141375",
+            "identifierTypeId" : "63fd8fa0-a939-4d1e-869c-6dcc24c9d507"
+          }, {
+            "value" : "GBV: 022560084",
+            "identifierTypeId" : "8e33c1be-e2c4-43ac-a975-8fb50f71137a"
+          } ],
+          "publication" : [ ],
+          "contributors" : [ {
+            "name" : "Belz, Hans-Georg *1936-*",
+            "primary" : "true",
+            "contributorNameTypeId" : "2b94c631-fca9-4892-a730-03ee529ffe2a"
+          } ],
+          "instanceTypeId" : "6312d172-f0cf-40f6-b27d-9fa8feaf332f",
+          "electronicAccess" : [ ],
+          "modeOfIssuanceId" : "9d18a02f-5897-4c31-9106-c9abb5c7ae8b",
+          "alternativeTitles" : [ ],
+          "instanceFormatIds" : [ "8d511d33-5e85-4c5d-9bce-6e3c9cd0c324" ],
+          "administrativeNotes" : [ "Aau (0500: Bibliografische Gattung)", "07.05.24, 14:19 (0210: Datum der letzten Änderung)" ],
+          "physicalDescriptions" : [ "129 S." ],
+          "natureOfContentTermIds" : [ "94f6d06a-61e0-47c1-bbcb-6186989e6040" ]
+        },
+        "processing" : {
+          "item" : {
+            "status" : {
+              "policy" : "overwrite",
+              "ifStatusWas" : [ {
+                "name" : "On order"
+              }, {
+                "name" : "Available"
+              }, {
+                "name" : "Intellectual item"
+              }, {
+                "name" : "Missing"
+              }, {
+                "name" : "Restricted"
+              }, {
+                "name" : "Unknown"
+              } ]
+            },
+            "retainOmittedRecord" : {
+              "ifField" : "hrid",
+              "matchesPattern" : "\\D+.*"
+            },
+            "retainExistingValues" : {
+              "forOmittedProperties" : "true"
+            }
+          },
+          "batchIndex" : 9,
+          "holdingsRecord" : {
+            "retainOmittedRecord" : {
+              "ifField" : "hrid",
+              "matchesPattern" : "\\D+.*"
+            },
+            "retainExistingValues" : {
+              "forOmittedProperties" : "true"
+            }
           }
         },
-        "batchIndex" : 9,
-        "holdingsRecord" : {
-          "retainOmittedRecord" : {
-            "ifField" : "hrid",
-            "matchesPattern" : "\\D+.*"
-          },
-          "retainExistingValues" : {
-            "forOmittedProperties" : "true"
-          }
-        }
-      },
-      "holdingsRecords" : [ {
-        "hrid" : "576745545",
-        "items" : [ {
+        "holdingsRecords" : [ {
           "hrid" : "576745545",
-          "status" : {
-            "name" : "Available"
-          },
-          "volume" : null,
-          "chronology" : null,
-          "copyNumber" : null,
-          "enumeration" : null,
-          "materialTypeId" : "1a54b431-2e4f-452d-9cae-9cee66c9a892",
-          "accessionNumber" : null,
+          "items" : [ {
+            "hrid" : "576745545",
+            "status" : {
+              "name" : "Available"
+            },
+            "volume" : null,
+            "chronology" : null,
+            "copyNumber" : null,
+            "enumeration" : null,
+            "materialTypeId" : "1a54b431-2e4f-452d-9cae-9cee66c9a892",
+            "accessionNumber" : null,
+            "discoverySuppress" : "false",
+            "descriptionOfPieces" : null,
+            "permanentLoanTypeId" : "a8cacfd0-b284-47ae-b5fa-235d768411e7"
+          } ],
+          "notes" : [ ],
+          "sourceId" : "fa687f33-aab5-4119-b0ad-05afe8de4d92",
+          "callNumber" : "8 U 62.3728",
+          "illPolicyId" : null,
+          "holdingsTypeId" : "0c422f92-0f4d-4d32-8cbe-390ebc33a3e5",
+          "callNumberPrefix" : null,
+          "electronicAccess" : [ ],
           "discoverySuppress" : "false",
-          "descriptionOfPieces" : null,
-          "permanentLoanTypeId" : "a8cacfd0-b284-47ae-b5fa-235d768411e7"
-        } ],
-        "notes" : [ ],
-        "sourceId" : "fa687f33-aab5-4119-b0ad-05afe8de4d92",
-        "callNumber" : "8 U 62.3728",
-        "illPolicyId" : null,
-        "holdingsTypeId" : "0c422f92-0f4d-4d32-8cbe-390ebc33a3e5",
-        "callNumberPrefix" : null,
-        "electronicAccess" : [ ],
-        "discoverySuppress" : "false",
-        "holdingsStatements" : null,
-        "administrativeNotes" : [ "27-12-10, 19:57 (7903: Datum und Uhrzeit der letzten Änderung)" ],
-        "permanentLocationId" : "78091d58-5057-4f5d-bbcc-ca07eafd8cc1"
-      }, {
-        "hrid" : "263483789",
-        "items" : [ {
-          "hrid" : "263483789",
-          "status" : {
-            "name" : "Available"
-          },
-          "volume" : null,
-          "barcode" : "7/037$00321583",
-          "chronology" : null,
-          "copyNumber" : null,
-          "enumeration" : null,
-          "materialTypeId" : "1a54b431-2e4f-452d-9cae-9cee66c9a892",
-          "accessionNumber" : "5379",
-          "discoverySuppress" : "false",
-          "descriptionOfPieces" : null,
-          "permanentLoanTypeId" : "3ef6d652-2e02-4561-8f7b-720cbccde87f"
-        } ],
-        "notes" : [ {
-          "note" : "Mikrokopie - Promotionsjahr 1961",
-          "staffOnly" : "false",
-          "holdingsNoteTypeId" : "84472b16-e66e-47d7-8ae9-f9720bc971f8"
+          "holdingsStatements" : null,
+          "administrativeNotes" : [ "27-12-10, 19:57 (7903: Datum und Uhrzeit der letzten Änderung)" ],
+          "permanentLocationId" : "78091d58-5057-4f5d-bbcc-ca07eafd8cc1"
         }, {
-          "note" : "Göttinger Dissertationen, Bd. 197. Sammelband 1 A - D (1962)",
-          "staffOnly" : "false",
-          "holdingsNoteTypeId" : "84472b16-e66e-47d7-8ae9-f9720bc971f8"
-        } ],
-        "sourceId" : "fa687f33-aab5-4119-b0ad-05afe8de4d92",
-        "callNumber" : "XXIX, 100",
-        "illPolicyId" : null,
-        "holdingsTypeId" : "0c422f92-0f4d-4d32-8cbe-390ebc33a3e5",
-        "callNumberPrefix" : "7/037",
-        "electronicAccess" : [ ],
-        "discoverySuppress" : "false",
-        "holdingsStatements" : null,
-        "administrativeNotes" : [ "23-07-18, 20:37 (7903: Datum und Uhrzeit der letzten Änderung)" ],
-        "permanentLocationId" : "e418d287-5e5d-41a9-bf4a-a90d369417f5"
-      }, {
-        "hrid" : "274840278",
-        "items" : [ {
-          "hrid" : "274840278",
-          "status" : {
-            "name" : "Available"
-          },
-          "volume" : null,
-          "chronology" : null,
-          "copyNumber" : null,
-          "enumeration" : null,
-          "materialTypeId" : "1a54b431-2e4f-452d-9cae-9cee66c9a892",
-          "accessionNumber" : "A 1831/62",
+          "hrid" : "263483789",
+          "items" : [ {
+            "hrid" : "263483789",
+            "status" : {
+              "name" : "Available"
+            },
+            "volume" : null,
+            "barcode" : "7/037$00321583",
+            "chronology" : null,
+            "copyNumber" : null,
+            "enumeration" : null,
+            "materialTypeId" : "1a54b431-2e4f-452d-9cae-9cee66c9a892",
+            "accessionNumber" : "5379",
+            "discoverySuppress" : "false",
+            "descriptionOfPieces" : null,
+            "permanentLoanTypeId" : "3ef6d652-2e02-4561-8f7b-720cbccde87f"
+          } ],
+          "notes" : [ {
+            "note" : "Mikrokopie - Promotionsjahr 1961",
+            "staffOnly" : "false",
+            "holdingsNoteTypeId" : "84472b16-e66e-47d7-8ae9-f9720bc971f8"
+          }, {
+            "note" : "Göttinger Dissertationen, Bd. 197. Sammelband 1 A - D (1962)",
+            "staffOnly" : "false",
+            "holdingsNoteTypeId" : "84472b16-e66e-47d7-8ae9-f9720bc971f8"
+          } ],
+          "sourceId" : "fa687f33-aab5-4119-b0ad-05afe8de4d92",
+          "callNumber" : "XXIX, 100",
+          "illPolicyId" : null,
+          "holdingsTypeId" : "0c422f92-0f4d-4d32-8cbe-390ebc33a3e5",
+          "callNumberPrefix" : "7/037",
+          "electronicAccess" : [ ],
           "discoverySuppress" : "false",
-          "descriptionOfPieces" : null,
-          "permanentLoanTypeId" : "3ef6d652-2e02-4561-8f7b-720cbccde87f"
-        } ],
-        "notes" : [ ],
-        "sourceId" : "fa687f33-aab5-4119-b0ad-05afe8de4d92",
-        "callNumber" : "13 VII 1",
-        "illPolicyId" : null,
-        "holdingsTypeId" : "0c422f92-0f4d-4d32-8cbe-390ebc33a3e5",
-        "callNumberPrefix" : "7/200",
-        "electronicAccess" : [ ],
-        "discoverySuppress" : "false",
-        "holdingsStatements" : null,
-        "administrativeNotes" : [ "05-10-11, 13:45 (7903: Datum und Uhrzeit der letzten Änderung)" ],
-        "permanentLocationId" : "82aabbe5-bbc0-4c1e-a8cd-a8c1f34729ce"
-      } ]
-    }
-  },
-  {
+          "holdingsStatements" : null,
+          "administrativeNotes" : [ "23-07-18, 20:37 (7903: Datum und Uhrzeit der letzten Änderung)" ],
+          "permanentLocationId" : "e418d287-5e5d-41a9-bf4a-a90d369417f5"
+        }, {
+          "hrid" : "274840278",
+          "items" : [ {
+            "hrid" : "274840278",
+            "status" : {
+              "name" : "Available"
+            },
+            "volume" : null,
+            "chronology" : null,
+            "copyNumber" : null,
+            "enumeration" : null,
+            "materialTypeId" : "1a54b431-2e4f-452d-9cae-9cee66c9a892",
+            "accessionNumber" : "A 1831/62",
+            "discoverySuppress" : "false",
+            "descriptionOfPieces" : null,
+            "permanentLoanTypeId" : "3ef6d652-2e02-4561-8f7b-720cbccde87f"
+          } ],
+          "notes" : [ ],
+          "sourceId" : "fa687f33-aab5-4119-b0ad-05afe8de4d92",
+          "callNumber" : "13 VII 1",
+          "illPolicyId" : null,
+          "holdingsTypeId" : "0c422f92-0f4d-4d32-8cbe-390ebc33a3e5",
+          "callNumberPrefix" : "7/200",
+          "electronicAccess" : [ ],
+          "discoverySuppress" : "false",
+          "holdingsStatements" : null,
+          "administrativeNotes" : [ "05-10-11, 13:45 (7903: Datum und Uhrzeit der letzten Änderung)" ],
+          "permanentLocationId" : "82aabbe5-bbc0-4c1e-a8cd-a8c1f34729ce"
+        } ]
+      }
+    },
+    {
       "id": "4bac651e-365b-4428-b2ea-ddc1b99c15b0",
       "importJobId": "42ae09ec-8afd-41dc-b529-ac112a607271",
       "recordNumber": "022560017",

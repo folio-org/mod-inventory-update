@@ -975,7 +975,7 @@ public class ImportTests extends InventoryUpdateTestBase {
     postJsonObject(Service.PATH_CHANNELS, Files.JSON_CHANNEL);
     postJsonObject(Service.PATH_IMPORT_JOBS, Files.JSON_IMPORT_JOB);
     postJsonObject(Service.PATH_FAILED_RECORDS, Files.JSON_FAILED_RECORDS);
-    getRecords(Service.PATH_FAILED_RECORDS).body("totalRecords", is(5));
+    getRecords(Service.PATH_FAILED_RECORDS).body("totalRecords", is(6));
     JsonObject failedRecords = new JsonObject(getRecords(Service.PATH_FAILED_RECORDS).extract().asPrettyString());
     String id = failedRecords.getJsonArray("failedRecords").getJsonObject(0).getString("id");
     getRecordById(PATH_FAILED_RECORDS, UUID.randomUUID().toString(), 404);

@@ -67,7 +67,10 @@ public class RecordFailure extends Entity {
                        String timeStamp, String originalRecord, JsonArray recordErrors, JsonObject transformedRecord,
                        String sourceFileName) {
     theRecord = new FailedRecord(id, importJobId, channelId, channelName, recordNumber, timeStamp,
-        originalRecord, recordErrors, transformedRecord, sourceFileName);
+        originalRecord == null ? "" : originalRecord,
+        recordErrors == null ? new JsonArray() : recordErrors,
+        transformedRecord == null ? new JsonObject() : transformedRecord,
+        sourceFileName);
   }
 
   /**

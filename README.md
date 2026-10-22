@@ -1290,7 +1290,7 @@ entities from storage and get the latest version numbers from that anyway.
 
 ## Prerequisites
 
-- Java 21 JDK
+- Java 25 JDK
 - Maven 3.3.9
 
 ## Building

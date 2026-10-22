@@ -18,6 +18,7 @@ import org.testcontainers.containers.Network;
 import org.testcontainers.containers.NginxContainer;
 import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.containers.output.Slf4jLogConsumer;
+import org.testcontainers.containers.wait.strategy.Wait;
 import org.testcontainers.images.builder.ImageFromDockerfile;
 import org.testcontainers.images.builder.Transferable;
 import org.testcontainers.junit.jupiter.Container;
@@ -26,10 +27,6 @@ import org.testcontainers.kafka.KafkaContainer;
 import org.testcontainers.utility.DockerImageName;
 
 @Testcontainers
-/**
- * Integration test to ensure that the generated fat jar file and the generated Docker image
- * work.
- */
 class InventoryUpdateIT {
   public static final String DEFAULT_POSTGRESQL_IMAGE_NAME = "postgres:16-alpine";
   public static final String POSTGRESQL_IMAGE_NAME =
@@ -81,10 +78,12 @@ class InventoryUpdateIT {
   static final GenericContainer<?> MOD_INVENTORY_UPDATE =
       new GenericContainer<>(
           new ImageFromDockerfile("mod-inventory-update").withFileFromPath(".", Path.of(".")))
-      .withExposedPorts(8080)
-      .withNetwork(NETWORK)
-      .withNetworkAliases("mod-inventory-update")
-      .withStartupAttempts(STARTUP_ATTEMPTS);
+          .withExposedPorts(8080)
+          .waitingFor(Wait.forHttp("/admin/health")
+              .forPort(8080).forStatusCode(200))
+          .withNetwork(NETWORK)
+          .withNetworkAliases("mod-inventory-update")
+          .withStartupAttempts(STARTUP_ATTEMPTS);
 
   /** mock okapi */
   @Container
@@ -92,6 +91,9 @@ class InventoryUpdateIT {
       new NginxContainer<>("nginx:alpine-slim")
       .dependsOn(MOD_INVENTORY_STORAGE, MOD_INVENTORY_UPDATE)
       .withExposedPorts(9130)
+      .waitingFor(Wait.forHttp("/user-tenants")
+          .forPort(9130)
+          .forStatusCode(200))
       .withNetwork(NETWORK)
       .withNetworkAliases("okapi")
       .withCopyToContainer(Transferable.of("""
@@ -141,7 +143,7 @@ class InventoryUpdateIT {
       }
     }
 
-    RestAssured.baseURI = "http://" + OKAPI.getHost() + ":" + OKAPI.getFirstMappedPort();
+    RestAssured.baseURI = "http://" + OKAPI.getHost() + ":" + OKAPI.getMappedPort(9130);
     RestAssured.enableLoggingOfRequestAndResponseIfValidationFails();
 
     enableModInventoryStorage();

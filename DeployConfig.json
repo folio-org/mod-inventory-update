@@ -1,38 +1,53 @@
 {
-  "description": "Deployment configuration for mod-inventory-update using folio-vertx-lib 4.0.1 and Vert.x 5.0.4. Reference baseline: bugfest with 3 standalone tenants and 11 consortia tenants. Baseline deployment settings were not supplied: values below are source defaults, not verified bugfest measurements. Null environment values require deployment-specific input or retain library defaults as described. CPU, memory reservation and sidecar recommendations remain unspecified pending baseline verification. Sources: descriptors/ModuleDescriptor-template.json, Dockerfile, README.md (Deployment note), and https://github.com/folio-org/folio-vertx-lib/blob/v4.0.1/core/src/main/java/org/folio/tlib/postgres/impl/TenantPgPoolImpl.java. No sidecar implementation or version is specified by this module; empty sidecar arrays indicate recommendations are pending, not that a sidecar needs no configuration. HTTP port is a JVM system property (http.port or port, default 8080), not an environment variable. Tenant-level import settings are outside this artifact\u2019s scope.",
+  "description": "mod-inventory-update deployment configuration. Reference baseline: Trillium bugfest with 3 standalone tenants and 11 consortia tenants. Resource and JVM defaults follow https://folio-org.atlassian.net/wiki/spaces/REL/pages/1034125338. Environment-specific database settings and secrets must be supplied at deployment; optional database tuning retains folio-vertx-lib 4.0.1 and Vert.x 5.0.4 defaults. The single-replica recommendation follows the README import API constraint rather than the baseline table’s two instances. Sidecar resources and JVM settings use the baseline table’s generic sidecar defaults; sidecar environment variables are owned by folio-module-sidecar.",
   "moduleDefaults": {
     "resources": [
       {
+        "name": "cpu",
+        "value": "64",
+        "description": "Container CPU allocation in ECS CPU units (1024 units = 1 vCPU); bugfest default for modules without a CPU override."
+      },
+      {
         "name": "memory",
-        "value": "357913941",
-        "description": "Container memory hard limit in bytes from ModuleDescriptor launchDescriptor.dockerArgs.HostConfig.Memory; not verified against bugfest."
+        "value": "1024",
+        "description": "Container memory hard limit in MiB, matching the Trillium bugfest baseline."
+      },
+      {
+        "name": "memoryReservation",
+        "value": "896",
+        "description": "Container memory reservation in MiB, matching the Trillium bugfest baseline."
       }
     ],
     "java": [
       {
-        "name": "MaxRAMPercentage",
-        "value": "66.0",
-        "description": "Maximum heap percentage of container memory, matching ModuleDescriptor JAVA_OPTIONS."
+        "name": "xmx",
+        "value": "768m",
+        "description": "Maximum Java heap size, matching the Trillium bugfest baseline."
+      },
+      {
+        "name": "MaxMetaspaceSize",
+        "value": "128m",
+        "description": "Maximum Java metaspace size, matching the Trillium bugfest baseline."
       }
     ],
     "deployment": {
       "isHaSupported": false,
       "replicasRecommendedCount": 1,
-      "description": "README Deployment note: import APIs do not support multiple running module instances. Run one replica and avoid overlapping replicas during rollout."
+      "description": "Import APIs do not support multiple running instances (README Deployment note); use one replica and avoid overlapping replicas during rollout, despite the baseline table listing two instances."
     },
     "kong": {
       "timeouts": {
         "connect": "60s",
         "send": "60s",
-        "read": "60s"
+        "read": "120s"
       },
-      "description": "Provisional standard Kong proxy timeouts, following mod-circulation and mod-orders DeployConfig.json conventions. No module-specific timeout is defined in this repository; verify against the bugfest gateway before adoption."
+      "description": "Connect and send use standard Kong timeouts; allow 120 seconds for synchronous inventory batch updates, following the implementation guide’s general recommendation; tune for the longest legitimate request."
     },
     "EnvVars": [
       {
         "name": "JAVA_OPTIONS",
-        "value": "-XX:MaxRAMPercentage=66.0",
-        "description": "JVM options consumed by the container launcher; matches ModuleDescriptor and the java section.",
+        "value": "-Xmx768m -XX:MaxMetaspaceSize=128m",
+        "description": "JVM options for the container launcher, matching the bugfest heap and metaspace defaults in the java section; overrides the descriptor’s percentage-based heap setting.",
         "type": "CONFIG",
         "essential": false
       },
@@ -62,7 +77,7 @@
         "value": "5432",
         "description": "PostgreSQL port; standard Vert.x PostgreSQL client default.",
         "type": "DB",
-        "essential": true
+        "essential": false
       },
       {
         "name": "DB_DATABASE",
@@ -123,8 +138,35 @@
     ]
   },
   "sidecarDefaults": {
-    "resources": [],
-    "java": [],
+    "resources": [
+      {
+        "name": "cpu",
+        "value": "64",
+        "description": "Sidecar CPU allocation in ECS CPU units; bugfest default for sidecars without a CPU override."
+      },
+      {
+        "name": "memory",
+        "value": "1024",
+        "description": "Sidecar memory hard limit in MiB, matching the generic bugfest sidecar baseline."
+      },
+      {
+        "name": "memoryReservation",
+        "value": "512",
+        "description": "Sidecar memory reservation in MiB, matching the generic bugfest sidecar baseline."
+      }
+    ],
+    "java": [
+      {
+        "name": "xmx",
+        "value": "256m",
+        "description": "Maximum sidecar Java heap size, matching the generic bugfest sidecar baseline."
+      },
+      {
+        "name": "MaxMetaspaceSize",
+        "value": "96m",
+        "description": "Maximum sidecar Java metaspace size, matching the generic bugfest sidecar baseline."
+      }
+    ],
     "EnvVars": []
   }
 }

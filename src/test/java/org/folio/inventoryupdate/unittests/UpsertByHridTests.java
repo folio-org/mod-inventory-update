@@ -2767,9 +2767,52 @@ public class UpsertByHridTests extends InventoryUpdateTestBase {
         "Upsert metrics response should report [1] item update completed " + responseJson.encodePrettily());
     testContext.assertEquals(getMetric(responseJson, ITEM, UPDATE , COMPLETED), 1,
         "Upsert metrics response should report [1] item update completed " + responseJson.encodePrettily());
-
   }
 
+  @Test
+  public void upsertWithRecurringItemHridWithinSameInstanceIsAccepted (TestContext testContext) {
+    BatchOfInventoryRecordSets batch = new BatchOfInventoryRecordSets();
+    batch.addRecordSet(new JsonObject()
+        .put("instance",
+            new InputInstance().setHrid("001")
+                .setTitle("InputInstance v1").setInstanceTypeId("12345").setSource("test").getJson())
+        .put("holdingsRecords", new JsonArray()
+            .add(new InputHoldingsRecord()
+                .setHrid("H001")
+                .setPermanentLocationId(LOCATION_ID_1)
+                .getJson()
+                .put("items", new JsonArray()
+                    .add(new InputItem()
+                        .setStatus(STATUS_UNKNOWN)
+                        .setMaterialTypeId(MATERIAL_TYPE_TEXT)
+                        .setHrid("I001")
+                        .getJson())
+                    .add(new InputItem()
+                        .setStatus(STATUS_UNKNOWN)
+                        .setMaterialTypeId(MATERIAL_TYPE_TEXT)
+                        .setHrid("I001")
+                        .getJson())))));
+    batchUpsertByHrid(200, batch.getJson());
+  }
+
+  @Test
+  public void upsertWithRecurringHoldingsHridWithinSameInstanceIsAccepted (TestContext testContext) {
+    BatchOfInventoryRecordSets batch = new BatchOfInventoryRecordSets();
+    batch.addRecordSet(new JsonObject()
+        .put("instance",
+            new InputInstance().setHrid("001")
+                .setTitle("InputInstance v1").setInstanceTypeId("12345").setSource("test").getJson())
+        .put("holdingsRecords", new JsonArray()
+            .add(new InputHoldingsRecord()
+                .setHrid("H001")
+                .setPermanentLocationId(LOCATION_ID_1)
+                .getJson())
+            .add(new InputHoldingsRecord()
+                .setHrid("H001")
+                .setPermanentLocationId(LOCATION_ID_1)
+                .getJson())));
+    batchUpsertByHrid(200, batch.getJson());
+  }
 
   @Test
   public void upsertByHridWillReturnErrorResponseOnMissingInstanceInRequestBody (TestContext testContext) {

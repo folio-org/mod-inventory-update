@@ -1,3 +1,12 @@
+## 5.2.2 2026-10-21
+
+* [MODINVUP-236](https://issues.folio.org/browse/MODINVUP-236) Support XSLT 1.0, 2.0, 3.0
+* [MODINVUP-239](https://issues.folio.org/browse/MODINVUP-239) Allow duplicate holdings/items HRIDs in instance upsert
+* [MODINVUP-214](https://issues.folio.org/browse/MODINVUP-214) Make tenant-id/module/user-id available for logging inside import processes
+* [MODINVUP-198](https://issues.folio.org/browse/MODINVUP-198), [MODINVUP-205](https://issues.folio.org/browse/MODINVUP-205) Retain file queue by default on disable/enable
+* [MODINVUP-240](https://issues.folio.org/browse/MODINVUP-240) Fix job status after resumption /w skip-current and only one file in queue
+* [MODINVUP-241](https://issues.folio.org/browse/MODINVUP-241) Ensure failed record is saved even when missing original, transformed, or errors
+
 ## 5.2.1 2026-08-10
 
 * [MODINVUP-232](https://issues.folio.org/browse/MODINVUP-232) Remove misleading count on collection element in failed record log

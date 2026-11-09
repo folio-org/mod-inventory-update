@@ -1419,6 +1419,22 @@ public class ImportTests extends InventoryUpdateTestBase {
         .extract().path("metrics.INSTANCE.CREATE.COMPLETED")), is(3));
     await().until(() -> getRecordById(PATH_CHANNELS, channelId).extract().body().path("queuedFiles"),
         equalTo(0));
+    given()
+        .baseUri(BASE_URI_INVENTORY_UPDATE)
+        .header(Service.OKAPI_TENANT)
+        .header(Service.OKAPI_URL)
+        .header(Service.OKAPI_TOKEN)
+        .delete(Service.PATH_CHANNELS + "/" + channelId + "?force=true")
+        .then().statusCode(200);
+    await().until(() -> (given()
+        .baseUri(BASE_URI_INVENTORY_UPDATE)
+        .header(Service.OKAPI_TENANT)
+        .header(Service.OKAPI_URL)
+        .header(Service.OKAPI_TOKEN)
+        .get(Service.PATH_METRICS)
+        .then().statusCode(200)
+        .extract().path("metrics.INSTANCE.CREATE.COMPLETED")), is(0));
+
   }
 
   @Test

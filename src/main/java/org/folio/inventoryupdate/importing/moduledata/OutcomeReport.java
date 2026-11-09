@@ -141,11 +141,8 @@ public class OutcomeReport extends TableCreator {
           logger.error(msg);
           Future.failedFuture(msg);
         }).compose(rowSet -> {
-          if (rowSet.iterator().hasNext()) {
-            return Future.succeededFuture(rowSet.iterator().next().getInteger("count"));
-          } else {
-            return Future.succeededFuture(0);
-          }
+          Integer count = rowSet.iterator().next().getInteger("count");
+          return Future.succeededFuture(count == null ? Integer.valueOf(0) : count);
         });
   }
 
@@ -154,13 +151,13 @@ public class OutcomeReport extends TableCreator {
       "CREATE TABLE IF NOT EXISTS " + pool.getSchema() + "." + "processed_file "
           + " (id UUID PRIMARY KEY, "
           + "  filename TEXT, "
-          + "  channel_id UUID REFERENCES " + pool.getSchema() + "." + Tables.CHANNEL + "(id), "
+          + "  channel_id UUID REFERENCES " + pool.getSchema() + "." + Tables.CHANNEL + "(id) ON DELETE CASCADE, "
           + "  started TIMESTAMP, "
           + "  finished TIMESTAMP, "
           + "  source_records INTEGER )",
       "CREATE TABLE IF NOT EXISTS " + pool.getSchema() + "." + "outcome "
           + " (id UUID PRIMARY KEY, "
-          + "  processed_file_id UUID REFERENCES " + pool.getSchema() + ".processed_file (id), "
+          + "  processed_file_id UUID REFERENCES " + pool.getSchema() + ".processed_file (id) ON DELETE CASCADE, "
           + "  entity TEXT, "
           + "  transaction TEXT, "
           + "  outcome TEXT, "

@@ -601,6 +601,12 @@ paths:
           description: end of date range for calculating metrics (inclusive)
           schema:
             type: string
+        - in: query
+          name: channelId
+          required: false
+          description: restrict the metrics to the specified channel ID
+          schema:
+            type: string
       responses:
         "200":
           description: Summary of outcomes, potentially for a channel and a date range
@@ -1362,65 +1368,72 @@ components:
       type: object
       description: summary of outcomes of transactions against Inventory Storage
       properties:
-        channelName:
-          type: string
-          description: name of the channel, if any, that the summary was calculated for
-        from:
+        fromDate:
           type: string
           description: from timestamp, if any, for calculation of summary
-        to:
+        untilDate:
           type: string
           description: to timestamp, if any, for calculation of summary
-        INSTANCE:
+        channelId:
+          type: string
+          description: ID of the channel, if any, that the summary was calculated for
+        sourceRecords:
+          type: integer
+          description: Number of incoming records processed
+        metrics:
           type: object
-          description: "Reports the number of operations performed on instance records by transaction type and outcome."
+          description: summaries of record updates
           properties:
-            CREATE:
-              $ref: '#/components/schemas/outcomes'
-            UPDATE:
-              $ref: '#/components/schemas/outcomes'
-            DELETE:
-              $ref: '#/components/schemas/outcomes'
-        HOLDINGS_RECORD:
-          type: object
-          description: "Reports the number of operations performed on holdings records by transaction type and outcome."
-          properties:
-            CREATE:
-              $ref: '#/components/schemas/outcomes'
-            UPDATE:
-              $ref: '#/components/schemas/outcomes'
-            DELETE:
-              $ref: '#/components/schemas/outcomes'
-        ITEM:
-          type: object
-          description: "Reports the number of operations performed on item records by transaction type and outcome."
-          properties:
-            CREATE:
-              $ref: '#/components/schemas/outcomes'
-            UPDATE:
-              $ref: '#/components/schemas/outcomes'
-            DELETE:
-              $ref: '#/components/schemas/outcomes'
-        INSTANCE_RELATION_SHIP:
-          type: object
-          description: "Reports the number of operations performed for the instance's parent-child relationships."
-          properties:
-            CREATE:
-              $ref: '#/components/schemas/outcomes'
-            DELETE:
-              $ref: '#/components/schemas/outcomes'
-            PROVISIONAL_INSTANCE:
-              $ref: '#/components/schemas/outcomes'
-        INSTANCE_TITLE_SUCCESSION:
-          type: object
-          description: "Reports the number of operations performed for the instance's preceding-succeeding relationships."
-          properties:
-            CREATE:
-              $ref: '#/components/schemas/outcomes'
-            DELETE:
-              $ref: '#/components/schemas/outcomes'
-            PROVISIONAL_INSTANCE:
-              $ref: '#/components/schemas/outcomes'
+            INSTANCE:
+              type: object
+              description: "Reports the number of operations performed on instance records by transaction type and outcome."
+              properties:
+                CREATE:
+                  $ref: '#/components/schemas/outcomes'
+                UPDATE:
+                  $ref: '#/components/schemas/outcomes'
+                DELETE:
+                  $ref: '#/components/schemas/outcomes'
+            HOLDINGS_RECORD:
+              type: object
+              description: "Reports the number of operations performed on holdings records by transaction type and outcome."
+              properties:
+                CREATE:
+                  $ref: '#/components/schemas/outcomes'
+                UPDATE:
+                  $ref: '#/components/schemas/outcomes'
+                DELETE:
+                  $ref: '#/components/schemas/outcomes'
+            ITEM:
+              type: object
+              description: "Reports the number of operations performed on item records by transaction type and outcome."
+              properties:
+                CREATE:
+                  $ref: '#/components/schemas/outcomes'
+                UPDATE:
+                  $ref: '#/components/schemas/outcomes'
+                DELETE:
+                  $ref: '#/components/schemas/outcomes'
+            INSTANCE_RELATIONSHIP:
+              type: object
+              description: "Reports the number of operations performed for the instance's parent-child relationships."
+              properties:
+                CREATE:
+                  $ref: '#/components/schemas/outcomes'
+                DELETE:
+                  $ref: '#/components/schemas/outcomes'
+                PROVISIONAL_INSTANCE:
+                  $ref: '#/components/schemas/outcomes'
+            INSTANCE_TITLE_SUCCESSION:
+              type: object
+              description: "Reports the number of operations performed for the instance's preceding-succeeding relationships."
+              properties:
+                CREATE:
+                  $ref: '#/components/schemas/outcomes'
+                DELETE:
+                  $ref: '#/components/schemas/outcomes'
+                PROVISIONAL_INSTANCE:
+                  $ref: '#/components/schemas/outcomes'
 
     outcomes:  # in metrics
       type: object

@@ -1409,7 +1409,16 @@ public class ImportTests extends InventoryUpdateTestBase {
         + "?query=line=File #1 and line=inventoryRecordSet012.xml"), is(1));
     await().until(() -> getTotalRecords(Service.PATH_JOB_LOGS
         + "?query=line=File #2 and line=inventoryRecordSet123.xml"), is(1));
-
+    await().until(() -> (given()
+        .baseUri(BASE_URI_INVENTORY_UPDATE)
+        .header(Service.OKAPI_TENANT)
+        .header(Service.OKAPI_URL)
+        .header(Service.OKAPI_TOKEN)
+        .get(Service.PATH_METRICS)
+        .then().statusCode(200)
+        .extract().path("metrics.INSTANCE.CREATE.COMPLETED")), is(3));
+    await().until(() -> getRecordById(PATH_CHANNELS, channelId).extract().body().path("queuedFiles"),
+        equalTo(0));
   }
 
   @Test

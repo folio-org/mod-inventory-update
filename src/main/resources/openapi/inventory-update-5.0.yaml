@@ -882,39 +882,39 @@ components:
           type: object
           description: "Reports the number of operations performed on instance records by transaction type and outcome."
           properties:
-            CREATED:
+            CREATE:
               $ref: '#/components/schemas/outcomes'
-            UPDATED:
+            UPDATE:
               $ref: '#/components/schemas/outcomes'
-            DELETED:
+            DELETE:
               $ref: '#/components/schemas/outcomes'
         HOLDINGS_RECORD:
           type: object
           description: "Reports the number of operations performed on holdings records by transaction type and outcome."
           properties:
-            CREATED:
+            CREATE:
               $ref: '#/components/schemas/outcomes'
-            UPDATED:
+            UPDATE:
               $ref: '#/components/schemas/outcomes'
-            DELETED:
+            DELETE:
               $ref: '#/components/schemas/outcomes'
         ITEM:
           type: object
           description: "Reports the number of operations performed on item records by transaction type and outcome."
           properties:
-            CREATED:
+            CREATE:
               $ref: '#/components/schemas/outcomes'
-            UPDATED:
+            UPDATE:
               $ref: '#/components/schemas/outcomes'
-            DELETED:
+            DELETE:
               $ref: '#/components/schemas/outcomes'
         INSTANCE_RELATION_SHIP:
           type: object
           description: "Reports the number of operations performed for the instance's parent-child relationships."
           properties:
-            CREATED:
+            CREATE:
               $ref: '#/components/schemas/outcomes'
-            DELETED:
+            DELETE:
               $ref: '#/components/schemas/outcomes'
             PROVISIONAL_INSTANCE:
               $ref: '#/components/schemas/outcomes'
@@ -922,29 +922,29 @@ components:
           type: object
           description: "Reports the number of operations performed for the instance's preceding-succeeding relationships."
           properties:
-            CREATED:
+            CREATE:
               $ref: '#/components/schemas/outcomes'
-            DELETED:
+            DELETE:
               $ref: '#/components/schemas/outcomes'
             PROVISIONAL_INSTANCE:
               $ref: '#/components/schemas/outcomes'
 
     outcomes:  # in metrics
       type: object
-      description: "Reports the number of different outcomes of operations of a given type per entity type."
+      description: "Reports the number of different outcomes of operations of a given type."
       properties:
         COMPLETED:
           type: integer
-          description: "Number of successfully completed operations of a given type per entity type."
+          description: "Number of successfully completed operations of a given type."
         FAILED:
           type: integer
-          description: "Number of failed operations of a given type per entity type."
+          description: "Number of failed operations of a given type."
         SKIPPED:
           type: integer
-          description: "Number of skipped operations of a given type per entity type."
+          description: "Number of skipped operations of a given type."
         PENDING:
           type: integer
-          description: "Number operations of a given type that were unresolved per entity type"
+          description: "Number operations of a given type that were unresolved."
 
     instance:
       type: object

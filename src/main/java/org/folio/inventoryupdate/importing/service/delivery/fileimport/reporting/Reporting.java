@@ -52,6 +52,7 @@ public class Reporting {
         fileStats.put(new FileStats(fileName));
         return Future.succeededFuture();
       } catch (InterruptedException ie) {
+        Thread.currentThread().interrupt();
         String msg = String.format("Initialisation of file stats interrupted: %s", ie.getMessage());
         logger.error(msg);
         return Future.failedFuture(msg);
@@ -101,15 +102,15 @@ public class Reporting {
   public void reportFileStats() {
     try {
       if (!fileStats.isEmpty()) {
-        FileStats fileStats = this.fileStats.peek();
-        assert fileStats != null;
-        outcomeReport.fileProcessed(fileStats.getRecordsProcessed()); // async
-        log("File #" + filesProcessed.get() + " (" + fileStats.getFileName() + ") "
-            + fileStats.getRecordsProcessed() + " records in " + processingTimeAsString(fileStats.processingTimeNanos())
+        FileStats stats = this.fileStats.peek();
+        assert stats != null;
+        outcomeReport.fileProcessed(stats.getRecordsProcessed()); // async
+        log("File #" + filesProcessed.get() + " (" + stats.getFileName() + ") "
+            + stats.getRecordsProcessed() + " records in " + processingTimeAsString(stats.processingTimeNanos())
             + " ("
-            + (fileStats.getRecordsProcessed() * NANOS_PER_SECOND / fileStats.processingTimeNanos())
+            + (stats.getRecordsProcessed() * NANOS_PER_SECOND / stats.processingTimeNanos())
             + " recs/s.)")
-            .compose(na -> log("File: " + fileStats.getInventoryMetrics().report()));
+            .compose(na -> log("File: " + stats.getInventoryMetrics().report()));
         this.fileStats.take();
       } else {
         logger.info("reportFileStats(): Queue was empty");

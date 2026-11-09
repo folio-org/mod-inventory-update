@@ -168,7 +168,7 @@ public class OutcomeReport extends TableCreator {
           + "   ('CREATE', 'UPDATE', 'DELETE', 'PROVISIONAL_INSTANCE')), "
           + "CONSTRAINT supported_outcomes CHECK (outcome in "
           + "   ('COMPLETED', 'FAILED', 'SKIPPED', 'PENDING')))"};
-    logger.info("Create outcome tables: {}", Arrays.toString(statements));
+    logger.info("Create outcome tables: {}", () -> Arrays.toString(statements));
     return executeSqlStatements(pool, statements).mapEmpty();
   }
 }

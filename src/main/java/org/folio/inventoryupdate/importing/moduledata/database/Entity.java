@@ -102,6 +102,7 @@ public abstract class Entity extends TableCreator {
         .mapEmpty();
   }
 
+  @Override
   protected Future<RowSet<Row>> executeSqlStatements(TenantPgPool pool, String... statements) {
     Future<RowSet<Row>> future = Future.succeededFuture();
     for (var sql : statements) {

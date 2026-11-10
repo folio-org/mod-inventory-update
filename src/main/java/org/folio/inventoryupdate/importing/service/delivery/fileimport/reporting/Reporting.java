@@ -83,7 +83,7 @@ public class Reporting {
     recordsProcessed.addAndGet(delta);
     if (fileStats.peek() != null) {
       fileStats.peek().incrementRecordsProcessed(delta);
-      outcomeReport.updateRecordCount(recordsProcessed.get());
+      outcomeReport.incrementRecordCount(delta);
     }
   }
 
@@ -108,7 +108,7 @@ public class Reporting {
       if (!fileStats.isEmpty()) {
         FileStats stats = this.fileStats.peek();
         assert stats != null;
-        outcomeReport.fileProcessed(stats.getRecordsProcessed()); // async
+        outcomeReport.fileProcessed(); // async
         log("File #" + filesProcessed.get() + " (" + stats.getFileName() + ") "
             + stats.getRecordsProcessed() + " records in " + processingTimeAsString(stats.processingTimeNanos())
             + " ("

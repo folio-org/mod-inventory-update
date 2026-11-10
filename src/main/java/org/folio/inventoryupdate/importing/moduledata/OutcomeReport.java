@@ -39,29 +39,28 @@ public class OutcomeReport extends TableCreator {
     reportId = UUID.randomUUID();
     logger.info("init with {}", reportId);
     String stmt = "INSERT INTO " + pool.getSchema() + ".processed_file "
-        + " (id, filename, channel_id, started) "
-        + " VALUES ( $1, $2, $3, statement_timestamp()) ";
+        + " (id, filename, channel_id, started, source_records) "
+        + " VALUES ( $1, $2, $3, statement_timestamp(), 0) ";
     return pool.preparedQuery(stmt).execute(Tuple.of(reportId, filename, channelId))
         .onFailure(f ->
             logger.error("Error initiating outcome counts for channel ID {} and filename {}: {}",
                 channelId, filename, f.getMessage())).mapEmpty();
   }
 
-  public void fileProcessed(int sourceRecordCount) {
+  public void fileProcessed() {
     String stmt = "UPDATE " + pool.getSchema() + ".processed_file "
-        + " SET finished = statement_timestamp(), "
-        + "     source_records = $2 "
+        + " SET finished = statement_timestamp() "
         + " WHERE id = $1 ";
-    pool.preparedQuery(stmt).execute(Tuple.of(reportId, sourceRecordCount))
+    pool.preparedQuery(stmt).execute(Tuple.of(reportId))
         .onFailure(f ->
             logger.error("Error finalising record count for repot ID {}", reportId)).mapEmpty();
   }
 
-  public void updateRecordCount(int sourceRecordCount) {
+  public void incrementRecordCount(int delta) {
     String stmt = "UPDATE " + pool.getSchema() + ".processed_file "
-        + " SET source_records = $2 "
+        + " SET source_records = source_records + $2 "
         + " WHERE id = $1 ";
-    pool.preparedQuery(stmt).execute(Tuple.of(reportId, sourceRecordCount))
+    pool.preparedQuery(stmt).execute(Tuple.of(reportId, delta))
         .onFailure(f ->
             logger.error("Error updating record count for report ID {}", reportId)).mapEmpty();
   }

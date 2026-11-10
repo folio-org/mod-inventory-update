@@ -64,7 +64,6 @@ public class OutcomeReport extends TableCreator {
     pool.preparedQuery(stmt).execute(Tuple.of(reportId, sourceRecordCount))
         .onFailure(f ->
             logger.error("Error updating record count for report ID {}", reportId)).mapEmpty();
-
   }
 
   public void storeOutcomeCounts(List<InventoryMetrics.Count> counts) {

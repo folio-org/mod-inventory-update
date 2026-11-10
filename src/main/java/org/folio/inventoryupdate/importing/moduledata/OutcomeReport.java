@@ -54,7 +54,17 @@ public class OutcomeReport extends TableCreator {
         + " WHERE id = $1 ";
     pool.preparedQuery(stmt).execute(Tuple.of(reportId, sourceRecordCount))
         .onFailure(f ->
-            logger.error("Error finalising outcome counts for repot ID {}", reportId)).mapEmpty();
+            logger.error("Error finalising record count for repot ID {}", reportId)).mapEmpty();
+  }
+
+  public void updateRecordCount(int sourceRecordCount) {
+    String stmt = "UPDATE " + pool.getSchema() + ".processed_file "
+        + " SET source_records = $2 "
+        + " WHERE id = $1 ";
+    pool.preparedQuery(stmt).execute(Tuple.of(reportId, sourceRecordCount))
+        .onFailure(f ->
+            logger.error("Error updating record count for report ID {}", reportId)).mapEmpty();
+
   }
 
   public void storeOutcomeCounts(List<InventoryMetrics.Count> counts) {
@@ -155,6 +165,8 @@ public class OutcomeReport extends TableCreator {
           + "  started TIMESTAMP, "
           + "  finished TIMESTAMP, "
           + "  source_records INTEGER )",
+      "CREATE INDEX IF NOT EXISTS processed_file_channel_id_idx ON "
+          + pool.getSchema() + ".processed_file (channel_id)",
       "CREATE TABLE IF NOT EXISTS " + pool.getSchema() + "." + "outcome "
           + " (id UUID PRIMARY KEY, "
           + "  processed_file_id UUID REFERENCES " + pool.getSchema() + ".processed_file (id) ON DELETE CASCADE, "
@@ -167,7 +179,9 @@ public class OutcomeReport extends TableCreator {
           + "CONSTRAINT supported_transactions CHECK (transaction in "
           + "   ('CREATE', 'UPDATE', 'DELETE', 'PROVISIONAL_INSTANCE')), "
           + "CONSTRAINT supported_outcomes CHECK (outcome in "
-          + "   ('COMPLETED', 'FAILED', 'SKIPPED', 'PENDING')))"};
+          + "   ('COMPLETED', 'FAILED', 'SKIPPED', 'PENDING')))",
+      "CREATE INDEX IF NOT EXISTS outcome_processed_file_id_idx ON "
+          + pool.getSchema() + ".outcome (processed_file_id)"};
     logger.info("Create outcome tables: {}", () -> Arrays.toString(statements));
     return executeSqlStatements(pool, statements).mapEmpty();
   }

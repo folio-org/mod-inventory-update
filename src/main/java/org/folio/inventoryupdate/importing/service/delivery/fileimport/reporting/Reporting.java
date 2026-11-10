@@ -48,6 +48,9 @@ public class Reporting {
     logger.info("Processing file {}", fileName);
     outcomeReport = new OutcomeReport(storage.getTenantPool());
     return outcomeReport.init(fileName, channelId).compose(na -> {
+      if (fileProcessor.paused()) {
+        return Future.failedFuture("File processing paused during initialization");
+      }
       try {
         fileStats.put(new FileStats(fileName));
         return Future.succeededFuture();
@@ -80,6 +83,7 @@ public class Reporting {
     recordsProcessed.addAndGet(delta);
     if (fileStats.peek() != null) {
       fileStats.peek().incrementRecordsProcessed(delta);
+      outcomeReport.updateRecordCount(recordsProcessed.get());
     }
   }
 

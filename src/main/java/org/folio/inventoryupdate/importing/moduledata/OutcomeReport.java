@@ -53,7 +53,8 @@ public class OutcomeReport extends TableCreator {
         + " WHERE id = $1 ";
     pool.preparedQuery(stmt).execute(Tuple.of(reportId))
         .onFailure(f ->
-            logger.error("Error finalising record count for repot ID {}", reportId)).mapEmpty();
+            logger.error("Error finalising record count for repot ID {}: {}", reportId,
+                f.getMessage())).mapEmpty();
   }
 
   public void incrementRecordCount(int delta) {
@@ -62,7 +63,8 @@ public class OutcomeReport extends TableCreator {
         + " WHERE id = $1 ";
     pool.preparedQuery(stmt).execute(Tuple.of(reportId, delta))
         .onFailure(f ->
-            logger.error("Error updating record count for report ID {}", reportId)).mapEmpty();
+            logger.error("Error updating record count for report ID {}: {}",
+                reportId, f.getMessage())).mapEmpty();
   }
 
   public void storeOutcomeCounts(List<InventoryMetrics.Count> counts) {

@@ -1003,7 +1003,7 @@
       }
     },
     "env": [
-      { "name": "JAVA_OPTIONS",
+      { "name": "JAVA_TOOL_OPTIONS",
         "value": "-XX:MaxRAMPercentage=66.0"
       }
     ]

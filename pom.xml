@@ -4,7 +4,7 @@
 
   <groupId>org.folio</groupId>
   <artifactId>mod-inventory-update</artifactId>
-  <version>5.2.3-SNAPSHOT</version>
+  <version>5.2.4-SNAPSHOT</version>
   <name>Inventory Update Module</name>
 
   <licenses>
@@ -277,7 +277,7 @@
         <artifactId>maven-compiler-plugin</artifactId>
         <version>3.14.0</version>
         <configuration>
-          <release>21</release>
+          <release>25</release>
           <compilerArgument>-Xlint:unchecked</compilerArgument>
           <encoding>UTF-8</encoding>
         </configuration>

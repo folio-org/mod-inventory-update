@@ -1,3 +1,7 @@
+## 5.2.3 2026-11-10
+
+* [MODINVUP-237](https://issues.folio.org/browse/MODINVUP-236) Add DeployConfig.json
+
 ## 5.2.2 2026-10-21
 
 * [MODINVUP-236](https://issues.folio.org/browse/MODINVUP-236) Support XSLT 1.0, 2.0, 3.0

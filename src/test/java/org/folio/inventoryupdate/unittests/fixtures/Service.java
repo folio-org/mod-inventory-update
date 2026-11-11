@@ -21,6 +21,7 @@ public class Service {
     public static final String PATH_IMPORT_JOBS = "inventory-import/import-jobs";
     public static final String PATH_FAILED_RECORDS = "inventory-import/failed-records";
     public static final String PATH_JOB_LOGS = "inventory-import/job-logs";
+    public static final String PATH_METRICS = "inventory-import/metrics";
     public static final Header OKAPI_TOKEN = new Header(XOkapiHeaders.TOKEN,"eyJhbGciOiJIUzUxMiJ9eyJzdWIiOiJhZG1pbiIsInVzZXJfaWQiOiI3OWZmMmE4Yi1kOWMzLTViMzktYWQ0YS0wYTg0MDI1YWIwODUiLCJ0ZW5hbnQiOiJ0ZXN0X3RlbmFudCJ9BShwfHcNClt5ZXJ8ImQTMQtAM1sQEnhsfWNmXGsYVDpuaDN3RVQ9");
     public static final Header OKAPI_USER_ID = new Header("X-Okapi-User-Id", UUID.randomUUID().toString());
 }

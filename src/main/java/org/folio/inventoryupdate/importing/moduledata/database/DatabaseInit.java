@@ -6,6 +6,7 @@ import org.apache.logging.log4j.Logger;
 import org.folio.inventoryupdate.importing.moduledata.Channel;
 import org.folio.inventoryupdate.importing.moduledata.ImportJob;
 import org.folio.inventoryupdate.importing.moduledata.LogLine;
+import org.folio.inventoryupdate.importing.moduledata.OutcomeReport;
 import org.folio.inventoryupdate.importing.moduledata.RecordFailure;
 import org.folio.inventoryupdate.importing.moduledata.Step;
 import org.folio.inventoryupdate.importing.moduledata.Transformation;
@@ -31,6 +32,7 @@ public final class DatabaseInit {
         .compose(na -> create(new RecordFailure(), pool))
         .compose(na -> create(new LogLine(), pool))
         .compose(na -> create(new TransformationStep(), pool))
+        .compose(na -> create(new OutcomeReport(), pool))
         .compose(na -> pool.query(createRecordFailureView(pool.getSchema())).execute())
         .compose(na -> pool.query(createJobLogsView(pool.getSchema())).execute())
         .compose(na -> pool.query(createSourceFile(pool.getSchema())).execute())
@@ -43,7 +45,7 @@ public final class DatabaseInit {
    * @param entity the domain object to persist
    * @param pool   the tenant specific Postgres pool.
    */
-  public static Future<Void> create(Entity entity, TenantPgPool pool) {
+  public static Future<Void> create(TableCreator entity, TenantPgPool pool) {
     return entity.createDatabase(pool)
         .onFailure(e -> logger.error("Error creating table [{}] or related objects: {}",
             entity.table(), e.getMessage()));

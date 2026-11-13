@@ -1,7 +1,7 @@
 package org.folio.inventoryupdate.updating;
 
 import io.vertx.core.Future;
-import io.vertx.core.Promise;
+import io.vertx.core.VertxException;
 import org.folio.inventoryupdate.updating.entities.HoldingsRecord;
 import org.folio.inventoryupdate.updating.entities.Instance;
 import org.folio.inventoryupdate.updating.entities.InventoryRecord;
@@ -27,25 +27,16 @@ public class DeletePlanAllHRIDs extends DeletePlan {
   }
 
   public Future<Void> planInventoryDelete(OkapiClient okapiClient, ProcessingInstructionsDeletion deleteInstructions) {
-    Promise<Void> promisedPlan = Promise.promise();
-    lookupExistingRecordSet(okapiClient, instanceQuery).onComplete(lookup -> {
-      if (lookup.succeeded()) {
-        this.existingSet = lookup.result();
-        if (foundExistingRecordSet()) {
+    return lookupExistingRecordSet(okapiClient, instanceQuery)
+        .compose(lookup -> {
+          this.existingSet = lookup;
+          if (!foundExistingRecordSet()) {
+            throw VertxException.noStackTrace("Instance to delete not found");
+          }
           getExistingRecordSet().setDeleteInstructions(deleteInstructions);
-          setDeleteConstraintIfReferencedByAcquisitions(okapiClient, getExistingInstance())
-              .onComplete(result-> {
-                planInventoryRecordsDeletes();
-                promisedPlan.complete();
-              });
-        } else {
-          promisedPlan.fail("Instance to delete not found");
-        }
-      } else {
-        promisedPlan.fail(lookup.cause().getMessage());
-      }
-    });
-    return promisedPlan.future();
+          return setDeleteConstraintIfReferencedByAcquisitions(okapiClient, getExistingInstance());
+        })
+        .onComplete(x -> planInventoryRecordsDeletes());
   }
 
   public static Future<Void> setDeleteConstraintIfReferencedByAcquisitions(OkapiClient okapiClient, Instance existingInstance) {
@@ -78,15 +69,7 @@ public class DeletePlanAllHRIDs extends DeletePlan {
 
   @Override
   public Future<Void> doInventoryDelete(OkapiClient okapiClient) {
-    Promise<Void> promise = Promise.promise();
-    handleSingleSetDelete(okapiClient).onComplete(deletes -> {
-      if (deletes.succeeded()) {
-        promise.complete();
-      } else {
-        promise.fail(deletes.cause().getMessage());
-      }
-    });
-    return promise.future();
+    return handleSingleSetDelete(okapiClient);
   }
 
 }

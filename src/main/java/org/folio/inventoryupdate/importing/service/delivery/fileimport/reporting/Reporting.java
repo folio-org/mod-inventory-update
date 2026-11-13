@@ -14,6 +14,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.folio.inventoryupdate.importing.moduledata.LogLine;
+import org.folio.inventoryupdate.importing.moduledata.OutcomeReport;
 import org.folio.inventoryupdate.importing.moduledata.RecordFailure;
 import org.folio.inventoryupdate.importing.moduledata.database.Entity;
 import org.folio.inventoryupdate.importing.moduledata.database.EntityStorage;
@@ -33,21 +34,33 @@ public class Reporting {
   private final BlockingQueue<FileStats> fileStats = new ArrayBlockingQueue<>(2);
   private final EntityStorage storage;
   private final FileProcessor fileProcessor;
+  private OutcomeReport outcomeReport;
 
   public Reporting(FileProcessor handler, String tenant, Vertx vertx) {
     this.fileProcessor = handler;
     this.startTimeNanos = System.nanoTime();
     this.storage = new EntityStorage(vertx, tenant);
+    this.outcomeReport = new OutcomeReport(storage.getTenantPool());
   }
 
-  public void nowProcessing(String fileName) {
-    try {
-      logger.info("Processing file {}", fileName);
-      fileStats.put(new FileStats(fileName));
-    } catch (InterruptedException ie) {
-      logger.error("Initiation of file stats interrupted.");
-      Thread.currentThread().interrupt();
-    }
+  public Future<Void> nowProcessing(String fileName, UUID channelId) {
+    fileProcessor.logCtx();
+    logger.info("Processing file {}", fileName);
+    outcomeReport = new OutcomeReport(storage.getTenantPool());
+    return outcomeReport.init(fileName, channelId).compose(na -> {
+      if (fileProcessor.paused()) {
+        return Future.failedFuture("File processing paused during initialization");
+      }
+      try {
+        fileStats.put(new FileStats(fileName));
+        return Future.succeededFuture();
+      } catch (InterruptedException ie) {
+        Thread.currentThread().interrupt();
+        String msg = String.format("Initialisation of file stats interrupted: %s", ie.getMessage());
+        logger.error(msg);
+        return Future.failedFuture(msg);
+      }
+    });
   }
 
   public void incrementFilesProcessed() {
@@ -55,6 +68,7 @@ public class Reporting {
   }
 
   public void incrementInventoryMetrics(InventoryMetrics metrics) {
+    outcomeReport.storeOutcomeCounts(metrics.getCounts()); // async
     inventoryMetrics.add(metrics);
     if (fileStats.peek() != null) {
       fileStats.peek().addInventoryMetrics(metrics);
@@ -69,6 +83,7 @@ public class Reporting {
     recordsProcessed.addAndGet(delta);
     if (fileStats.peek() != null) {
       fileStats.peek().incrementRecordsProcessed(delta);
+      outcomeReport.incrementRecordCount(delta);
     }
   }
 
@@ -91,15 +106,18 @@ public class Reporting {
   public void reportFileStats() {
     try {
       if (!fileStats.isEmpty()) {
-        FileStats stats = fileStats.peek();
+        FileStats stats = this.fileStats.peek();
         assert stats != null;
+        outcomeReport.fileProcessed(); // async
         log("File #" + filesProcessed.get() + " (" + stats.getFileName() + ") "
             + stats.getRecordsProcessed() + " records in " + processingTimeAsString(stats.processingTimeNanos())
-            + " (" + (stats.getRecordsProcessed() * NANOS_PER_SECOND / stats.processingTimeNanos()) + " recs/s.)")
+            + " ("
+            + (stats.getRecordsProcessed() * NANOS_PER_SECOND / stats.processingTimeNanos())
+            + " recs/s.)")
             .compose(na -> log("File: " + stats.getInventoryMetrics().report()));
-        fileStats.take();
+        this.fileStats.take();
       } else {
-        logger.info("reportFileStats(): FileStatus queue was empty");
+        logger.info("reportFileStats(): Queue was empty");
       }
     } catch (InterruptedException ie) {
       logger.error("Error reporting file statistics: {}", ie.getMessage());
@@ -108,6 +126,7 @@ public class Reporting {
   }
 
   public void reportFileQueueStats(boolean queueDone) {
+    fileProcessor.logCtx();
     long processingTimeNanos = System.nanoTime() - startTimeNanos;
     log((queueDone ? "Done processing queue. " : "Queue partially processed. ")
         + filesProcessed + " file(s) with " + recordsProcessed.get()

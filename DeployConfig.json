@@ -1,0 +1,172 @@
+{
+  "description": "mod-inventory-update deployment configuration. Reference baseline: Trillium bugfest with 3 standalone tenants and 11 consortia tenants. Resource and JVM defaults follow https://folio-org.atlassian.net/wiki/spaces/REL/pages/1034125338. Environment-specific database settings and secrets must be supplied at deployment; optional database tuning retains folio-vertx-lib 4.0.1 and Vert.x 5.0.4 defaults. While the baseline table’s declares two instances, this configuration only declares one replica since the import APIs do not support multiple instances, as also stated in the README. Sidecar resources and JVM settings use the baseline table’s generic sidecar defaults; sidecar environment variables are owned by folio-module-sidecar.",
+  "moduleDefaults": {
+    "resources": [
+      {
+        "name": "cpu",
+        "value": "64",
+        "description": "Container CPU allocation in ECS CPU units (1024 units = 1 vCPU); bugfest default for modules without a CPU override."
+      },
+      {
+        "name": "memory",
+        "value": "1024",
+        "description": "Container memory hard limit in MiB, matching the Trillium bugfest baseline."
+      },
+      {
+        "name": "memoryReservation",
+        "value": "896",
+        "description": "Container memory reservation in MiB, matching the Trillium bugfest baseline."
+      }
+    ],
+    "java": [
+      {
+        "name": "xmx",
+        "value": "768m",
+        "description": "Maximum Java heap size, matching the Trillium bugfest baseline."
+      },
+      {
+        "name": "MaxMetaspaceSize",
+        "value": "128m",
+        "description": "Maximum Java metaspace size, matching the Trillium bugfest baseline."
+      }
+    ],
+    "deployment": {
+      "isHaSupported": false,
+      "replicasRecommendedCount": 1,
+      "description": "Import APIs do not support multiple running instances (README Deployment note); use one replica and avoid overlapping replicas during rollout, despite the baseline table listing two instances."
+    },
+    "kong": {
+      "timeouts": {
+        "connect": "60s",
+        "send": "60s",
+        "read": "120s"
+      },
+      "description": "Connect and send use standard Kong timeouts; allow 120 seconds for synchronous inventory batch updates, following the implementation guide’s general recommendation; tune for the longest legitimate request."
+    },
+    "EnvVars": [
+      {
+        "name": "JAVA_OPTIONS",
+        "value": "-Xmx768m -XX:MaxMetaspaceSize=128m",
+        "description": "JVM options for the container launcher, matching the bugfest heap and metaspace defaults in the java section; overrides the descriptor’s percentage-based heap setting.",
+        "type": "CONFIG",
+        "essential": false
+      },
+      {
+        "name": "VERTICLE_FILE",
+        "value": "mod-inventory-update-fat.jar",
+        "description": "Application jar filename set by Dockerfile for the container launcher.",
+        "type": "CONFIG",
+        "essential": false
+      },
+      {
+        "name": "VERTICLE_HOME",
+        "value": "/usr/verticles",
+        "description": "Application jar directory set by Dockerfile for the container launcher.",
+        "type": "CONFIG",
+        "essential": false
+      },
+      {
+        "name": "DB_HOST",
+        "value": null,
+        "description": "PostgreSQL host supplied by the deployment. Supports {tenant} substitution.",
+        "type": "DB",
+        "essential": true
+      },
+      {
+        "name": "DB_PORT",
+        "value": "5432",
+        "description": "PostgreSQL port; standard Vert.x PostgreSQL client default.",
+        "type": "DB",
+        "essential": false
+      },
+      {
+        "name": "DB_DATABASE",
+        "value": null,
+        "description": "PostgreSQL database name supplied by the deployment. Supports {tenant} substitution.",
+        "type": "DB",
+        "essential": true
+      },
+      {
+        "name": "DB_USERNAME",
+        "value": null,
+        "description": "PostgreSQL username supplied through deployment secret management. Supports {tenant} substitution.",
+        "type": "DB",
+        "essential": true
+      },
+      {
+        "name": "DB_PASSWORD",
+        "value": null,
+        "description": "PostgreSQL password supplied through deployment secret management; no credentials are stored here.",
+        "type": "DB",
+        "essential": true
+      },
+      {
+        "name": "DB_MAXPOOLSIZE",
+        "value": "4",
+        "description": "Maximum connections per pool; Vert.x PoolOptions default. folio-vertx-lib shares pools for equal connection options across tenants within the process.",
+        "type": "DB",
+        "essential": false
+      },
+      {
+        "name": "DB_RECONNECTATTEMPTS",
+        "value": "0",
+        "description": "Number of retries after a failed database connection attempt; Vert.x default disables retries.",
+        "type": "DB",
+        "essential": false
+      },
+      {
+        "name": "DB_RECONNECTINTERVAL",
+        "value": "1000",
+        "description": "Delay in milliseconds between database reconnect attempts; Vert.x default. Relevant when DB_RECONNECTATTEMPTS is positive.",
+        "type": "DB",
+        "essential": false
+      },
+      {
+        "name": "DB_SERVER_PEM",
+        "value": null,
+        "description": "Optional PEM CA certificate chain. When supplied, folio-vertx-lib enables VERIFY_FULL, HTTPS hostname verification and TLSv1.3. Leave unset to retain the default connection options.",
+        "type": "DB",
+        "essential": false
+      },
+      {
+        "name": "DB_MAX_LIFETIME",
+        "value": "1800000",
+        "description": "Maximum pooled connection lifetime in milliseconds; folio-vertx-lib explicitly defaults to 30 minutes.",
+        "type": "DB",
+        "essential": false
+      }
+    ]
+  },
+  "sidecarDefaults": {
+    "resources": [
+      {
+        "name": "cpu",
+        "value": "64",
+        "description": "Sidecar CPU allocation in ECS CPU units; bugfest default for sidecars without a CPU override."
+      },
+      {
+        "name": "memory",
+        "value": "1024",
+        "description": "Sidecar memory hard limit in MiB, matching the generic bugfest sidecar baseline."
+      },
+      {
+        "name": "memoryReservation",
+        "value": "512",
+        "description": "Sidecar memory reservation in MiB, matching the generic bugfest sidecar baseline."
+      }
+    ],
+    "java": [
+      {
+        "name": "xmx",
+        "value": "256m",
+        "description": "Maximum sidecar Java heap size, matching the generic bugfest sidecar baseline."
+      },
+      {
+        "name": "MaxMetaspaceSize",
+        "value": "96m",
+        "description": "Maximum sidecar Java metaspace size, matching the generic bugfest sidecar baseline."
+      }
+    ],
+    "EnvVars": []
+  }
+}

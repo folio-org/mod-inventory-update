@@ -561,7 +561,6 @@ paths:
           $ref: "#/components/responses/trait_404"
         "500":
           $ref: "#/components/responses/trait_500"
-
     post:
       operationId: postImportJobLogLines
       description: For importing job logs from another source.
@@ -574,6 +573,47 @@ paths:
       responses:
         "201":
           description: Logs imported
+        "400":
+          $ref: "#/components/responses/trait_400"
+        "404":
+          $ref: "#/components/responses/trait_404"
+        "500":
+          $ref: "#/components/responses/trait_500"
+
+  /inventory-import/metrics:
+    parameters:
+      - $ref: "#/components/parameters/okapi_tenant"
+      - $ref: "#/components/parameters/okapi_token"
+      - $ref: "#/components/parameters/okapi_url"
+    get:
+      operationId: getMetrics
+      description: Retrieves counting of the outcomes of Inventory transactions
+      parameters:
+        - in: query
+          name: from
+          required: false
+          description: beginning of date range for calculating metrics (non inclusive)
+          schema:
+            type: string
+        - in: query
+          name: until
+          required: false
+          description: end of date range for calculating metrics (inclusive)
+          schema:
+            type: string
+        - in: query
+          name: channelId
+          required: false
+          description: restrict the metrics to the specified channel ID
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Summary of outcomes, potentially for a channel and a date range
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/metrics"
         "400":
           $ref: "#/components/responses/trait_400"
         "404":
@@ -1323,6 +1363,94 @@ components:
           description: The JSON outcome of the transformation of the original record.
         metadata:
           $ref: "#/components/schemas/metadata"
+
+    metrics:
+      type: object
+      description: summary of outcomes of transactions against Inventory Storage
+      properties:
+        fromDate:
+          type: string
+          description: from timestamp, if any, for calculation of summary
+        untilDate:
+          type: string
+          description: to timestamp, if any, for calculation of summary
+        channelId:
+          type: string
+          description: ID of the channel, if any, that the summary was calculated for
+        sourceRecords:
+          type: integer
+          description: Number of incoming records processed
+        metrics:
+          type: object
+          description: summaries of record updates
+          properties:
+            INSTANCE:
+              type: object
+              description: "Reports the number of operations performed on instance records by transaction type and outcome."
+              properties:
+                CREATE:
+                  $ref: '#/components/schemas/outcomes'
+                UPDATE:
+                  $ref: '#/components/schemas/outcomes'
+                DELETE:
+                  $ref: '#/components/schemas/outcomes'
+            HOLDINGS_RECORD:
+              type: object
+              description: "Reports the number of operations performed on holdings records by transaction type and outcome."
+              properties:
+                CREATE:
+                  $ref: '#/components/schemas/outcomes'
+                UPDATE:
+                  $ref: '#/components/schemas/outcomes'
+                DELETE:
+                  $ref: '#/components/schemas/outcomes'
+            ITEM:
+              type: object
+              description: "Reports the number of operations performed on item records by transaction type and outcome."
+              properties:
+                CREATE:
+                  $ref: '#/components/schemas/outcomes'
+                UPDATE:
+                  $ref: '#/components/schemas/outcomes'
+                DELETE:
+                  $ref: '#/components/schemas/outcomes'
+            INSTANCE_RELATIONSHIP:
+              type: object
+              description: "Reports the number of operations performed for the instance's parent-child relationships."
+              properties:
+                CREATE:
+                  $ref: '#/components/schemas/outcomes'
+                DELETE:
+                  $ref: '#/components/schemas/outcomes'
+                PROVISIONAL_INSTANCE:
+                  $ref: '#/components/schemas/outcomes'
+            INSTANCE_TITLE_SUCCESSION:
+              type: object
+              description: "Reports the number of operations performed for the instance's preceding-succeeding relationships."
+              properties:
+                CREATE:
+                  $ref: '#/components/schemas/outcomes'
+                DELETE:
+                  $ref: '#/components/schemas/outcomes'
+                PROVISIONAL_INSTANCE:
+                  $ref: '#/components/schemas/outcomes'
+
+    outcomes:  # in metrics
+      type: object
+      description: "Reports the number of different outcomes of operations of a given type per entity type."
+      properties:
+        COMPLETED:
+          type: integer
+          description: "Number of successfully completed operations of a given type per entity type."
+        FAILED:
+          type: integer
+          description: "Number of failed operations of a given type per entity type."
+        SKIPPED:
+          type: integer
+          description: "Number of skipped operations of a given type per entity type."
+        PENDING:
+          type: integer
+          description: "Number operations of a given type that were unresolved per entity type"
 
     channels:
       type: object

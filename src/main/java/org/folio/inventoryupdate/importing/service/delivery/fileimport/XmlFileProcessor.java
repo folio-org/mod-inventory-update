@@ -83,28 +83,34 @@ public class XmlFileProcessor extends FileProcessor {
    */
   public Future<Void> processFile(SourceFile xmlFile) {
     Promise<Void> promise = Promise.promise();
-    try {
-      reporting.nowProcessing(xmlFile.getName());
-      Future<Void> fileFinished = inventoryBatchUpdater.startFile();
-      vertx.executeBlocking(new XmlRecordsReader(xmlFile, transformationPipeline), true)
-          .compose(na -> fileFinished)
-          .onComplete(processing -> {
-            if (processing.succeeded()) {
-              promise.complete();
-            } else {
-              logger.error("Processing failed with {}", processing.cause().getMessage());
-              if (!paused()) {
-                halt("Processing of " + xmlFile.getName() + " failed with "
-                    + processing.cause().getMessage());
-              }
-              inventoryBatchUpdater.failCurrentFile(processing.cause());
-              promise.complete();
-            }
-          });
-    } catch (Exception e) {
-      promise.fail("Could not open XML source file for importing " + e.getMessage());
-    }
-    return promise.future();
+    return reporting.nowProcessing(xmlFile.getName(), channelId)
+        .onFailure(f -> {
+          if (!paused()) {
+            halt("Internal error initialising processing of " + xmlFile.getName() + ":" + f.getMessage());
+          }
+        }).compose(v -> {
+          Future<Void> fileFinished = inventoryBatchUpdater.startFile();
+          try {
+            vertx.executeBlocking(new XmlRecordsReader(xmlFile, transformationPipeline), true)
+                .compose(na -> fileFinished)
+                .onComplete(processing -> {
+                  if (processing.succeeded()) {
+                    promise.complete();
+                  } else {
+                    logger.error("Processing failed with {}", processing.cause().getMessage());
+                    if (!paused()) {
+                      halt("Processing of " + xmlFile.getName() + " failed with "
+                          + processing.cause().getMessage());
+                    }
+                    inventoryBatchUpdater.failCurrentFile(processing.cause());
+                    promise.complete();
+                  }
+                });
+          } catch (Exception e) {
+            promise.fail("Could not open XML source file for importing " + e.getMessage());
+          }
+          return promise.future();
+        });
   }
 
   public String getStats() {

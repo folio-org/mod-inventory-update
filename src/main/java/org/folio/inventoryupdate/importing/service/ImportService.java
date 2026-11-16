@@ -101,6 +101,7 @@ public class ImportService implements RouterCreator, TenantInitHooks {
     validatingHandler(vertx, routerBuilder, "deleteRecordFailure", JobsAndMonitoring::deleteRecordFailure);
     validatingHandler(vertx, routerBuilder, "pauseJob", JobsAndMonitoring::pauseImportJob);
     validatingHandler(vertx, routerBuilder, "resumeJob", JobsAndMonitoring::resumeImportJob);
+    validatingHandler(vertx, routerBuilder, "getMetrics", JobsAndMonitoring::getMetrics);
 
     // Systems operations
     validatingHandler(vertx, routerBuilder, "purgeAgedLogs", LogPurging::purgeAgedLogs);

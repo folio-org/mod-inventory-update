@@ -12,8 +12,10 @@ import static org.folio.inventoryupdate.importing.service.delivery.fileimport.re
 import static org.folio.inventoryupdate.importing.service.delivery.fileimport.reporting.InventoryMetrics.Transaction.UPDATE;
 
 import io.vertx.core.json.JsonObject;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.EnumMap;
+import java.util.List;
 import java.util.Map;
 
 public class InventoryMetrics {
@@ -97,19 +99,20 @@ public class InventoryMetrics {
     }
   }
 
-  public String toString() {
-    StringBuilder str = new StringBuilder();
+  public List<Count> getCounts() {
+    List<Count> counts = new ArrayList<>();
     for (Map.Entry<Entity, Map<Transaction, Map<Outcome, Integer>>> entity : metrics.entrySet()) {
-      str.append(entity.getKey()).append(": ");
       for (Map.Entry<Transaction, Map<Outcome, Integer>> transaction : metrics.get(entity.getKey()).entrySet()) {
-        for (Map.Entry<Outcome, Integer> outcome : metrics.get(entity.getKey()).get(transaction.getKey()).entrySet()) {
-          int count = this.metrics.get(entity.getKey()).get(transaction.getKey()).get(outcome.getKey());
-          str.append(outcome).append(" ").append(transaction).append(": ").append(count).append(".");
+        for (Map.Entry<Outcome, Integer> outcome :
+            metrics.get(entity.getKey()).get(transaction.getKey()).entrySet()) {
+          int outcomeCount = this.metrics.get(entity.getKey()).get(transaction.getKey()).get(outcome.getKey());
+          if (outcomeCount > 0) {
+            counts.add(new Count(entity.getKey(), transaction.getKey(), outcome.getKey(), outcomeCount));
+          }
         }
       }
-      str.append("\n");
     }
-    return str.toString();
+    return counts;
   }
 
   public String report() {
@@ -141,4 +144,6 @@ public class InventoryMetrics {
         + " Failed: " + metrics.get(ITEM).get(DELETE).get(FAILED)
         + " Skipped: " + metrics.get(ITEM).get(DELETE).get(SKIPPED);
   }
+
+  public record Count(Entity entity, Transaction transaction, Outcome outcome, int count) {}
 }

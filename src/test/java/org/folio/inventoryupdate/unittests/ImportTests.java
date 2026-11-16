@@ -1127,11 +1127,11 @@ public class ImportTests extends InventoryUpdateTestBase {
     getRecordById(Service.PATH_CHANNELS, channelId);
     getRecordById(Service.PATH_TRANSFORMATIONS, transformationId);
     // Default response should be transformed to JSON
-    assert(postSourceXml(Service.PATH_CHANNELS + "/" + channelTag + "/try-transformation",
-        Files.XML_INVENTORY_RECORD_SET, 200).extract().asPrettyString().startsWith("{"));
+    assertThat(postSourceXml(Service.PATH_CHANNELS + "/" + channelTag + "/try-transformation",
+        Files.XML_INVENTORY_RECORD_SET, 200).extract().asPrettyString(), startsWith("{"));
     // Should be possible to ask for XML only
-    assert(postSourceXml(Service.PATH_CHANNELS + "/" + channelTag + "/try-transformation?output=xml",
-        Files.XML_INVENTORY_RECORD_SET, 200).extract().asPrettyString().startsWith("<"));
+    assertThat(postSourceXml(Service.PATH_CHANNELS + "/" + channelTag + "/try-transformation?output=xml",
+        Files.XML_INVENTORY_RECORD_SET, 200).extract().asPrettyString(), startsWith("<"));
     postSourceXml(PATH_CHANNELS +"/not-a-channel/try-transformation?output=xml",
         Files.XML_INVENTORY_RECORD_SET,404);
   }
@@ -1409,7 +1409,31 @@ public class ImportTests extends InventoryUpdateTestBase {
         + "?query=line=File #1 and line=inventoryRecordSet012.xml"), is(1));
     await().until(() -> getTotalRecords(Service.PATH_JOB_LOGS
         + "?query=line=File #2 and line=inventoryRecordSet123.xml"), is(1));
-
+    await().until(() -> (given()
+        .baseUri(BASE_URI_INVENTORY_UPDATE)
+        .header(Service.OKAPI_TENANT)
+        .header(Service.OKAPI_URL)
+        .header(Service.OKAPI_TOKEN)
+        .get(Service.PATH_METRICS)
+        .then().statusCode(200)
+        .extract().path("metrics.INSTANCE.CREATE.COMPLETED")), is(3));
+    await().until(() -> getRecordById(PATH_CHANNELS, channelId).extract().body().path("queuedFiles"),
+        equalTo(0));
+    given()
+        .baseUri(BASE_URI_INVENTORY_UPDATE)
+        .header(Service.OKAPI_TENANT)
+        .header(Service.OKAPI_URL)
+        .header(Service.OKAPI_TOKEN)
+        .delete(Service.PATH_CHANNELS + "/" + channelId + "?force=true")
+        .then().statusCode(200);
+    await().until(() -> (given()
+        .baseUri(BASE_URI_INVENTORY_UPDATE)
+        .header(Service.OKAPI_TENANT)
+        .header(Service.OKAPI_URL)
+        .header(Service.OKAPI_TOKEN)
+        .get(Service.PATH_METRICS)
+        .then().statusCode(200)
+        .extract().path("metrics.INSTANCE.CREATE.COMPLETED")), is(0));
   }
 
   @Test

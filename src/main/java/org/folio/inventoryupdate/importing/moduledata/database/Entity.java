@@ -26,7 +26,7 @@ import org.folio.tlib.postgres.PgCqlQuery;
 import org.folio.tlib.postgres.TenantPgPool;
 import org.folio.tlib.postgres.cqlfield.PgCqlFieldAlwaysMatches;
 
-public abstract class Entity {
+public abstract class Entity extends TableCreator {
 
   public static final Logger logger = LogManager.getLogger("inventory-import");
   public static final String DATE_FORMAT_TO_DB = "YYYY-MM-DD''T''HH24:MI:SS,MS";
@@ -102,6 +102,7 @@ public abstract class Entity {
         .mapEmpty();
   }
 
+  @Override
   protected Future<RowSet<Row>> executeSqlStatements(TenantPgPool pool, String... statements) {
     Future<RowSet<Row>> future = Future.succeededFuture();
     for (var sql : statements) {

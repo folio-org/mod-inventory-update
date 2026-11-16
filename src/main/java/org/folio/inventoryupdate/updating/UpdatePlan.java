@@ -70,7 +70,7 @@ public abstract class UpdatePlan {
         RequestValidation validations = validateIncomingRecordSets (inventoryRecordSets);
         final boolean batchOfOne = (inventoryRecordSets.size() == 1);
         if (validations.passed()) {
-          logger.info("Validation passed");
+            logger.debug("Validation passed");
             setIncomingRecordSets(inventoryRecordSets)
                     .buildRepositoryFromStorage(request).onComplete(
                             result -> {

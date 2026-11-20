@@ -20,6 +20,7 @@ import org.junit.runner.RunWith;
 
 import static org.folio.inventoryupdate.unittests.fixtures.Service.BASE_URI_OKAPI;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 @RunWith(VertxUnitRunner.class)
 public class UpsertByMatchTests extends InventoryUpdateTestBase {
@@ -1065,7 +1066,18 @@ public class UpsertByMatchTests extends InventoryUpdateTestBase {
     fetchRecordSetFromUpsertSharedInventory( "1" );
     fetchRecordSetFromUpsertSharedInventory (newInstance.getJsonObject( "instance" ).getString( "id" ));
     assertEquals(404, getJsonObjectById( FETCH_SHARED_INVENTORY_RECORD_SETS_ID_PATH, "2", 404 ).getStatusCode());
+  }
 
+  @Test
+  public void cannotFetchSharedInventoryWhenRecordSetLookupFails() {
+    upsertByHrid(new JsonObject()
+        .put("instance", new InputInstance().setTitle("Requested title")
+            .setInstanceTypeId("123").setHrid("001").setSource("test")
+            .setMatchKeyAsString("requested_title").getJson()));
+    fakeFolioApis.precedingSucceedingStorage.failOnGetRecords = true;
+
+    var response = getJsonObjectById(FETCH_SHARED_INVENTORY_RECORD_SETS_ID_PATH, "001", 500);
+    assertTrue(response.asString().startsWith("Could not look-up Inventory record set:"));
   }
 
   @Test

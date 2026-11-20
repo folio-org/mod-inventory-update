@@ -1,7 +1,6 @@
 package org.folio.inventoryupdate.updating.service;
 
 import io.vertx.core.Future;
-import io.vertx.core.Promise;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import org.folio.inventoryupdate.updating.InventoryQuery;
@@ -164,76 +163,69 @@ public class HandlersFetching {
    * @param inventoryRecordSet the record set being mutated
    */
   private Future<Void> transformInstanceRelations (JsonObject inventoryRecordSet, UpdateRequest request) {
-    Promise<Void> promise = Promise.promise();
     String instanceId = inventoryRecordSet.getJsonObject(INSTANCE).getString("id");
     JsonObject instanceRelations = inventoryRecordSet.getJsonObject( InstanceReferences.INSTANCE_RELATIONS );
     JsonArray existingParentChildRelations = instanceRelations.getJsonArray( InstanceReferences.EXISTING_PARENT_CHILD_RELATIONS );
     JsonArray existingPrecedingSucceedingTitles = instanceRelations.getJsonArray( InstanceReferences.EXISTING_PRECEDING_SUCCEEDING_TITLES );
     if (existingParentChildRelations.size() + existingPrecedingSucceedingTitles.size() == 0) {
-      promise.complete();
-    } else {
-      createInstanceUuidToHridMap( inventoryRecordSet, request ).onComplete( idToHridMap -> {
-        if (idToHridMap.succeeded())
-        {
-          Map<String,String> uuidToHrid = idToHridMap.result();
-          JsonArray parentInstances = new JsonArray();
-          JsonArray childInstances = new JsonArray();
-          if ( !existingParentChildRelations.isEmpty() )
-          {
-            for ( Object o : existingParentChildRelations )
-            {
-              JsonObject existingParentChildRelation = (JsonObject) o;
-              JsonObject parentChildRelation = new JsonObject();
-              JsonObject instanceIdentifier = new JsonObject();
-              parentChildRelation.put( INSTANCE_IDENTIFIER, instanceIdentifier );
-              parentChildRelation.put( INSTANCE_RELATIONSHIP_TYPE_ID, existingParentChildRelation.getString( INSTANCE_RELATIONSHIP_TYPE_ID ) );
-              if ( instanceId.equals( existingParentChildRelation.getString( SUPER_INSTANCE_ID ) ) )
-              {
-                instanceIdentifier.put( HRID_IDENTIFIER_KEY, uuidToHrid.get(existingParentChildRelation.getString( SUB_INSTANCE_ID )));
-                childInstances.add( parentChildRelation );
-              }
-              else if ( instanceId.equals( existingParentChildRelation.getString( SUB_INSTANCE_ID ) ) )
-              {
-                instanceIdentifier.put( HRID_IDENTIFIER_KEY, uuidToHrid.get(existingParentChildRelation.getString( SUPER_INSTANCE_ID )));
-                parentInstances.add( parentChildRelation );
-              }
-            }
-          }
-          instanceRelations.remove( InstanceReferences.EXISTING_PARENT_CHILD_RELATIONS );
-          instanceRelations.put( InstanceReferences.PARENT_INSTANCES, parentInstances );
-          instanceRelations.put( InstanceReferences.CHILD_INSTANCES, childInstances );
-
-          JsonArray precedingTitles = new JsonArray();
-          JsonArray succeedingTitles = new JsonArray();
-          if ( !existingPrecedingSucceedingTitles.isEmpty() )
-          {
-            for ( Object o : existingPrecedingSucceedingTitles )
-            {
-              JsonObject existingPrecedingSucceeding = (JsonObject) o;
-              JsonObject precedingSucceeding = new JsonObject();
-              JsonObject instanceIdentifier = new JsonObject();
-              precedingSucceeding.put( INSTANCE_IDENTIFIER, instanceIdentifier );
-              precedingSucceeding.put( INSTANCE_RELATIONSHIP_TYPE_ID, existingPrecedingSucceeding.getString( INSTANCE_RELATIONSHIP_TYPE_ID ) );
-              if ( instanceId.equals( existingPrecedingSucceeding.getString( PRECEDING_INSTANCE_ID ) ) )
-              {
-                instanceIdentifier.put( HRID_IDENTIFIER_KEY, uuidToHrid.get(existingPrecedingSucceeding.getString( SUCCEEDING_INSTANCE_ID )));
-                succeedingTitles.add( precedingSucceeding );
-              }
-              else if ( instanceId.equals( existingPrecedingSucceeding.getString( SUCCEEDING_INSTANCE_ID ) ) )
-              {
-                instanceIdentifier.put( HRID_IDENTIFIER_KEY, uuidToHrid.get(existingPrecedingSucceeding.getString( PRECEDING_INSTANCE_ID )));
-                precedingTitles.add( precedingSucceeding );
-              }
-            }
-          }
-          instanceRelations.remove( InstanceReferences.EXISTING_PRECEDING_SUCCEEDING_TITLES );
-          instanceRelations.put( InstanceReferences.PRECEDING_TITLES, precedingTitles );
-          instanceRelations.put( InstanceReferences.SUCCEEDING_TITLES, succeedingTitles );
-          promise.complete();
-        }
-      } );
+      return Future.succeededFuture();
     }
-    return promise.future();
+    return createInstanceUuidToHridMap(inventoryRecordSet, request).map(uuidToHrid -> {
+      JsonArray parentInstances = new JsonArray();
+      JsonArray childInstances = new JsonArray();
+      if ( !existingParentChildRelations.isEmpty() )
+      {
+        for ( Object o : existingParentChildRelations )
+        {
+          JsonObject existingParentChildRelation = (JsonObject) o;
+          JsonObject parentChildRelation = new JsonObject();
+          JsonObject instanceIdentifier = new JsonObject();
+          parentChildRelation.put( INSTANCE_IDENTIFIER, instanceIdentifier );
+          parentChildRelation.put( INSTANCE_RELATIONSHIP_TYPE_ID, existingParentChildRelation.getString( INSTANCE_RELATIONSHIP_TYPE_ID ) );
+          if ( instanceId.equals( existingParentChildRelation.getString( SUPER_INSTANCE_ID ) ) )
+          {
+            instanceIdentifier.put( HRID_IDENTIFIER_KEY, uuidToHrid.get(existingParentChildRelation.getString( SUB_INSTANCE_ID )));
+            childInstances.add( parentChildRelation );
+          }
+          else if ( instanceId.equals( existingParentChildRelation.getString( SUB_INSTANCE_ID ) ) )
+          {
+            instanceIdentifier.put( HRID_IDENTIFIER_KEY, uuidToHrid.get(existingParentChildRelation.getString( SUPER_INSTANCE_ID )));
+            parentInstances.add( parentChildRelation );
+          }
+        }
+      }
+      instanceRelations.remove( InstanceReferences.EXISTING_PARENT_CHILD_RELATIONS );
+      instanceRelations.put( InstanceReferences.PARENT_INSTANCES, parentInstances );
+      instanceRelations.put( InstanceReferences.CHILD_INSTANCES, childInstances );
+
+      JsonArray precedingTitles = new JsonArray();
+      JsonArray succeedingTitles = new JsonArray();
+      if ( !existingPrecedingSucceedingTitles.isEmpty() )
+      {
+        for ( Object o : existingPrecedingSucceedingTitles )
+        {
+          JsonObject existingPrecedingSucceeding = (JsonObject) o;
+          JsonObject precedingSucceeding = new JsonObject();
+          JsonObject instanceIdentifier = new JsonObject();
+          precedingSucceeding.put( INSTANCE_IDENTIFIER, instanceIdentifier );
+          precedingSucceeding.put( INSTANCE_RELATIONSHIP_TYPE_ID, existingPrecedingSucceeding.getString( INSTANCE_RELATIONSHIP_TYPE_ID ) );
+          if ( instanceId.equals( existingPrecedingSucceeding.getString( PRECEDING_INSTANCE_ID ) ) )
+          {
+            instanceIdentifier.put( HRID_IDENTIFIER_KEY, uuidToHrid.get(existingPrecedingSucceeding.getString( SUCCEEDING_INSTANCE_ID )));
+            succeedingTitles.add( precedingSucceeding );
+          }
+          else if ( instanceId.equals( existingPrecedingSucceeding.getString( SUCCEEDING_INSTANCE_ID ) ) )
+          {
+            instanceIdentifier.put( HRID_IDENTIFIER_KEY, uuidToHrid.get(existingPrecedingSucceeding.getString( PRECEDING_INSTANCE_ID )));
+            precedingTitles.add( precedingSucceeding );
+          }
+        }
+      }
+      instanceRelations.remove( InstanceReferences.EXISTING_PRECEDING_SUCCEEDING_TITLES );
+      instanceRelations.put( InstanceReferences.PRECEDING_TITLES, precedingTitles );
+      instanceRelations.put( InstanceReferences.SUCCEEDING_TITLES, succeedingTitles );
+      return null;
+    });
   }
 
   /**
@@ -242,7 +234,6 @@ public class HandlersFetching {
    * @return map of instance HRIDs by instance UUIDs
    */
   private Future<Map<String,String>>  createInstanceUuidToHridMap (JsonObject inventoryRecordSet, UpdateRequest request) {
-    Promise<Map<String,String>> promise = Promise.promise();
     OkapiClient client = request.getOkapiClient();
     List<String> relatedIds = new ArrayList<>();
     JsonObject instanceRelations = inventoryRecordSet.getJsonObject( INSTANCE_RELATIONS );
@@ -271,27 +262,17 @@ public class HandlersFetching {
       instanceFutures.add(InventoryStorage.lookupInstance( client, query ));
     }
     if (instanceFutures.isEmpty()) {
-      promise.complete(new HashMap<>());
-    } else
-    {
-      Future.all( instanceFutures ).onComplete( relatedInstances -> {
-        if ( relatedInstances.succeeded() )
-        {
-          if ( relatedInstances.result().list() != null )
-          {
-            Map<String,String> uuidToHridMap = new HashMap<>();
-            for ( Object o : relatedInstances.result().list()) {
-              JsonObject instance = (JsonObject) o;
-              uuidToHridMap.put(instance.getString( PK ), instance.getString( HRID_IDENTIFIER_KEY ));
-            }
-            promise.complete(uuidToHridMap);
-          }
-        } else {
-          promise.fail( "Failed to look up some of the Instance's relations" );
-        }
-      } );
+      return Future.succeededFuture(new HashMap<>());
     }
-    return promise.future();
+    return Future.all(instanceFutures)
+        .recover(cause -> Future.failedFuture("Failed to look up some of the Instance's relations"))
+        .map(relatedInstances -> {
+          Map<String, String> uuidToHridMap = new HashMap<>();
+          for (JsonObject instance : relatedInstances.<JsonObject>list()) {
+            uuidToHridMap.put(instance.getString(PK), instance.getString(HRID_IDENTIFIER_KEY));
+          }
+          return uuidToHridMap;
+        });
   }
 
 }

@@ -1,17 +1,10 @@
-FROM folioci/alpine-jre-openjdk21:latest
+FROM folioci/eclipse-temurin:25-alpine
 
-# Install latest patch versions of packages: https://pythonspeed.com/articles/security-updates-in-docker/
-USER root
-RUN apk upgrade --no-cache
-USER folio
+WORKDIR /usr/verticles
+COPY target/mod-inventory-update-fat.jar app.jar
 
-ENV VERTICLE_FILE mod-inventory-update-fat.jar
-
-# Set the location of the verticles
-ENV VERTICLE_HOME /usr/verticles
-
-# Copy your fat jar to the container
-COPY target/${VERTICLE_FILE} ${VERTICLE_HOME}/${VERTICLE_FILE}
+ENV JAVA_TOOL_OPTIONS="-XX:MaxRAMPercentage=66.0"
 
 # Expose this port locally in the container.
 EXPOSE 8080
+ENTRYPOINT ["java", "-jar", "/usr/verticles/app.jar"]

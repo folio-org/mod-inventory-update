@@ -460,6 +460,10 @@
           "methods": ["DELETE"],
           "pathPattern": "/inventory-import/failed-records/{id}",
           "permissionsRequired": ["inventory-update.import.failed-records.item.delete"]
+        }, {
+          "methods": ["GET"],
+          "pathPattern": "/inventory-import/metrics",
+          "permissionsRequired": ["inventory-update.import.metrics.item.get"]
         },
         {
           "methods": ["POST"],
@@ -791,6 +795,10 @@
       "permissionName": "inventory-update.import.failed-records.item.delete",
       "displayName": "Delete a failed record",
       "description": "Imports: Delete a failed record log entry"
+    }, {
+      "permissionName": "inventory-update.import.metrics.item.get",
+      "displayName": "Read inventory update summary",
+      "description": "Import: Retrieve summaries of the outcomes of Inventory data transactions"
     },
     {
       "permissionName": "inventory-update.import.upload.post",
@@ -965,6 +973,8 @@
         "inventory-update.import.failed-records.collection.post",
         "inventory-update.import.failed-records.item.delete",
 
+        "inventory-update.import.metrics.item.get",
+
         "inventory-update.import.upload.post",
         "inventory-update.import.harvest.post",
         "inventory-update.import.try-transformation.post",
@@ -993,7 +1003,7 @@
       }
     },
     "env": [
-      { "name": "JAVA_OPTIONS",
+      { "name": "JAVA_TOOL_OPTIONS",
         "value": "-XX:MaxRAMPercentage=66.0"
       }
     ]

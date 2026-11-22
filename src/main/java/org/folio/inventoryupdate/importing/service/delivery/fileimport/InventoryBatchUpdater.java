@@ -168,7 +168,8 @@ public class InventoryBatchUpdater implements RecordReceiver {
           processingTime += System.nanoTime() - upsertStarted;
           if (upsert.statusCode() >= 400) {
             logger.error("Fatal error when updating inventory, status code: {}", upsert.statusCode());
-            return Future.failedFuture("Inventory update failed with status code " + upsert.statusCode());
+            return Future.failedFuture("Inventory update failed with status code "
+                + upsert.statusCode() + " " + upsert.getErrors().encode());
           }
           fileProcessor.reporting.incrementRecordsProcessed(batch.size());
           // In scenario with recurring HRIDs in batch, status will be 207 but no failed record to create.

@@ -114,4 +114,9 @@ public class InventoryUpdateOutcome {
       getErrorResponse().respond(routingContext);
     }
   }
+
+  public String toString() {
+    return String.format("Status code %s, result %s, error count %s, first error: %s", statusCode, result.encode(),
+        errors.size(), (errors.isEmpty() ?  "none" : errors.getFirst().asJsonString()));
+  }
 }

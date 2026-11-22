@@ -2528,6 +2528,25 @@ public class UpsertByHridTests extends InventoryUpdateTestBase {
 
 
   @Test
+  public void cannotFetchByHridWhenRelatedInstanceLookupFails() {
+    JsonObject related = upsertByHrid(new JsonObject()
+        .put("instance", new InputInstance().setTitle("Succeeding title")
+            .setInstanceTypeId("123").setHrid("002").setSource("test").getJson()));
+    upsertByHrid(new JsonObject()
+        .put("instance", new InputInstance().setTitle("Requested title")
+            .setInstanceTypeId("123").setHrid("001").setSource("test").getJson())
+        .put("instanceRelations", new JsonObject()
+            .put("succeedingTitles", new JsonArray()
+                .add(new InputInstanceTitleSuccession().setInstanceIdentifierHrid("002").getJson()))));
+
+    fakeFolioApis.instanceStorage.failOnGetInstanceId = related.getJsonObject("instance").getString("id");
+
+    var response = getJsonObjectById(FETCH_INVENTORY_RECORD_SETS_ID_PATH, "001", 500);
+    assertEquals("Could not look up related instances for the Inventory record set "
+        + "Failed to look up some of the Instance's relations", response.asString());
+  }
+
+  @Test
   public void upsertByHridWithMissingInstanceHridWillBeRejected (TestContext testContext) {
     upsertByHrid(422, new JsonObject()
         .put("instance",
@@ -2767,9 +2786,52 @@ public class UpsertByHridTests extends InventoryUpdateTestBase {
         "Upsert metrics response should report [1] item update completed " + responseJson.encodePrettily());
     testContext.assertEquals(getMetric(responseJson, ITEM, UPDATE , COMPLETED), 1,
         "Upsert metrics response should report [1] item update completed " + responseJson.encodePrettily());
-
   }
 
+  @Test
+  public void upsertWithRecurringItemHridWithinSameInstanceIsAccepted (TestContext testContext) {
+    BatchOfInventoryRecordSets batch = new BatchOfInventoryRecordSets();
+    batch.addRecordSet(new JsonObject()
+        .put("instance",
+            new InputInstance().setHrid("001")
+                .setTitle("InputInstance v1").setInstanceTypeId("12345").setSource("test").getJson())
+        .put("holdingsRecords", new JsonArray()
+            .add(new InputHoldingsRecord()
+                .setHrid("H001")
+                .setPermanentLocationId(LOCATION_ID_1)
+                .getJson()
+                .put("items", new JsonArray()
+                    .add(new InputItem()
+                        .setStatus(STATUS_UNKNOWN)
+                        .setMaterialTypeId(MATERIAL_TYPE_TEXT)
+                        .setHrid("I001")
+                        .getJson())
+                    .add(new InputItem()
+                        .setStatus(STATUS_UNKNOWN)
+                        .setMaterialTypeId(MATERIAL_TYPE_TEXT)
+                        .setHrid("I001")
+                        .getJson())))));
+    batchUpsertByHrid(200, batch.getJson());
+  }
+
+  @Test
+  public void upsertWithRecurringHoldingsHridWithinSameInstanceIsAccepted (TestContext testContext) {
+    BatchOfInventoryRecordSets batch = new BatchOfInventoryRecordSets();
+    batch.addRecordSet(new JsonObject()
+        .put("instance",
+            new InputInstance().setHrid("001")
+                .setTitle("InputInstance v1").setInstanceTypeId("12345").setSource("test").getJson())
+        .put("holdingsRecords", new JsonArray()
+            .add(new InputHoldingsRecord()
+                .setHrid("H001")
+                .setPermanentLocationId(LOCATION_ID_1)
+                .getJson())
+            .add(new InputHoldingsRecord()
+                .setHrid("H001")
+                .setPermanentLocationId(LOCATION_ID_1)
+                .getJson())));
+    batchUpsertByHrid(200, batch.getJson());
+  }
 
   @Test
   public void upsertByHridWillReturnErrorResponseOnMissingInstanceInRequestBody (TestContext testContext) {

@@ -14,6 +14,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.folio.inventoryupdate.importing.moduledata.ImportJob;
 import org.folio.inventoryupdate.importing.moduledata.LogLine;
+import org.folio.inventoryupdate.importing.moduledata.OutcomeReport;
 import org.folio.inventoryupdate.importing.moduledata.RecordFailure;
 import org.folio.inventoryupdate.importing.moduledata.database.Entity;
 import org.folio.inventoryupdate.importing.moduledata.database.EntityStorage;
@@ -214,6 +215,17 @@ public final class JobsAndMonitoring extends EntityResponses {
 
   public static Future<Void> deleteRecordFailure(ServiceRequest request) {
     return deleteEntityAndRespond(request, new RecordFailure());
+  }
+
+  public static Future<Void> getMetrics(ServiceRequest request) {
+    String from = request.queryParam("from", "undefined");
+    String until = request.queryParam("until", "undefined");
+    String channelId = request.queryParam("channelId", "undefined");
+
+    OutcomeReport report = new OutcomeReport(request.entityStorage().getTenantPool());
+    return report.getOutcomeCounts(from, until, channelId)
+        .compose(metricsJson ->
+            responseJson(request.routingContext(), 200).end(metricsJson.encodePrettily()));
   }
 
   public static Future<Void> pauseImportJob(ServiceRequest request) {

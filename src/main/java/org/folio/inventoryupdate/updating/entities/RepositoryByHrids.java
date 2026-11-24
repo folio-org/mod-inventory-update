@@ -1,8 +1,6 @@
 package org.folio.inventoryupdate.updating.entities;
 
-import io.vertx.core.AsyncResult;
 import io.vertx.core.Future;
-import io.vertx.core.Promise;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import org.folio.inventoryupdate.updating.ErrorReport;
@@ -140,25 +138,18 @@ public class RepositoryByHrids extends Repository {
 
   private Future<Void> requestReferencedInstancesByHRIDs(UpdateRequest request,
                                                          List<String> hrids) {
-    Promise<Void> promise = Promise.promise();
-    InventoryStorage.lookupInstances(request.getOkapiClient(),
+    return InventoryStorage.lookupInstances(request.getOkapiClient(),
                     new QueryByListOfIds("hrid", hrids))
-            .onComplete(instances -> {
-              if (instances.succeeded()) {
-                if (instances.result() != null) {
-                  stashReferencedInstances(instances);
-                }
-                promise.complete();
-              } else {
-                promise.fail(instances.cause().getMessage());
-              }
-
-            });
-    return promise.future();
+        .map(instances -> {
+          if (instances != null) {
+            stashReferencedInstances(instances);
+          }
+          return null;
+        });
   }
 
-  private void stashReferencedInstances(AsyncResult<JsonArray> instances) {
-    for (Object o : instances.result()) {
+  private void stashReferencedInstances(JsonArray instances) {
+    for (Object o : instances) {
       Instance instance = new Instance((JsonObject) o);
       referencedInstancesByHrid.put(instance.getHRID(), instance);
       referencedInstancesByUUID.put(instance.getUUID(), instance);
@@ -167,62 +158,42 @@ public class RepositoryByHrids extends Repository {
 
   private Future<Void> requestReferencedInstancesByUUIDs(UpdateRequest request,
                                                          List<String> uuids) {
-    Promise<Void> promise = Promise.promise();
-    InventoryStorage.lookupInstances(request.getOkapiClient(),
+    return InventoryStorage.lookupInstances(request.getOkapiClient(),
                     new QueryByListOfIds("id", uuids))
-            .onComplete(instances -> {
-              if (instances.succeeded()) {
-                if (instances.result() != null) {
-                  stashReferencedInstances(instances);
-                }
-                promise.complete();
-              } else {
-                promise.fail(instances.cause().getMessage());
-              }
-
-            });
-    return promise.future();
+        .map(instances -> {
+          if (instances != null) {
+            stashReferencedInstances(instances);
+          }
+          return null;
+        });
   }
 
   private Future<Void> requestHoldingsRecordsByHRIDs(UpdateRequest request,
                                                      List<String> hrids) {
-    Promise<Void> promise = Promise.promise();
-    InventoryStorage.lookupHoldingsRecords(request.getOkapiClient(),
+    return InventoryStorage.lookupHoldingsRecords(request.getOkapiClient(),
                     new QueryByListOfIds("hrid", hrids))
-            .onComplete(records -> {
-              if (records.succeeded()) {
-                if (records.result() != null) {
-                  stashExistingHoldingsRecords(records);
-                }
-                promise.complete();
-              } else {
-                promise.fail(ErrorReport.makeErrorReportFromJsonString(
-                        records.cause().getMessage())
+        .<Void>map(records -> {
+          if (records != null) {
+            stashExistingHoldingsRecords(records);
+          }
+          return null;
+        })
+        .recover(cause -> Future.failedFuture(ErrorReport.makeErrorReportFromJsonString(
+                        cause.getMessage())
                         .setShortMessage("Problem fetching holdings records by HRIDs before upsert")
                         .addDetail("context", "fetching holdings records by HRIDs before upsert")
-                        .asJsonString());
-              }
-
-            });
-    return promise.future();
+                        .asJsonString()));
   }
 
   private Future<Void> requestItemsByHRIDs(UpdateRequest request, List<String> hrids) {
-    Promise<Void> promise = Promise.promise();
-    InventoryStorage.lookupItems(request.getOkapiClient(),
+    return InventoryStorage.lookupItems(request.getOkapiClient(),
                     new QueryByListOfIds("hrid", hrids))
-            .onComplete(records -> {
-              if (records.succeeded()) {
-                if (records.result() != null) {
-                  stashExistingItems(records);
-                }
-                promise.complete();
-              } else {
-                promise.fail(records.cause().getMessage());
-              }
-
-            });
-    return promise.future();
+        .map(records -> {
+          if (records != null) {
+            stashExistingItems(records);
+          }
+          return null;
+        });
   }
 
   private List<String> getIncomingInstanceHRIDs () {

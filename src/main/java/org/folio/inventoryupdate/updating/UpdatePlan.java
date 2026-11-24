@@ -16,7 +16,6 @@ import org.folio.inventoryupdate.updating.entities.InventoryRecord.Transaction;
 import org.folio.okapi.common.OkapiClient;
 
 import io.vertx.core.Future;
-import io.vertx.core.Promise;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 
@@ -66,47 +65,29 @@ public abstract class UpdatePlan {
 
     public Future<InventoryUpdateOutcome> upsertBatch(UpdateRequest request, JsonArray inventoryRecordSets) {
         repository = getNewRepository();
-        Promise<InventoryUpdateOutcome> promise = Promise.promise();
-        RequestValidation validations = validateIncomingRecordSets (inventoryRecordSets);
-        final boolean batchOfOne = (inventoryRecordSets.size() == 1);
-        if (validations.passed()) {
-            logger.debug("Validation passed");
-            setIncomingRecordSets(inventoryRecordSets)
-                    .buildRepositoryFromStorage(request).onComplete(
-                            result -> {
-                                if (result.succeeded()) {
-                                    planInventoryUpdates()
-                                            .doInventoryUpdates(
-                                                    request.getOkapiClient()).onComplete(inventoryUpdated -> {
-
-                                                JsonObject response = (batchOfOne ?
-                                                        getOneUpdatingRecordSetJsonFromRepository() :
-                                                        new JsonObject());
-
-                                                if (inventoryUpdated.succeeded()) {
-                                                    response.put("metrics", getUpdateMetricsFromRepository().asJson());
-                                                    promise.complete(
-                                                            new InventoryUpdateOutcome(response)
-                                                                    .setResponseStatusCode(OK));
-                                                } else {
-                                                    handleUpdateError(promise, inventoryUpdated.cause().getMessage(), batchOfOne);
-                                                }
-                                            });
-                                } else {
-                                    promise.complete(new InventoryUpdateOutcome(
-                                            ErrorReport.makeErrorReportFromJsonString(
-                                                            result.cause().getMessage())
-                                                    .setShortMessage("Fetching from storage before update failed.")));
-                                }
-                            });
-        } else {
-          logger.info("Validation failed");
-          handleValidationError(promise, validations, batchOfOne);
+        RequestValidation validations = validateIncomingRecordSets(inventoryRecordSets);
+        boolean batchOfOne = inventoryRecordSets.size() == 1;
+        if (!validations.passed()) {
+            logger.info("Validation failed");
+            return handleValidationError(validations, batchOfOne);
         }
-        return promise.future();
+
+        logger.debug("Validation passed");
+        return setIncomingRecordSets(inventoryRecordSets).buildRepositoryFromStorage(request)
+                .compose(ignored -> planInventoryUpdates().doInventoryUpdates(request.getOkapiClient())
+                                .compose(updated -> {
+                                    JsonObject response = batchOfOne
+                                            ? getOneUpdatingRecordSetJsonFromRepository() : new JsonObject();
+                                    response.put("metrics", getUpdateMetricsFromRepository().asJson());
+                                    return Future.succeededFuture(new InventoryUpdateOutcome(response)
+                                            .setResponseStatusCode(OK));
+                                }, cause -> handleUpdateError(cause.getMessage(), batchOfOne)),
+                        cause -> Future.succeededFuture(new InventoryUpdateOutcome(
+                                ErrorReport.makeErrorReportFromJsonString(cause.getMessage())
+                                        .setShortMessage("Fetching from storage before update failed."))));
     }
 
-    private void handleUpdateError(Promise<InventoryUpdateOutcome> promise, String errorJson, boolean batchOfOne) {
+    private Future<InventoryUpdateOutcome> handleUpdateError(String errorJson, boolean batchOfOne) {
         // If the error affected an entire batch of records
         // then fail the request as a whole. This particular error
         // outcome will not go to the client but rather be picked
@@ -120,9 +101,9 @@ public abstract class UpdatePlan {
         ErrorReport report = ErrorReport.makeErrorReportFromJsonString(errorJson);
         if (report.isBatchStorageError() && !batchOfOne) {
             // This will cause the controller to switch to record-by-record upserts
-            promise.fail(report.asJsonString());
+            return Future.failedFuture(report.asJsonString());
         } else {
-            // Report multi-status, add errors but don't fail promise.
+            // Report multi-status, add errors to the response.
             JsonObject response = batchOfOne ? getOneUpdatingRecordSetJsonFromRepository() : new JsonObject();
             JsonArray errors = new JsonArray();
             errors.add(report.asJson());
@@ -131,11 +112,11 @@ public abstract class UpdatePlan {
                     new InventoryUpdateOutcome(response)
                             .setResponseStatusCode(MULTI_STATUS)
                             .setMetrics(getUpdateMetricsFromRepository());
-            promise.complete(outcome);
+            return Future.succeededFuture(outcome);
         }
     }
 
-    private void handleValidationError(Promise<InventoryUpdateOutcome> promise, RequestValidation validations, boolean batchOfOne) {
+    private Future<InventoryUpdateOutcome> handleValidationError(RequestValidation validations, boolean batchOfOne) {
       ErrorReport report = new ErrorReport(
                 ErrorReport.ErrorCategory.VALIDATION,
                 UNPROCESSABLE_ENTITY,
@@ -155,13 +136,13 @@ public abstract class UpdatePlan {
             InventoryUpdateOutcome validationErrorOutcome =
                     new InventoryUpdateOutcome(report).setMetrics(metrics);
             logger.info("Validation error outcome {}", validationErrorOutcome);
-            promise.complete(validationErrorOutcome);
+            return Future.succeededFuture(validationErrorOutcome);
         } else {
             // Pre-validation of batch of multiple record sets failed, switch to record-by-record upsert
             // to process the good record sets, if any.
             String reportJson = report.asJsonString();
             logger.info("prevalidation failed, report as json: {}", reportJson);
-            promise.fail(reportJson);
+            return Future.failedFuture(reportJson);
         }
     }
 
@@ -182,21 +163,14 @@ public abstract class UpdatePlan {
 
     public Future<Void> buildRepositoryFromStorage (UpdateRequest request) {
         long buildRepoStart = System.nanoTime();
-        Promise<Void> promise = Promise.promise();
-        repository.buildRepositoryFromStorage(request).onComplete(repositoryBuilt -> {
-            if (repositoryBuilt.succeeded()) {
-                long builtMs = System.nanoTime() - buildRepoStart;
-                logger.debug("Repo built in {} ms.", builtMs/1000000L);
-                promise.complete();
-            } else {
-                promise.fail(repositoryBuilt.cause().getMessage());
-            }
+        return repository.buildRepositoryFromStorage(request).map(ignored -> {
+            long builtMs = System.nanoTime() - buildRepoStart;
+            logger.debug("Repo built in {} ms.", builtMs / 1000000L);
+            return null;
         });
-        return promise.future();
     }
 
     protected Future<List<InventoryUpdateOutcome>> chainSingleRecordUpserts(UpdateRequest request, List<JsonArray> arraysOfOneRecordSet, BiFunction<UpdateRequest, JsonArray, Future<InventoryUpdateOutcome>> upsertMethod) {
-        Promise<List<InventoryUpdateOutcome>> promise = Promise.promise();
         List<InventoryUpdateOutcome> outcomes = new ArrayList<>();
         Future<InventoryUpdateOutcome> fut = Future.succeededFuture();
         for (JsonArray arrayOfOneRecordSet : arraysOfOneRecordSet) {
@@ -208,12 +182,11 @@ public abstract class UpdatePlan {
                 return upsertMethod.apply(request, arrayOfOneRecordSet);
             });
         }
-        fut.onComplete( result -> {
-            // capture the last outcome too
+        return fut.transform(result -> {
+            // Capture the last outcome, including the null placeholder on failure.
             outcomes.add(result.result());
-            promise.complete(outcomes);
+            return Future.succeededFuture(outcomes);
         });
-        return promise.future();
     }
 
     public abstract RequestValidation validateIncomingRecordSet (JsonObject inventoryRecordSet);
@@ -244,100 +217,35 @@ public abstract class UpdatePlan {
 
 
     public Future<Void> doCreateRecordsWithDependants(OkapiClient okapiClient) {
-        Promise<Void> promise = Promise.promise();
-        doCreateNewInstances(okapiClient).onComplete(instances -> {
-            if (instances.succeeded()) {
-                doCreateNewHoldings(okapiClient).onComplete(holdings -> {
-                    if (holdings.succeeded()) {
-                        promise.complete();
-                    } else {
-                        promise.fail(holdings.cause().getMessage());
-                    }
-                });
-            } else {
-                promise.fail(instances.cause().getMessage());
-            }
-        });
-        return promise.future();
+        return doCreateNewInstances(okapiClient).compose(ignored -> doCreateNewHoldings(okapiClient));
     }
 
     public Future<Void> doCreateNewInstances(OkapiClient okapiClient) {
-        Promise<Void> promise = Promise.promise();
-        InventoryStorage.postInstances(okapiClient, repository.getInstancesToCreate()).onComplete(
-                handler -> {
-                    if (handler.succeeded()) {
-                        promise.complete();
-                    } else {
-                        logger.error("Message: {}", handler.cause().getMessage());
-                        promise.fail(handler.cause().getMessage());
-                    }
-                });
-        return promise.future();
+        return InventoryStorage.postInstances(okapiClient, repository.getInstancesToCreate())
+                .onFailure(cause -> logger.error("Message: {}", cause.getMessage()));
     }
 
     public Future<Void> doCreateNewHoldings(OkapiClient okapiClient) {
-        Promise<Void> promise = Promise.promise();
-        InventoryStorage.postHoldingsRecords(okapiClient, repository.getHoldingsToCreate()).onComplete(
-                handler -> {
-                    if (handler.succeeded()) {
-                        promise.complete();
-                    } else {
-                        promise.fail(handler.cause().getMessage());
-                    }
-                });
-        return promise.future();
+        return InventoryStorage.postHoldingsRecords(okapiClient, repository.getHoldingsToCreate());
     }
 
     public Future<Void> doUpdateInstancesAndHoldings(OkapiClient okapiClient) {
-        Promise<Void> promise = Promise.promise();
-        InventoryStorage.postInstances(okapiClient,repository.getInstancesToUpdate())
-            .onComplete(instances -> {
-              if (instances.succeeded()) {
-                InventoryStorage.postHoldingsRecords(okapiClient,repository.getHoldingsToUpdate())
-                    .onComplete(holdings -> {
-                      if (holdings.succeeded()) {
-                        promise.complete();
-                      } else {
-                        logger.error("Error updating holdings records: {}", holdings.cause().getMessage());
-                        promise.fail(holdings.cause().getMessage());
-                    }});
-              } else {
-                logger.error("Error updating instance records: {}", instances.cause().getMessage());
-                promise.fail(instances.cause().getMessage());
-             }
-        });
-        return promise.future();
+        return InventoryStorage.postInstances(okapiClient, repository.getInstancesToUpdate())
+                .onFailure(cause -> logger.error("Error updating instance records: {}", cause.getMessage()))
+                .compose(ignored -> InventoryStorage.postHoldingsRecords(okapiClient, repository.getHoldingsToUpdate())
+                        .onFailure(cause -> logger.error("Error updating holdings records: {}", cause.getMessage())));
     }
 
     public Future<Void> doUpdateItems(OkapiClient okapiClient) {
-        Promise<Void> promise = Promise.promise();
-        InventoryStorage.postItems(okapiClient, repository.getItemsToUpdate()).onComplete(
-                handler -> {
-                    if (handler.succeeded()) {
-                        promise.complete();
-                    } else {
-                        promise.fail(handler.cause().getMessage());
-                    }
-                });
-        return promise.future();
+        return InventoryStorage.postItems(okapiClient, repository.getItemsToUpdate());
     }
 
   public Future<Void> doCreateItems(OkapiClient okapiClient) {
-    Promise<Void> promise = Promise.promise();
-    InventoryStorage.postItems(okapiClient, repository.getItemsToCreate()).onComplete(
-        handler -> {
-          if (handler.succeeded()) {
-            promise.complete();
-          } else {
-            promise.fail(handler.cause().getMessage());
-          }
-        });
-    return promise.future();
+    return InventoryStorage.postItems(okapiClient, repository.getItemsToCreate());
   }
 
 
   public Future<Void> doDeleteRelationsItemsHoldings(OkapiClient okapiClient) {
-        Promise<Void> promise = Promise.promise();
         List<Future<JsonObject>> deleteRelationsDeleteItems = Stream.of(
                         repository.getInstanceRelationsToDelete().stream()
                                 .map(relationRecord ->
@@ -349,29 +257,17 @@ public abstract class UpdatePlan {
                                     InventoryStorage.putInventoryRecordOutcomeLess(okapiClient, itemRecord)))
                 .flatMap(stream -> stream)
                 .toList();
-        Future.join(deleteRelationsDeleteItems).onComplete ( relationshipsAndItemsDeleted -> {
-            if (relationshipsAndItemsDeleted.succeeded()) {
-                List<Future<JsonObject>> deleteHoldingsRecords = Stream.concat(
-                                repository.getHoldingsToDelete().stream()
-                                        .map(holdingsRecordRecord ->
-                                            InventoryStorage.deleteInventoryRecord(okapiClient, holdingsRecordRecord)),
-                                repository.getDeletingHoldingsToSilentlyUpdate().stream()
-                                        .map(holdingsRecordRecord ->
-                                            InventoryStorage.putInventoryRecordOutcomeLess(okapiClient, holdingsRecordRecord)))
-                        .toList();
-                Future.join(deleteHoldingsRecords).onComplete( holdingsDeleted -> {
-                    if (holdingsDeleted.succeeded()) {
-                        promise.complete();
-                    } else {
-                        promise.fail(holdingsDeleted.cause().getMessage());
-                    }
-
-                });
-            } else {
-                promise.fail(relationshipsAndItemsDeleted.cause().getMessage());
-            }
+        return Future.join(deleteRelationsDeleteItems).compose(ignored -> {
+            List<Future<JsonObject>> deleteHoldingsRecords = Stream.concat(
+                            repository.getHoldingsToDelete().stream()
+                                    .map(holdingsRecordRecord ->
+                                        InventoryStorage.deleteInventoryRecord(okapiClient, holdingsRecordRecord)),
+                            repository.getDeletingHoldingsToSilentlyUpdate().stream()
+                                    .map(holdingsRecordRecord ->
+                                        InventoryStorage.putInventoryRecordOutcomeLess(okapiClient, holdingsRecordRecord)))
+                    .toList();
+            return Future.join(deleteHoldingsRecords).mapEmpty();
         });
-        return promise.future();
 
     }
 

@@ -14,7 +14,6 @@ import org.folio.inventoryupdate.updating.instructions.ProcessingInstructionsUps
 import org.folio.okapi.common.OkapiClient;
 
 import io.vertx.core.Future;
-import io.vertx.core.Promise;
 
 import static org.folio.inventoryupdate.updating.ErrorReport.UNPROCESSABLE_ENTITY;
 import static org.folio.inventoryupdate.updating.entities.InventoryRecord.Transaction.*;
@@ -362,78 +361,44 @@ public class UpdatePlanAllHRIDs extends UpdatePlan {
     // EXECUTE CREATES, UPDATES, DELETES.
 
     public Future<Void> doInventoryUpdates(OkapiClient okapiClient) {
-        Promise<Void> promise = Promise.promise();
-        doCreateRecordsWithDependants(okapiClient).onComplete(prerequisitesCreated ->
-          doUpdateInstancesAndHoldings(okapiClient).onComplete(instancesAndHoldingsUpdated ->
-            doUpdateItems(okapiClient).onComplete(itemsUpdated -> {
-              if (prerequisitesCreated.succeeded()) {
-                doCreateInstanceRelations(okapiClient).onComplete(relationsCreated -> {
-                  if (instancesAndHoldingsUpdated.succeeded() && itemsUpdated.succeeded()) {
-                    doDeleteRelationsItemsHoldings(okapiClient).onComplete(deletes -> {
-                      if (deletes.succeeded()) {
-                        doCreateItems(okapiClient). onComplete(itemsCreated -> {
-                          if (itemsCreated.succeeded()) {
-                            if (relationsCreated.succeeded()) {
-                              promise.complete();
-                            } else {
-                              promise.fail(relationsCreated.cause().getMessage());
-                            }
-                          } else {
-                            promise.fail(itemsCreated.cause().getMessage());
-                          }
-                        });
-                      } else {
-                        promise.fail(deletes.cause().getMessage());
-                      }
-                    });
-                  } else {
-                    if (prerequisitesCreated.failed()) {
-                      promise.fail(prerequisitesCreated.cause().getMessage());
-                    } else if (instancesAndHoldingsUpdated.failed()) {
-                      promise.fail(instancesAndHoldingsUpdated.cause().getMessage());
-                    } else if (itemsUpdated.failed()) {
-                      promise.fail(itemsUpdated.cause().getMessage());
+        // Attempt the record updates even if creating prerequisites failed.
+        return doCreateRecordsWithDependants(okapiClient).transform(prerequisites ->
+            doUpdateInstancesAndHoldings(okapiClient).transform(instancesAndHoldings ->
+                doUpdateItems(okapiClient).transform(items -> {
+                    if (prerequisites.failed()) {
+                        return Future.failedFuture(prerequisites.cause());
                     }
-                  }
-                });
-              } else {
-                promise.fail(prerequisitesCreated.cause().getMessage());
-              }
-            })));
-        return promise.future();
+                    return doCreateInstanceRelations(okapiClient).transform(relations -> {
+                        if (instancesAndHoldings.failed()) {
+                            return Future.failedFuture(instancesAndHoldings.cause());
+                        }
+                        if (items.failed()) {
+                            return Future.failedFuture(items.cause());
+                        }
+                        return doDeleteRelationsItemsHoldings(okapiClient)
+                            .compose(ignored -> doCreateItems(okapiClient))
+                            .compose(ignored -> relations.succeeded()
+                                ? Future.succeededFuture() : Future.failedFuture(relations.cause()));
+                    });
+                })));
     }
 
     public Future<Void> doCreateInstanceRelations(OkapiClient okapiClient){
-        Promise<Void> promise = Promise.promise();
-
         List<Future<JsonObject>> provisionalInstancesFutures =
             ((RepositoryByHrids) repository).provisionalInstancesByHrid.values().stream()
                 .map(instance -> InventoryStorage.postInventoryRecord(okapiClient, instance))
                 .toList();
-        Future.join(provisionalInstancesFutures).onComplete(allProvisionalInstancesCreated -> {
-            if (allProvisionalInstancesCreated.succeeded()) {
-                List<Future<JsonObject>> createFutures = repository.getInstanceRelationsToCreate().stream()
+        return Future.join(provisionalInstancesFutures)
+            .recover(cause -> Future.failedFuture(ErrorReport.makeErrorReportFromJsonString(cause.getMessage())
+                .setShortMessage("There was an error creating provisional Instances")
+                .asJsonString()))
+            .compose(ignored -> Future.join(repository.getInstanceRelationsToCreate().stream()
                     .map(relation -> InventoryStorage.postInventoryRecord(okapiClient, relation))
-                    .toList();
-                Future.join(createFutures).onComplete( allRelationsCreated -> {
-                    if (allRelationsCreated.succeeded()) {
-                        promise.complete();
-                    } else {
-                        promise.fail(
-                                ErrorReport.makeErrorReportFromJsonString(
-                                        allRelationsCreated.cause().getMessage())
-                                        .setShortMessage(
-                                                "UpdatePlan using repository: There was an error creating instance relations")
-                                        .asJsonString());
-                    }
-                });
-            } else {
-                promise.fail(ErrorReport.makeErrorReportFromJsonString(allProvisionalInstancesCreated.cause().getMessage())
-                        .setShortMessage("There was an error creating provisional Instances")
-                        .asJsonString());
-            }
-        });
-        return promise.future();
+                    .toList())
+                .<Void>mapEmpty()
+                .recover(cause -> Future.failedFuture(ErrorReport.makeErrorReportFromJsonString(cause.getMessage())
+                    .setShortMessage("UpdatePlan using repository: There was an error creating instance relations")
+                    .asJsonString())));
     }
     // END OF STORAGE METHODS
 

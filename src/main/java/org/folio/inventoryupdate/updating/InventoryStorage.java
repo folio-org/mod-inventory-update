@@ -62,21 +62,20 @@ public class InventoryStorage {
     throw new IllegalStateException("Utility class");
   }
   public static Future<JsonObject> postInventoryRecord (OkapiClient okapiClient, InventoryRecord inventoryRecord) {
-    Promise<JsonObject> promise = Promise.promise();
-    okapiClient.post(getApi(inventoryRecord.entityType()), inventoryRecord.asJsonString(), postResult -> {
-      if (postResult.succeeded()) {
-        String result = postResult.result();
-        JsonObject responseJson = new JsonObject(result);
-        inventoryRecord.complete();
-        promise.complete(responseJson);
-      } else {
-        inventoryRecord.fail();
-        inventoryRecord.skipDependants();
-        inventoryRecord.logError(okapiClient.getResponsebody(), okapiClient.getStatusCode(), ErrorReport.ErrorCategory.STORAGE, inventoryRecord.getOriginJson());
-        promise.fail(inventoryRecord.getErrorAsJson().encodePrettily());
-      }
-    });
-    return promise.future();
+    return okapiClient.post(getApi(inventoryRecord.entityType()), inventoryRecord.asJsonString())
+        .transform(postResult -> {
+          if (postResult.succeeded()) {
+            JsonObject responseJson = new JsonObject(postResult.result());
+            inventoryRecord.complete();
+            return Future.succeededFuture(responseJson);
+          } else {
+            inventoryRecord.fail();
+            inventoryRecord.skipDependants();
+            inventoryRecord.logError(okapiClient.getResponsebody(), okapiClient.getStatusCode(),
+                ErrorReport.ErrorCategory.STORAGE, inventoryRecord.getOriginJson());
+            return Future.failedFuture(inventoryRecord.getErrorAsJson().encodePrettily());
+          }
+        });
   }
 
   public static Future<Void> postInstances(OkapiClient okapiClient, List<Instance> records) {
@@ -92,35 +91,32 @@ public class InventoryStorage {
   }
 
   private static Future<Void> postInventoryRecords (OkapiClient okapiClient, List<InventoryRecord> records, String arrayName) {
-    Promise<Void> promise = Promise.promise();
-    if (!records.isEmpty()) {
-      JsonObject request = new JsonObject();
-      request.put(arrayName, jsonArrayFromInventoryRecordList(records));
-      logger.debug("Posting request {}: to {}", request::encodePrettily, () ->getBatchApi(arrayName));
-      okapiClient.post(getBatchApi(arrayName) + "?upsert=true", request.encode(), postResult -> {
-        if (postResult.succeeded()) {
-          for (InventoryRecord inventoryRecord : records) {
-            inventoryRecord.complete();
-          }
-          promise.complete();
-        } else {
-          for (InventoryRecord inventoryRecord : records) {
-            inventoryRecord.fail();
-            inventoryRecord.skipDependants();
-            inventoryRecord.logError(
-                    okapiClient.getResponsebody(),
-                    okapiClient.getStatusCode(),
-                    (records.size()>1 ? ErrorReport.ErrorCategory.BATCH_STORAGE : ErrorReport.ErrorCategory.STORAGE),
-                    inventoryRecord.getOriginJson()
-            );
-          }
-          promise.fail(records.getFirst().getErrorAsJson().encodePrettily());
-        }
-      });
-    } else {
-      promise.complete();
+    if (records.isEmpty()) {
+      return Future.succeededFuture();
     }
-    return promise.future();
+    JsonObject request = new JsonObject();
+    request.put(arrayName, jsonArrayFromInventoryRecordList(records));
+    logger.debug("Posting request {}: to {}", request::encodePrettily, () ->getBatchApi(arrayName));
+    return okapiClient.post(getBatchApi(arrayName) + "?upsert=true", request.encode()).transform(postResult -> {
+      if (postResult.succeeded()) {
+        for (InventoryRecord inventoryRecord : records) {
+          inventoryRecord.complete();
+        }
+        return Future.succeededFuture();
+      } else {
+        for (InventoryRecord inventoryRecord : records) {
+          inventoryRecord.fail();
+          inventoryRecord.skipDependants();
+          inventoryRecord.logError(
+                  okapiClient.getResponsebody(),
+                  okapiClient.getStatusCode(),
+                  (records.size()>1 ? ErrorReport.ErrorCategory.BATCH_STORAGE : ErrorReport.ErrorCategory.STORAGE),
+                  inventoryRecord.getOriginJson()
+          );
+        }
+        return Future.failedFuture(records.getFirst().getErrorAsJson().encodePrettily());
+      }
+    });
   }
 
   private static JsonArray jsonArrayFromInventoryRecordList (List<InventoryRecord> records) {
@@ -132,19 +128,20 @@ public class InventoryStorage {
   }
 
   public static Future<JsonObject> putInventoryRecord (OkapiClient okapiClient, InventoryRecord inventoryRecord) {
-    Promise<JsonObject> promise = Promise.promise();
     logger.debug("Putting {}: {}", inventoryRecord::entityType, () -> inventoryRecord.asJson().encodePrettily());
-    okapiClient.request(HttpMethod.PUT, getApi(inventoryRecord.entityType())+"/"+inventoryRecord.getUUID(), inventoryRecord.asJsonString(), putResult -> {
-      if (putResult.succeeded()) {
-        inventoryRecord.complete();
-        promise.complete(inventoryRecord.asJson());
-      } else {
-        inventoryRecord.fail();
-        inventoryRecord.logError(okapiClient.getResponsebody(), okapiClient.getStatusCode(), ErrorReport.ErrorCategory.STORAGE, inventoryRecord.getOriginJson());
-        promise.fail(inventoryRecord.getErrorAsJson().encodePrettily());
-      }
-    });
-    return promise.future();
+    return okapiClient.request(HttpMethod.PUT, getApi(inventoryRecord.entityType()) + "/" + inventoryRecord.getUUID(),
+        inventoryRecord.asJsonString())
+        .transform(putResult -> {
+          if (putResult.succeeded()) {
+            inventoryRecord.complete();
+            return Future.succeededFuture(inventoryRecord.asJson());
+          } else {
+            inventoryRecord.fail();
+            inventoryRecord.logError(okapiClient.getResponsebody(), okapiClient.getStatusCode(),
+                ErrorReport.ErrorCategory.STORAGE, inventoryRecord.getOriginJson());
+            return Future.failedFuture(inventoryRecord.getErrorAsJson().encodePrettily());
+          }
+        });
   }
 
   /**
@@ -154,31 +151,31 @@ public class InventoryStorage {
    * to set non-compliant UUIDs for statistical codes).
    */
   public static Future<JsonObject> putInventoryRecordOutcomeLess (OkapiClient okapiClient, InventoryRecord inventoryRecord) {
-    Promise<JsonObject> promise = Promise.promise();
     logger.debug("Putting {}: {}", inventoryRecord::entityType, () -> inventoryRecord.asJson().encodePrettily());
-    okapiClient.request(HttpMethod.PUT, getApi(inventoryRecord.entityType())+"/"+inventoryRecord.getUUID(), inventoryRecord.asJsonString(), putResult -> {
-      if (putResult.failed()) {
-        inventoryRecord.logError(okapiClient.getResponsebody(), okapiClient.getStatusCode(), ErrorReport.ErrorCategory.STORAGE, inventoryRecord.getOriginJson());
-      }
-      promise.complete(inventoryRecord.asJson());
-    });
-    return promise.future();
+    return okapiClient.request(HttpMethod.PUT, getApi(inventoryRecord.entityType()) + "/" + inventoryRecord.getUUID(),
+        inventoryRecord.asJsonString())
+        .transform(putResult -> {
+          if (putResult.failed()) {
+            inventoryRecord.logError(okapiClient.getResponsebody(), okapiClient.getStatusCode(),
+                ErrorReport.ErrorCategory.STORAGE, inventoryRecord.getOriginJson());
+          }
+          return Future.succeededFuture(inventoryRecord.asJson());
+        });
   }
 
   public static Future<JsonObject> deleteInventoryRecord (OkapiClient okapiClient, InventoryRecord inventoryRecord) {
-    Promise<JsonObject> promise = Promise.promise();
-    okapiClient.delete(getApi(inventoryRecord.entityType())+"/"+inventoryRecord.getUUID(), deleteResult -> {
-      if (deleteResult.succeeded()) {
-        inventoryRecord.complete();
-        promise.complete();
-      } else {
-        inventoryRecord.fail();
-        inventoryRecord.logError(deleteResult.cause().getMessage(), okapiClient.getStatusCode(), ErrorReport.ErrorCategory.STORAGE, inventoryRecord.getOriginJson());
-        promise.fail(inventoryRecord.getErrorAsJson().encodePrettily());
-      }
-    });
-    return promise.future();
-
+    return okapiClient.delete(getApi(inventoryRecord.entityType()) + "/" + inventoryRecord.getUUID())
+        .transform(deleteResult -> {
+          if (deleteResult.succeeded()) {
+            inventoryRecord.complete();
+            return Future.succeededFuture();
+          } else {
+            inventoryRecord.fail();
+            inventoryRecord.logError(deleteResult.cause().getMessage(), okapiClient.getStatusCode(),
+                ErrorReport.ErrorCategory.STORAGE, inventoryRecord.getOriginJson());
+            return Future.failedFuture(inventoryRecord.getErrorAsJson().encodePrettily());
+          }
+        });
   }
 
   public static Future<JsonObject> lookupInstance(OkapiClient okapiClient, InventoryQuery inventoryQuery) {
@@ -210,21 +207,11 @@ public class InventoryStorage {
 
 
   public static Future<JsonArray> lookupInstances (OkapiClient okapiClient, QueryByListOfIds inventoryQuery) {
-    Promise<JsonArray> promise = Promise.promise();
-    okapiClient.get(INSTANCE_STORAGE_PATH+"?limit=100000&query="+inventoryQuery.getURLEncodedQueryString(), res -> {
-      if ( res.succeeded()) {
-        JsonObject matchingInstances = new JsonObject(res.result());
-        int recordCount = matchingInstances.getInteger(TOTAL_RECORDS);
-        if (recordCount > 0) {
-          promise.complete(matchingInstances.getJsonArray(INSTANCES));
-        } else {
-          promise.complete(null);
-        }
-      } else {
-        failure(res.cause(), Entity.INSTANCE, Transaction.GET, okapiClient.getStatusCode(), promise);
-      }
-    });
-    return promise.future();
+    String path = INSTANCE_STORAGE_PATH + "?limit=100000&query=" + inventoryQuery.getURLEncodedQueryString();
+    return okapiClient.get(path).compose(result -> {
+      JsonObject response = new JsonObject(result);
+      return Future.succeededFuture(response.getInteger(TOTAL_RECORDS) > 0 ? response.getJsonArray(INSTANCES) : null);
+    }, cause -> failureFuture(cause, Entity.INSTANCE, Transaction.GET, okapiClient.getStatusCode(), null));
   }
 
   public static Future<JsonArray> lookupInstanceSets(OkapiClient okapiClient, QueryByListOfIds inventoryQuery) {
@@ -249,45 +236,19 @@ public class InventoryStorage {
   }
 
   public static Future<JsonArray> lookupHoldingsRecords (OkapiClient okapiClient, QueryByListOfIds inventoryQuery) {
-    Promise<JsonArray> promise = Promise.promise();
-    okapiClient.get(HOLDINGS_STORAGE_PATH+"?limit=100000&query="+inventoryQuery.getURLEncodedQueryString(), res -> {
-      if ( res.succeeded()) {
-        JsonObject holdingsRecords = new JsonObject(res.result());
-        int recordCount = holdingsRecords.getInteger(TOTAL_RECORDS);
-        if (recordCount > 0) {
-          promise.complete(holdingsRecords.getJsonArray(HOLDINGS_RECORDS));
-        } else {
-          promise.complete(null);
-        }
-      } else {
-        failure(res.cause(),
-                Entity.HOLDINGS_RECORD,
-                Transaction.GET,
-                okapiClient.getStatusCode(),
-                promise,
-                HOLDINGS_STORAGE_PATH+"?limit=100000&query="+inventoryQuery.getURLEncodedQueryString());
-      }
-    });
-    return promise.future();
+    String path = HOLDINGS_STORAGE_PATH + "?limit=100000&query=" + inventoryQuery.getURLEncodedQueryString();
+    return okapiClient.get(path).compose(result -> {
+      JsonObject response = new JsonObject(result);
+      return Future.succeededFuture(response.getInteger(TOTAL_RECORDS) > 0 ? response.getJsonArray(HOLDINGS_RECORDS) : null);
+    }, cause -> failureFuture(cause, Entity.HOLDINGS_RECORD, Transaction.GET, okapiClient.getStatusCode(), path));
   }
 
   public static Future<JsonArray> lookupItems (OkapiClient okapiClient, QueryByListOfIds inventoryQuery) {
-    Promise<JsonArray> promise = Promise.promise();
-    okapiClient.get(ITEM_STORAGE_PATH+"?limit=100000&query="+inventoryQuery.getURLEncodedQueryString(), res -> {
-      if ( res.succeeded()) {
-        JsonObject items = new JsonObject(res.result());
-        int recordCount = items.getInteger(TOTAL_RECORDS);
-        if (recordCount > 0) {
-          promise.complete(items.getJsonArray(ITEMS));
-        } else {
-          promise.complete(null);
-        }
-      } else {
-        failure(res.cause(), Entity.ITEM, Transaction.GET, okapiClient.getStatusCode(), promise,
-                ITEM_STORAGE_PATH+"?limit=100000&query="+inventoryQuery.getURLEncodedQueryString());
-      }
-    });
-    return promise.future();
+    String path = ITEM_STORAGE_PATH + "?limit=100000&query=" + inventoryQuery.getURLEncodedQueryString();
+    return okapiClient.get(path).compose(result -> {
+      JsonObject response = new JsonObject(result);
+      return Future.succeededFuture(response.getInteger(TOTAL_RECORDS) > 0 ? response.getJsonArray(ITEMS) : null);
+    }, cause -> failureFuture(cause, Entity.ITEM, Transaction.GET, okapiClient.getStatusCode(), path));
   }
 
 
@@ -344,18 +305,10 @@ public class InventoryStorage {
   }
 
   public static Future<JsonArray> getLocations(OkapiClient okapiClient)  {
-    Promise<JsonArray> promise = Promise.promise();
-    okapiClient.get(LOCATION_STORAGE_PATH + "?limit=9999", locs -> {
-      if (locs.succeeded()) {
-        JsonObject response = new JsonObject(locs.result());
-        JsonArray locationsJson = response.getJsonArray(LOCATIONS);
-        promise.complete(locationsJson);
-      }  else {
-        failure(locs.cause(), Entity.LOCATION, Transaction.GET, okapiClient.getStatusCode(), promise,
-                LOCATION_STORAGE_PATH + "?limit=9999");
-      }
-    });
-    return promise.future();
+    String path = LOCATION_STORAGE_PATH + "?limit=9999";
+    return okapiClient.get(path).compose(
+        result -> Future.succeededFuture(new JsonObject(result).getJsonArray(LOCATIONS)),
+        cause -> failureFuture(cause, Entity.LOCATION, Transaction.GET, okapiClient.getStatusCode(), path));
   }
 
   private static String getApi(Entity entityType) {

@@ -1,7 +1,6 @@
 package org.folio.inventoryupdate.importing.service.delivery.fileimport;
 
 import io.vertx.core.Future;
-import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
 import java.util.UUID;
 import org.apache.logging.log4j.LogManager;
@@ -82,7 +81,6 @@ public class XmlFileProcessor extends FileProcessor {
    * @return future completion of the file import
    */
   public Future<Void> processFile(SourceFile xmlFile) {
-    Promise<Void> promise = Promise.promise();
     return reporting.nowProcessing(xmlFile.getName(), channelId)
         .onFailure(f -> {
           if (!paused()) {
@@ -91,25 +89,19 @@ public class XmlFileProcessor extends FileProcessor {
         }).compose(v -> {
           Future<Void> fileFinished = inventoryBatchUpdater.startFile();
           try {
-            vertx.executeBlocking(new XmlRecordsReader(xmlFile, transformationPipeline), true)
-                .compose(na -> fileFinished)
-                .onComplete(processing -> {
-                  if (processing.succeeded()) {
-                    promise.complete();
-                  } else {
-                    logger.error("Processing failed with {}", processing.cause().getMessage());
-                    if (!paused()) {
-                      halt("Processing of " + xmlFile.getName() + " failed with "
-                          + processing.cause().getMessage());
-                    }
-                    inventoryBatchUpdater.failCurrentFile(processing.cause());
-                    promise.complete();
+            return vertx.executeBlocking(new XmlRecordsReader(xmlFile, transformationPipeline), true)
+                .compose(ignored -> fileFinished)
+                .recover(cause -> {
+                  logger.error("Processing failed with {}", cause.getMessage());
+                  if (!paused()) {
+                    halt("Processing of " + xmlFile.getName() + " failed with " + cause.getMessage());
                   }
+                  inventoryBatchUpdater.failCurrentFile(cause);
+                  return Future.succeededFuture();
                 });
           } catch (Exception e) {
-            promise.fail("Could not open XML source file for importing " + e.getMessage());
+            return Future.failedFuture("Could not open XML source file for importing " + e.getMessage());
           }
-          return promise.future();
         });
   }
 

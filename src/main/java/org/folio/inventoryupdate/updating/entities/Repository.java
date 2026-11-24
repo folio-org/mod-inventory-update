@@ -1,8 +1,6 @@
 package org.folio.inventoryupdate.updating.entities;
 
-import io.vertx.core.AsyncResult;
 import io.vertx.core.Future;
-import io.vertx.core.Promise;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import org.folio.inventoryupdate.updating.InventoryStorage;
@@ -50,31 +48,20 @@ public abstract class Repository {
 
   protected Future<Void> requestHoldingsRecordsByInstanceIds(UpdateRequest request,
                                                              List<String> instanceIds) {
-    Promise<Void> promise = Promise.promise();
-    InventoryStorage.lookupHoldingsRecords(request.getOkapiClient(),
+    return InventoryStorage.lookupHoldingsRecords(request.getOkapiClient(),
                     new QueryByListOfIds("instanceId", instanceIds))
-            .onComplete(records -> {
-              if (records.succeeded()) {
-                if (records.result() != null) {
-                  stashExistingHoldingsRecords(records);
-                }
-                promise.complete();
-              } else {
-                promise.fail(records.cause().getMessage());
-              }
-
-            });
-    return promise.future();
+        .map(records -> {
+          if (records != null) {
+            stashExistingHoldingsRecords(records);
+          }
+          return null;
+        });
   }
 
   protected void stashExistingInstance(JsonObject instanceObject) {
     Instance instance = new Instance(instanceObject);
     existingInstancesByHrid.put(instance.getHRID(), instance);
     existingInstancesByUUID.put(instance.getUUID(), instance);
-  }
-
-  void stashExistingHoldingsRecords(AsyncResult<JsonArray> records) {
-    stashExistingHoldingsRecords(records.result());
   }
 
   void stashExistingHoldingsRecords(JsonArray records) {
@@ -88,10 +75,6 @@ public abstract class Repository {
       existingHoldingsRecordsByInstanceId.get(holdingsRecord.getInstanceId()).put(
               holdingsRecord.getUUID(), holdingsRecord);
     }
-  }
-
-  void stashExistingItems(AsyncResult<JsonArray> records) {
-    stashExistingItems(records.result());
   }
 
   void stashExistingItems(JsonArray records) {
@@ -129,21 +112,14 @@ public abstract class Repository {
 
   protected Future<Void> requestItemsByHoldingsRecordIds(UpdateRequest request,
                                                        List<String> holdingsRecordIds) {
-    Promise<Void> promise = Promise.promise();
-    InventoryStorage.lookupItems(request.getOkapiClient(),
+    return InventoryStorage.lookupItems(request.getOkapiClient(),
                     new QueryByListOfIds("holdingsRecordId", holdingsRecordIds))
-            .onComplete(records -> {
-              if (records.succeeded()) {
-                if (records.result() != null) {
-                  stashExistingItems(records);
-                }
-                promise.complete();
-              } else {
-                promise.fail(records.cause().getMessage());
-              }
-
-            });
-    return promise.future();
+        .map(records -> {
+          if (records != null) {
+            stashExistingItems(records);
+          }
+          return null;
+        });
   }
 
   protected List<String> getExistingInstanceIds () {

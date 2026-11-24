@@ -20,7 +20,6 @@ import org.folio.inventoryupdate.updating.entities.RepositoryByMatchKey;
 import org.folio.okapi.common.OkapiClient;
 
 import io.vertx.core.Future;
-import io.vertx.core.Promise;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 
@@ -262,49 +261,41 @@ public class UpdatePlanSharedInventory extends UpdatePlan {
   public Future<Void> doInventoryUpdates(OkapiClient okapiClient) {
     long startUpdates = System.nanoTime();
     logger.debug("Doing Inventory updates using repository");
-    Promise<Void> promise = Promise.promise();
-    doDeleteRelationsItemsHoldings(okapiClient).onComplete(deletes -> {
-      if (deletes.succeeded()) {
-        doCreateRecordsWithDependants(okapiClient).onComplete(prerequisites ->
-            doUpdateInstancesAndHoldings(okapiClient).onComplete(instanceAndHoldingsUpdates ->
-                doCreateInstanceRelations(okapiClient).onComplete(relationsCreated ->
-                    doUpdateItems(okapiClient).onComplete(itemUpdates ->
-                        doCreateItems(okapiClient).onComplete(itemCreates -> {
+    // After deletes succeed, attempt each remaining stage before evaluating the update outcome.
+    return doDeleteRelationsItemsHoldings(okapiClient).compose(ignored ->
+        doCreateRecordsWithDependants(okapiClient).transform(prerequisites ->
+            doUpdateInstancesAndHoldings(okapiClient).transform(instanceAndHoldingsUpdates ->
+                doCreateInstanceRelations(okapiClient).transform(ignoredRelations ->
+                    doUpdateItems(okapiClient).transform(itemUpdates ->
+                        doCreateItems(okapiClient).transform(itemCreates -> {
                           if (prerequisites.succeeded()
                               && instanceAndHoldingsUpdates.succeeded()
                               && itemUpdates.succeeded()
                               && itemCreates.succeeded()) {
                             long updatesDone = System.nanoTime() - startUpdates;
-                            logger.debug("Updates performed in {} ms.", updatesDone/1000000L);
-                            promise.complete();
-                          } else {
-                            String error = "";
-                            if (prerequisites.failed()) {
-                              error = prerequisites.cause().getMessage();
-                            } else if (instanceAndHoldingsUpdates.failed()) {
-                              error = instanceAndHoldingsUpdates.cause().getMessage();
-                            } else if (itemCreates.failed()) {
-                              error = itemCreates.cause().getMessage();
-                            }
-                            promise.fail(
-                                ErrorReport.makeErrorReportFromJsonString(error)
-                                    .setShortMessage(
-                                        "One or more errors occurred updating Inventory records")
-                                    .asJsonString());
+                            logger.debug("Updates performed in {} ms.", updatesDone / 1000000L);
+                            return Future.succeededFuture();
                           }
-                        })))));
-      } else {
-        logger.error(deletes.cause().getMessage());
-        if (deletes.cause().getMessage().startsWith("404")) {
-          logger.error("One or more records to delete were not found: {}", deletes.cause().getMessage());
-          promise.complete();
-        } else {
-          promise.fail(ErrorReport.makeErrorReportFromJsonString(deletes.cause().getMessage()).setShortMessage(
-              "There was a problem processing deletes - all other updates skipped.").asJsonString());
-        }
+                          String error = "";
+                          if (prerequisites.failed()) {
+                            error = prerequisites.cause().getMessage();
+                          } else if (instanceAndHoldingsUpdates.failed()) {
+                            error = instanceAndHoldingsUpdates.cause().getMessage();
+                          } else if (itemCreates.failed()) {
+                            error = itemCreates.cause().getMessage();
+                          }
+                          return Future.failedFuture(ErrorReport.makeErrorReportFromJsonString(error)
+                              .setShortMessage("One or more errors occurred updating Inventory records")
+                              .asJsonString());
+                        }))))), cause -> {
+      logger.error(cause.getMessage());
+      if (cause.getMessage().startsWith("404")) {
+        logger.error("One or more records to delete were not found: {}", cause.getMessage());
+        return Future.succeededFuture();
       }
+      return Future.failedFuture(ErrorReport.makeErrorReportFromJsonString(cause.getMessage())
+          .setShortMessage("There was a problem processing deletes - all other updates skipped.").asJsonString());
     });
-    return promise.future();
   }
 
   @Override

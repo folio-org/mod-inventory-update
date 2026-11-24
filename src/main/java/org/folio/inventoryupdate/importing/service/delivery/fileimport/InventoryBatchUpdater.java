@@ -22,6 +22,7 @@ public class InventoryBatchUpdater implements RecordReceiver {
   private final ArrayList<ProcessingRecord> records = new ArrayList<>();
   private final InventoryUpdateClient updateClient;
   private final Turnstile turnstile = new Turnstile();
+  // The record receiver and batch callbacks signal completion after startFile returns.
   private Promise<Void> fileFinished = Promise.promise();
   private long batchNumber;
 
@@ -191,7 +192,7 @@ public class InventoryBatchUpdater implements RecordReceiver {
   }
 
   /**
-   * Persists the deletion, complete the promise when done.
+   * Persists the deletion and returns its completion future.
    *
    * @param batch   The batch of records containing a deletion record
    */

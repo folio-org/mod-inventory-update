@@ -1,8 +1,6 @@
 package org.folio.inventoryupdate.updating.entities;
 
 import io.vertx.core.Future;
-import io.vertx.core.Promise;
-import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import org.folio.inventoryupdate.updating.ErrorReport;
 import org.folio.inventoryupdate.updating.InventoryStorage;
@@ -13,7 +11,6 @@ import org.folio.inventoryupdate.updating.UpdateRequest;
 
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
@@ -25,7 +22,6 @@ public class RepositoryByMatchKey extends Repository {
 
   @Override
   public Future<Void> buildRepositoryFromStorage (UpdateRequest request) {
-    Promise<Void> promise = Promise.promise();
     List<Future<Void>> existingRecordsByMatchKeyFutures = new ArrayList<>();
     for (List<String> idList : getSubListsOfFive(getIncomingMatchKeys())) {
       existingRecordsByMatchKeyFutures.add(requestInstancesByMatchKeys(request, idList));
@@ -37,42 +33,15 @@ public class RepositoryByMatchKey extends Repository {
               pair.getIncomingRecordSet().getInstance().getMatchKey());
       existingRecordsByMatchKeyFutures.add(requestInstanceWithOtherMatchKey(request,query));
     }
-    Future.join(existingRecordsByMatchKeyFutures).onComplete(recordsByMatchKeys -> {
-      if (recordsByMatchKeys.succeeded()) {
-        List<Future<Void>> holdingsRecordsFutures = new ArrayList<>();
-        for (List<String> idList : getSubListsOfFifty(getExistingInstanceIdsIncludingSecondaryInstances())) {
-          holdingsRecordsFutures.add(requestHoldingsRecordsByInstanceIds(request, idList));
-        }
-        Future.join(holdingsRecordsFutures).onComplete(holdingsRecordsByInstanceIds -> {
-          if (holdingsRecordsByInstanceIds.succeeded()) {
-            List<Future<Void>> itemsFutures = new ArrayList<>();
-            for (List<String> idList : getSubListsOfFifty(getExistingHoldingsRecordIds())) {
-              itemsFutures.add(requestItemsByHoldingsRecordIds(request, idList));
-            }
-            Future.join(itemsFutures).onComplete(itemsByHoldingsRecordIds -> {
-              if (itemsByHoldingsRecordIds.succeeded()) {
-                setExistingRecordSets();
-                mapLocationsToInstitutionIds(request).onComplete(locationMapUpdate -> {
-                  if (locationMapUpdate.succeeded()) {
-                    promise.complete();
-                  } else {
-                    promise.fail(locationMapUpdate.cause().getMessage());
-                  }
-                });
-
-              } else {
-                promise.fail(itemsByHoldingsRecordIds.cause().getMessage());
-              }
-            });
-          } else {
-            promise.fail(holdingsRecordsByInstanceIds.cause().getMessage());
-          }
+    return Future.join(existingRecordsByMatchKeyFutures)
+        .compose(ignored -> Future.join(getSubListsOfFifty(getExistingInstanceIdsIncludingSecondaryInstances())
+            .stream().map(ids -> requestHoldingsRecordsByInstanceIds(request, ids)).toList()))
+        .compose(ignored -> Future.join(getSubListsOfFifty(getExistingHoldingsRecordIds())
+            .stream().map(ids -> requestItemsByHoldingsRecordIds(request, ids)).toList()))
+        .compose(ignored -> {
+          setExistingRecordSets();
+          return mapLocationsToInstitutionIds(request);
         });
-      } else {
-        promise.fail(recordsByMatchKeys.cause().getMessage());
-      }
-    });
-    return promise.future();
   }
 
   protected List<String> getExistingInstanceIdsIncludingSecondaryInstances () {
@@ -106,48 +75,34 @@ public class RepositoryByMatchKey extends Repository {
 
   private Future<Void> requestInstancesByMatchKeys(UpdateRequest request,
                                                    List<String> matchKeys) {
-    Promise<Void> promise = Promise.promise();
-    InventoryStorage.lookupInstances(request.getOkapiClient(),
+    return InventoryStorage.lookupInstances(request.getOkapiClient(),
                     new QueryByListOfIds("matchKey", matchKeys))
-            .onComplete(instances -> {
-              if (instances.succeeded()) {
-                if (instances.result() != null) {
-                  for (Object o : instances.result()) {
-                    Instance instance = new Instance((JsonObject) o);
-                    existingInstancesByMatchKey.put(instance.getMatchKey(), instance);
-                    existingInstancesByUUID.put(instance.getUUID(), instance);
-                  }
-                }
-                promise.complete();
-              } else {
-                promise.fail(instances.cause().getMessage());
-              }
-
-            });
-    return promise.future();
+        .map(instances -> {
+          if (instances != null) {
+            for (Object o : instances) {
+              Instance instance = new Instance((JsonObject) o);
+              existingInstancesByMatchKey.put(instance.getMatchKey(), instance);
+              existingInstancesByUUID.put(instance.getUUID(), instance);
+            }
+          }
+          return null;
+        });
   }
 
   private Future<Void> requestInstanceWithOtherMatchKey(UpdateRequest request,
                                                         QueryShiftingMatchKey query) {
-    Promise<Void> promise = Promise.promise();
-    InventoryStorage.lookupInstance(request.getOkapiClient(), query)
-            .onComplete(instance -> {
-              if (instance.succeeded()) {
-                if (instance.result() != null) {
-                    Instance inst = new Instance(instance.result());
-                    secondaryInstancesByLocalIdentifier.put(query.localIdentifier(), inst);
-                    existingInstancesByUUID.put(inst.getUUID(),inst);
-                }
-                promise.complete();
-              } else {
-                promise.fail(instance.cause().getMessage());
-              }
-            });
-    return promise.future();
+    return InventoryStorage.lookupInstance(request.getOkapiClient(), query)
+        .map(instance -> {
+          if (instance != null) {
+              Instance inst = new Instance(instance);
+              secondaryInstancesByLocalIdentifier.put(query.localIdentifier(), inst);
+              existingInstancesByUUID.put(inst.getUUID(),inst);
+          }
+          return null;
+        });
   }
 
   private Future<Void> mapLocationsToInstitutionIds (UpdateRequest request) {
-    Promise<Void> mapReady = Promise.promise();
     boolean missMappings = false;
     for (PairedRecordSets pair : pairsOfRecordSets) {
       if (pair.hasIncomingRecordSet()) {
@@ -169,12 +124,12 @@ public class RepositoryByMatchKey extends Repository {
         }
       }
     }
-    if (missMappings) {
-      InventoryStorage.getLocations(request.getOkapiClient()).onComplete(gotLocations -> {
-        if (gotLocations.succeeded()) {
-          JsonArray locationsJson = gotLocations.result();
-          if (locationsJson == null || locationsJson.isEmpty()) {
-            mapReady.fail(
+    if (!missMappings) {
+      return Future.succeededFuture();
+    }
+    return InventoryStorage.getLocations(request.getOkapiClient()).compose(locationsJson -> {
+      if (locationsJson == null || locationsJson.isEmpty()) {
+        return Future.failedFuture(
                     new ErrorReport(
                             ErrorReport.ErrorCategory.STORAGE,
                             ErrorReport.INTERNAL_SERVER_ERROR,
@@ -182,22 +137,13 @@ public class RepositoryByMatchKey extends Repository {
                             .setEntityType(InventoryRecord.Entity.LOCATION)
                             .setTransaction(InventoryRecord.Transaction.GET.name())
                             .asJsonString());
-          } else {
-            Iterator<?> locationsIterator = locationsJson.iterator();
-            while (locationsIterator.hasNext()) {
-              JsonObject location = (JsonObject) locationsIterator.next();
-              UpdatePlanSharedInventory.locationsToInstitutionsMap().put(location.getString("id"), location.getString("institutionId"));
-            }
-            mapReady.complete();
-          }
-        } else {
-          mapReady.fail(gotLocations.cause().getMessage());
-        }
-      });
-    } else {
-      mapReady.complete();
-    }
-    return mapReady.future();
+      }
+      for (Object entry : locationsJson) {
+        JsonObject location = (JsonObject) entry;
+        UpdatePlanSharedInventory.locationsToInstitutionsMap().put(location.getString("id"), location.getString("institutionId"));
+      }
+      return Future.succeededFuture();
+    });
   }
 
   @Override

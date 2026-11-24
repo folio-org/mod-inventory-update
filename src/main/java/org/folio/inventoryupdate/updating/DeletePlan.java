@@ -1,7 +1,6 @@
 package org.folio.inventoryupdate.updating;
 
 import io.vertx.core.Future;
-import io.vertx.core.Promise;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.LogManager;
 import io.vertx.core.json.JsonArray;
@@ -72,20 +71,8 @@ public abstract class DeletePlan {
   }
 
   protected Future<InventoryRecordSet> lookupExistingRecordSet(OkapiClient okapiClient, InventoryQuery instanceQuery) {
-    Promise<InventoryRecordSet> promise = Promise.promise();
-    InventoryStorage.lookupSingleInventoryRecordSet(okapiClient, instanceQuery).onComplete(recordSet -> {
-      if (recordSet.succeeded()) {
-        JsonObject existingInventoryRecordSetJson = recordSet.result();
-        if (existingInventoryRecordSetJson != null) {
-          promise.complete(InventoryRecordSet.makeExistingRecordSet(existingInventoryRecordSetJson));
-        } else {
-          promise.complete(null);
-        }
-      } else {
-        promise.fail(recordSet.cause().getMessage());
-      }
-    });
-    return promise.future();
+    return InventoryStorage.lookupSingleInventoryRecordSet(okapiClient, instanceQuery)
+        .map(recordSet -> recordSet == null ? null : InventoryRecordSet.makeExistingRecordSet(recordSet));
   }
 
   /**
@@ -93,24 +80,17 @@ public abstract class DeletePlan {
    * deletions of items, holdings records, instance (if any and in that order)
    */
   public Future<Void> handleSingleSetDelete(OkapiClient okapiClient) {
-    Promise<Void> promise = Promise.promise();
-    Future.join(deleteRelationsAndItems(okapiClient)).onSuccess(
-        relationsItemsDone -> Future.join(deleteHoldingsRecords(okapiClient)).onSuccess(
-            holdingsDone -> {
-              if (isInstanceDeleting()) {
-                if (getExistingInstance().skipped()) {
-                  InventoryStorage.putInventoryRecordOutcomeLess(okapiClient, getExistingInstance())
-                      .onSuccess(res -> promise.complete()).onFailure(promise::fail);
-                } else {
-                  InventoryStorage.deleteInventoryRecord(okapiClient, getExistingRecordSet().getInstance())
-                      .onSuccess(res -> promise.complete()).onFailure(promise::fail);
-                }
-              } else {
-                promise.complete();
-              }
-            }
-        ).onFailure(promise::fail)).onFailure(promise::fail);
-    return promise.future();
+    return Future.join(deleteRelationsAndItems(okapiClient))
+        .compose(ignored -> Future.join(deleteHoldingsRecords(okapiClient)))
+        .compose(ignored -> {
+          if (!isInstanceDeleting()) {
+            return Future.succeededFuture();
+          }
+          if (getExistingInstance().skipped()) {
+            return InventoryStorage.putInventoryRecordOutcomeLess(okapiClient, getExistingInstance()).mapEmpty();
+          }
+          return InventoryStorage.deleteInventoryRecord(okapiClient, getExistingRecordSet().getInstance()).mapEmpty();
+        });
   }
 
   List<Future<JsonObject>> deleteRelationsAndItems(OkapiClient okapiClient) {
@@ -174,49 +154,27 @@ public abstract class DeletePlan {
   }
 
   public Future<InventoryUpdateOutcome> runDeletionPlan(UpdateRequest request) {
-    Promise<InventoryUpdateOutcome> promise = Promise.promise();
     ProcessingInstructionsDeletion deleteInstructions =
         new ProcessingInstructionsDeletion(request.bodyAsJson().getJsonObject("processing"));
 
-    planInventoryDelete(request.getOkapiClient(), deleteInstructions).onComplete(planDone -> {
-      InventoryUpdateOutcome outcome = new InventoryUpdateOutcome();
-      if (planDone.succeeded()) {
-        doInventoryDelete(request.getOkapiClient()).onComplete(deletionsDone -> {
-          outcome.setMetrics(UpdateMetrics.makeMetricsFromJson(getUpdateStats())).setResponseStatusCode(OK);
-          if (deletionsDone.succeeded()) {
-            promise.complete(outcome);
-          } else {
-            outcome.setErrors(new JsonArray()
-                    .add(new ErrorReport(
-                        ErrorReport.ErrorCategory.STORAGE,
-                        INTERNAL_SERVER_ERROR,
-                        deletionsDone.cause().getMessage())
-                        .asJson()))
+    return planInventoryDelete(request.getOkapiClient(), deleteInstructions)
+        .compose(ignored -> doInventoryDelete(request.getOkapiClient()).transform(deletionsDone -> {
+          InventoryUpdateOutcome outcome = new InventoryUpdateOutcome()
+              .setMetrics(UpdateMetrics.makeMetricsFromJson(getUpdateStats())).setResponseStatusCode(OK);
+          if (deletionsDone.failed()) {
+            outcome.setErrors(new JsonArray().add(new ErrorReport(ErrorReport.ErrorCategory.STORAGE,
+                    INTERNAL_SERVER_ERROR, deletionsDone.cause().getMessage()).asJson()))
                 .setResponseStatusCode(MULTI_STATUS);
-            promise.complete(outcome);
           }
+          return Future.succeededFuture(outcome);
+        }), cause -> {
+          if (!foundExistingRecordSet()) {
+            return Future.succeededFuture(new InventoryUpdateOutcome(new ErrorReport(ErrorReport.ErrorCategory.STORAGE,
+                NOT_FOUND, "Error processing delete request: " + cause.getMessage())).setResponseStatusCode(404));
+          }
+          return Future.succeededFuture(new InventoryUpdateOutcome(new ErrorReport(ErrorReport.ErrorCategory.STORAGE,
+              INTERNAL_SERVER_ERROR, cause.getMessage())).setResponseStatusCode(400));
         });
-      } else {
-        if (!foundExistingRecordSet()) {
-          promise.complete(
-              new InventoryUpdateOutcome(
-                  new ErrorReport(
-                      ErrorReport.ErrorCategory.STORAGE,
-                      NOT_FOUND,
-                      "Error processing delete request: " + planDone.cause().getMessage()))
-                  .setResponseStatusCode(404));
-        } else {
-          promise.complete(
-              new InventoryUpdateOutcome(
-                  new ErrorReport(
-                      ErrorReport.ErrorCategory.STORAGE,
-                      INTERNAL_SERVER_ERROR,
-                      planDone.cause().getMessage()))
-                  .setResponseStatusCode(400));
-        }
-      }
-    });
-    return promise.future();
   }
 
 }

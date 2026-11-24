@@ -1,7 +1,6 @@
 package org.folio.inventoryupdate.updating.service;
 
 import io.vertx.core.Future;
-import io.vertx.core.Promise;
 import io.vertx.core.json.JsonArray;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -76,36 +75,26 @@ public class HandlersUpdating {
    * @param plan a shared-inventory/matchKey, or an inventory/hrid upsert plan.
    */
   public Future<InventoryUpdateOutcome> doBatchUpsert(UpdateRequest updateRequest, UpdatePlan plan) {
-    Promise<InventoryUpdateOutcome> promise = Promise.promise();
     JsonArray inventoryRecordSets = updateRequest.bodyAsJson().getJsonArray("inventoryRecordSets");
-    plan.upsertBatch(updateRequest, inventoryRecordSets).onComplete(update -> {
-      // The upsert could succeed, but with an error report, if it was a batch of one
-      // Only if a true batch upsert (of more than one) failed, will the promise fail.
-      if (update.succeeded()) {
-        promise.complete(update.result());
-      } else {
-        logger.error("A batch upsert failed, bringing down all records of the batch. Switching to record-by-record updates");
+    return plan.upsertBatch(updateRequest, inventoryRecordSets).recover(cause -> {
+      logger.error("A batch upsert failed, bringing down all records of the batch. Switching to record-by-record updates");
+      return plan.multipleSingleRecordUpserts(updateRequest, inventoryRecordSets).map(outcomes -> {
         UpdateMetrics accumulatedStats = new UpdateMetrics();
         JsonArray accumulatedErrorReport = new JsonArray();
+        for (InventoryUpdateOutcome outcome : outcomes) {
+          if (outcome.hasMetrics()) {
+            accumulatedStats.add(outcome.getMetrics());
+          }
+          if (outcome.hasError()) {
+            accumulatedErrorReport.add(outcome.getError().asJson());
+          }
+        }
         InventoryUpdateOutcome compositeOutcome = new InventoryUpdateOutcome();
-        plan.multipleSingleRecordUpserts(updateRequest, inventoryRecordSets).onComplete(
-            listOfOutcomes -> {
-              for (InventoryUpdateOutcome outcome : listOfOutcomes.result()) {
-                if (outcome.hasMetrics()) {
-                  accumulatedStats.add(outcome.getMetrics());
-                }
-                if (outcome.hasError()) {
-                  accumulatedErrorReport.add(outcome.getError().asJson());
-                }
-              }
-              compositeOutcome.setMetrics(accumulatedStats);
-              compositeOutcome.setErrors(accumulatedErrorReport);
-              compositeOutcome.setResponseStatusCode(accumulatedErrorReport.isEmpty() ? OK : MULTI_STATUS);
-              promise.complete(compositeOutcome);
-            });
-      }
+        compositeOutcome.setMetrics(accumulatedStats);
+        compositeOutcome.setErrors(accumulatedErrorReport);
+        return compositeOutcome.setResponseStatusCode(accumulatedErrorReport.isEmpty() ? OK : MULTI_STATUS);
+      });
     });
-    return promise.future();
   }
 
   // DELETE REQUESTS

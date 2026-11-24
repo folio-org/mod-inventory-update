@@ -1,7 +1,6 @@
 package org.folio.inventoryupdate.updating;
 
 import io.vertx.core.Future;
-import io.vertx.core.Promise;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import org.folio.inventoryupdate.updating.entities.*;
@@ -43,36 +42,24 @@ public class DeletePlanSharedInventory extends DeletePlan {
 
   @Override
   public Future<Void> planInventoryDelete(OkapiClient okapiClient, ProcessingInstructionsDeletion deleteInstructions) {
-    Promise<Void> promise = Promise.promise();
-    lookupExistingRecordSet(okapiClient, instanceQuery).onComplete( lookup -> {
-      if (lookup.succeeded()) {
-        this.existingSet = lookup.result();
-        if (!foundExistingRecordSet()) {
-          promise.fail(new ErrorReport(ErrorReport.ErrorCategory.STORAGE,404,"Record to be deleted was not found").asJsonString());
-        } else  {
-          if (foundExistingRecordSet()) {
-            this.updatingSet = createUpdatingRecordSetFromExistingSet(existingSet, deletionIdentifiers );
-            mapLocationsToInstitutions(okapiClient,updatingSet,existingSet).onComplete(handler -> {
-              if (handler.succeeded()) {
-                // look for abandoned matches here
-                flagAndIdRecordsForInventoryUpdating(updatingSet,existingSet,deletionIdentifiers);
-                promise.complete();
-              } else {
-                promise.fail(ErrorReport.makeErrorReportFromJsonString(handler.cause().getMessage())
-                    .setShortMessage("There was a problem retrieving locations map, cannot perform updates.")
-                    .asJsonString());
-              }
-            });
-          }
-
-        }
-      } else {
-        promise.fail(ErrorReport.makeErrorReportFromJsonString(lookup.cause().getMessage())
-            .setShortMessage("Error looking up existing record set")
-            .asJsonString());
+    return lookupExistingRecordSet(okapiClient, instanceQuery).compose(lookup -> {
+      existingSet = lookup;
+      if (!foundExistingRecordSet()) {
+        return Future.failedFuture(new ErrorReport(ErrorReport.ErrorCategory.STORAGE, 404,
+            "Record to be deleted was not found").asJsonString());
       }
-    });
-    return promise.future();
+      updatingSet = createUpdatingRecordSetFromExistingSet(existingSet, deletionIdentifiers);
+      return mapLocationsToInstitutions(okapiClient, updatingSet, existingSet)
+          .recover(cause -> Future.failedFuture(ErrorReport.makeErrorReportFromJsonString(cause.getMessage())
+              .setShortMessage("There was a problem retrieving locations map, cannot perform updates.")
+              .asJsonString()))
+          .map(ignored -> {
+            flagAndIdRecordsForInventoryUpdating(updatingSet, existingSet, deletionIdentifiers);
+            return null;
+          });
+    }, cause -> Future.failedFuture(ErrorReport.makeErrorReportFromJsonString(cause.getMessage())
+        .setShortMessage("Error looking up existing record set")
+        .asJsonString()));
   }
 
   /**
@@ -107,7 +94,6 @@ public class DeletePlanSharedInventory extends DeletePlan {
   }
 
   private static Future<Void> mapLocationsToInstitutions (OkapiClient okapiClient, InventoryRecordSet incomingSet, InventoryRecordSet existingSet) {
-    Promise<Void> mapReady = Promise.promise();
     boolean missMappings = false;
     List<HoldingsRecord> allHoldingsRecords = new ArrayList<>();
     if (incomingSet != null) allHoldingsRecords.addAll(incomingSet.getHoldingsRecords());
@@ -120,31 +106,21 @@ public class DeletePlanSharedInventory extends DeletePlan {
         }
       }
     }
-    if (missMappings) {
-      logger.debug("Miss mappings for at least one location, retrieving locations from Inventory storage");
-      InventoryStorage.getLocations(okapiClient).onComplete(gotLocations -> {
-        if (gotLocations.succeeded()) {
-          JsonArray locationsJson = gotLocations.result();
-          if (locationsJson == null || locationsJson.isEmpty()) {
-            mapReady.fail("Retrieved a null or zero length array of locations from storage. Cannot map locations to institutions.");
-          } else {
-            Iterator<?> locationsIterator = locationsJson.iterator();
-            while (locationsIterator.hasNext()) {
-              JsonObject location = (JsonObject) locationsIterator.next();
-              locationsToInstitutionsMap.put(location.getString("id"), location.getString(INSTITUTION_ID));
-
-            }
-            logger.debug("Updated a map of {} FOLIO locations to institutions.", locationsToInstitutionsMap.size());
-            mapReady.complete();
-          }
-        } else {
-          mapReady.fail(gotLocations.cause().getMessage());
-        }
-      });
-    } else {
-      mapReady.complete();
+    if (!missMappings) {
+      return Future.succeededFuture();
     }
-    return mapReady.future();
+    logger.debug("Miss mappings for at least one location, retrieving locations from Inventory storage");
+    return InventoryStorage.getLocations(okapiClient).compose(locationsJson -> {
+      if (locationsJson == null || locationsJson.isEmpty()) {
+        return Future.failedFuture("Retrieved a null or zero length array of locations from storage. Cannot map locations to institutions.");
+      }
+      for (Object entry : locationsJson) {
+        JsonObject location = (JsonObject) entry;
+        locationsToInstitutionsMap.put(location.getString("id"), location.getString(INSTITUTION_ID));
+      }
+      logger.debug("Updated a map of {} FOLIO locations to institutions.", locationsToInstitutionsMap.size());
+      return Future.succeededFuture();
+    });
   }
 
   protected static void flagAndIdRecordsForInventoryUpdating (
@@ -186,27 +162,14 @@ public class DeletePlanSharedInventory extends DeletePlan {
   @Override
   public Future<Void> doInventoryDelete(OkapiClient okapiClient) {
     logger.debug("Doing Inventory updates");
-    Promise<Void> promise = Promise.promise();
-    handleSingleSetDelete(okapiClient).onComplete(deletes -> {
-      if (deletes.succeeded()) {
-        handleSingleInstanceUpdate(okapiClient).onComplete(instanceAndHoldingsUpdates -> {
-          if (instanceAndHoldingsUpdates.succeeded()) {
-            promise.complete();
-          } else {
-            promise.fail(instanceAndHoldingsUpdates.cause().getMessage());
-          }
-        });
-      } else {
-        if (deletes.cause().getMessage().startsWith("404")) {
-          logger.error("Records to delete not found: {}", deletes.cause().getMessage());
-          promise.complete();
-        } else {
-          promise.fail(ErrorReport.makeErrorReportFromJsonString(deletes.cause().getMessage()).setShortMessage(
-              "There was a problem processing deletes - all other updates skipped.").asJsonString());
-        }
+    return handleSingleSetDelete(okapiClient).compose(ignored -> handleSingleInstanceUpdate(okapiClient), cause -> {
+      if (cause.getMessage().startsWith("404")) {
+        logger.error("Records to delete not found: {}", cause.getMessage());
+        return Future.succeededFuture();
       }
+      return Future.failedFuture(ErrorReport.makeErrorReportFromJsonString(cause.getMessage())
+          .setShortMessage("There was a problem processing deletes - all other updates skipped.").asJsonString());
     });
-    return promise.future();
   }
 
   /**
@@ -214,20 +177,10 @@ public class DeletePlanSharedInventory extends DeletePlan {
    * @param okapiClient client for inventory storage requests
    */
   public Future<Void> handleSingleInstanceUpdate(OkapiClient okapiClient) {
-    Promise<Void> promise = Promise.promise();
-    List<Future<JsonObject>> instanceAndHoldingsFutures = new ArrayList<>();
     if (isInstanceUpdating()) {
-      instanceAndHoldingsFutures.add(InventoryStorage.putInventoryRecord(okapiClient, getUpdatingInstance()));
+      return InventoryStorage.putInventoryRecord(okapiClient, getUpdatingInstance()).mapEmpty();
     }
-    Future.join(instanceAndHoldingsFutures).onComplete (allDone -> {
-      if (allDone.succeeded()) {
-        promise.complete();
-      } else {
-        promise.fail(allDone.cause().getMessage());
-      }
-    });
-
-    return promise.future();
+    return Future.succeededFuture();
   }
 
 }

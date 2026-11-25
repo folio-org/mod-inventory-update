@@ -101,6 +101,7 @@ public abstract class FileListener extends VerticleBase {
     // for all other requests (it's the underlying Vert.X WebClient that we avoid closing, to be accurate).
     // Creating a new Vertx will give us a warning in the logs.
     var deploymentOptions = new DeploymentOptions()
+        .setConfig(makeConfig())
         .setWorkerPoolSize(4)
         .setInstances(1)
         .setThreadingModel(ThreadingModel.WORKER)
